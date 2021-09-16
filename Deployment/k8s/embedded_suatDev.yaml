@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: suat
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n3q-embedded
+  namespace: suat
+spec:
+  selector:
+    matchLabels:
+      run: n3q-embedded
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: n3q-embedded
+    spec:
+      containers:
+        - name: n3q-embedded
+          image: docker.k8s.sui.li/n3q-embedded:e92e4864
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: kubectl-binary
+              mountPath: /usr/bin/kubectl
+              readOnly: true
+            - name: htdocs
+              mountPath: /pod-shared
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "cp -r /usr/share/nginx/html /pod-shared/public; chmod -R 777 /pod-shared"]
+
+        - name: php7fpm
+          image: docker.k8s.sui.li/php7fpm
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: htdocs
+              mountPath: /pod-shared
+
+        - name: redis
+          image: redis
+
+        - name: ssh
+          image: linuxserver/openssh-server
+          env:
+          - name: PUBLIC_KEY
+            value: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHTfr+s96Whq3Xa20WHwfJ/VIjv5/7ZOtKAk/hlqnJdd45gjQ7ldICVXitcvajiYcfelaYX9dczsURB4AYUrDesIwOqTwqHC/EE76xzg/8M4kZxf95QpnyjtkF0RNU75d7iDXDhMhbSHS84unt3SPGHqJbvhlIGoX6kOi6OhvO4qCM5DPzGRSKZYuTTEqt5WWqceAV/zmF4byIKNj0cwuKKj3xRSyCRopI2P0hZRFHQFHY7k5G2mdmucikZljqf3IcNmj9xBIDIPCAO/s1mI48nLT1BmJpnNy9zdJVREczCpKSVGe0/qmiabwyEiAFklF1t7ItgJtZwW3F0GZZETCYkRW89+tCTQHSXDtRd7/g6s4IuESCXXz+7zLqiJGMTdSWPlBu4N3Xb0oCqiW1qqX3MNKIvyUuOPVs1QlvDfX6K5j/Ps0iTjkS17jcWXXDLa0TNwz6ZffL9N5sUs0pG57UnvNAvXfBtl8QwZz4/c+AEj/aqv8QjUZuTenV0sqC3ykQMWZdqqoDsqd7wf3vkObT0fiZt4HswY7dRdXLuVHfCbCzvNoA5pA3OK9hKVfNY3xBKbfnzApb2YACSFlkcRhUIrokgeKGTCOgkXWyIA/7am4PxU9HW9eGSIwG/xTKnqwMbFD01fJHLIWkvQiWj0UphLiFRSjKYyQ+BBBleck73w== s.oezguer@Suats-MBP"
+          volumeMounts:
+            - name: htdocs
+              mountPath: /pod-shared
+
+      volumes:
+      - name: kubectl-binary
+        hostPath:
+          path: /usr/bin/kubectl
+      - name: htdocs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n3q-embedded
+  namespace: suat
+  labels:
+    run: n3q-embedded
+spec:
+  selector:
+    run: n3q-embedded
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh
+  namespace: suat
+  labels:
+    run: n3q-embedded
+spec:
+  type: NodePort
+  selector:
+    run: n3q-embedded
+  ports:
+  - name: ssh
+    port: 2222
+    protocol: TCP
+    nodePort: 32222

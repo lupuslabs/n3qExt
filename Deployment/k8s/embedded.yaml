@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n3q-embedded
+  namespace: n3q-prod
+spec:
+  selector:
+    matchLabels:
+      run: n3q-embedded
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: n3q-embedded
+    spec:
+      serviceAccountName: cdn-embedded
+      containers:
+        - name: n3q-embedded
+          image: docker.k8s.sui.li/n3q-embedded:a6a66757
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: htdocs
+              mountPath: /pod-shared
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "cp -r /usr/share/nginx/html /pod-shared/public; chmod -R 777 /pod-shared"]
+
+        - name: php7fpm
+          image: docker.k8s.sui.li/php7fpm
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: htdocs
+              mountPath: /pod-shared
+
+        - name: redis
+          image: redis
+
+      nodeSelector:
+        n3qnode: "true"
+      volumes:
+      - name: htdocs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n3q-embedded
+  namespace: n3q-prod
+  labels:
+    run: n3q-embedded
+spec:
+  selector:
+    run: n3q-embedded
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+
+

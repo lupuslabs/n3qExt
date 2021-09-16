@@ -1,0 +1,18 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "commonjs",
+    "sourceMap": false,
+    "types": ["@types/chrome", "node"],
+    "typeRoots": ["node_modules/@types"],
+    "moduleResolution": "node",
+    "lib": ["es2017", "dom"]
+  },
+  "include": [
+    "src/background", 
+    "src/contentscript",
+    "src/embedded",
+    "src/lib"
+, "src/test/TestPayload.ts", "src/test/TestSimpleRpc.ts"  ]
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>weblin.io - the real web life</title>
+
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <meta property="og:title" content="weblin.io - the real web life"/>
+    <meta property="og:description" content="Avatars and Things on Web Pages. You have an avatar on every web page and you meet other people who are on the same page at the same time. Its anonymous. Its on every web page. Its in real-time. Need a quick videoconference: just use it. Want to make an online event: tell your guests to install weblin.io and meet on your web site. Need a better tool for meetups: see your participants on the meetup page, do the talk, and socialize. Want to have a community-feeling for your YouTube stream: offer weblin.io to your viewers and see them engage."/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:image" content="https://cdn.weblin.io/weblin-reclaim-sn-1200x628px.jpg"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="628"/>
+
+    <meta name="twitter:title" content="weblin.io - the real web life"/>
+    <meta name="twitter:description" content="Avatars and Things on Web Pages. You have an avatar on every web page and you meet other people who are on the same page at the same time. Its anonymous. Its on every web page. Its in real-time. Need a quick videoconference: just use it. Want to make an online event: tell your guests to install weblin.io and meet on your web site. Need a better tool for meetups: see your participants on the meetup page, do the talk, and socialize. Want to have a community-feeling for your YouTube stream: offer weblin.io to your viewers and see them engage.">
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:image" content="https://cdn.weblin.io/weblin-reclaim-sn-1200x628px.jpg"/>
+
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        iframe {
+            display: block;
+            border: none;
+            height: 100vh;
+            width: 100vw;
+        }
+    </style>
+    <link href="v1/embedded.css" rel="stylesheet">
+</head>
+<body>
+<iframe id="iframe" src=""></iframe>
+
+<script>
+    let url = window.location.search.replace(/^\?/, '');
+    document.getElementById('iframe').src = url;
+
+    console.log(url);
+    var n3q = {
+        apiVersion: '1',
+        pageUrl: url
+    };
+</script>
+<script src="v1/embedded.js"></script>
+</body>
+</html>

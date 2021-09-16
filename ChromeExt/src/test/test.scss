@@ -1,0 +1,19 @@
+* { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; }
+.sut { display: block; margin-right: 8px; }
+.sut-totals { display: table; }
+.sut-success .sut-totals { color: white; background-color: rgb(0, 200, 0); }
+.sut-failure .sut-totals { color: white; background-color: red; }
+.sut-total { padding:0.2em; }
+.sut-label { display: inline; }
+.sut-label::after { content: ":"; }
+.sut-value { display: inline; }
+.sut-total .sut-value { margin-left: 0.3em; }
+.sut-testlist { display: table; margin-top: 0.5em; } 
+.sut-testlist { display: block; }
+.sut-test { display: block; padding: 2px 0;}
+.sut-test-success { color: white; background-color: rgb(0, 200, 0); }
+.sut-test-failure { color: white; background-color: red; }
+.sut-class { display: inline; font-weight: normal; }
+.sut-class:after { content: "_"; } .sut-name { display: inline; font-weight: normal; } 
+.sut-name::after { content: ":"; }
+.sut-result { display: inline; margin-left: 0.3em; }

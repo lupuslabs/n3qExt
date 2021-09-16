@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n3q-embedded-ingress
+  namespace: n3q-prod
+  annotations:
+    haproxy.org/check: "true"
+    haproxy.org/forwarded-for: "true"
+    haproxy.org/load-balance: "roundrobin"
+    haproxy.org/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+      - cdn.weblin.io
+      secretName: tls-cdn-weblin-io
+  rules:
+  - host: cdn.weblin.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: n3q-embedded
+            port:
+              number: 80
