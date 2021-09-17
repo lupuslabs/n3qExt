@@ -12,3 +12,6 @@ Because the Web is there and the people are there. They are just not visible. It
 
 In the real world there are people, friends, strangers, passersby, waiters, salespeople. That's nice. It is good to see them and being able to talk to them. That's what we want for the Web part of The Metaverse.
 
+![Online rally](/assets/wired-reclaim-rally-840.jpg?raw=true)
+![Community event](/assets/SplashDownWithFelix-840.jpg?raw=true)
+![Hypercasual gaming](/assets/klab-gaming-840.png?raw=true)
