@@ -3,7 +3,7 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse } from '../lib/BackgroundMessage';
+import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, CreateBackpackItemFromNftResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
@@ -310,6 +310,10 @@ export class BackgroundApp
 
             case BackgroundMessage.createBackpackItemFromTemplate.name: {
                 return this.handle_createBackpackItemFromTemplate(message.template, message.args, sendResponse);
+            } break;
+
+            case BackgroundMessage.createBackpackItemFromNft.name: {
+                return this.handle_createBackpackItemFromNft(message.tokenUri, message.contractAddress, message.tokenId, message.walletAddress, message.walletNetwork, sendResponse);
             } break;
 
             default: {
@@ -729,6 +733,19 @@ export class BackgroundApp
     }
 
     // manage stanza from 2 tabId mappings
+    handle_createBackpackItemFromNft(tokenUri: string, contractAddress: string, tokenId: string, walletAddress: string, walletNetwork: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (this.backpack) {
+            this.backpack.createItemByNft(tokenUri, contractAddress, tokenId, walletAddress, walletNetwork)
+                .then(item => { sendResponse(new CreateBackpackItemFromNftResponse(item.getProperties())); })
+                .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
+            return true;
+        } else {
+            sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
+        }
+        return false;
+    }
+
 
     addRoomJid2TabId(room: string, tabId: number): void
     {

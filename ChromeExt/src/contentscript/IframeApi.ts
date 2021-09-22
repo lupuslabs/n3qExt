@@ -177,6 +177,23 @@ export class IframeApi
         }
     }
 
+    async handle_ClientCreateNftRequest(request: WeblinClientIframeApi.ClientCreateNftRequest): Promise<WeblinClientApi.Response>
+    {
+        try {
+
+            let props = await BackgroundMessage.createBackpackItemFromNft(request.tokenUri, request.contractAddress, request.tokenId, request.walletAddress, request.walletNetwork);
+            let itemId = props[Pid.Id];
+
+            let nick = this.app.getRoom().getMyNick();
+            let participant = this.app.getRoom().getParticipant(nick);
+            let x = participant.getPosition() + as.Int(request.dx, 120);
+            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+
+        } catch (error) {
+            return new WeblinClientApi.ErrorResponse(error);
+        }
+    }
+
     async handle_ItemFindRequest(request: WeblinClientPageApi.ItemFindRequest): Promise<WeblinClientApi.Response>
     {
         try {
@@ -270,6 +287,9 @@ export class IframeApi
                 } break;
                 case WeblinClientIframeApi.ClientLoadWeb3ItemsRequest.type: {
                     response = await this.handle_ClientLoadWeb3ItemsRequest(<WeblinClientIframeApi.ClientLoadWeb3ItemsRequest>request);
+                } break;
+                case WeblinClientIframeApi.ClientCreateNftRequest.type: {
+                    response = await this.handle_ClientCreateNftRequest(<WeblinClientIframeApi.ClientCreateNftRequest>request);
                 } break;
 
                 default: {
