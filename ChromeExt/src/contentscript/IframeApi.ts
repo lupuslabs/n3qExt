@@ -181,7 +181,7 @@ export class IframeApi
     {
         try {
 
-            let props = await BackgroundMessage.createBackpackItemFromNft(request.tokenUri, request.contractAddress, request.tokenId, request.walletAddress, request.walletNetwork);
+            let props = await BackgroundMessage.createBackpackItemFromNft(request.contractNetwork, request.contractAddress, request.tokenId, request.tokenUri);
             let itemId = props[Pid.Id];
 
             let nick = this.app.getRoom().getMyNick();

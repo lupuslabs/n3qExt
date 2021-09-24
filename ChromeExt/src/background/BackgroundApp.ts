@@ -313,7 +313,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.createBackpackItemFromNft.name: {
-                return this.handle_createBackpackItemFromNft(message.tokenUri, message.contractAddress, message.tokenId, message.walletAddress, message.walletNetwork, sendResponse);
+                return this.handle_createBackpackItemFromNft(message.contractNetwork, message.contractAddress, message.tokenId, message.tokenUri, sendResponse);
             } break;
 
             default: {
@@ -733,10 +733,10 @@ export class BackgroundApp
     }
 
     // manage stanza from 2 tabId mappings
-    handle_createBackpackItemFromNft(tokenUri: string, contractAddress: string, tokenId: string, walletAddress: string, walletNetwork: string, sendResponse: (response?: any) => void): boolean
+    handle_createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByNft(tokenUri, contractAddress, tokenId, walletAddress, walletNetwork)
+            this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri, )
                 .then(item => { sendResponse(new CreateBackpackItemFromNftResponse(item.getProperties())); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;

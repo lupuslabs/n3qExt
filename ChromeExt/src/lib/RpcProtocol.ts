@@ -58,11 +58,10 @@ export namespace RpcProtocol
     {
         static method = 'CreateNft';
         user: string;
-        tokenUri: string;
+        contractNetwork: string;
         contractAddress: string;
         tokenId: string;
-        walletAddress: string;
-        walletNetwork: string;
+        tokenUri: string;
     }
 
     export class BackpackCreateResponse extends BackpackResponse

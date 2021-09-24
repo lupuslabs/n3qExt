@@ -54,6 +54,7 @@ export class Pid
     static readonly AvatarAspect = 'AvatarAspect';
     static readonly NicknameAspect = 'NicknameAspect';
     static readonly NicknameText = 'NicknameText';
+    // static readonly AvatarImageUrl = 'AvatarImageUrl';
     static readonly AvatarAvatarId = 'AvatarAvatarId';
     static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
     static readonly PointsChannelEntered = 'PointsChannelEntered';

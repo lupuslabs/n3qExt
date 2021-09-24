@@ -18,6 +18,7 @@ export class BackpackItem
     private elem: HTMLDivElement;
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
+    private coverElem: HTMLDivElement;
     private iconElem: HTMLImageElement;
     private x: number = 100;
     private y: number = 100;
@@ -48,8 +49,8 @@ export class BackpackItem
         $(this.elem).append(this.imageElem);
         this.textElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-label" />').get(0);
         $(this.elem).append(this.textElem);
-        let coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
-        $(this.elem).append(coverElem);
+        this.coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
+        $(this.elem).append(this.coverElem);
 
         this.setImage(imgDefaultItem);
         this.setSize(50, 50);
@@ -145,6 +146,7 @@ export class BackpackItem
     setText(text: string): void
     {
         $(this.textElem).text(as.Html(text));
+        $(this.coverElem).attr('title', as.Html(text));
     }
 
     getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }

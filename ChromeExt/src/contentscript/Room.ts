@@ -175,7 +175,14 @@ export class Room
                 vpProps['nickname'] = nickname;
             }
 
-            let avatarUrl = await this.getBackpackItemAvatarUrl('');
+            // let imageUrl = await this.getBackpackItemAvatarImageUrl('');
+            // if (imageUrl != '') {
+            //     vpProps['ImageUrl'] = imageUrl;
+            //     delete vpProps['AvatarId'];
+            //     delete vpProps['avatar'];
+            // }
+
+            let avatarUrl = await this.getBackpackItemAvatarAnimationsUrl('');
             if (avatarUrl != '') {
                 vpProps['AvatarUrl'] = avatarUrl;
                 delete vpProps['AvatarId'];
@@ -225,10 +232,10 @@ export class Room
             }
 
             // if (!this.isEntered) {
-                presence.append(
-                    xml('x', { xmlns: 'http://jabber.org/protocol/muc' })
-                        .append(xml('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' }))
-                );
+            presence.append(
+                xml('x', { xmlns: 'http://jabber.org/protocol/muc' })
+                    .append(xml('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' }))
+            );
             // }
 
             // log.debug('#### send', presence.children[1].attrs);
@@ -241,7 +248,8 @@ export class Room
 
     async getPointsItemPoints(defaultValue: number): Promise<number> { return as.Int(await this.getBackpackItemProperty({ [Pid.PointsAspect]: 'true' }, Pid.PointsTotal, defaultValue)); }
     async getBackpackItemAvatarId(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.DeactivatableIsInactive]: 'false' }, Pid.AvatarAvatarId, defaultValue)); }
-    async getBackpackItemAvatarUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.DeactivatableIsInactive]: 'false' }, Pid.AvatarAnimationsUrl, defaultValue)); }
+    async getBackpackItemAvatarAnimationsUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.DeactivatableIsInactive]: 'false' }, Pid.AvatarAnimationsUrl, defaultValue)); }
+    // async getBackpackItemAvatarImageUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.DeactivatableIsInactive]: 'false' }, Pid.AvatarImageUrl, defaultValue)); }
     async getBackpackItemNickname(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.NicknameAspect]: 'true', [Pid.DeactivatableIsInactive]: 'false' }, Pid.NicknameText, defaultValue)); }
 
     async getBackpackItemProperty(filterProperties: ItemProperties, propertyPid: string, defautValue: any): Promise<any>

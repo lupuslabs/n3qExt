@@ -223,11 +223,10 @@ export namespace WeblinClientIframeApi
     export class ClientCreateNftRequest extends Request
     {
         static type = 'Client.CreateNft';
-        tokenUri: string;
+        contractNetwork: string;
         contractAddress: string;
         tokenId: string;
-        walletAddress: string;
-        walletNetwork: string;
+        tokenUri: string;
         dx: number;
     }
 }

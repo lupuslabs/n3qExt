@@ -554,7 +554,7 @@ export class Backpack
         });
     }
 
-    createItemByNft(tokenUri: string, contractAddress: string, tokenId: string, walletAddress: string, walletNetwork: string): Promise<Item>
+    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<Item>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -570,11 +570,10 @@ export class Backpack
                 let request = new RpcProtocol.BackpackCreateNftRequest();
                 request.method = RpcProtocol.BackpackCreateNftRequest.method;
                 request.user = userId;
-                request.tokenUri = tokenUri;
+                request.contractNetwork = contractNetwork;
                 request.contractAddress = contractAddress;
                 request.tokenId = tokenId;
-                request.walletAddress = walletAddress;
-                request.walletNetwork = walletNetwork;
+                request.tokenUri = tokenUri;
 
                 let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
 

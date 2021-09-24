@@ -260,12 +260,12 @@ export class BackgroundMessage
         });
     }
 
-    static createBackpackItemFromNft(tokenUri: string, contractAddress: string, tokenId: string, walletAddress: string, walletNetwork: string): Promise<ItemProperties>
+    static createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
             try {
-                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromNft.name, 'tokenUri': tokenUri, 'contractAddress': contractAddress, 'tokenId': tokenId, 'walletAddress': walletAddress, 'walletNetwork': walletNetwork });
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromNft.name, 'contractNetwork': contractNetwork, 'contractAddress': contractAddress, 'tokenId': tokenId, 'tokenUri': tokenUri });
                 resolve((<CreateBackpackItemFromNftResponse>response).properties);
             } catch (error) {
                 reject(error);
