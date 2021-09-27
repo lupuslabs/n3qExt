@@ -45,6 +45,7 @@ export class Pid
     static readonly AnimationsUrl = 'AnimationsUrl';
     static readonly Width = 'Width';
     static readonly Height = 'Height';
+    static readonly ActivatableAspect = 'ActivatableAspect';
     static readonly ApplierAspect = 'ApplierAspect';
     static readonly ClaimAspect = 'ClaimAspect';
     static readonly ClaimStrength = 'ClaimStrength';
@@ -68,7 +69,7 @@ export class Pid
     static readonly ScreenAspect = 'ScreenAspect';
     static readonly ScreenOptions = 'ScreenOptions';
     static readonly ScreenUrl = 'ScreenUrl';
-    static readonly DeactivatableIsInactive = 'DeactivatableIsInactive';
+    static readonly ActivatableIsActive = 'ActivatableIsActive';
     static readonly Signed = 'Signed';
     static readonly SignatureRsa = 'SignatureRsa';
     static readonly Web3BasedAspect = 'Web3BasedAspect';
@@ -192,7 +193,7 @@ export class Property
         [Pid.Display]: { inPresence: true },
         [Pid.Signed]: { inPresence: true },
         [Pid.SignatureRsa]: { inPresence: true },
-        [Pid.DeactivatableIsInactive]: { inPresence: true },
+        [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
 
         // For unit test

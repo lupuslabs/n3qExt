@@ -6,7 +6,6 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils, Point2D } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
 import { BackpackWindow } from './BackpackWindow';
@@ -161,6 +160,18 @@ export class BackpackItem
 
     setPosition(x: number, y: number)
     {
+        // fix position
+        // let bounds = {
+        //     left: this.getWidth() / 2, 
+        //     top: this.getHeight() / 2, 
+        //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
+        //     bottom: this.backpackWindow.getHeight() - this.getHeight() / 2
+        // };
+        // if (x < bounds.left) { x = bounds.left; }
+        // if (x > bounds.right) { x = bounds.right; }
+        // if (y < bounds.top) { y = bounds.top; }
+        // if (y > bounds.bottom) { y = bounds.bottom; }
+
         this.x = x;
         this.y = y;
         $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });

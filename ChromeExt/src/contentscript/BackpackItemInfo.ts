@@ -1,6 +1,7 @@
 import * as $ from 'jquery';
 import log = require('loglevel');
 import { as } from '../lib/as';
+import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackpackItem } from './BackpackItem';
@@ -120,6 +121,16 @@ export class BackpackItemInfo
         if (hasStats) {
             $(this.elem).append(listElem);
         }
+
+        // if (as.Bool(props[Pid.ActivatableAspect], false)) {
+        //     let activateElem = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive], false) ? 'checked' : '') + '/>').get(0); // Active
+        //     $(activateElem).on('change', async (ev) =>
+        //     {
+        //         ev.stopPropagation();
+        //         await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value' : $(activateElem).is(':checked') }, [this.backpackItem.getItemId()]);
+        //     });
+        //     $(this.elem).append(activateElem);
+        // }
 
         if (as.Bool(props[Pid.IsRezzed], false)) {
             let derezElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>').get(0);

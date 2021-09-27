@@ -215,6 +215,11 @@ export namespace WeblinClientIframeApi
         target: string;
     }
 
+    export class ClientSendPresenceRequest extends Request
+    {
+        static type = 'Client.SendPresence';
+    }
+
     export class ClientLoadWeb3ItemsRequest extends Request
     {
         static type = 'Client.LoadWeb3Items';

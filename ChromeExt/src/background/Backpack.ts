@@ -378,6 +378,10 @@ export class Backpack
                 this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
             }
 
+            if (!options.skipPresenceUpdate) {
+                item.sendPresence();
+            }
+
             this.deleteRepositoryItem(itemId);
         }
     }
@@ -582,7 +586,7 @@ export class Backpack
                 await this.addItem(itemId, props, {});
                 let item = this.items[itemId];
 
-                // resolve(item);
+                resolve(item);
             } catch (error) {
                 reject(error);
             }

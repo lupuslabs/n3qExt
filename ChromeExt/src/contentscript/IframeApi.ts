@@ -182,12 +182,11 @@ export class IframeApi
         try {
 
             let props = await BackgroundMessage.createBackpackItemFromNft(request.contractNetwork, request.contractAddress, request.tokenId, request.tokenUri);
-            let itemId = props[Pid.Id];
-
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
-            let x = participant.getPosition() + as.Int(request.dx, 120);
-            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+            // let itemId = props[Pid.Id];
+            // let nick = this.app.getRoom().getMyNick();
+            // let participant = this.app.getRoom().getParticipant(nick);
+            //let x = participant.getPosition() + as.Int(request.dx, 120);
+            //await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
 
         } catch (error) {
             return new WeblinClientApi.ErrorResponse(error);
@@ -284,6 +283,9 @@ export class IframeApi
 
                 case WeblinClientIframeApi.ClientNavigateRequest.type: {
                     response = this.handle_ClientNavigateRequest(<WeblinClientIframeApi.ClientNavigateRequest>request);
+                } break;
+                case WeblinClientIframeApi.ClientSendPresenceRequest.type: {
+                    response = this.handle_ClientSendPresenceRequest(<WeblinClientIframeApi.ClientSendPresenceRequest>request);
                 } break;
                 case WeblinClientIframeApi.ClientLoadWeb3ItemsRequest.type: {
                     response = await this.handle_ClientLoadWeb3ItemsRequest(<WeblinClientIframeApi.ClientLoadWeb3ItemsRequest>request);
@@ -416,6 +418,16 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_ClientNavigateRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_ClientSendPresenceRequest(request: WeblinClientIframeApi.ClientSendPresenceRequest): WeblinClientApi.Response
+    {
+        try {
+            this.app.getRoom().sendPresence();
+        } catch (ex) {
+            log.info('IframeApi.handle_ClientSendPresenceRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }

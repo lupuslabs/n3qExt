@@ -340,7 +340,7 @@ export class Avatar implements IObserver
         switch (key) {
             case 'ImageUrl': {
                 if (!this.hasAnimation) {
-                    let defaultSize = Config.get('room.defaultStillimageSize', 80);
+                    // let defaultSize = Config.get('room.defaultStillimageSize', 80);
                     // this.setSize(defaultSize, defaultSize);
                     this.setImage(value);
                 }
@@ -358,7 +358,7 @@ export class Avatar implements IObserver
                 if (value == '') {
                     this.setAnimations(value);
                 } else {
-                    let defaultSize = Config.get('room.defaultAnimationSize', 100);
+                    // let defaultSize = Config.get('room.defaultAnimationSize', 100);
                     // this.setSize(defaultSize, defaultSize);
                     this.setAnimations(value);
                 }
