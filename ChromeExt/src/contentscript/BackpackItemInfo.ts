@@ -122,15 +122,24 @@ export class BackpackItemInfo
             $(this.elem).append(listElem);
         }
 
-        // if (as.Bool(props[Pid.ActivatableAspect], false)) {
-        //     let activateElem = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive], false) ? 'checked' : '') + '/>').get(0); // Active
-        //     $(activateElem).on('change', async (ev) =>
-        //     {
-        //         ev.stopPropagation();
-        //         await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value' : $(activateElem).is(':checked') }, [this.backpackItem.getItemId()]);
-        //     });
-        //     $(this.elem).append(activateElem);
-        // }
+        if (as.Bool(props[Pid.IsUnrezzedAction], false) && as.Bool(props[Pid.ActivatableAspect], false)) {
+            let activateGroup = <HTMLElement>$('<div class="n3q-base n3q-backpack-activate" data-translate="children" />').get(0);
+            let activateLabel = <HTMLElement>$('<span class="n3q-base " data-translate="text:Backpack">Enabled</div>').get(0);
+            let activateCheckbox = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive], false) ? 'checked' : '') + '/>').get(0); // Active
+            $(activateCheckbox).on('change', async (ev) =>
+            {
+                await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value' : $(activateCheckbox).is(':checked') }, [this.backpackItem.getItemId()]);
+
+                if (as.Bool(props[Pid.AvatarAspect], false) || as.Bool(props[Pid.NicknameAspect], false)) {
+                    this.app.getRoom().sendPresence();
+                }
+
+                ev.stopPropagation();
+            });
+            $(activateGroup).append(activateLabel);
+            $(activateGroup).append(activateCheckbox);
+            $(this.elem).append(activateGroup);
+        }
 
         if (as.Bool(props[Pid.IsRezzed], false)) {
             let derezElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>').get(0);

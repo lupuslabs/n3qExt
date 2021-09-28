@@ -868,6 +868,18 @@
         div.n3q-overlay-button {
             margin: 0;
         }
+
+        .n3q-backpack-activate {
+            margin-top: 4px;
+            
+            input[type=checkbox] { 
+                margin-left: 8px;
+                width: 16px;
+                height: 16px;
+                box-shadow: 2px 2px 3px rgba(64, 64, 64, 0.7) inset;
+                vertical-align: middle;
+            }
+        }
     }
 
     div.n3q-backpackiteminfo.n3q-pinned {

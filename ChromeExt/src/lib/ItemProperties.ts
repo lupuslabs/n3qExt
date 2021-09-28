@@ -16,6 +16,7 @@ export class Pid
     static readonly IsRezable = 'IsRezable';
     static readonly IsTakeable = 'IsTakeable';
     static readonly IsTransferable = 'IsTransferable';
+    static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
     static readonly RezzedX = 'RezzedX';
     static readonly RezzedLocation = 'RezzedLocation';
