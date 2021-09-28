@@ -234,4 +234,13 @@ export namespace WeblinClientIframeApi
         tokenUri: string;
         dx: number;
     }
+
+    export class PageDomQueryRequest extends Request
+    {
+        static type = 'Page.DomQuery';
+        cssPath: string;
+        nodeAttr?: string;
+        nodeText?: boolean;
+    }
+    export class PageDomQueryResponse extends WeblinClientApi.ContentResponse { constructor(public value: string) { super('Page.DomQuery.Response'); } }
 }

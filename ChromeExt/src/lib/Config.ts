@@ -168,6 +168,7 @@ export class Config
             messageMagic2Screen: 'uzv65b76t_weblin2screen',
             messageMagicW2WMigration: 'hbv67u5rf_w2wMigrate',
             messageMagicCreateCryptoWallet: 'tr67rftghg_CreateCryptoWallet',
+            allowedDomQueryPrefixes: [ 'https://opensea.io/', 'https://testnets.opensea.io/' ],
         },
         backpack: {
             enabled: true,
