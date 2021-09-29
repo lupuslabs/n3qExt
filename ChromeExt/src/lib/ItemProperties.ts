@@ -19,7 +19,7 @@ export class Pid
     static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
     static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';
+    static readonly RezzedLocation = 'RezzedLocation';_
     static readonly RezzedDestination = 'RezzedDestination';
     static readonly InventoryX = 'InventoryX';
     static readonly InventoryY = 'InventoryY';
