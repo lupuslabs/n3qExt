@@ -535,7 +535,17 @@ export class ContentApp
         if (links) {
             links.forEach(link =>
             {
-                toast.actionButton(link.text, () => { document.location.href = link.href; });
+                toast.actionButton(link.text, () =>
+                {
+                    if (link.href.startsWith('client:')) {
+                        let cmd = link.href.substring('client:'.length);
+                        if (cmd == 'toggleBackpack') {
+                            this.showBackpackWindow();
+                        }
+                    } else {
+                        document.location.href = link.href;
+                    }
+                });
             });
         }
         toast.show(() => { });
