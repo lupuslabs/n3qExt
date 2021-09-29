@@ -16,9 +16,10 @@ export class Pid
     static readonly IsRezable = 'IsRezable';
     static readonly IsTakeable = 'IsTakeable';
     static readonly IsTransferable = 'IsTransferable';
+    static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
     static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';
+    static readonly RezzedLocation = 'RezzedLocation';_
     static readonly RezzedDestination = 'RezzedDestination';
     static readonly InventoryX = 'InventoryX';
     static readonly InventoryY = 'InventoryY';
@@ -45,6 +46,7 @@ export class Pid
     static readonly AnimationsUrl = 'AnimationsUrl';
     static readonly Width = 'Width';
     static readonly Height = 'Height';
+    static readonly ActivatableAspect = 'ActivatableAspect';
     static readonly ApplierAspect = 'ApplierAspect';
     static readonly ClaimAspect = 'ClaimAspect';
     static readonly ClaimStrength = 'ClaimStrength';
@@ -54,6 +56,7 @@ export class Pid
     static readonly AvatarAspect = 'AvatarAspect';
     static readonly NicknameAspect = 'NicknameAspect';
     static readonly NicknameText = 'NicknameText';
+    // static readonly AvatarImageUrl = 'AvatarImageUrl';
     static readonly AvatarAvatarId = 'AvatarAvatarId';
     static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
     static readonly PointsChannelEntered = 'PointsChannelEntered';
@@ -67,7 +70,7 @@ export class Pid
     static readonly ScreenAspect = 'ScreenAspect';
     static readonly ScreenOptions = 'ScreenOptions';
     static readonly ScreenUrl = 'ScreenUrl';
-    static readonly DeactivatableIsInactive = 'DeactivatableIsInactive';
+    static readonly ActivatableIsActive = 'ActivatableIsActive';
     static readonly Signed = 'Signed';
     static readonly SignatureRsa = 'SignatureRsa';
     static readonly Web3BasedAspect = 'Web3BasedAspect';
@@ -191,7 +194,7 @@ export class Property
         [Pid.Display]: { inPresence: true },
         [Pid.Signed]: { inPresence: true },
         [Pid.SignatureRsa]: { inPresence: true },
-        [Pid.DeactivatableIsInactive]: { inPresence: true },
+        [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
 
         // For unit test

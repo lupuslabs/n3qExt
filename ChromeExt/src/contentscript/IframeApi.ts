@@ -177,6 +177,25 @@ export class IframeApi
         }
     }
 
+    async handle_ClientCreateNftRequest(request: WeblinClientIframeApi.ClientCreateNftRequest): Promise<WeblinClientApi.Response>
+    {
+        try {
+
+            let props = await BackgroundMessage.createBackpackItemFromNft(request.contractNetwork, request.contractAddress, request.tokenId, request.tokenUri);
+
+            if (request.dx) {
+                let itemId = props[Pid.Id];
+                let nick = this.app.getRoom().getMyNick();
+                let participant = this.app.getRoom().getParticipant(nick);
+                let x = participant.getPosition() + as.Int(request.dx, 120);
+                await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+            }
+
+        } catch (error) {
+            return new WeblinClientApi.ErrorResponse(error);
+        }
+    }
+
     async handle_ItemFindRequest(request: WeblinClientPageApi.ItemFindRequest): Promise<WeblinClientApi.Response>
     {
         try {
@@ -268,8 +287,18 @@ export class IframeApi
                 case WeblinClientIframeApi.ClientNavigateRequest.type: {
                     response = this.handle_ClientNavigateRequest(<WeblinClientIframeApi.ClientNavigateRequest>request);
                 } break;
+                case WeblinClientIframeApi.ClientSendPresenceRequest.type: {
+                    response = this.handle_ClientSendPresenceRequest(<WeblinClientIframeApi.ClientSendPresenceRequest>request);
+                } break;
                 case WeblinClientIframeApi.ClientLoadWeb3ItemsRequest.type: {
                     response = await this.handle_ClientLoadWeb3ItemsRequest(<WeblinClientIframeApi.ClientLoadWeb3ItemsRequest>request);
+                } break;
+                case WeblinClientIframeApi.ClientCreateNftRequest.type: {
+                    response = await this.handle_ClientCreateNftRequest(<WeblinClientIframeApi.ClientCreateNftRequest>request);
+                } break;
+
+                case WeblinClientIframeApi.PageDomQueryRequest.type: {
+                    response = this.handle_PageDomQueryRequest(<WeblinClientIframeApi.PageDomQueryRequest>request);
                 } break;
 
                 default: {
@@ -400,6 +429,16 @@ export class IframeApi
         }
     }
 
+    handle_ClientSendPresenceRequest(request: WeblinClientIframeApi.ClientSendPresenceRequest): WeblinClientApi.Response
+    {
+        try {
+            this.app.getRoom().sendPresence();
+        } catch (ex) {
+            log.info('IframeApi.handle_ClientSendPresenceRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
     async handle_ClientLoadWeb3ItemsRequest(request: WeblinClientIframeApi.ClientLoadWeb3ItemsRequest): Promise<WeblinClientApi.Response>
     {
         try {
@@ -525,6 +564,40 @@ export class IframeApi
             return new WeblinClientIframeApi.RoomGetInfoResponse(data);
         } catch (ex) {
             log.info('IframeApi.handle_RoomGetParticipantsRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_PageDomQueryRequest(request: WeblinClientIframeApi.PageDomQueryRequest): WeblinClientApi.Response
+    {
+        try {
+
+            // Only for authorized domains
+            let room = this.app.getRoom();
+            let pageUrl = room.getPageUrl();
+            let allowed = false;
+            let allowedDomQueryPrefixes = Config.get('iframeApi.allowedDomQueryPrefixes', []);
+            for (let i = 0; i < allowedDomQueryPrefixes.length; i++) {
+                if (pageUrl.startsWith(allowedDomQueryPrefixes[i])) {
+                    allowed = true;
+                }
+            }
+
+            if (allowed) {
+                let elem = $(request.cssPath);
+                // let value = 'https://lh3.googleusercontent.com/tg2iTTJfzse42K84tlpf1QiEqQW2gGifFReeiWb-c6xBAlAu4bkh_7X407ge1nkw2k_OO3v9SliYloEPmZ9Cd7eq_44eKe5OVVT7PA=w600';
+                let value = '';
+                if (request.nodeAttr) {
+                    value = elem.attr(request.nodeAttr);
+                } else if (request.nodeText) {
+                    value = elem.text();
+                }
+                return new WeblinClientIframeApi.PageDomQueryResponse(value);
+            }
+            throw 'forbidden';
+
+        } catch (ex) {
+            log.info('IframeApi.handle_PageDomQueryRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }

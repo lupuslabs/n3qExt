@@ -6,7 +6,6 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils, Point2D } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
 import { BackpackWindow } from './BackpackWindow';
@@ -18,6 +17,7 @@ export class BackpackItem
     private elem: HTMLDivElement;
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
+    private coverElem: HTMLDivElement;
     private iconElem: HTMLImageElement;
     private x: number = 100;
     private y: number = 100;
@@ -48,8 +48,8 @@ export class BackpackItem
         $(this.elem).append(this.imageElem);
         this.textElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-label" />').get(0);
         $(this.elem).append(this.textElem);
-        let coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
-        $(this.elem).append(coverElem);
+        this.coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
+        $(this.elem).append(this.coverElem);
 
         this.setImage(imgDefaultItem);
         this.setSize(50, 50);
@@ -145,6 +145,7 @@ export class BackpackItem
     setText(text: string): void
     {
         $(this.textElem).text(as.Html(text));
+        $(this.coverElem).attr('title', as.Html(text));
     }
 
     getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }
@@ -159,6 +160,18 @@ export class BackpackItem
 
     setPosition(x: number, y: number)
     {
+        // fix position
+        // let bounds = {
+        //     left: this.getWidth() / 2, 
+        //     top: this.getHeight() / 2, 
+        //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
+        //     bottom: this.backpackWindow.getHeight() - this.getHeight() / 2
+        // };
+        // if (x < bounds.left) { x = bounds.left; }
+        // if (x > bounds.right) { x = bounds.right; }
+        // if (y < bounds.top) { y = bounds.top; }
+        // if (y > bounds.bottom) { y = bounds.bottom; }
+
         this.x = x;
         this.y = y;
         $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });

@@ -1,6 +1,7 @@
 import * as $ from 'jquery';
 import log = require('loglevel');
 import { as } from '../lib/as';
+import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackpackItem } from './BackpackItem';
@@ -119,6 +120,25 @@ export class BackpackItemInfo
 
         if (hasStats) {
             $(this.elem).append(listElem);
+        }
+
+        if (as.Bool(props[Pid.IsUnrezzedAction], false) && as.Bool(props[Pid.ActivatableAspect], false)) {
+            let activateGroup = <HTMLElement>$('<div class="n3q-base n3q-backpack-activate" data-translate="children" />').get(0);
+            let activateLabel = <HTMLElement>$('<span class="n3q-base " data-translate="text:Backpack">Enabled</div>').get(0);
+            let activateCheckbox = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive], false) ? 'checked' : '') + '/>').get(0); // Active
+            $(activateCheckbox).on('change', async (ev) =>
+            {
+                await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value' : $(activateCheckbox).is(':checked') }, [this.backpackItem.getItemId()]);
+
+                if (as.Bool(props[Pid.AvatarAspect], false) || as.Bool(props[Pid.NicknameAspect], false)) {
+                    this.app.getRoom().sendPresence();
+                }
+
+                ev.stopPropagation();
+            });
+            $(activateGroup).append(activateLabel);
+            $(activateGroup).append(activateCheckbox);
+            $(this.elem).append(activateGroup);
         }
 
         if (as.Bool(props[Pid.IsRezzed], false)) {

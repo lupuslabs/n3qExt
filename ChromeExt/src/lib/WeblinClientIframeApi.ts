@@ -215,8 +215,32 @@ export namespace WeblinClientIframeApi
         target: string;
     }
 
+    export class ClientSendPresenceRequest extends Request
+    {
+        static type = 'Client.SendPresence';
+    }
+
     export class ClientLoadWeb3ItemsRequest extends Request
     {
         static type = 'Client.LoadWeb3Items';
     }
+
+    export class ClientCreateNftRequest extends Request
+    {
+        static type = 'Client.CreateNft';
+        contractNetwork: string;
+        contractAddress: string;
+        tokenId: string;
+        tokenUri: string;
+        dx: number;
+    }
+
+    export class PageDomQueryRequest extends Request
+    {
+        static type = 'Page.DomQuery';
+        cssPath: string;
+        nodeAttr?: string;
+        nodeText?: boolean;
+    }
+    export class PageDomQueryResponse extends WeblinClientApi.ContentResponse { constructor(public value: string) { super('Page.DomQuery.Response'); } }
 }

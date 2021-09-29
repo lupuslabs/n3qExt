@@ -378,6 +378,10 @@ export class Backpack
                 this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
             }
 
+            if (!options.skipPresenceUpdate) {
+                item.sendPresence();
+            }
+
             this.deleteRepositoryItem(itemId);
         }
     }
@@ -554,6 +558,41 @@ export class Backpack
         });
     }
 
+    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<Item>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+
+                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
+
+                let providerId = 'nine3q';
+                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
+                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
+
+                let request = new RpcProtocol.BackpackCreateNftRequest();
+                request.method = RpcProtocol.BackpackCreateNftRequest.method;
+                request.user = userId;
+                request.contractNetwork = contractNetwork;
+                request.contractAddress = contractAddress;
+                request.tokenId = tokenId;
+                request.tokenUri = tokenUri;
+
+                let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
+
+                let props = response.properties;
+                let itemId = props.Id;
+                await this.addItem(itemId, props, {});
+                let item = this.items[itemId];
+
+                resolve(item);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
     {
         return new Promise(async (resolve, reject) =>
@@ -571,7 +610,7 @@ export class Backpack
                 if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
 
                 let roomJid = null;
-                if (!allowUnrezzed) {
+                if (!allowUnrezzed && !as.Bool(item.getProperties()[Pid.IsUnrezzedAction], false)) {
                     roomJid = item.getProperties()[Pid.RezzedLocation];
                     if (roomJid == null || roomJid == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Item ' + itemId + ' missing RezzedLocation'); }
                 }

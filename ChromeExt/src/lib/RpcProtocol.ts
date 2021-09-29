@@ -54,6 +54,16 @@ export namespace RpcProtocol
         args: ItemProperties;
     }
 
+    export class BackpackCreateNftRequest extends BackpackRequest
+    {
+        static method = 'CreateNft';
+        user: string;
+        contractNetwork: string;
+        contractAddress: string;
+        tokenId: string;
+        tokenUri: string;
+    }
+
     export class BackpackCreateResponse extends BackpackResponse
     {
         properties: ItemProperties;

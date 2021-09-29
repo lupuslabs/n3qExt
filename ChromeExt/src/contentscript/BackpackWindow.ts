@@ -30,6 +30,8 @@ export class BackpackWindow extends Window
     }
 
     getPane() { return this.paneElem; }
+    getHeight() { return this.getPane().offsetWidth; }
+    getWidth() { return this.getPane().offsetHeight; }
     getItem(itemId: string) { return this.items[itemId]; }
     getItems(): { [id: string]: BackpackItem; } { return this.items; }
 
@@ -293,7 +295,12 @@ export class BackpackWindow extends Window
     {
         if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.deleteItem', itemId); }
         try {
-            await BackgroundMessage.deleteBackpackItem(itemId, {});
+            let props = await BackgroundMessage.getBackpackItemProperties(itemId);
+            let needPresenceUpdate = as.Bool(props[Pid.AvatarAspect], false) || as.Bool(props[Pid.NicknameAspect], false) || as.Bool(props[Pid.PointsAspect], false);
+
+            await BackgroundMessage.deleteBackpackItem(itemId, { });
+            
+            this.app.getRoom().sendPresence();
         } catch (ex) {
             new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
         }

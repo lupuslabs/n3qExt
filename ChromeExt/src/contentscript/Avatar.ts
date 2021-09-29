@@ -340,8 +340,8 @@ export class Avatar implements IObserver
         switch (key) {
             case 'ImageUrl': {
                 if (!this.hasAnimation) {
-                    let defaultSize = Config.get('room.defaultStillimageSize', 80);
-                    this.setSize(defaultSize, defaultSize);
+                    // let defaultSize = Config.get('room.defaultStillimageSize', 80);
+                    // this.setSize(defaultSize, defaultSize);
                     this.setImage(value);
                 }
             } break;
@@ -349,8 +349,8 @@ export class Avatar implements IObserver
                 if (!this.hasAnimation) {
                     let maxSize = Config.get('room.defaultStillimageSize', 80);
                     let minSize = maxSize * 0.75;
-                    let defaultSize = Utils.randomInt(minSize, maxSize);
-                    this.setSize(defaultSize, defaultSize);
+                    let slightlyRandomSize = Utils.randomInt(minSize, maxSize);
+                    this.setSize(slightlyRandomSize, slightlyRandomSize);
                     this.setImage(value);
                 }
             } break;
@@ -358,8 +358,8 @@ export class Avatar implements IObserver
                 if (value == '') {
                     this.setAnimations(value);
                 } else {
-                    let defaultSize = Config.get('room.defaultAnimationSize', 100);
-                    this.setSize(defaultSize, defaultSize);
+                    // let defaultSize = Config.get('room.defaultAnimationSize', 100);
+                    // this.setSize(defaultSize, defaultSize);
                     this.setAnimations(value);
                 }
             } break;
@@ -437,7 +437,7 @@ export class Avatar implements IObserver
 
     async setAnimations(url: string): Promise<void>
     {
-        if (url == '') { 
+        if (url == '') {
             this.animations = null;
             this.hasAnimation = false;
         } else {
@@ -446,11 +446,10 @@ export class Avatar implements IObserver
                 try {
 
                     let parsed = AnimationsXml.AnimationsXml.parseXml(url, response.data);
-                    let width = as.Int(parsed.params['width'], -1);
-                    let height = as.Int(parsed.params['height'], -1);
-                    if (width > 0 && height > 0) {
-                        this.setSize(width, height);
-                    }
+                    let defaultSize = Config.get('room.defaultAnimationSize', 100);
+                    let width = as.Int(parsed.params['width'], defaultSize);
+                    let height = as.Int(parsed.params['height'], defaultSize);
+                    this.setSize(width, height);
 
                     this.animations = parsed;
                     this.defaultGroup = this.getDefaultGroup();
