@@ -29,7 +29,7 @@ export class ItemFrameOverlay
             let url: string = options.url;
             if (!url) { throw 'No url' }
 
-            this.elem = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-itemframeoverlay" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="' + url + ' " frameborder="0"></iframe>').get(0);
+            this.elem = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-itemframeoverlay" style="position: fixed; width:100%; height: 100%;" src="' + url + ' " frameborder="0"></iframe>').get(0);
 
             if (options.hidden) { this.setVisibility(false); }
             this.toFront()

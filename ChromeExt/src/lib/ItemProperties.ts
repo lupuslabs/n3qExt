@@ -19,7 +19,7 @@ export class Pid
     static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
     static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';_
+    static readonly RezzedLocation = 'RezzedLocation'; _
     static readonly RezzedDestination = 'RezzedDestination';
     static readonly InventoryX = 'InventoryX';
     static readonly InventoryY = 'InventoryY';
@@ -51,6 +51,7 @@ export class Pid
     static readonly ClaimAspect = 'ClaimAspect';
     static readonly ClaimStrength = 'ClaimStrength';
     static readonly ClaimUrl = 'ClaimUrl';
+    static readonly PageEffectAspect = 'PageEffectAspect';
     static readonly PointsAspect = 'PointsAspect';
     static readonly SettingsAspect = 'SettingsAspect';
     static readonly AvatarAspect = 'AvatarAspect';
@@ -59,6 +60,7 @@ export class Pid
     // static readonly AvatarImageUrl = 'AvatarImageUrl';
     static readonly AvatarAvatarId = 'AvatarAvatarId';
     static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
+    static readonly PageEffectDuration = 'PageEffectDuration';
     static readonly PointsChannelEntered = 'PointsChannelEntered';
     static readonly PointsChannelChat = 'PointsChannelChat';
     static readonly PointsChannelEmote = 'PointsChannelEmote';
