@@ -2,14 +2,9 @@ import * as $ from 'jquery';
 import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Point2D, Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Popup } from './Popup';
+import { Popup, PopupOptions } from './Popup';
 import { Pid } from '../lib/ItemProperties';
-import { Config } from '../lib/Config';
-import { threadId } from 'worker_threads';
-
-type PopupOptions = any;
 
 interface ItemFramePopupOptions extends PopupOptions
 {

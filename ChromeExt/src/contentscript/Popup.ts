@@ -6,7 +6,7 @@ import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 
-type PopupOptions = any;
+export type PopupOptions = any;
 
 export class Popup
 {

@@ -225,12 +225,9 @@ export class ContentApp
 
     test(): void
     {
+        // let frame = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
+        // this.display.append(frame);
         this.room.getParticipant(this.room.getMyNick()).showEffect('pulse');
-
-        //this.room.getParticipant(this.room.getMyNick()).setRange(-250, 50);
-        //this.sndChat.play();
-        //new SimpleToast(this, 'test', 4, 'warning', 'Heiner (dev)', 'greets').show();
-        //this.showBackpackWindow(null);
     }
 
     navigate(url: string, target: string = '_top')
@@ -776,6 +773,7 @@ export class ContentApp
     public static LayerEntityTooltip = 32;
     public static LayerPopup = 40;
     public static LayerAboveEntities = 45;
+    public static LayerPageOverlay = 46;
     public static LayerWindow = 50;
     public static LayerWindowContent = 51;
     public static LayerDrag = 99;
