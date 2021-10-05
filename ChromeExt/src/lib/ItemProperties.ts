@@ -18,6 +18,7 @@ export class Pid
     static readonly IsTransferable = 'IsTransferable';
     static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
+    static readonly IsInvisible = 'IsInvisible';
     static readonly RezzedX = 'RezzedX';
     static readonly RezzedLocation = 'RezzedLocation'; _
     static readonly RezzedDestination = 'RezzedDestination';
@@ -178,6 +179,7 @@ export class Property
         [Pid.Width]: { inPresence: true },
         [Pid.Height]: { inPresence: true },
         [Pid.RezzedX]: { inPresence: true },
+        [Pid.IsInvisible]: { inPresence: true },
         [Pid.ClaimAspect]: { inPresence: true },
         [Pid.ClaimStrength]: { inPresence: true },
         [Pid.ClaimUrl]: { inPresence: true },

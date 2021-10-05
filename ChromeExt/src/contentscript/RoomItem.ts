@@ -212,12 +212,14 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            this.avatarDisplay = new Avatar(this.app, this, false);
-            if (Utils.isBackpackEnabled()) {
-                this.avatarDisplay.addClass('n3q-item-avatar');
-            }
-            if (as.Bool(newProperties[Pid.ApplierAspect], false)) {
-                this.avatarDisplay.makeDroppable();
+            if (!as.Bool(this.getProperties()[Pid.IsInvisible], false)) {
+                this.avatarDisplay = new Avatar(this.app, this, false);
+                if (Utils.isBackpackEnabled()) {
+                    this.avatarDisplay.addClass('n3q-item-avatar');
+                }
+                if (as.Bool(newProperties[Pid.ApplierAspect], false)) {
+                    this.avatarDisplay.makeDroppable();
+                }
             }
         }
 
