@@ -62,6 +62,7 @@ export class Pid
     static readonly AvatarAvatarId = 'AvatarAvatarId';
     static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
     static readonly PageEffectDuration = 'PageEffectDuration';
+    static readonly PageEffectName = 'PageEffectName';
     static readonly PointsChannelEntered = 'PointsChannelEntered';
     static readonly PointsChannelChat = 'PointsChannelChat';
     static readonly PointsChannelEmote = 'PointsChannelEmote';
@@ -200,6 +201,7 @@ export class Property
         [Pid.SignatureRsa]: { inPresence: true },
         [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
+        [Pid.PageEffectName]: { inPresence: true },
 
         // For unit test
         ['Test1']: { inPresence: true },

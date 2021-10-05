@@ -646,6 +646,21 @@ export class RoomItem extends Entity
         }
     }
 
+    setFrameStyle(style: any)
+    {
+        let iframe = null;
+        if (this.framePopup) {
+            iframe = this.framePopup.getIframeElem();
+        } else if (this.frameWindow) {
+            iframe = this.frameWindow.getIframeElem();
+        } else if (this.frameOverlay) {
+            iframe = this.frameOverlay.getIframeElem();
+        }
+        if (iframe != null) {
+            $(iframe).css(style);
+        }
+    }
+
     openIframeAsPopup(clickedElem: HTMLElement, iframeUrl: string, frameOptions: any)
     {
         if (this.framePopup == null) {

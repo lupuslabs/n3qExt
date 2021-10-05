@@ -273,6 +273,9 @@ export class IframeApi
                 case WeblinClientIframeApi.WindowSetVisibilityRequest.type: {
                     response = this.handle_WindowSetVisibilityRequest(<WeblinClientIframeApi.WindowSetVisibilityRequest>request);
                 } break;
+                case WeblinClientIframeApi.WindowSetStyleRequest.type: {
+                    response = this.handle_WindowSetStyleRequest(<WeblinClientIframeApi.WindowSetStyleRequest>request);
+                } break;
                 case WeblinClientIframeApi.WindowPositionRequest.type: {
                     response = this.handle_WindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request);
                 } break;
@@ -343,6 +346,20 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowSetVisibilityRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_WindowSetStyleRequest(request: WeblinClientIframeApi.WindowSetStyleRequest): WeblinClientApi.Response
+    {
+        try {
+            let item = this.app.getRoom().getItem(request.item);
+            if (item) {
+                item.setFrameStyle(request.style);
+            }
+            return new WeblinClientApi.SuccessResponse();
+        } catch (ex) {
+            log.info('IframeApi.handle_WindowSetStyleRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }

@@ -43,6 +43,13 @@ export namespace WeblinClientIframeApi
         visible: boolean;
     }
 
+    export class WindowSetStyleRequest extends Request
+    {
+        static type = 'Window.SetStyle';
+        item: string;
+        style: any;
+    }
+
     export class WindowPositionRequest extends Request
     {
         static type = 'Window.Position';
