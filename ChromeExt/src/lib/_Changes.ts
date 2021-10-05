@@ -13,6 +13,7 @@ export class _Changes
             ['Add', 'Config i18n.overrideBrowserLanguage'],
             ['Add', 'Load web3 nft items for all web nft contract items'],
             ['Add', 'Support NFT extraction by CryptoWallet item'],
+            ['Add', 'Support page effects'],
             ['Change', 'To BSL with immediate BSD0 exception for infinite-garden/non-silo projects'],
             ['Fix', 'Remove main #n3q div before adding another one for SPAs'],
             ['Fix', 'New ejabberd sends room presence w/o nick: ignore'],
