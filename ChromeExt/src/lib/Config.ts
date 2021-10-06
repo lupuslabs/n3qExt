@@ -159,6 +159,7 @@ export class Config
             chatlogItemAppeared: false,
             chatlogItemIsPresent: false,
             chatlogItemDisappeared: false,
+            maxPageEffectDurationSec: 100.0,
         },
         iframeApi: {
             messageMagic: 'a67igu67puz_iframeApi',
@@ -482,6 +483,7 @@ export class Config
                     'ItemPid.MinerEfficiency': 'Efficiency',
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Network',
+                    'ItemPid.PageEffectRemaining': 'Usages left',
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
@@ -675,6 +677,7 @@ export class Config
                     'ItemPid.MinerEfficiency': 'Effizienz',
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Netzwerk',
+                    'ItemPid.PageEffectRemaining': 'Nutzbar noch',
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',

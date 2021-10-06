@@ -18,8 +18,9 @@ export class Pid
     static readonly IsTransferable = 'IsTransferable';
     static readonly IsUnrezzedAction = 'IsUnrezzedAction';
     static readonly IsRezzed = 'IsRezzed';
+    static readonly IsInvisible = 'IsInvisible';
     static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';_
+    static readonly RezzedLocation = 'RezzedLocation'; _
     static readonly RezzedDestination = 'RezzedDestination';
     static readonly InventoryX = 'InventoryX';
     static readonly InventoryY = 'InventoryY';
@@ -51,6 +52,7 @@ export class Pid
     static readonly ClaimAspect = 'ClaimAspect';
     static readonly ClaimStrength = 'ClaimStrength';
     static readonly ClaimUrl = 'ClaimUrl';
+    static readonly PageEffectAspect = 'PageEffectAspect';
     static readonly PointsAspect = 'PointsAspect';
     static readonly SettingsAspect = 'SettingsAspect';
     static readonly AvatarAspect = 'AvatarAspect';
@@ -59,6 +61,8 @@ export class Pid
     // static readonly AvatarImageUrl = 'AvatarImageUrl';
     static readonly AvatarAvatarId = 'AvatarAvatarId';
     static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
+    static readonly PageEffectDuration = 'PageEffectDuration';
+    static readonly PageEffectName = 'PageEffectName';
     static readonly PointsChannelEntered = 'PointsChannelEntered';
     static readonly PointsChannelChat = 'PointsChannelChat';
     static readonly PointsChannelEmote = 'PointsChannelEmote';
@@ -176,6 +180,7 @@ export class Property
         [Pid.Width]: { inPresence: true },
         [Pid.Height]: { inPresence: true },
         [Pid.RezzedX]: { inPresence: true },
+        [Pid.IsInvisible]: { inPresence: true },
         [Pid.ClaimAspect]: { inPresence: true },
         [Pid.ClaimStrength]: { inPresence: true },
         [Pid.ClaimUrl]: { inPresence: true },
@@ -196,6 +201,7 @@ export class Property
         [Pid.SignatureRsa]: { inPresence: true },
         [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
+        [Pid.PageEffectName]: { inPresence: true },
 
         // For unit test
         ['Test1']: { inPresence: true },

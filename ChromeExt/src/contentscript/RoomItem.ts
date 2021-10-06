@@ -19,6 +19,7 @@ import { Avatar } from './Avatar';
 import { RoomItemStats } from './RoomItemStats';
 import { ItemFrameUnderlay } from './ItemFrameUnderlay';
 import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow';
+import { ItemFrameOverlay, ItemFrameOverlayOptions } from './ItemFrameOverlay';
 import { ItemFramePopup } from './ItemFramePopup';
 import { Participant } from './Participant';
 
@@ -28,6 +29,7 @@ export class RoomItem extends Entity
     private providerId: string;
     private frameWindow: ItemFrameWindow;
     private framePopup: ItemFramePopup;
+    private frameOverlay: ItemFrameOverlay;
     private isFirstPresence: boolean = true;
     protected statsDisplay: RoomItemStats;
     protected screenUnderlay: ItemFrameUnderlay;
@@ -91,6 +93,8 @@ export class RoomItem extends Entity
         let frameElem = null;
         if (this.framePopup) {
             frameElem = this.framePopup.getIframeElem();
+        } else if (this.frameOverlay) {
+            frameElem = this.frameOverlay.getIframeElem();
         } else if (this.frameWindow) {
             frameElem = this.frameWindow.getIframeElem();
         }
@@ -208,12 +212,14 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            this.avatarDisplay = new Avatar(this.app, this, false);
-            if (Utils.isBackpackEnabled()) {
-                this.avatarDisplay.addClass('n3q-item-avatar');
-            }
-            if (as.Bool(newProperties[Pid.ApplierAspect], false)) {
-                this.avatarDisplay.makeDroppable();
+            if (!as.Bool(this.getProperties()[Pid.IsInvisible], false)) {
+                this.avatarDisplay = new Avatar(this.app, this, false);
+                if (Utils.isBackpackEnabled()) {
+                    this.avatarDisplay.addClass('n3q-item-avatar');
+                }
+                if (as.Bool(newProperties[Pid.ApplierAspect], false)) {
+                    this.avatarDisplay.makeDroppable();
+                }
             }
         }
 
@@ -284,6 +290,28 @@ export class RoomItem extends Entity
             if (as.Bool(this.getProperties()[Pid.IframeAspect], false)) {
                 if (as.Bool(this.getProperties()[Pid.IframeAuto], false)) {
                     this.openFrame(this.getElem());
+                }
+            }
+        }
+
+        if (isFirstPresence) {
+            if (this.myItem) {
+                if (as.Bool(this.getProperties()[Pid.PageEffectAspect], false)) {
+                    let maxDuration = as.Float(this.getProperties()[Pid.PageEffectDuration], Config.get('roomItem.maxPageEffectDurationSec', 100.0));
+                    window.setTimeout(async () => 
+                    {
+                        let itemId = this.getRoomNick();
+                        try {
+                            await BackgroundMessage.executeBackpackItemAction(itemId, 'PageEffect.Used', {}, [itemId]);
+                        } catch (error) {
+                            // Ignore
+                        }
+                        try {
+                            await BackgroundMessage.derezBackpackItem(itemId, this.getRoom().getJid(), -1, -1, {}, [], {});
+                        } catch (error) {
+                            // Ignore
+                        }
+                    }, maxDuration * 1000);
                 }
             }
         }
@@ -574,11 +602,19 @@ export class RoomItem extends Entity
                 iframeUrl = iframeUrl.replace(/"/g, '%22');
 
                 let iframeOptions = JSON.parse(as.String(this.properties[Pid.IframeOptions], '{}'));
-                if (as.String(iframeOptions.frame, 'Window') == 'Popup') {
-                    this.openIframeAsPopup(clickedElem, iframeUrl, iframeOptions);
-                } else {
-                    this.openIframeAsWindow(clickedElem, iframeUrl, iframeOptions);
+
+                switch (as.String(iframeOptions.frame, 'Window')) {
+                    case 'Popup':
+                        this.openIframeAsPopup(clickedElem, iframeUrl, iframeOptions);
+                        break;
+                    case 'Overlay':
+                        this.openIframeAsOverlay(iframeUrl, iframeOptions);
+                        break;
+                    default:
+                        break;
+                        this.openIframeAsWindow(clickedElem, iframeUrl, iframeOptions);
                 }
+
             } catch (error) {
                 log.info('RepositoryItem.openIframe', error);
             }
@@ -590,6 +626,9 @@ export class RoomItem extends Entity
         if (this.framePopup) {
             this.framePopup.close();
             this.framePopup = null;
+        } else if (this.frameOverlay) {
+            this.frameOverlay.close();
+            this.frameOverlay = null;
         } else if (this.frameWindow) {
             this.frameWindow.close();
             this.frameWindow = null;
@@ -602,6 +641,23 @@ export class RoomItem extends Entity
             this.framePopup.setVisibility(visible);
         } else if (this.frameWindow) {
             this.frameWindow.setVisibility(visible);
+        } else if (this.frameOverlay) {
+            this.frameOverlay.setVisibility(visible);
+        }
+    }
+
+    setFrameStyle(style: any)
+    {
+        let iframe = null;
+        if (this.framePopup) {
+            iframe = this.framePopup.getIframeElem();
+        } else if (this.frameWindow) {
+            iframe = this.frameWindow.getIframeElem();
+        } else if (this.frameOverlay) {
+            iframe = this.frameOverlay.getIframeElem();
+        }
+        if (iframe != null) {
+            $(iframe).css(style);
         }
     }
 
@@ -626,6 +682,21 @@ export class RoomItem extends Entity
             }
 
             this.framePopup.show(options);
+        }
+    }
+
+    openIframeAsOverlay(iframeUrl: string, frameOptions: any)
+    {
+        if (this.frameOverlay == null) {
+            this.frameOverlay = new ItemFrameOverlay(this.app);
+
+            let options: ItemFrameOverlayOptions = {
+                url: iframeUrl,
+                hidden: as.Bool(frameOptions.hidden, false),
+                onClose: () => { this.frameOverlay = null; },
+            }
+
+            this.frameOverlay.show(options);
         }
     }
 
