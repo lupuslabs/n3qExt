@@ -611,8 +611,8 @@ export class RoomItem extends Entity
                         this.openIframeAsOverlay(iframeUrl, iframeOptions);
                         break;
                     default:
-                        break;
                         this.openIframeAsWindow(clickedElem, iframeUrl, iframeOptions);
+                        break;
                 }
 
             } catch (error) {
