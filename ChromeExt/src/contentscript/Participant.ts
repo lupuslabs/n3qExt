@@ -644,17 +644,16 @@ export class Participant extends Entity
             if (type != '' && itemId != '') {
                 switch (type) {
 
-                    case 'propose':
-
-                        let transferId: string = null;
-                        let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.Id]: itemId, [Pid.IsTakeable]: 'true', [Pid.IsRezzed]: 'true', [Pid.RezzedLocation]: this.room.getJid() });
-                        if (propSet[itemId]) {
-                            this.room.transferItem(itemId, this.roomNick);
-                        }
-                        break;
+                    // case 'propose':
+                    //     let transferId: string = null;
+                    //     let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.Id]: itemId, [Pid.IsTakeable]: 'true', [Pid.IsRezzed]: 'true', [Pid.RezzedLocation]: this.room.getJid() });
+                    //     if (propSet[itemId]) {
+                    //         this.room.transferItem(itemId, this.roomNick);
+                    //     }
+                    //     break;
 
                     case 'request':
-                        if (node.children && node.children.length > 0)
+                        if (node.children && node.children.length > 0) {
                             for (let i = 0; i < node.children.length; i++) {
                                 let body = as.String(node.children[i], '');
                                 if (body != '') {
@@ -668,6 +667,7 @@ export class Participant extends Entity
                                     await this.room.confirmItemTransfer(itemId, this.roomNick);
                                 }
                             }
+                        }
                         break;
 
                     case 'confirm':
@@ -1018,7 +1018,7 @@ export class Participant extends Entity
         let vidconfSecret = await Memory.getLocal('client.vidconfSecret', '');
         if (vidconfSecret == '') {
             vidconfSecret = Utils.randomString(10);
-            await Memory.setLocal('client.vidconfSecret',vidconfSecret);
+            await Memory.setLocal('client.vidconfSecret', vidconfSecret);
         }
 
         let confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
