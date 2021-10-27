@@ -415,6 +415,21 @@ export class Participant extends Entity
                 this.fetchVcardImage(this.avatarDisplay);
             }
         }
+
+        // if (isFirstPresence) {
+        //     if (this.isSelf) {
+        //         let pageUrl = this.room?.getPageUrl();
+        //         if (pageUrl) {
+        //             let parsedUrl = new URL(pageUrl);
+        //             let domain = parsedUrl.host;
+        //             if (domain) {
+        //                 if (Config.get('room.autoOpenVidConfDomains', []).includes(domain)) {
+        //                     this.app.showVidconfWindow(this.room.getParticipant(this.room.getMyNick()).getElem());
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     onPresenceUnavailable(stanza: any): void

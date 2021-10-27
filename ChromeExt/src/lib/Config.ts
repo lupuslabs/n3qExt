@@ -121,6 +121,7 @@ export class Config
             itemStatsTooltipDelay: 500,
             itemStatsTooltipOffset: { x: 3, y: 3 },
             showPrivateChatInfoButton: false,
+            autoOpenVidConfDomains: [],
         },
         xmpp: {
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',
