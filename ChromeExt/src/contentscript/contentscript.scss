@@ -1241,9 +1241,16 @@
         }
     }
 
+    /* Rezzed item in backpack: */
+    div.n3q-backpack-item.n3q-backpack-item-rezzed {
+        box-shadow: rgb(180, 180, 180) 1px 1px 3px;
+    }
     div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-image {
-        filter: contrast(0.7);
-        background-color: #c0c0c0;
+        opacity: 0.5;
+        filter: contrast(0.5) grayscale(0.5);
+    }
+    div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-label {
+        color: rgb(160, 160, 160);
     }
 
     div.n3q-backpack-drag {

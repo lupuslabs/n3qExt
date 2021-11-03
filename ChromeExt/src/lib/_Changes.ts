@@ -10,6 +10,7 @@ export class _Changes
             ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
+            ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
         ]],
         ['1.1.3', 'OpenSource NftAvatar', [
