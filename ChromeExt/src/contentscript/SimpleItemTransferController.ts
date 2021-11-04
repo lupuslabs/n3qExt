@@ -697,7 +697,7 @@ export class SimpleItemTransferController
     // Dynamic helpers
 
     protected logInfo(src: string, msg: string, ...data: unknown[]): void {
-        if (Utils.logChannel('SimpleItemTransfer', true)) {
+        if (Utils.logChannel('SimpleItemTransfer')) {
             log.info(`${src}: ${msg}`, ...data);
         }
     }

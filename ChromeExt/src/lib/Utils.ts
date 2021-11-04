@@ -43,11 +43,10 @@ export class Utils
         return o;
     }
 
-    static logChannel(channel: string, defaultValue: boolean): boolean
+    static logChannel(channel: string, defaultValue: boolean=true): boolean
     {
-        if (Config.get('log.all', false)) { return true; }
-        if (Config.get('log.' + channel, true)) { return true; }
-        return defaultValue;
+        return Config.get('log.all', false)
+            || Config.get(`log.${channel}`, defaultValue);
     }
 
     static makeGifExplicit(avatarId: string): string
