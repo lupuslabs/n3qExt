@@ -457,7 +457,7 @@ export class Room
 
     // message
 
-    onMessage(stanza: any)
+    onMessage(stanza: xml.Element)
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -533,38 +533,6 @@ export class Room
             .append(xml('x', { 'xmlns': VpProtocol.Response.xmlns, [VpProtocol.Response.key_to]: VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfResponse.key_type]: [VpProtocol.PrivateVideoconfResponse.type_decline], [VpProtocol.PrivateVideoconfResponse.key_comment]: comment }))
             ;
         this.app.sendStanza(message);
-    }
-
-    async transferItem(itemId: string, nick: string)
-    {
-        try {
-            await BackgroundMessage.derezBackpackItem(itemId, this.getJid(), -1, -1, { [Pid.TransferState]: Pid.TransferState_Source }, [], {});
-            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
-            const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-                .append(xml('x', { 'xmlns': 'vp:transfer', 'type': 'request', 'item': itemId }, JSON.stringify(props)))
-                ;
-            this.app.sendStanza(message);
-        } catch (error) {
-
-        }
-    }
-
-    async confirmItemTransfer(itemId: string, nick: string)
-    {
-        try {
-            const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-                .append(xml('x', { 'xmlns': 'vp:transfer', 'type': 'confirm', 'item': itemId }))
-                ;
-            this.app.sendStanza(message);
-
-            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
-            const senderName = this.getParticipant(nick).getDisplayName();
-            const toast = new SimpleToast(this.app, 'itemtransfer-afterthefact', Config.get('backpack.receiveToastDurationSec', 20), 'notice', senderName, this.app.translateText('Toast.ItemTransferred') + ': ' + this.app.translateText('ItemLabel.' + props[Pid.Label]));
-            toast.show(() => { });
-
-        } catch (error) {
-
-        }
     }
 
     showChatWindow(aboveElem: HTMLElement): void
@@ -645,12 +613,14 @@ export class Room
         activeItem.applyItem(passiveItem);
     }
 
-    applyBackpackItemToParticipant(participant: Participant, backpackItem: BackpackItem)
-    {
+    applyBackpackItemToParticipant(
+        participant: Participant,
+        backpackItem: BackpackItem,
+    ): void {
         participant.applyBackpackItem(backpackItem);
     }
 
-    applyItemToParticipant(participant: Participant, roomItem: RoomItem)
+    applyItemToParticipant(participant: Participant, roomItem: RoomItem): void
     {
         participant.applyItem(roomItem);
     }

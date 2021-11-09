@@ -1,4 +1,4 @@
-import { xml } from '@xmpp/client';
+import * as xml from '@xmpp/xml';
 import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
@@ -73,7 +73,7 @@ export class Utils
         return avatarUrl;
     }
 
-    static jsObject2xmlObject(stanza: any): xml
+    static jsObject2xmlObject(stanza: any): xml.Element
     {
         const children = [];
         if (stanza.children !== undefined) {

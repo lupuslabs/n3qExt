@@ -1,94 +1,91 @@
 import log = require('loglevel');
 import { as } from './as';
 import { Utils } from './Utils';
+import { is } from './is';
 const NodeRSA = require('node-rsa');
 
-export class Pid
+export enum Pid
 {
-    static readonly Id = 'Id';
-    static readonly Name = 'Name';
-    static readonly Label = 'Label';
-    static readonly Description = 'Description';
-    static readonly Reference = 'Reference';
-    static readonly Template = 'Template';
-    static readonly OwnerId = 'OwnerId';
-    static readonly OwnerName = 'OwnerName';
-    static readonly IsRezable = 'IsRezable';
-    static readonly IsTakeable = 'IsTakeable';
-    static readonly IsTransferable = 'IsTransferable';
-    static readonly IsUnrezzedAction = 'IsUnrezzedAction';
-    static readonly IsRezzed = 'IsRezzed';
-    static readonly IsInvisible = 'IsInvisible';
-    static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';
-    static readonly RezzedDestination = 'RezzedDestination';
-    static readonly InventoryX = 'InventoryX';
-    static readonly InventoryY = 'InventoryY';
-    static readonly State = 'State';
-    static readonly Provider = 'Provider';
-    static readonly Stats = 'Stats';
-    static readonly Display = 'Display';
-    static readonly IframeAspect = 'IframeAspect';
-    static readonly IframeOptions = 'IframeOptions';
-    static readonly IframeUrl = 'IframeUrl';
-    static readonly DocumentOptions = 'DocumentOptions';
-    static readonly DocumentUrl = 'DocumentUrl';
-    static readonly DocumentText = 'DocumentText';
-    static readonly DocumentTitle = 'DocumentTitle';
-    static readonly MigrationAspect = 'MigrationAspect';
-    static readonly MigrationCid = 'MigrationCid';
-    static readonly AutorezAspect = 'AutorezAspect';
-    static readonly AutorezIsActive = 'AutorezIsActive';
-    static readonly IframeAuto = 'IframeAuto';
-    static readonly IframeAutoRange = 'IframeAutoRange';
-    static readonly IframeLive = 'IframeLive';
-    static readonly TransferState = 'TransferState';
-    static readonly ImageUrl = 'ImageUrl';
-    static readonly AnimationsUrl = 'AnimationsUrl';
-    static readonly Width = 'Width';
-    static readonly Height = 'Height';
-    static readonly ActivatableAspect = 'ActivatableAspect';
-    static readonly ApplierAspect = 'ApplierAspect';
-    static readonly ClaimAspect = 'ClaimAspect';
-    static readonly ClaimStrength = 'ClaimStrength';
-    static readonly ClaimUrl = 'ClaimUrl';
-    static readonly PageEffectAspect = 'PageEffectAspect';
-    static readonly PointsAspect = 'PointsAspect';
-    static readonly SettingsAspect = 'SettingsAspect';
-    static readonly AvatarAspect = 'AvatarAspect';
-    static readonly NicknameAspect = 'NicknameAspect';
-    static readonly NicknameText = 'NicknameText';
-    // static readonly AvatarImageUrl = 'AvatarImageUrl';
-    static readonly AvatarAvatarId = 'AvatarAvatarId';
-    static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
-    static readonly PageEffectDuration = 'PageEffectDuration';
-    static readonly PageEffectName = 'PageEffectName';
-    static readonly PointsChannelEntered = 'PointsChannelEntered';
-    static readonly PointsChannelChat = 'PointsChannelChat';
-    static readonly PointsChannelEmote = 'PointsChannelEmote';
-    static readonly PointsChannelGreet = 'PointsChannelGreet';
-    static readonly PointsChannelNavigation = 'PointsChannelNavigation';
-    static readonly PointsChannelItemRez = 'PointsChannelItemRez';
-    static readonly PointsChannelItemApply = 'PointsChannelItemApply';
-    static readonly PointsTotal = 'PointsTotal';
-    static readonly ScreenAspect = 'ScreenAspect';
-    static readonly ScreenOptions = 'ScreenOptions';
-    static readonly ScreenUrl = 'ScreenUrl';
-    static readonly ActivatableIsActive = 'ActivatableIsActive';
-    static readonly Signed = 'Signed';
-    static readonly SignatureRsa = 'SignatureRsa';
-    static readonly Web3BasedAspect = 'Web3BasedAspect';
-    static readonly Web3BasedOwner = 'Web3BasedOwner';
-    static readonly Web3WalletAspect = 'Web3WalletAspect';
-    static readonly Web3WalletAddress = 'Web3WalletAddress';
-    static readonly Web3WalletNetwork = 'Web3WalletNetwork';
-    static readonly Web3ContractAspect = 'Web3ContractAspect';
-    static readonly Web3ContractAddress = 'Web3ContractAddress';
-    static readonly Web3ContractNetwork = 'Web3ContractNetwork';
-    static readonly ShopImageUrl = 'ShopImageUrl';
-
-    static readonly TransferState_Source = 'Source';
-    static readonly TransferState_Destination = 'Destination';
+    Id = 'Id',
+    Name = 'Name',
+    Label = 'Label',
+    Description = 'Description',
+    Reference = 'Reference',
+    Template = 'Template',
+    OwnerId = 'OwnerId',
+    OwnerName = 'OwnerName',
+    IsRezable = 'IsRezable',
+    IsTakeable = 'IsTakeable',
+    IsTransferable = 'IsTransferable',
+    IsUnrezzedAction = 'IsUnrezzedAction',
+    IsRezzed = 'IsRezzed',
+    IsInvisible = 'IsInvisible',
+    RezzedX = 'RezzedX',
+    RezzedLocation = 'RezzedLocation',
+    RezzedDestination = 'RezzedDestination',
+    InventoryX = 'InventoryX',
+    InventoryY = 'InventoryY',
+    State = 'State',
+    Provider = 'Provider',
+    Stats = 'Stats',
+    Display = 'Display',
+    IframeAspect = 'IframeAspect',
+    IframeOptions = 'IframeOptions',
+    IframeUrl = 'IframeUrl',
+    DocumentOptions = 'DocumentOptions',
+    DocumentUrl = 'DocumentUrl',
+    DocumentText = 'DocumentText',
+    DocumentTitle = 'DocumentTitle',
+    MigrationAspect = 'MigrationAspect',
+    MigrationCid = 'MigrationCid',
+    AutorezAspect = 'AutorezAspect',
+    AutorezIsActive = 'AutorezIsActive',
+    IframeAuto = 'IframeAuto',
+    IframeAutoRange = 'IframeAutoRange',
+    IframeLive = 'IframeLive',
+    ImageUrl = 'ImageUrl',
+    AnimationsUrl = 'AnimationsUrl',
+    Width = 'Width',
+    Height = 'Height',
+    ActivatableAspect = 'ActivatableAspect',
+    ApplierAspect = 'ApplierAspect',
+    ClaimAspect = 'ClaimAspect',
+    ClaimStrength = 'ClaimStrength',
+    ClaimUrl = 'ClaimUrl',
+    PageEffectAspect = 'PageEffectAspect',
+    PointsAspect = 'PointsAspect',
+    SettingsAspect = 'SettingsAspect',
+    AvatarAspect = 'AvatarAspect',
+    NicknameAspect = 'NicknameAspect',
+    NicknameText = 'NicknameText',
+    // AvatarImageUrl = 'AvatarImageUrl',
+    AvatarAvatarId = 'AvatarAvatarId',
+    AvatarAnimationsUrl = 'AvatarAnimationsUrl',
+    PageEffectDuration = 'PageEffectDuration',
+    PageEffectName = 'PageEffectName',
+    PointsChannelEntered = 'PointsChannelEntered',
+    PointsChannelChat = 'PointsChannelChat',
+    PointsChannelEmote = 'PointsChannelEmote',
+    PointsChannelGreet = 'PointsChannelGreet',
+    PointsChannelNavigation = 'PointsChannelNavigation',
+    PointsChannelItemRez = 'PointsChannelItemRez',
+    PointsChannelItemApply = 'PointsChannelItemApply',
+    PointsTotal = 'PointsTotal',
+    ScreenAspect = 'ScreenAspect',
+    ScreenOptions = 'ScreenOptions',
+    ScreenUrl = 'ScreenUrl',
+    ActivatableIsActive = 'ActivatableIsActive',
+    Signed = 'Signed',
+    SignatureRsa = 'SignatureRsa',
+    Web3BasedAspect = 'Web3BasedAspect',
+    Web3BasedOwner = 'Web3BasedOwner',
+    Web3WalletAspect = 'Web3WalletAspect',
+    Web3WalletAddress = 'Web3WalletAddress',
+    Web3WalletNetwork = 'Web3WalletNetwork',
+    Web3ContractAspect = 'Web3ContractAspect',
+    Web3ContractAddress = 'Web3ContractAddress',
+    Web3ContractNetwork = 'Web3ContractNetwork',
+    ShopImageUrl = 'ShopImageUrl',
 }
 
 export class ItemProperties
@@ -156,6 +153,38 @@ export class ItemProperties
         const rightSorted = Utils.sortObjectByKey(right);
         return JSON.stringify(leftSorted) === JSON.stringify(rightSorted);
     }
+
+    /**
+     * Returns selected properties as generic object.
+     *
+     * - Discards non-string values.
+     * - Discards properties with non-Pid name.
+     */
+    static getStrings(
+        item: undefined|ItemProperties|{[pid: string]: unknown},
+        pids?: undefined|Array<Pid>,
+    ): {[pid: string]: string} {
+        const vals: {[pid: string]: string} = {};
+        if (is.nil(pids)) {
+            // Keep all string properties:
+            for (const pid in <{[prop: string]: unknown}>item) {
+                const val = item[pid];
+                if (is.string(val)) {
+                    vals[pid] = val;
+                }
+            }
+        } else {
+            // Keep selected string properties only:
+            for (const pid of pids) {
+                const val = item[pid];
+                if (is.string(val)) {
+                    vals[pid] = val;
+                }
+            }
+        }
+        return vals;
+    }
+
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }

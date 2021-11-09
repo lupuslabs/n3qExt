@@ -25,6 +25,8 @@ export class BackpackItem
     private mousedownX: number;
     private mousedownY: number;
 
+    private ignoreNextDropFlag: boolean = false;
+
     getElem(): HTMLElement { return this.elem; }
     getProperties(): ItemProperties { return this.properties; }
     getItemId(): string { return this.properties[Pid.Id]; }
@@ -180,6 +182,11 @@ export class BackpackItem
         }
     }
 
+    public ignoreNextDrop(): void
+    {
+        this.ignoreNextDropFlag = true;
+    }
+
     onMouseClick(ev: JQuery.Event): void
     {
         this.app.toFront(this.elem, ContentApp.LayerWindowContent);
@@ -222,21 +229,25 @@ export class BackpackItem
         return true;
     }
 
-    private async onDragStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): Promise<boolean>
-    {
+    private onDragStop(
+        ev: JQueryMouseEventObject,
+        ui: JQueryUI.DraggableEventUIParams,
+    ): void {
         this.app.hideDropzone();
+        if (this.ignoreNextDropFlag) {
+            this.ignoreNextDropFlag = false;
+            return;
+        }
         if (this.isPositionInBackpack(ev, ui)) {
             const pos = this.getPositionRelativeToPane(ev, ui);
             if (pos.x !== this.x || pos.y !== this.y) {
                 this.setPosition(pos.x, pos.y);
-                await this.sendSetItemCoordinates(pos.x, pos.y);
+                this.sendSetItemCoordinates(pos.x, pos.y);
             }
         } else if (this.isPositionInDropzone(ev, ui)) {
             const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
             this.rezItem(dropX);
-            return false;
         }
-        return true;
     }
 
     private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
@@ -307,13 +318,22 @@ export class BackpackItem
         return inDropzone;
     }
 
-    async sendSetItemCoordinates(x: number, y: number)
+    sendSetItemCoordinates(x: number, y: number): void
     {
-        if (await BackgroundMessage.isBackpackItem(this.itemId)) {
-            this.properties[Pid.InventoryX] = '' + Math.round(x);
-            this.properties[Pid.InventoryY] = '' + Math.round(y);
-            this.backpackWindow.setItemProperties(this.itemId, this.properties, { skipPresenceUpdate: true });
-        }
+        (async () => {
+            const itemId = this.itemId;
+            if (await BackgroundMessage.isBackpackItem(itemId)) {
+                const props = this.properties;
+                props[Pid.InventoryX] = Math.round(x).toString();
+                props[Pid.InventoryY] = Math.round(y).toString();
+                const opts = { skipPresenceUpdate: true };
+                this.backpackWindow.setItemProperties(itemId, props, opts);
+            }
+        })().catch(error => { this.app.onError(
+            'BackpackItem.sendSetItemCoordinates',
+            'Error caught!',
+            error, 'this', this);
+        });
     }
 
     rezItem(x: number)

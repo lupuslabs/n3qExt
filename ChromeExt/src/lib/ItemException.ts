@@ -75,6 +75,7 @@ export namespace ItemException
         NotStacked,
         ClaimFailed,
         SubmissionIgnored,
+        NotDropped,
     }
 
     export enum Reason
@@ -118,6 +119,7 @@ export namespace ItemException
         MissingResource,
         CapacityLimit,
         NetworkProblem,
+        CantDropOnSelf,
     }
 }
 

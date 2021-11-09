@@ -16,7 +16,7 @@ import { Nickname } from './Nickname';
 import { Chatout } from './Chatout';
 import { Chatin } from './Chatin';
 import { RoomItem } from './RoomItem';
-import { SimpleErrorToast, SimpleToast, Toast } from './Toast';
+import { ItemExceptionToast, SimpleToast } from './Toast';
 import { PrivateChatWindow } from './PrivateChatWindow';
 import { PrivateVidconfWindow } from './PrivateVidconfWindow';
 import { PointsBar } from './PointsBar';
@@ -532,7 +532,7 @@ export class Participant extends Entity
 
     // message
 
-    async onMessagePrivateChat(stanza: any): Promise<void>
+    async onMessagePrivateChat(stanza: xml.Element): Promise<void>
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -557,10 +557,8 @@ export class Participant extends Entity
             this.onReceiveResponse(responseNode);
         }
 
-        let transferNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:transfer');
-        if (transferNode) {
+        if (this.app.getSimpleItemTransferController()?.onStanza(stanza)) {
             isChat = false;
-            this.onReceiveTransfer(transferNode);
         }
 
         if (!isChat) { return; }
@@ -642,54 +640,6 @@ export class Participant extends Entity
                 if (node.attrs.type == VpProtocol.PrivateVideoconfResponse.type_decline) {
                     const toast = new SimpleToast(this.app, 'privatevidconfresponse', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
                     toast.show();
-                }
-            }
-        } catch (error) {
-            //
-        }
-    }
-
-    async onReceiveTransfer(node: any): Promise<void>
-    {
-        try {
-            let type = as.String(node.attrs.type, '');
-            let itemId = as.String(node.attrs.item, '');
-            if (type != '' && itemId != '') {
-                switch (type) {
-
-                    // case 'propose':
-                    //     let transferId: string = null;
-                    //     let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.Id]: itemId, [Pid.IsTakeable]: 'true', [Pid.IsRezzed]: 'true', [Pid.RezzedLocation]: this.room.getJid() });
-                    //     if (propSet[itemId]) {
-                    //         this.room.transferItem(itemId, this.roomNick);
-                    //     }
-                    //     break;
-
-                    case 'request':
-                        if (node.children && node.children.length > 0) {
-                            for (let i = 0; i < node.children.length; i++) {
-                                let body = as.String(node.children[i], '');
-                                if (body != '') {
-                                    let props = JSON.parse(body);
-
-                                    delete props[Pid.InventoryX];
-                                    delete props[Pid.InventoryY];
-
-                                    await BackgroundMessage.addBackpackItem(itemId, props, {});
-                                    await BackgroundMessage.derezBackpackItem(itemId, this.room.getJid(), -1, -1, {}, [Pid.AutorezIsActive, Pid.TransferState], {});
-                                    await this.room.confirmItemTransfer(itemId, this.roomNick);
-                                }
-                            }
-                        }
-                        break;
-
-                    case 'confirm':
-                        let props = await BackgroundMessage.getBackpackItemProperties(itemId);
-                        if (props[Pid.TransferState] == Pid.TransferState_Source) {
-                            await BackgroundMessage.deleteBackpackItem(itemId, {});
-                        }
-                        break;
-
                 }
             }
         } catch (error) {
@@ -914,6 +864,27 @@ export class Participant extends Entity
         }
     }
 
+    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
+        (async (): Promise<void> => {
+            if (droppedItem instanceof RoomItem) {
+                // RoomItem on Participant.
+                droppedItem.getAvatar()?.ignoreDrag();
+                const itemId = droppedItem.getRoomNick();
+                if (await BackgroundMessage.isBackpackItem(itemId)) {
+                    // Own RoomItem on any Participant.
+                    await this.room.applyItemToParticipant(this, droppedItem);
+                }
+            } else if (droppedItem instanceof BackpackItem) {
+                // Own BackpackItem on any Participant.
+                await this.room.applyBackpackItemToParticipant(this, droppedItem);
+            }
+        })().catch(error => { this.app.onError(
+            'Participant.onGotItemDroppedOn',
+            'Error caught!',
+            error, 'this', this, 'droppedItem', droppedItem);
+        });
+    }
+
     sendParticipantMovedToAllScriptFrames(): void
     {
         const participantData = {
@@ -1069,30 +1040,62 @@ export class Participant extends Entity
         }
     }
 
-    async applyItem(roomItem: RoomItem)
+    applyItem(roomItem: RoomItem): void
     {
         const itemId = roomItem.getRoomNick();
-        const roomJid = this.getRoom().getJid();
+        const roomJid = this.room.getJid();
         if (this.isSelf) {
-            log.debug('Participant.applyItem', 'derez', itemId, 'room', roomJid);
-            await BackgroundMessage.derezBackpackItem(itemId, roomJid, -1, -1, {}, [Pid.AutorezIsActive], {});
-        } else {
-            log.debug('Participant.applyItem', 'transfer', itemId, 'room', roomJid);
-
-            if (!as.Bool(roomItem.getProperties()[Pid.IsTransferable], true)) {
-                const fact = ItemException.fact2String(ItemException.Fact.NotTransferred);
-                const reason = ItemException.reason2String(ItemException.Reason.ItemIsNotTransferable);
-                new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', fact, reason, '').show();
-            } else {
-                await this.room?.transferItem(itemId, this.roomNick);
+            if (Utils.logChannel('items', true)) {
+                log.info('Participant.applyItem',
+                    'Derezzing item...',
+                    'roomItem', roomItem, 'roomJid', roomJid);
             }
-
+            BackgroundMessage.derezBackpackItem(
+                itemId, roomJid, -1, -1,
+                {}, [Pid.AutorezIsActive], {}
+            ).catch(error => { this.app.onError(
+                'Participant.applyItem',
+                'BackgroundMessage.derezBackpackItem failed!',
+                error, 'this', this, 'roomItem', roomItem);
+            });
+        } else {
+            if (Utils.logChannel('items', true)) {
+                log.info('Participant.applyItem',
+                    'Initiating simple item transfer...',
+                    'roomItem', roomItem, 'roomJid', roomJid);
+            }
+            const item = roomItem.getProperties();
+            const controller = this.app.getSimpleItemTransferController();
+            controller?.senderInitiateItemTransfer(this, item);
         }
     }
 
-    async applyBackpackItem(backpackItem: BackpackItem)
+    applyBackpackItem(backpackItem: BackpackItem): void
     {
-        log.debug('Participant.applyBackpackItem', '### NOT YET IMPLEMENTED');
+        if (this.isSelf) {
+            // Dropped item from backpack window on own avatar.
+            if (Utils.logChannel('items', true)) {
+                log.info('Participant.applyItem',
+                    'Do nothing for backpack item dropped on own avatar.',
+                    'backpackItem', backpackItem);
+            }
+            const fact = ItemException.Fact.NotDropped;
+            const reason = ItemException.Reason.CantDropOnSelf;
+            const ex = new ItemException(fact, reason);
+            const durationKey = 'room.applyItemErrorToastDurationSec';
+            const duration = Config.getNumber(durationKey);
+            (new ItemExceptionToast(this.app, duration, ex)).show();
+        } else {
+            // Dropped item from backpack window on other participant.
+            if (Utils.logChannel('items', true)) {
+                log.info('Participant.applyItem',
+                    'Initiating simple item transfer...',
+                    'backpackItem', backpackItem);
+            }
+            const item = backpackItem.getProperties();
+            const controller = this.app.getSimpleItemTransferController();
+            controller?.senderInitiateItemTransfer(this, item);
+        }
     }
 
 }

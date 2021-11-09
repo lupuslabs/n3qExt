@@ -3,6 +3,7 @@ import { as } from '../lib/as';
 import { ItemException } from '../lib/ItemException';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
+import { is } from '../lib/is';
 
 export class Toast
 {
@@ -91,11 +92,14 @@ export class Toast
 
     close(): void
     {
-        if (this.elem != null) {
-            if (this.onClose) { this.onClose(); }
-            $(this.elem).stop();
-            this.app.getDisplay().removeChild(this.elem);
+        const elem = this.elem;
+        if (!is.nil(elem)) {
             this.elem = null;
+            if (this.onClose) {
+                this.onClose();
+            }
+            $(elem).stop();
+            this.app.getDisplay().removeChild(elem);
         }
     }
 

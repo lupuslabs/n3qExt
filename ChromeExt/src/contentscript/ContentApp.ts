@@ -1,7 +1,9 @@
 import log = require('loglevel');
 import * as $ from 'jquery';
-import { xml, jid } from '@xmpp/client';
+import { jid } from '@xmpp/client';
+import * as xml from '@xmpp/xml';
 import { as } from '../lib/as';
+import { is } from '../lib/is';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
@@ -24,6 +26,8 @@ import { BackpackWindow } from './BackpackWindow';
 import { SimpleToast } from './Toast';
 import { IframeApi } from './IframeApi';
 import { RandomNames } from '../lib/RandomNames';
+import { Participant } from './Participant';
+import { SimpleItemTransferController } from './SimpleItemTransferController';
 
 interface ILocationMapperResponse
 {
@@ -40,7 +44,7 @@ export class ContentAppNotification
 }
 
 interface ContentAppNotificationCallback { (msg: any): void }
-interface StanzaResponseHandler { (stanza: xml): void }
+interface StanzaResponseHandler { (stanza: xml.Element): void }
 
 export class ContentApp
 {
@@ -54,6 +58,7 @@ export class ContentApp
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
     private backpackWindow: BackpackWindow;
+    private simpleItemTransferController: undefined|SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
     private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
@@ -71,7 +76,26 @@ export class ContentApp
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
     getRoom(): Room { return this.room; }
+
+    getMyParticipant(): undefined|Participant
+    {
+        return this.room?.getParticipant(this.room.getMyNick()) ?? null;
+    }
+
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
+
+    /**
+     * null before in a room and receiving first presence for local participant.
+     */
+    getSimpleItemTransferController(): undefined|SimpleItemTransferController
+    {
+        if (is.nil(this.simpleItemTransferController)
+        && !is.nil(this.getMyParticipant())) {
+            this.simpleItemTransferController
+                = new SimpleItemTransferController(this);
+        }
+        return this.simpleItemTransferController;
+    }
 
     constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
     {
@@ -225,7 +249,7 @@ export class ContentApp
     {
         // let frame = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
         // this.display.append(frame);
-        this.room.getParticipant(this.room.getMyNick()).showEffect('pulse');
+        this.getMyParticipant()?.showEffect('pulse');
     }
 
     navigate(url: string, target: string = '_top')
@@ -239,13 +263,7 @@ export class ContentApp
 
     getMyParticipantELem(): HTMLElement
     {
-        if (this.room) {
-            const participant = this.room.getParticipant(this.room.getMyNick());
-            if (participant) {
-                return participant.getElem();
-            }
-        }
-        return null;
+        return this.getMyParticipant()?.getElem();
     }
 
     reshowBackpackWindow(): void
@@ -273,13 +291,11 @@ export class ContentApp
     }
     showVidconfWindow(aboveElem?: HTMLElement): void
     {
-        aboveElem = aboveElem ?? this.getMyParticipantELem();
-        if (this.room) {
-            const participant = this.room.getParticipant(this.room.getMyNick());
-            if (participant) {
-                const displayName = participant.getDisplayName();
-                this.room.showVideoConference(aboveElem, displayName);
-            }
+        const aboveElemM = aboveElem ?? this.getMyParticipantELem();
+        const participant: Participant = this.getMyParticipant();
+        if (participant) {
+            const displayName = participant.getDisplayName();
+            this.room.showVideoConference(aboveElemM, displayName);
         }
     }
 
@@ -484,7 +500,7 @@ export class ContentApp
 
     handle_recvStanza(jsStanza: any): any
     {
-        const stanza: xml = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: xml.Element = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
@@ -695,7 +711,7 @@ export class ContentApp
         }
     }
 
-    onPresence(stanza: xml): void
+    onPresence(stanza: xml.Element): void
     {
         let isHandled = false;
 
@@ -712,7 +728,7 @@ export class ContentApp
         }
     }
 
-    onMessage(stanza: xml): void
+    onMessage(stanza: xml.Element): void
     {
         const from = jid(stanza.attrs.from);
         const roomOrUser = from.bare();
@@ -722,7 +738,7 @@ export class ContentApp
         }
     }
 
-    onIq(stanza: xml): void
+    onIq(stanza: xml.Element): void
     {
         if (stanza.attrs) {
             const id = stanza.attrs.id;
@@ -735,26 +751,58 @@ export class ContentApp
         }
     }
 
-    async sendStanza(stanza: xml, stanzaId: string = null, responseHandler: StanzaResponseHandler = null): Promise<void>
-    {
+    sendStanza(
+        stanza: xml.Element,
+        stanzaId: string = null,
+        responseHandler: StanzaResponseHandler = null,
+    ): void {
         if (Utils.logChannel('contentTraffic', false)) {
-            log.debug('ContentApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to);
+            const stanzaAttrsText = as.String(
+                stanza.attrs.type,
+                stanza.name === 'presence' ? 'available' : 'normal');
+            log.debug('ContentApp.sendStanza',
+                stanza, stanzaAttrsText, 'to=', stanza.attrs.to);
         }
-        try {
+        (async () => {
             if (this.xmppWindow) {
                 const stanzaText = stanza.toString();
                 this.xmppWindow.showLine('OUT', stanzaText);
             }
-
             if (stanzaId && responseHandler) {
                 this.stanzasResponses[stanzaId] = responseHandler;
             }
-
             await BackgroundMessage.sendStanza(stanza);
-        } catch (error) {
-            log.info(error);
-            Panic.now();
+        })().catch(error => { this.onCriticalError(
+            'ContentApp.sendStanza',
+            'BackgroundMessage.sendStanza failed!',
+            error, 'stanza', stanza);
+        });
+    }
+
+    // Error handling
+
+    public onError(
+        src: string,
+        msg: string,
+        error: unknown,
+        ...data: unknown[]
+    ): void {
+        // @todo: Send the error to background page for remote reporting here.
+        if (!is.nil(error)) {
+            data.push('error', error);
         }
+        // Log to info channel only so it doesn't appear on extensions page:
+        log.info(`${src}: ${msg}`, ...data);
+    }
+
+    public onCriticalError(
+        src: string,
+        msg: string,
+        error: unknown,
+        ...data: unknown[]
+    ): void {
+        this.onError(src, msg, error, ...data);
+        Panic.now();
     }
 
     // Window management

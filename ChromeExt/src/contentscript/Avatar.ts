@@ -6,6 +6,7 @@ import { Entity } from './Entity';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
+import { is } from '../lib/is';
 import { IObserver } from '../lib/ObservableProperty';
 import * as AnimationsXml from './AnimationsXml';
 import { RoomItem } from './RoomItem';
@@ -239,38 +240,20 @@ export class Avatar implements IObserver
                     }
                 }
             },
-            drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-            {
+            drop: (
+                ev: JQueryEventObject,
+                ui: JQueryUI.DroppableEventUIParam,
+            ): void => {
                 const droppedElem = ui.draggable.get(0);
-                const droppedRoomItem = this.getRoomItemByDomElem(droppedElem);
-
-                if (droppedRoomItem) {
-                    const droppedAvatar = droppedRoomItem.getAvatar();
-
-                    const thisRoomItem = this.getRoomItemByDomElem(this.elem);
-                    if (thisRoomItem) {
-                        droppedAvatar?.ignoreDrag();
-                        this.app.getRoom().applyItemToItem(thisRoomItem, droppedRoomItem);
-                    } else {
-                        droppedAvatar?.ignoreDrag();
-
-                        const itemId = droppedRoomItem.getRoomNick();
-                        if (await BackgroundMessage.isBackpackItem(itemId)) {
-                            const thisParticipant = this.getParticipantByAvatarElem(this.elem);
-                            if (thisParticipant) {
-                                this.app.getRoom().applyItemToParticipant(thisParticipant, droppedRoomItem);
-                            }
-                        }
-                    }
-                } else {
-                    const droppedBackpackItem = this.getBackpackItemByDomElem(droppedElem);
-
-                    if (droppedBackpackItem) {
-                        const thisParticipant = this.getParticipantByAvatarElem(this.elem);
-                        if (thisParticipant) {
-                            this.app.getRoom().applyBackpackItemToParticipant(thisParticipant, droppedBackpackItem);
-                        }
-                    }
+                const droppedItem
+                    = this.getRoomItemByDomElem(droppedElem)
+                    ?? this.getBackpackItemByDomElem(droppedElem);
+                if (droppedItem instanceof BackpackItem) {
+                    // Suppress item's default drop handling (prevents rezzing):
+                    droppedItem.ignoreNextDrop();
+                }
+                if (!is.nil(droppedItem)) {
+                    return this.entity.onGotItemDroppedOn(droppedItem);
                 }
             }
         });

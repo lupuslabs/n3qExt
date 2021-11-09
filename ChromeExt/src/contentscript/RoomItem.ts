@@ -22,6 +22,7 @@ import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow';
 import { ItemFrameOverlay, ItemFrameOverlayOptions } from './ItemFrameOverlay';
 import { ItemFramePopup } from './ItemFramePopup';
 import { Participant } from './Participant';
+import { BackpackItem } from './BackpackItem';
 
 export class RoomItem extends Entity
 {
@@ -437,6 +438,22 @@ export class RoomItem extends Entity
         if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
             this.checkIframeAutoRange();
         }
+    }
+
+    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
+        (async (): Promise<void> => {
+            if (droppedItem instanceof RoomItem) {
+                // RoomItem on RoomItem.
+                droppedItem.getAvatar()?.ignoreDrag();
+                await this.room.applyItemToItem(this, droppedItem);
+            } else if (droppedItem instanceof BackpackItem) {
+                // BackpackItem on RoomItem.
+            }
+        })().catch(error => { this.app.onError(
+            'RoomItem.onGotItemDroppedOn',
+            'Error caught!',
+            error, 'this', this, 'droppedItem', droppedItem);
+        });
     }
 
     sendMoveMessage(newX: number): void

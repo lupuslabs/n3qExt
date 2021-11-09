@@ -218,4 +218,17 @@ export class Entity
     onDraggedTo(newX: number): void
     {
     }
+
+    // Dropped stuff handling
+
+    /**
+     * Reacts to an item that has been drag-and-dropped on this.
+     *
+     * @todo: Interface to be implemented by RoomItem and BackpackItem,
+     *        so the type can be properly defined in the signature.
+     *
+     * @param droppedItem RoomItem|BackpackItem
+     */
+    onGotItemDroppedOn(droppedItem: unknown): void {}
+
 }
