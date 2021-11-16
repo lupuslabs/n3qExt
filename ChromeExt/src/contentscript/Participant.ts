@@ -1050,14 +1050,7 @@ export class Participant extends Entity
                     'Derezzing item...',
                     'roomItem', roomItem, 'roomJid', roomJid);
             }
-            BackgroundMessage.derezBackpackItem(
-                itemId, roomJid, -1, -1,
-                {}, [Pid.AutorezIsActive], {}
-            ).catch(error => { this.app.onError(
-                'Participant.applyItem',
-                'BackgroundMessage.derezBackpackItem failed!',
-                error, 'this', this, 'roomItem', roomItem);
-            });
+            this.app.derezItem(itemId);
         } else {
             if (Utils.logChannel('items', true)) {
                 log.info('Participant.applyItem',

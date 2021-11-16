@@ -54,26 +54,8 @@ export class BackpackItem
         $(paneElem).append(this.elem);
 
         $(this.elem).on({
-            mousedown: (ev) =>
-            {
-                this.mousedownX = ev.clientX;
-                this.mousedownY = ev.clientY;
-            },
-            click: (ev) => 
-            {
-                if (Math.abs(this.mousedownX - ev.clientX) > 2 || Math.abs(this.mousedownY - ev.clientY) > 2) {
-                    return;
-                }
-
-                this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
-                if (this.info) {
-                    this.info?.close();
-                } else {
-                    this.info = new BackpackItemInfo(this.app, this, () => { this.info = null; });
-                    this.info.show(ev.offsetX, ev.offsetY);
-                    this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
-                }
-            }
+            mousedown: this.onMouseDown.bind(this),
+            click: this.onMouseClick.bind(this),
         });
 
         $(this.elem).draggable({
@@ -187,9 +169,40 @@ export class BackpackItem
         this.ignoreNextDropFlag = true;
     }
 
-    onMouseClick(ev: JQuery.Event): void
+    private onMouseDown(ev: JQuery.MouseDownEvent): void
     {
-        this.app.toFront(this.elem, ContentApp.LayerWindowContent);
+        this.mousedownX = ev.clientX;
+        this.mousedownY = ev.clientY;
+    }
+
+    private onMouseClick(ev: JQuery.ClickEvent): void
+    {
+        if (Math.abs(this.mousedownX - ev.clientX) > 2
+        || Math.abs(this.mousedownY - ev.clientY) > 2) {
+            return;
+        }
+        this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
+        const infoOpen = this.info;
+        if (infoOpen) {
+            this.info?.close();
+        }
+        if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // Just a click.
+            if (!infoOpen) {
+                const onClose = () => { this.info = null; };
+                this.info = new BackpackItemInfo(this.app, this, onClose);
+                this.info.show(ev.offsetX, ev.offsetY);
+                this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
+            }
+        } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // CTRL + click.
+            if (as.Bool(this.properties[Pid.IsRezzed], false)) {
+                this.app.derezItem(this.getItemId());
+            } else {
+                const rezzXProp = this.properties[Pid.RezzedX];
+                this.rezItem(as.Int(rezzXProp, ev.clientX));
+            }
+        }
     }
 
     private dragIsRezable: boolean = false;
@@ -339,11 +352,6 @@ export class BackpackItem
     rezItem(x: number)
     {
         this.backpackWindow.rezItemSync(this.itemId, this.app.getRoom().getJid(), Math.round(x), this.app.getRoom().getDestination());
-    }
-
-    derezItem()
-    {
-        this.backpackWindow.derezItem(this.itemId, this.properties[Pid.RezzedLocation], -1, -1);
     }
 
     getPseudoRandomCoordinate(space: number, size: number, padding: number, id: string, mod: number): number

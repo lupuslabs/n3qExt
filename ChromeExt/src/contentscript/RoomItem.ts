@@ -199,7 +199,7 @@ export class RoomItem extends Entity
                             // The new item is better
                             if (await BackgroundMessage.isBackpackItem(claimingRoomItem.getRoomNick())) {
                                 // The existing claim is mine
-                                await BackgroundMessage.derezBackpackItem(claimingRoomItem.getRoomNick(), this.room.getJid(), -1, -1, {}, [Pid.AutorezIsActive], {});
+                                this.app.derezItem(claimingRoomItem.getRoomNick());
                                 new SimpleToast(this.app, 'ClaimDerezzed', Config.get('room.claimToastDurationSec', 15), 'notice', this.app.translateText('Toast.Your claim has been removed'), 'A stronger item just appeared').show();
                             }
                         }
@@ -303,11 +303,7 @@ export class RoomItem extends Entity
                         } catch (error) {
                             // Ignore
                         }
-                        try {
-                            await BackgroundMessage.derezBackpackItem(itemId, this.getRoom().getJid(), -1, -1, {}, [], {});
-                        } catch (error) {
-                            // Ignore
-                        }
+                        this.app.derezItem(itemId);
                     }, maxDuration * 1000);
                 }
             }
@@ -361,25 +357,53 @@ export class RoomItem extends Entity
     {
         super.onMouseClickAvatar(ev);
 
-        if (as.Bool(this.properties[Pid.IframeAspect])) {
-            const frame = as.String(JSON.parse(as.String(this.properties[Pid.IframeOptions], '{}')).frame, 'Window');
-            if (frame === 'Popup') {
-                if (this.framePopup) {
-                    this.getScriptWindow()?.postMessage({ [Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')]: true, type: 'Window.Close' }, '*');
-                    window.setTimeout(() => { this.framePopup.close(); }, 100);
-                } else {
-                    this.openFrame(this.getElem());
-                }
-            } else {
-                if (this.frameWindow) {
-                    if (this.frameWindow.isOpen()) {
-                        this.frameWindow.setVisibility(true);
-                        this.frameWindow.toFront();
+        if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // Click without modifier key.
+            if (as.Bool(this.properties[Pid.IframeAspect], false)) {
+                // Open item dialog:
+                const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
+                const frameOpts = JSON.parse(frameOptsStr);
+                const frame = frameOpts.frame ?? 'Window';
+                let openFrame = false;
+                if (frame === 'Popup') {
+                    if (this.framePopup) {
+                        const magicKey = Config.get(
+                            'iframeApi.messageMagicRezactive',
+                            'tr67rftghg_Rezactive');
+                        const msg = {[magicKey]: true, type: 'Window.Close'};
+                        this.getScriptWindow()?.postMessage(msg, '*');
+                        window.setTimeout((): void => {
+                            this.framePopup.close();
+                        }, 100);
+                    } else {
+                        openFrame = true;
                     }
                 } else {
-                    this.openFrame(this.getElem());
+                    if (this.frameWindow) {
+                        if (this.frameWindow.isOpen()) {
+                            this.frameWindow.setVisibility(true);
+                            this.frameWindow.toFront();
+                        }
+                    } else {
+                        openFrame = true;
+                    }
+                }
+                if (openFrame) {
+                    this.openFrame(this.getElem()
+                    ).catch(error => { this.app.onError(
+                        'RoomItem.onMouseClickAvatar',
+                        'this.openFrame failed!',
+                        error, 'this', this,
+                    )});
                 }
             }
+        } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // CTRL + click.
+            if (this.myItem) {
+                this.app.derezItem(this.properties[Pid.Id]);
+            }
+        } else {
+            // Other clicks.
         }
 
         this.statsDisplay?.close();

@@ -157,9 +157,8 @@ export class BackpackWindow extends Window
                             if (roomItem) {
                                 const x = Math.round(ui.offset.left - $(paneElem).offset().left + ui.draggable.width() / 2);
                                 const y = Math.round(ui.offset.top - $(paneElem).offset().top + ui.draggable.height() / 2)
-                                roomItem.beginDerez();
-                                await this.derezItem(roomItem.getRoomNick(), roomItem.getRoom().getJid(), x, y);
-                                roomItem.endDerez();
+                                const itemId = roomItem.getProperties()[Pid.Id];
+                                this.app.derezItem(itemId, x, y);
                             }
                         }
                     }
@@ -271,18 +270,6 @@ export class BackpackWindow extends Window
             }
 
             await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
-        } catch (ex) {
-            new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
-        }
-    }
-
-    derezItemSync(itemId: string, room: string, x: number, y: number) { this.derezItem(itemId, room, x, y); }
-    async derezItem(itemId: string, room: string, x: number, y: number)
-    {
-        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.derezItem', itemId, 'from', room); }
-        try {
-            await BackgroundMessage.derezBackpackItem(itemId, room, -1, -1, {}, [Pid.AutorezIsActive], {});
-
         } catch (ex) {
             new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
         }

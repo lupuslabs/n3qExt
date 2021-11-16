@@ -145,7 +145,7 @@ export class BackpackItemInfo
             $(derezElem).on('click', (ev) =>
             {
                 ev.stopPropagation();
-                this.backpackItem.derezItem();
+                this.app.derezItem(this.backpackItem.getItemId());
                 this.close();
             });
             $(this.elem).append(derezElem);

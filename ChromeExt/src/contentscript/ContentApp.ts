@@ -23,11 +23,12 @@ import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
 import { BackpackWindow } from './BackpackWindow';
-import { SimpleToast } from './Toast';
+import { ItemExceptionToast, SimpleToast } from './Toast';
 import { IframeApi } from './IframeApi';
 import { RandomNames } from '../lib/RandomNames';
 import { Participant } from './Participant';
 import { SimpleItemTransferController } from './SimpleItemTransferController';
+import { ItemException } from '../lib/ItemException';
 
 interface ILocationMapperResponse
 {
@@ -805,6 +806,20 @@ export class ContentApp
         Panic.now();
     }
 
+    public onItemError(
+        src: string,
+        msg: string,
+        error: unknown,
+        ...data: unknown[]
+    ): void {
+        if (error instanceof ItemException) {
+            const duration = Config.getNumber('room.errorToastDurationSec');
+            new ItemExceptionToast(this, duration, error).show();
+        } else {
+            this.onError(src, msg, error, ...data);
+        }
+    }
+
     // Window management
 
     public static LayerBelowEntities = 20;
@@ -1029,4 +1044,57 @@ export class ContentApp
         }
         return pos;
     }
+
+    // Item helpers
+
+    /**
+     * Triggers the derezzing of the item with
+     * or without setting a new backpack position.
+     */
+    public derezItem(
+        itemId: string,
+        xNew?: undefined|number,
+        yNew?: undefined|number,
+    ): void {
+        const roomItem = this.room.getItem(itemId);
+        if (!is.nil(roomItem)) {
+            roomItem.beginDerez();
+        }
+        this.derezItemAsync(itemId, xNew, yNew
+        ).catch(error => {this.onItemError(
+            'ContentApp.derezItem',
+            'ContentApp.derezItemAsync failed!',
+            error, 'itemId', itemId, 'xNew', xNew, 'yNew', yNew
+        )}).finally(() => {
+            const roomItem = this.room.getItem(itemId);
+            if (!is.nil(roomItem)) {
+                roomItem.endDerez();
+            }
+        });
+    }
+
+    /**
+     * Derezzes the item with or without setting a new backpack position.
+     *
+     * Async version allowing direct reaction to errors.
+     */
+    public async derezItemAsync(
+        itemId: string,
+        xNew?: undefined|number,
+        yNew?: undefined|number,
+    ): Promise<void> {
+        const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+        const roomJid = props[Pid.RezzedLocation];
+        const [x, y] = [xNew ?? -1, yNew ?? -1];
+        const propsDel = [Pid.AutorezIsActive, Pid.State];
+        if (Utils.logChannel('items')) {
+            log.info(
+                'BackpackWindow.derezItem',
+                'itemId', itemId, 'roomJid', roomJid);
+        }
+        await BackgroundMessage.derezBackpackItem(
+            itemId, roomJid, x, y, {}, propsDel, {}
+        );
+    }
+
 }

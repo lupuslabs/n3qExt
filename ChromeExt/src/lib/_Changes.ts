@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.1.4', 'Effects', [
+            ['Add', 'CTRL+click drops/pickups item'],
             ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
