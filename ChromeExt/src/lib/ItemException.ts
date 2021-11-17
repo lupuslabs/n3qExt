@@ -9,7 +9,7 @@ export class ItemException
         if (typeof fact === 'string') {
             return fact;
         } else if (typeof fact === 'number') {
-            let o: object = ItemException.Fact;
+            const o: object = ItemException.Fact;
             if (o[fact]) { return o[fact]; }
         }
         return 'UnknownError';
@@ -20,7 +20,7 @@ export class ItemException
         if (typeof reason === 'string') {
             return reason;
         } else if (typeof reason === 'number') {
-            let o: object = ItemException.Reason;
+            const o: object = ItemException.Reason;
             if (o[reason]) { return o[reason]; }
         }
         return 'UnknownReason';
@@ -29,11 +29,11 @@ export class ItemException
     static factFrom(fact: any): ItemException.Fact
     {
         if (typeof fact === 'string') {
-            let o: object = ItemException.Fact;
+            const o: object = ItemException.Fact;
             if (o[fact]) { return o[fact]; }
             return ItemException.Fact.UnknownError;
         } else if (typeof fact === 'number') {
-            let o: object = ItemException.Fact;
+            const o: object = ItemException.Fact;
             if (o[fact]) { return fact; }
             return ItemException.Fact.UnknownError;
         }
@@ -43,11 +43,11 @@ export class ItemException
     static reasonFrom(reason: any): ItemException.Reason
     {
         if (typeof reason === 'string') {
-            let o: object = ItemException.Reason;
+            const o: object = ItemException.Reason;
             if (o[reason]) { return o[reason]; }
             return ItemException.Reason.UnknownReason;
         } else if (typeof reason === 'number') {
-            let o: object = ItemException.Reason;
+            const o: object = ItemException.Reason;
             if (o[reason]) { return reason; }
             return ItemException.Reason.UnknownReason;
         }

@@ -1,10 +1,9 @@
 import imgDefaultItem from '../assets/DefaultItem.png';
 
 import * as $ from 'jquery';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { Utils, Point2D } from '../lib/Utils';
+import { Utils } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
@@ -13,12 +12,10 @@ import { BackpackItemInfo } from './BackpackItemInfo';
 
 export class BackpackItem
 {
-    private isFirstPresence: boolean = true;
     private elem: HTMLDivElement;
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
     private coverElem: HTMLDivElement;
-    private iconElem: HTMLImageElement;
     private x: number = 100;
     private y: number = 100;
     private imageWidth: number = 64;
@@ -34,14 +31,11 @@ export class BackpackItem
 
     constructor(protected app: ContentApp, private backpackWindow: BackpackWindow, private itemId: string, private properties: ItemProperties)
     {
-        let paneElem = this.backpackWindow.getPane();
-        let padding: number = Config.get('backpack.borderPadding', 4);
+        const paneElem = this.backpackWindow.getPane();
 
-        let size = Config.get('inventory.itemSize', 64);
-
-        let pos = this.backpackWindow.getFreeCoordinate();
-        let x = pos.x;
-        let y = pos.y;
+        const pos = this.backpackWindow.getFreeCoordinate();
+        const x = pos.x;
+        const y = pos.y;
 
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item" data-id="' + this.itemId + '" />').get(0);
         this.imageElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-image" />').get(0);
@@ -94,8 +88,8 @@ export class BackpackItem
                 }
 
                 if (this.info) { this.info.close(); }
-                let dragElem = $('<div class="n3q-base n3q-backpack-drag" />').get(0);
-                let itemElem = $(this.elem).clone().get(0);
+                const dragElem = $('<div class="n3q-base n3q-backpack-drag" />').get(0);
+                const itemElem = $(this.elem).clone().get(0);
                 $(itemElem).css({ 'left': '0', 'top': '0', 'width': this.getWidth() + 'px', 'height': this.getHeight() + 'px' });
                 $(dragElem).append(itemElem);
                 $(app.getDisplay()).append(dragElem);
@@ -117,7 +111,7 @@ export class BackpackItem
             stop: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
             {
                 $(this.elem).show(0);
-                var itemUnchanged = this.onDragStop(ev, ui);
+                this.onDragStop(ev, ui);
                 return true;
             }
         });
@@ -131,7 +125,7 @@ export class BackpackItem
     {
         if (this.properties[pid]) {
             if (value) {
-                return as.String(this.properties[pid], null) == as.String(value, null);
+                return as.String(this.properties[pid]) === as.String(value);
             }
         }
         return false;
@@ -161,7 +155,7 @@ export class BackpackItem
     setPosition(x: number, y: number)
     {
         // fix position
-        // let bounds = {
+        // const bounds = {
         //     left: this.getWidth() / 2, 
         //     top: this.getHeight() / 2, 
         //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
@@ -196,7 +190,7 @@ export class BackpackItem
     private onDragStart(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
-        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed], false);
+        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
 
         if (this.dragIsRezable && !this.dragIsRezzed) {
             this.app.showDropzone();
@@ -232,13 +226,13 @@ export class BackpackItem
     {
         this.app.hideDropzone();
         if (this.isPositionInBackpack(ev, ui)) {
-            let pos = this.getPositionRelativeToPane(ev, ui);
-            if (pos.x != this.x || pos.y != this.y) {
+            const pos = this.getPositionRelativeToPane(ev, ui);
+            if (pos.x !== this.x || pos.y !== this.y) {
                 this.setPosition(pos.x, pos.y);
                 await this.sendSetItemCoordinates(pos.x, pos.y);
             }
         } else if (this.isPositionInDropzone(ev, ui)) {
-            let dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
+            const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
             this.rezItem(dropX);
             return false;
         }
@@ -247,40 +241,40 @@ export class BackpackItem
 
     private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
-        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-        let position = $(ui.helper).position();
-        let itemElem = $(ui.helper).children().get(0);
-        let width = $(itemElem).width();
-        let height = $(itemElem).height();
-        let x = position.left + width / 2;
-        let y = position.top + height / 2;
+        const position = $(ui.helper).position();
+        const itemElem = $(ui.helper).children().get(0);
+        const width = $(itemElem).width();
+        const height = $(itemElem).height();
+        const x = position.left + width / 2;
+        const y = position.top + height / 2;
 
-        let paneElem = this.backpackWindow.getPane();
-        let panePosition = $(paneElem).offset();
+        const paneElem = this.backpackWindow.getPane();
+        const panePosition = $(paneElem).offset();
         panePosition.left -= scrollLeft;
         panePosition.top -= scrollTop;
-        let paneWidth = $(paneElem).width();
-        let paneHeight = $(paneElem).height();
+        const paneWidth = $(paneElem).width();
+        const paneHeight = $(paneElem).height();
 
         return x > panePosition.left && x < panePosition.left + paneWidth && y < panePosition.top + paneHeight && y > panePosition.top;
     }
 
     private getPositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
     {
-        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-        let position = $(ui.helper).position();
-        let itemElem = $(ui.helper).children().get(0);
-        let width = $(itemElem).width();
-        let height = $(itemElem).height();
-        let x = position.left + width / 2;
-        let y = position.top + height / 2;
+        const position = $(ui.helper).position();
+        const itemElem = $(ui.helper).children().get(0);
+        const width = $(itemElem).width();
+        const height = $(itemElem).height();
+        const x = position.left + width / 2;
+        const y = position.top + height / 2;
 
-        let paneElem = this.backpackWindow.getPane();
-        let panePosition = $(paneElem).offset();
+        const paneElem = this.backpackWindow.getPane();
+        const panePosition = $(paneElem).offset();
         panePosition.left -= scrollLeft;
         panePosition.top -= scrollTop;
 
@@ -289,27 +283,27 @@ export class BackpackItem
 
     private isPositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
-        let displayElem = this.app.getDisplay();
-        let dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
-        let dragHelperElem = ui.helper.get(0);
-        let dragItemElem = dragHelperElem.children[0];
+        const displayElem = this.app.getDisplay();
+        const dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
+        const dragHelperElem = ui.helper.get(0);
+        const dragItemElem = dragHelperElem.children[0];
 
-        let draggedLeft = $(dragHelperElem).position().left;
-        let draggedTop = $(dragHelperElem).position().top;
-        let draggedWidth = $(dragItemElem).width();
-        let draggedHeight = $(dragItemElem).height();
-        let dropzoneBottom = $(displayElem).height();
-        let dropzoneTop = dropzoneBottom - dropZoneHeight;
-        let itemBottomX = draggedLeft + draggedWidth / 2;
-        let itemBottomY = draggedTop + draggedHeight;
+        const draggedLeft = $(dragHelperElem).position().left;
+        const draggedTop = $(dragHelperElem).position().top;
+        const draggedWidth = $(dragItemElem).width();
+        const draggedHeight = $(dragItemElem).height();
+        const dropzoneBottom = $(displayElem).height();
+        const dropzoneTop = dropzoneBottom - dropZoneHeight;
+        const itemBottomX = draggedLeft + draggedWidth / 2;
+        const itemBottomY = draggedTop + draggedHeight;
 
-        let mouseX = ev.clientX;
-        let mouseY = ev.clientY;
+        const mouseX = ev.clientX;
+        const mouseY = ev.clientY;
 
-        let itemBottomInDropzone = itemBottomX > 0 && itemBottomY > dropzoneTop && itemBottomY < dropzoneBottom;
-        let mouseInDropzone = mouseX > 0 && mouseY > dropzoneTop && mouseY < dropzoneBottom;
+        const itemBottomInDropzone = itemBottomX > 0 && itemBottomY > dropzoneTop && itemBottomY < dropzoneBottom;
+        const mouseInDropzone = mouseX > 0 && mouseY > dropzoneTop && mouseY < dropzoneBottom;
 
-        let inDropzone = itemBottomInDropzone || mouseInDropzone;
+        const inDropzone = itemBottomInDropzone || mouseInDropzone;
         return inDropzone;
     }
 
@@ -334,8 +328,8 @@ export class BackpackItem
 
     getPseudoRandomCoordinate(space: number, size: number, padding: number, id: string, mod: number): number
     {
-        let min = size / 2 + padding;
-        let max = space - min;
+        const min = size / 2 + padding;
+        const max = space - min;
         return Utils.pseudoRandomInt(min, max, id, '', mod);
     }
 
@@ -352,38 +346,38 @@ export class BackpackItem
             this.setImage(properties[Pid.ImageUrl]);
         }
 
-        let text = as.String(properties[Pid.Label], '');
-        let description = as.String(properties[Pid.Description], '');
-        if (description != '') {
-            text += (text != '' ? ': ' : '') + description;
+        let text = as.String(properties[Pid.Label]);
+        const description = as.String(properties[Pid.Description]);
+        if (description !== '') {
+            text += (text !== '' ? ': ' : '') + description;
         }
         this.setText(text);
 
         if (properties[Pid.Width] && properties[Pid.Height]) {
-            var imageWidth = as.Int(properties[Pid.Width], -1);
-            var imageHeight = as.Int(properties[Pid.Height], -1);
-            if (imageWidth > 0 && imageHeight > 0 && (imageWidth != this.imageWidth || imageHeight != this.imageHeight)) {
+            const imageWidth = as.Int(properties[Pid.Width], -1);
+            const imageHeight = as.Int(properties[Pid.Height], -1);
+            if (imageWidth > 0 && imageHeight > 0 && (imageWidth !== this.imageWidth || imageHeight !== this.imageHeight)) {
                 this.setSize(imageWidth, imageHeight);
             }
         }
 
-        if (as.Bool(properties[Pid.IsRezzed], false)) {
+        if (as.Bool(properties[Pid.IsRezzed])) {
             $(this.elem).addClass('n3q-backpack-item-rezzed');
         } else {
             $(this.elem).removeClass('n3q-backpack-item-rezzed');
         }
 
         if (properties[Pid.InventoryX] && properties[Pid.InventoryY]) {
-            var x = as.Int(properties[Pid.InventoryX], -1);
-            var y = as.Int(properties[Pid.InventoryY], -1);
+            let x = as.Int(properties[Pid.InventoryX], -1);
+            let y = as.Int(properties[Pid.InventoryY], -1);
 
             if (x < 0 || y < 0) {
-                let pos = this.backpackWindow.getFreeCoordinate();
+                const pos = this.backpackWindow.getFreeCoordinate();
                 x = pos.x;
                 y = pos.y;
             }
 
-            if (x != this.x || y != this.y) {
+            if (x !== this.x || y !== this.y) {
                 this.setPosition(x, y);
             }
         }

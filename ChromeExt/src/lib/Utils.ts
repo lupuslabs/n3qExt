@@ -1,9 +1,7 @@
 import { xml } from '@xmpp/client';
-import log = require('loglevel');
 import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
-import { ItemProperties } from './ItemProperties';
 
 export class Point2D
 {
@@ -30,12 +28,12 @@ export class Utils
         if (Environment.isEmbedded()) { return Config.get('backpack.embeddedEnabled', false); }
         return true;
     }
-    
+
     static parseStringMap(s) {
-        let o = {};
-        let lines = s.split(' ');
+        const o = {};
+        const lines = s.split(' ');
         for (let i = 0; i < lines.length; i++) {
-            let fields = lines[i].split('=', 2);
+            const fields = lines[i].split('=', 2);
             if (fields.length === 1) {
                 o[fields[0]] = '';
             } else if (fields.length === 2) {
@@ -44,19 +42,19 @@ export class Utils
         }
         return o;
     }
-    
+
     static logChannel(channel: string, defaultValue: boolean): boolean
     {
         if (Config.get('log.all', false)) { return true; }
         if (Config.get('log.' + channel, true)) { return true; }
         return defaultValue;
     }
-    
+
     static makeGifExplicit(avatarId: string): string
     {
-        let parts = avatarId.split('/');
-        if (parts.length == 1) { return 'gif/002/' + avatarId; }
-        else if (parts.length == 2) { return 'gif/' + avatarId; }
+        const parts = avatarId.split('/');
+        if (parts.length === 1) { return 'gif/002/' + avatarId; }
+        else if (parts.length === 2) { return 'gif/' + avatarId; }
         return 'gif/' + avatarId;
     }
 
@@ -77,8 +75,8 @@ export class Utils
 
     static jsObject2xmlObject(stanza: any): xml
     {
-        let children = [];
-        if (stanza.children != undefined) {
+        const children = [];
+        if (stanza.children !== undefined) {
             stanza.children.forEach((child: any) =>
             {
                 if (typeof child === typeof '') {
@@ -100,9 +98,9 @@ export class Utils
     private static randomStringChars = '0123456789abcdefghijklmnopqrstuvwxyz';
     static randomString(length: number): string
     {
-        var maxIndex: number = Utils.randomStringChars.length - 1;
-        var result = '';
-        for (var i = length; i > 0; --i) {
+        const maxIndex: number = Utils.randomStringChars.length - 1;
+        let result = '';
+        for (let i = length; i > 0; --i) {
             result += Utils.randomStringChars[Math.round(Math.random() * maxIndex)];
         }
         return result;
@@ -113,27 +111,27 @@ export class Utils
         let f = Math.random() * (max - min) + min;
         f = Math.min(max - 0.001, f);
         f = Math.max(min, f);
-        let i = Math.trunc(f);
+        const i = Math.trunc(f);
         return i;
     }
 
     static pseudoRandomInt(min: number, max: number, key: string, suffix: string, mod: number): number
     {
-        let hash = Utils.hash(key + suffix) % mod;
-        let f = min + (max - min) / mod * hash;
-        let i = Math.trunc(f);
+        const hash = Utils.hash(key + suffix) % mod;
+        const f = min + (max - min) / mod * hash;
+        const i = Math.trunc(f);
         return i;
     }
 
     static hash(s: string): number
     {
-        var hash = 0;
-        if (s.length == 0) return 0;
+        let hash = 0;
+        if (s.length === 0) { return 0; }
 
         s += 'abcd';
 
         for (let i = 0; i < s.length; i++) {
-            let char = s.charCodeAt(i);
+            const char = s.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
@@ -167,7 +165,7 @@ export class Utils
         return false;
     }
 
-    static sortObjectByKey(o: any): any
+    static sortObjectByKey(o: object): object
     {
         return Object.keys(o).sort().reduce(
             (obj, key) =>
@@ -179,9 +177,10 @@ export class Utils
         );
     }
 
-    static cloneObject(obj: any): any
+    static cloneObject(obj: object): any
     {
-        let clone = {};
+        const clone = {};
         return Object.assign(clone, obj);
     }
+
 }

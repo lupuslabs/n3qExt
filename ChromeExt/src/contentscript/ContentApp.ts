@@ -12,16 +12,14 @@ import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
 import { ContentMessage } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
-import { HelloWorld } from './HelloWorld';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
 import { VpiResolver } from './VpiResolver';
 import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
-import { TestWindow } from './TestWindow';
 import { BackpackWindow } from './BackpackWindow';
 import { SimpleToast } from './Toast';
 import { IframeApi } from './IframeApi';
@@ -101,7 +99,7 @@ export class ContentApp
         }
 
         try {
-            let config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
+            const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
             Config.setOnlineTree(config);
         } catch (error) {
             log.debug(error.message);
@@ -110,7 +108,7 @@ export class ContentApp
         if (Panic.isOn) { return; }
 
         try {
-            let config = await BackgroundMessage.getConfigTree(Config.devConfigName);
+            const config = await BackgroundMessage.getConfigTree(Config.devConfigName);
             Config.setDevTree(config);
         } catch (error) {
             log.debug(error.message);
@@ -119,12 +117,12 @@ export class ContentApp
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
         {
-            let pageUrl = Browser.getCurrentPageUrl();
-            let parsedUrl = new URL(pageUrl);
+            const pageUrl = Browser.getCurrentPageUrl();
+            const parsedUrl = new URL(pageUrl);
             if (parsedUrl.hash.search('#n3qdisable') >= 0) {
                 return;
             }
-            let ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
+            const ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
             for (let i = 0; i < ignoredDomains.length; i++) {
                 if (parsedUrl.host.endsWith(ignoredDomains[i])) {
                     return;
@@ -138,7 +136,7 @@ export class ContentApp
         if (navLang == '') {
             navLang = navigator.language;
         }
-        let language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        const language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
         this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
 
         this.vpi = new VpiResolver(BackgroundMessage, Config);
@@ -154,7 +152,7 @@ export class ContentApp
         if (Panic.isOn) { return; }
 
         $('div#n3q').remove();
-        let page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
+        const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
         this.display = $('<div class="n3q-base n3q-display" />').get(0);
         $(page).append(this.display);
         this.appendToMe.append(page);
@@ -214,7 +212,7 @@ export class ContentApp
         try {
             chrome.runtime?.onMessage.removeListener(this.onRuntimeMessageClosure);
         } catch (error) {
-            //            
+            //
         }
 
         // Remove our own top element
@@ -232,11 +230,7 @@ export class ContentApp
 
     navigate(url: string, target: string = '_top')
     {
-        if (target == '' || target == '_top') {
-            window.location.href = url;
-        } else {
-            window.location.href = url;
-        }
+        window.location.href = url;
     }
 
     playSound(fluteSound: any)
@@ -246,7 +240,7 @@ export class ContentApp
     getMyParticipantELem(): HTMLElement
     {
         if (this.room) {
-            let participant = this.room.getParticipant(this.room.getMyNick());
+            const participant = this.room.getParticipant(this.room.getMyNick());
             if (participant) {
                 return participant.getElem();
             }
@@ -281,9 +275,9 @@ export class ContentApp
     {
         aboveElem = aboveElem ?? this.getMyParticipantELem();
         if (this.room) {
-            let participant = this.room.getParticipant(this.room.getMyNick());
+            const participant = this.room.getParticipant(this.room.getMyNick());
             if (participant) {
-                let displayName = participant.getDisplayName();
+                const displayName = participant.getDisplayName();
                 this.room.showVideoConference(aboveElem, displayName);
             }
         }
@@ -392,7 +386,7 @@ export class ContentApp
 
     evaluateStayOnTabChange(): void
     {
-        let stay = this.backpackIsOpen
+        const stay = this.backpackIsOpen
             || this.vidconfIsOpen
             || this.chatIsOpen
             // || this.stayHereIsChecked
@@ -406,15 +400,15 @@ export class ContentApp
         }
     }
 
-    // Backgound pages dont allow timers 
+    // Backgound pages dont allow timers
     // and alerts were unreliable on first test.
     // So, let the content script call the background
     private pingBackgroundToKeepConnectionAliveSec: number = Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec', 180);
     private pingBackgroundToKeepConnectionAliveTimer: number = undefined;
     private pingBackgroundToKeepConnectionAlive()
     {
-        if (this.pingBackgroundToKeepConnectionAliveTimer == undefined) {
-            this.pingBackgroundToKeepConnectionAliveTimer = <number><unknown>setTimeout(async () =>
+        if (this.pingBackgroundToKeepConnectionAliveTimer === undefined) {
+            this.pingBackgroundToKeepConnectionAliveTimer = window.setTimeout(async () =>
             {
                 try {
                     await BackgroundMessage.pingBackground();
@@ -430,7 +424,7 @@ export class ContentApp
 
     private stop_pingBackgroundToKeepConnectionAlive()
     {
-        if (this.pingBackgroundToKeepConnectionAliveTimer != undefined) {
+        if (this.pingBackgroundToKeepConnectionAliveTimer !== undefined) {
             clearTimeout(this.pingBackgroundToKeepConnectionAliveTimer);
             this.pingBackgroundToKeepConnectionAliveTimer = undefined;
         }
@@ -490,13 +484,13 @@ export class ContentApp
 
     handle_recvStanza(jsStanza: any): any
     {
-        let stanza: xml = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: xml = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
 
         if (this.xmppWindow) {
-            let stanzaText = stanza.toString();
+            const stanzaText = stanza.toString();
             this.xmppWindow.showLine('_IN_', stanzaText);
         }
 
@@ -519,24 +513,24 @@ export class ContentApp
 
     handle_clientNotification(request: WeblinClientApi.ClientNotificationRequest): any
     {
-        let title = as.String(request.title, '');
-        let text = as.String(request.text, '');
-        let iconType = as.String(request.iconType, WeblinClientApi.ClientNotificationRequest.defaultIcon);
-        let links = request.links;
+        const title = as.String(request.title);
+        const text = as.String(request.text);
+        const iconType = as.String(request.iconType, WeblinClientApi.ClientNotificationRequest.defaultIcon);
+        const links = request.links;
         let what = '';
-        let detail = request.detail;
+        const detail = request.detail;
         if (detail) {
-            what = as.String(detail.what, '');
+            what = as.String(detail.what);
         }
-        let toast = new SimpleToast(this, 'itemframe-' + iconType + what, Config.get('client.notificationToastDurationSec', 30), iconType, title, text);
+        const toast = new SimpleToast(this, 'itemframe-' + iconType + what, Config.get('client.notificationToastDurationSec', 30), iconType, title, text);
         if (links) {
             links.forEach(link =>
             {
                 toast.actionButton(link.text, () =>
                 {
                     if (link.href.startsWith('client:')) {
-                        let cmd = link.href.substring('client:'.length);
-                        if (cmd == 'toggleBackpack') {
+                        const cmd = link.href.substring('client:'.length);
+                        if (cmd === 'toggleBackpack') {
                             this.showBackpackWindow();
                         }
                     } else {
@@ -574,8 +568,8 @@ export class ContentApp
         try {
             let pageUrl = this.presetPageUrl ?? Browser.getCurrentPageUrl();
 
-            let strippedUrlPrefixes = Config.get('vp.strippedUrlPrefixes', []);
-            let notStrippedUrlPrefixes = Config.get('vp.notStrippedUrlPrefixes', []);
+            const strippedUrlPrefixes = Config.get('vp.strippedUrlPrefixes', []);
+            const notStrippedUrlPrefixes = Config.get('vp.notStrippedUrlPrefixes', []);
             for (let i = 0; i < strippedUrlPrefixes.length; i++) {
                 if (pageUrl.startsWith(strippedUrlPrefixes[i]) && !Utils.startsWith(pageUrl, notStrippedUrlPrefixes)) {
                     pageUrl = pageUrl.substring(strippedUrlPrefixes[i].length);
@@ -585,14 +579,14 @@ export class ContentApp
                 }
             }
 
-            let newSignificatParts = pageUrl ? this.getSignificantUrlParts(pageUrl) : '';
-            let oldSignificatParts = this.pageUrl ? this.getSignificantUrlParts(this.pageUrl) : '';
+            const newSignificatParts = pageUrl ? this.getSignificantUrlParts(pageUrl) : '';
+            const oldSignificatParts = this.pageUrl ? this.getSignificantUrlParts(this.pageUrl) : '';
             if (newSignificatParts == oldSignificatParts) { return }
 
             if (Utils.logChannel('urlMapping', false)) { log.info('Page changed', this.pageUrl, ' => ', pageUrl); }
             this.pageUrl = pageUrl;
 
-            let newRoomJid = await this.vpiMap(pageUrl);
+            const newRoomJid = await this.vpiMap(pageUrl);
 
             if (newRoomJid == this.roomJid) {
                 this.room.setPageUrl(pageUrl);
@@ -619,14 +613,14 @@ export class ContentApp
 
     getSignificantUrlParts(url: string)
     {
-        let parsedUrl = new URL(url)
+        const parsedUrl = new URL(url);
         return parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
     }
 
     async vpiMap(url: string): Promise<string>
     {
-        let locationUrl = await this.vpi.map(url);
-        let roomJid = ContentApp.getRoomJidFromLocationUrl(locationUrl);
+        const locationUrl = await this.vpi.map(url);
+        const roomJid = ContentApp.getRoomJidFromLocationUrl(locationUrl);
         return roomJid;
     }
 
@@ -655,7 +649,7 @@ export class ContentApp
     {
         try {
             if (locationUrl != '') {
-                let url = new URL(locationUrl);
+                const url = new URL(locationUrl);
                 return url.pathname;
             }
         } catch (error) {
@@ -667,13 +661,13 @@ export class ContentApp
     // async enterRoomByPageUrl(pageUrl: string): Promise<void>
     // {
     //     try {
-    //         let vpi = new VpiResolver(BackgroundMessage, Config);
+    //         const vpi = new VpiResolver(BackgroundMessage, Config);
     //         vpi.language = Translator.getShortLanguageCode(this.babelfish.getLanguage());
 
     //         this.locationUrl = await vpi.map(pageUrl);
     //         log.debug('Mapped', pageUrl, ' => ', this.locationUrl);
 
-    //         let roomJid = ContentApp.getRoomJidFromLocationUrl(this.locationUrl);
+    //         const roomJid = ContentApp.getRoomJidFromLocationUrl(this.locationUrl);
     //         this.enterRoom(roomJid, pageUrl);
 
     //     } catch (error) {
@@ -705,8 +699,8 @@ export class ContentApp
     {
         let isHandled = false;
 
-        let from = jid(stanza.attrs.from);
-        let roomOrUser = from.bare();
+        const from = jid(stanza.attrs.from);
+        const roomOrUser = from.bare();
 
         if (!isHandled) {
             if (this.room) {
@@ -720,20 +714,18 @@ export class ContentApp
 
     onMessage(stanza: xml): void
     {
-        let from = jid(stanza.attrs.from);
-        let roomOrUser = from.bare();
+        const from = jid(stanza.attrs.from);
+        const roomOrUser = from.bare();
 
-        if (this.room) {
-            if (roomOrUser == this.room.getJid()) {
-                this.room.onMessage(stanza);
-            }
+        if (roomOrUser == this.room?.getJid()) {
+            this.room?.onMessage(stanza);
         }
     }
 
     onIq(stanza: xml): void
     {
         if (stanza.attrs) {
-            let id = stanza.attrs.id;
+            const id = stanza.attrs.id;
             if (id) {
                 if (this.stanzasResponses[id]) {
                     this.stanzasResponses[id](stanza);
@@ -750,7 +742,7 @@ export class ContentApp
         }
         try {
             if (this.xmppWindow) {
-                let stanzaText = stanza.toString();
+                const stanzaText = stanza.toString();
                 this.xmppWindow.showLine('OUT', stanzaText);
             }
 
@@ -782,7 +774,7 @@ export class ContentApp
     toFront(elem: HTMLElement, layer: number)
     {
         this.incrementFrontIndex(layer);
-        let absoluteIndex = this.getFrontIndex(layer);
+        const absoluteIndex = this.getFrontIndex(layer);
         elem.style.zIndex = '' + absoluteIndex;
         //log.debug('ContentApp.toFront', absoluteIndex, elem.className);
     }
@@ -800,7 +792,7 @@ export class ContentApp
     }
     isFront(elem: HTMLElement, layer: number)
     {
-        return (as.Int(elem.style.zIndex, 0) == this.getFrontIndex(layer));
+        return (as.Int(elem.style.zIndex) == this.getFrontIndex(layer));
     }
 
     private dropzoneELem: HTMLElement = null;
@@ -863,7 +855,7 @@ export class ContentApp
     async assertActive()
     {
         try {
-            let active = await Memory.getLocal(Utils.localStorageKey_Active(), '');
+            const active = await Memory.getLocal(Utils.localStorageKey_Active(), '');
             if (active == '') {
                 await Memory.setLocal(Utils.localStorageKey_Active(), 'true');
             }
@@ -876,8 +868,8 @@ export class ContentApp
     async getActive(): Promise<boolean>
     {
         try {
-            let active = await Memory.getLocal(Utils.localStorageKey_Active(), 'true');
-            return as.Bool(active, false);
+            const active = await Memory.getLocal(Utils.localStorageKey_Active(), 'true');
+            return as.Bool(active);
         } catch (error) {
             log.info(error);
             return false;
@@ -943,7 +935,7 @@ export class ContentApp
         try {
             let x = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), -1), -1);
             if (x < 0) {
-                x = Utils.randomInt(as.Int(Config.get('room.randomEnterPosXMin', 400)), as.Int(Config.get('room.randomEnterPosXMax', 700)))
+                x = Utils.randomInt(as.Int(Config.get('room.randomEnterPosXMin', 400)), as.Int(Config.get('room.randomEnterPosXMax', 700)));
                 await this.savePosition(x);
             }
         } catch (error) {
@@ -979,7 +971,7 @@ export class ContentApp
 
     getDefaultPosition(key: string = null): number
     {
-        let pos: number = 300;
+        let pos: number;
         let width = this.display.offsetWidth;
         if (!width) { width = 500; }
         if (key) {

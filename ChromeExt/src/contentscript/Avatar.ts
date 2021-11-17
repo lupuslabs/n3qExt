@@ -6,7 +6,7 @@ import { Entity } from './Entity';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
-import { IObserver, IObservable } from '../lib/ObservableProperty';
+import { IObserver } from '../lib/ObservableProperty';
 import * as AnimationsXml from './AnimationsXml';
 import { RoomItem } from './RoomItem';
 import { Participant } from './Participant';
@@ -56,9 +56,9 @@ export class Avatar implements IObserver
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-avatar" />').get(0);
         $(this.elem).append(this.imageElem);
 
-        // var url = 'https://www.virtual-presence.org/images/wolf.png';
-        // var url = app.getAssetUrl('default-avatar.png');
-        var url = entity.getDefaultAvatar();
+        // const url = 'https://www.virtual-presence.org/images/wolf.png';
+        // const url = app.getAssetUrl('default-avatar.png');
+        const url = entity.getDefaultAvatar();
         // this.elem.src = url;
         this.setImage(url);
         this.setSize(100, 100);
@@ -76,16 +76,16 @@ export class Avatar implements IObserver
                 return;
             }
 
-            let elem = this.elemBelowTransparentImageAtMouse(ev);
+            const elem = this.elemBelowTransparentImageAtMouse(ev);
             if (elem) {
                 // let newEv = new jQuery.Event('click');
                 // newEv.clientX = ev.clientY;
                 // newEv.clientY = ev.clientY;
                 // $(elem).trigger('click', newEv);
                 if ($(elem).hasClass('n3q-avatar-image')) {
-                    let belowAvatarElem = elem.parentElement;
+                    const belowAvatarElem = elem.parentElement;
                     if (belowAvatarElem) {
-                        let belowEntityElem = belowAvatarElem.parentElement;
+                        const belowEntityElem = belowAvatarElem.parentElement;
                         if (belowEntityElem) {
                             this.app.toFront(belowEntityElem, ContentApp.LayerEntity);
                         }
@@ -135,8 +135,8 @@ export class Avatar implements IObserver
             // helper: 'clone',
             helper: () =>
             {
-                let dragElem = $(this.elem).clone().get(0);
-                let nick = Avatar.getEntityIdByAvatarElem(this.elem);
+                const dragElem = $(this.elem).clone().get(0);
+                const nick = Avatar.getEntityIdByAvatarElem(this.elem);
                 $(dragElem).data('nick', nick);
                 $(dragElem).detach();
                 this.app.getDisplay().append(dragElem);
@@ -146,7 +146,7 @@ export class Avatar implements IObserver
             containment: 'document',
             start: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
             {
-                let elem = this.elemBelowTransparentImageAtMouse(ev);
+                const elem = this.elemBelowTransparentImageAtMouse(ev);
                 if (elem) {
                     return false;
                 }
@@ -181,27 +181,29 @@ export class Avatar implements IObserver
         if (typeof ev.pageX === 'undefined') { return null; }
 
         let elemBelow: Element = null;
-        let self = this.imageElem;
-        let canvasElem = document.createElement('canvas');
-        let ctx = canvasElem.getContext('2d');
+        const self = this.imageElem;
+        const canvasElem = document.createElement('canvas');
+        const ctx = canvasElem.getContext('2d');
 
         // Get click coordinates
-        let x = ev.pageX - $(self).offset().left;
-        let y = ev.pageY - $(self).offset().top;
-        let w = ctx.canvas.width = $(self).width();
-        let h = ctx.canvas.height = $(self).height();
+        const x = ev.pageX - $(self).offset().left;
+        const y = ev.pageY - $(self).offset().top;
+        const w = $(self).width();
+        const h = $(self).height();
+        ctx.canvas.width = w;
+        ctx.canvas.height = h;
 
         // Draw image to canvas
         // and read Alpha channel value
         ctx.drawImage(self, 0, 0, w, h);
-        let alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
+        const alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
 
         $(canvasElem).remove();
 
         // If pixel is transparent, retrieve the element underneath
         if (alpha === 0) {
-            let imagePointerEvents = self.style.pointerEvents;
-            let parentPointerEvents = self.parentElement.style.pointerEvents;
+            const imagePointerEvents = self.style.pointerEvents;
+            const parentPointerEvents = self.parentElement.style.pointerEvents;
             self.style.pointerEvents = 'none';
             self.parentElement.style.pointerEvents = 'none';
             elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
@@ -239,32 +241,32 @@ export class Avatar implements IObserver
             },
             drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
             {
-                let droppedElem = ui.draggable.get(0);
-                let droppedRoomItem = this.getRoomItemByDomElem(droppedElem);
+                const droppedElem = ui.draggable.get(0);
+                const droppedRoomItem = this.getRoomItemByDomElem(droppedElem);
 
                 if (droppedRoomItem) {
-                    let droppedAvatar = droppedRoomItem.getAvatar();
+                    const droppedAvatar = droppedRoomItem.getAvatar();
 
-                    let thisRoomItem = this.getRoomItemByDomElem(this.elem);
+                    const thisRoomItem = this.getRoomItemByDomElem(this.elem);
                     if (thisRoomItem) {
                         droppedAvatar?.ignoreDrag();
                         this.app.getRoom().applyItemToItem(thisRoomItem, droppedRoomItem);
                     } else {
                         droppedAvatar?.ignoreDrag();
 
-                        let itemId = droppedRoomItem.getRoomNick();
+                        const itemId = droppedRoomItem.getRoomNick();
                         if (await BackgroundMessage.isBackpackItem(itemId)) {
-                            let thisParticipant = this.getParticipantByAvatarElem(this.elem);
+                            const thisParticipant = this.getParticipantByAvatarElem(this.elem);
                             if (thisParticipant) {
                                 this.app.getRoom().applyItemToParticipant(thisParticipant, droppedRoomItem);
                             }
                         }
                     }
                 } else {
-                    let droppedBackpackItem = this.getBackpackItemByDomElem(droppedElem);
+                    const droppedBackpackItem = this.getBackpackItemByDomElem(droppedElem);
 
                     if (droppedBackpackItem) {
-                        let thisParticipant = this.getParticipantByAvatarElem(this.elem);
+                        const thisParticipant = this.getParticipantByAvatarElem(this.elem);
                         if (thisParticipant) {
                             this.app.getRoom().applyBackpackItemToParticipant(thisParticipant, droppedBackpackItem);
                         }
@@ -276,7 +278,7 @@ export class Avatar implements IObserver
 
     getBackpackItemByDomElem(elem: HTMLElement): BackpackItem
     {
-        let itemId = $(elem).data('id');
+        const itemId = $(elem).data('id');
         if (itemId) {
             return this.app.getBackpackWindow()?.getItem(itemId);
         }
@@ -284,7 +286,7 @@ export class Avatar implements IObserver
 
     getRoomItemByDomElem(elem: HTMLElement): RoomItem
     {
-        let avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
+        const avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
         if (avatarEntityId) {
             return this.app.getRoom().getItem(avatarEntityId);
         }
@@ -292,7 +294,7 @@ export class Avatar implements IObserver
 
     getParticipantByAvatarElem(elem: HTMLElement): Participant
     {
-        let avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
+        const avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
         if (avatarEntityId) {
             return this.app.getRoom().getParticipant(avatarEntityId);
         }
@@ -301,15 +303,15 @@ export class Avatar implements IObserver
     static getEntityIdByAvatarElem(elem: HTMLElement): string
     {
         if (elem) {
-            let nick = $(elem).data('nick');
+            const nick = $(elem).data('nick');
             if (nick) { if (nick != '') { return nick; } }
 
-            let avatarElem = elem.parentElement;
+            const avatarElem = elem.parentElement;
             if (avatarElem) {
                 if ($(avatarElem).hasClass('n3q-entity')) {
                     return $(avatarElem).data('nick');
                 } else {
-                    let avatarEntityElem = avatarElem.parentElement;
+                    const avatarEntityElem = avatarElem.parentElement;
                     if (avatarEntityElem) {
                         return $(avatarEntityElem).data('nick');
                     }
@@ -320,7 +322,7 @@ export class Avatar implements IObserver
 
     stop()
     {
-        if (this.animationTimer != undefined) {
+        if (this.animationTimer !== undefined) {
             clearTimeout(this.animationTimer);
             this.animationTimer = undefined;
         }
@@ -347,9 +349,9 @@ export class Avatar implements IObserver
             } break;
             case 'VCardImageUrl': {
                 if (!this.hasAnimation) {
-                    let maxSize = Config.get('room.defaultStillimageSize', 80);
-                    let minSize = maxSize * 0.75;
-                    let slightlyRandomSize = Utils.randomInt(minSize, maxSize);
+                    const maxSize = Config.get('room.defaultStillimageSize', 80);
+                    const minSize = maxSize * 0.75;
+                    const slightlyRandomSize = Utils.randomInt(minSize, maxSize);
                     this.setSize(slightlyRandomSize, slightlyRandomSize);
                     this.setImage(value);
                 }
@@ -368,11 +370,11 @@ export class Avatar implements IObserver
 
     async getDataUrlImage(imageUrl: string): Promise<string>
     {
-        let proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
+        const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
         return new Promise(async (resolve, reject) =>
         {
             try {
-                let response = await BackgroundMessage.fetchUrl(proxiedUrl, '');
+                const response = await BackgroundMessage.fetchUrl(proxiedUrl, '');
                 if (response.ok) {
                     resolve(response.data);
                 }
@@ -441,14 +443,14 @@ export class Avatar implements IObserver
             this.animations = null;
             this.hasAnimation = false;
         } else {
-            let response = await BackgroundMessage.fetchUrl(url, '');
+            const response = await BackgroundMessage.fetchUrl(url, '');
             if (response.ok) {
                 try {
 
-                    let parsed = AnimationsXml.AnimationsXml.parseXml(url, response.data);
-                    let defaultSize = Config.get('room.defaultAnimationSize', 100);
-                    let width = as.Int(parsed.params['width'], defaultSize);
-                    let height = as.Int(parsed.params['height'], defaultSize);
+                    const parsed = AnimationsXml.AnimationsXml.parseXml(url, response.data);
+                    const defaultSize = Config.get('room.defaultAnimationSize', 100);
+                    const width = as.Int(parsed.params['width'], defaultSize);
+                    const height = as.Int(parsed.params['height'], defaultSize);
                     this.setSize(width, height);
 
                     this.animations = parsed;
@@ -470,12 +472,11 @@ export class Avatar implements IObserver
     private animationTimer: number = undefined;
     startNextAnimation(): void
     {
-        let once = true;
         let group = this.currentAction;
         this.currentAction = '';
-        if (group == '') { group = this.currentCondition; once = false; }
-        if (group == '') { group = this.currentState; once = false; }
-        if (group == '') { group = this.currentActivity; once = false; }
+        if (group == '') { group = this.currentCondition; }
+        if (group == '') { group = this.currentState; }
+        if (group == '') { group = this.currentActivity; }
         if (group == '') { group = this.defaultGroup; }
 
         let animation = this.getAnimationByGroup(group);
@@ -490,9 +491,6 @@ export class Avatar implements IObserver
         if (group.startsWith('move')) {
             this.moveCnt++;
             //log.debug('##### startNextAnimation', group, this.moveCnt, Date.now() / 1000);
-            if (this.moveCnt == 2) {
-                let x = 1;
-            }
         }
 
         let durationSec: number = animation.duration / 1000;
@@ -502,15 +500,15 @@ export class Avatar implements IObserver
 
         // this.currentSpeedPixelPerSec = Math.abs(animation.dx) / durationSec;
         // dx means pixels per sec, not pixels per duration
-        this.setSpeed(Math.abs(animation.dx) / 1.0);
+        this.setSpeed(Math.abs(animation.dx));
 
         this.setImage(animation.url);
 
-        if (this.animationTimer != undefined) {
+        if (this.animationTimer !== undefined) {
             clearTimeout(this.animationTimer);
             this.animationTimer = undefined;
         }
-        this.animationTimer = <number><unknown>setTimeout(() => { this.startNextAnimation(); }, durationSec * 1000);
+        this.animationTimer = window.setTimeout(() => { this.startNextAnimation(); }, durationSec * 1000);
     }
 
     hasSpeed(): boolean
@@ -532,23 +530,23 @@ export class Avatar implements IObserver
     {
         if (this.animations == null) { return null; }
 
-        var groupAnimations: AvatarGetAnimationResult[] = [];
-        var nWeightSum: number = 0;
+        const groupAnimations: AvatarGetAnimationResult[] = [];
+        let nWeightSum: number = 0;
 
-        for (var name in this.animations.sequences) {
-            var animation = this.animations.sequences[name];
+        for (const name in this.animations.sequences) {
+            const animation = this.animations.sequences[name];
             if (animation.group == group) {
-                var nWeight = as.Int(animation.weight, 1);
+                const nWeight = as.Int(animation.weight, 1);
                 nWeightSum += nWeight;
-                groupAnimations.push(new AvatarGetAnimationResult(animation.url, nWeight, as.Int(animation.dx, 0), as.Int(animation.duration, 1000), as.Bool(animation.loop, false)));
+                groupAnimations.push(new AvatarGetAnimationResult(animation.url, nWeight, as.Int(animation.dx), as.Int(animation.duration, 1000), as.Bool(animation.loop)));
             }
         }
 
-        var nRnd = Math.random() * nWeightSum;
-        var idx = 0;
+        const nRnd = Math.random() * nWeightSum;
+        let idx = 0;
 
-        var nCurrentSum = 0;
-        for (var i = 0; i < groupAnimations.length; i++) {
+        let nCurrentSum = 0;
+        for (let i = 0; i < groupAnimations.length; i++) {
             nCurrentSum += groupAnimations[i].weight;
             if (nRnd < nCurrentSum) {
                 idx = i;

@@ -20,7 +20,7 @@ export class Pid
     static readonly IsRezzed = 'IsRezzed';
     static readonly IsInvisible = 'IsInvisible';
     static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation'; _
+    static readonly RezzedLocation = 'RezzedLocation';
     static readonly RezzedDestination = 'RezzedDestination';
     static readonly InventoryX = 'InventoryX';
     static readonly InventoryY = 'InventoryY';
@@ -99,15 +99,15 @@ export class ItemProperties
     {
         let display: ItemProperties = {};
 
-        let displayJson = as.String(props[Pid.Display], null);
-        if (as.String(displayJson, '') != '') {
+        const displayJson = as.String(props[Pid.Display]);
+        if (as.String(displayJson) !== '') {
             display = JSON.parse(displayJson);
         } else {
-            let stats = as.String(props[Pid.Stats], null);
-            let statsPids = stats.split(' ');
+            const stats = as.String(props[Pid.Stats]);
+            const statsPids = stats.split(' ');
             for (let i = 0; i < statsPids.length; i++) {
-                let pid = statsPids[i];
-                let value = props[pid];
+                const pid = statsPids[i];
+                const value = props[pid];
                 if (value) {
                     display[pid] = value;
                 }
@@ -119,11 +119,11 @@ export class ItemProperties
 
     static verifySignature(props: ItemProperties, publicKey: string): boolean
     {
-        if (publicKey && publicKey != '') {
-            let message = ItemProperties.getSignatureData(props);
-            let signature = as.String(props[Pid.SignatureRsa], '');
+        if (publicKey) {
+            const message = ItemProperties.getSignatureData(props);
+            const signature = as.String(props[Pid.SignatureRsa]);
             try {
-                let verifier = new NodeRSA(publicKey);
+                const verifier = new NodeRSA(publicKey);
                 if (verifier.verify(message, signature, 'utf8', 'base64')) {
                     return true;
                 }
@@ -136,14 +136,14 @@ export class ItemProperties
 
     static getSignatureData(props: ItemProperties): string
     {
-        let signed = as.String(props[Pid.Signed], '');
-        if (signed != '') {
-            let pids = signed.split(' ');
+        const signed = as.String(props[Pid.Signed]);
+        if (signed !== '') {
+            const pids = signed.split(' ');
             let message = '';
             for (let i = 0; i < pids.length; i++) {
-                let pid = pids[i];
-                let value = as.String(props[pid], '');
-                message += (message != '' ? ' | ' : '') + pid + '=' + value;
+                const pid = pids[i];
+                const value = as.String(props[pid]);
+                message += (message !== '' ? ' | ' : '') + pid + '=' + value;
             }
             return message;
         }
@@ -152,9 +152,9 @@ export class ItemProperties
 
     static areEqual(left: ItemProperties, right: ItemProperties)
     {
-        let leftSorted = Utils.sortObjectByKey(left);
-        let rightSorted = Utils.sortObjectByKey(right);
-        return JSON.stringify(leftSorted) == JSON.stringify(rightSorted);
+        const leftSorted = Utils.sortObjectByKey(left);
+        const rightSorted = Utils.sortObjectByKey(right);
+        return JSON.stringify(leftSorted) === JSON.stringify(rightSorted);
     }
 }
 

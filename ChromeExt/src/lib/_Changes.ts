@@ -1,6 +1,6 @@
 interface IChange extends Array<string> { }
 interface IChanges extends Array<IChange> { }
-interface IRelease extends Array<string | string | IChanges> { 0: string; 1: string; 2: IChanges }
+interface IRelease extends Array<string | IChanges> { 0: string; 1: string; 2: IChanges }
 interface IHistory extends Array<IRelease> { }
 
 export class _Changes

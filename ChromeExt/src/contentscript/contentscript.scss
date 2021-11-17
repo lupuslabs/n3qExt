@@ -4,7 +4,7 @@
         display: none !important;
     }
 }
-  
+
 #n3q {
     all: revert;
     width: unset;
@@ -42,8 +42,7 @@
     img.n3q-base,
     span.n3q-base,
     label.n3q-base,
-    label.n3q-base:not([class=checkbox])
-    textarea.n3q-base,
+    label.n3q-base:not([class=checkbox]) textarea.n3q-base,
     button.n3q-base,
     input[type=text].n3q-base,
     input[type=text].n3q-base:focus,
@@ -68,7 +67,7 @@
         text-transform: none;
         letter-spacing: normal;
     }
-    
+
     input.n3q-base {
         display: inline;
     }
@@ -77,7 +76,7 @@
     input[type=text] {
         font: normal 11px/12px monospace, sans-serif;
     }
-    
+
     a {
         font: normal 11px/12px Arial, sans-serif;
         margin: 0;
@@ -86,45 +85,45 @@
         background-color: transparent;
         text-decoration: none;
     }
-    
+
     a:link {
         color: #0000EE;//#151cee;
         text-decoration: none;
     }
-    
+
     a:visited {
         color: #551A8B;//#49238b;
     }
-    
+
      a:hover {
         color: #EE0000;//#d63b09;
         text-decoration: underline;
     }
-    
+
     a:active {
         color: #EE0000;//#d63b09;
         text-decoration: underline;
     }
-    
+
     // zeit.de
     input.n3q-base:focus {
         background-color: white;
     }
-    
+
     div.n3q-hidden {
         display: none!important;
     }
-    
+
     div.n3q-ghost {
         opacity: 35%;
     }
-    
+
     // Components
-    
+
     div.n3q-display {
         position: absolute;
         bottom: 0;
-        left: 0px;
+        left: 0;
         right: 0;
         top: 0;
         //background-color: rgba(255, 255, 255, 0.0);
@@ -132,19 +131,19 @@
         //background-image: url("display-bg.png");
         pointer-events: none;
     }
-    
+
     div.n3q-headupdisplay {
         position: absolute;
         bottom: 0;
-        left: 0px;
+        left: 0;
         right: 0;
         top: 0;
         pointer-events: none;
     }
-    
+
     div.n3q-entity {
         position: absolute;
-        bottom: 0px;
+        bottom: 0;
         pointer-events: auto;
         width: 1px;
 
@@ -161,17 +160,17 @@
             z-index: -1;
         }
     }
-    
+
     div.n3q-dropzone {
         position: absolute;
         bottom: 0;
-        left: 0px;
+        left: 0;
         right: 0;
         height: 100px;
         opacity: 0.1;
         background-color: #abc115;
     }
-    
+
     div.n3q-dropzone-hilite {
         opacity: 0.2;
         pointer-events: auto;
@@ -234,7 +233,7 @@
         position: relative;
         left: 1px;
         top: 1px;
-    }   
+    }
 
     div.n3q-absolutebutton {
         position: absolute;
@@ -252,7 +251,7 @@
     }
     div.n3q-absolutebutton:active { 
         filter: brightness(0.8);
-    }   
+    }
 
     div.n3q-button-symbol:hover { 
         // opacity: 0.7;
@@ -281,7 +280,7 @@
         top: -6px;
         // filter: brightness(0.8);
     }
-    
+
     div.n3q-button-inline {
         display: inline-block;
         vertical-align: middle;
@@ -289,7 +288,7 @@
         box-shadow: none;
         padding: 0;
     }
-        
+
     div.n3q-button-sendchat {
         background: url(../assets/icons/ic_baseline-send.svg) no-repeat center center / contain;
         width: 14px;
@@ -371,7 +370,7 @@
     div.n3q-bounce {
         animation: n3q-bounce 6s ease infinite;
     }
-      
+
     div.n3q-avatar.n3q-avatar-drophilite {
         filter: drop-shadow(0 0 10px #abc115);
         // box-shadow: inset 0 0 100px rgba(171, 193, 21, 0.4);
@@ -393,7 +392,7 @@
                 filter: drop-shadow(1px 1px 2px rgba(96, 96, 96, 1.0));
                 // filter: drop-shadow(1px 1px 3px rgba(96, 96, 96, 1.0));
             }
-            
+
             path {
                 fill: #9fc415;
                 // fill: #ffffff;
@@ -404,7 +403,6 @@
                 left: 19px;
                 top: 16px;
                 width: 34px;
-
 
                 div.n3q-intro-you-label-text {
                     font: 14px Arial, sans-serif;
@@ -449,11 +447,10 @@
         div.n3q-activity {
             position: absolute;
             left: 20px;
-            bottom: 0px;
+            bottom: 0;
             z-index: 3;
             width: 80px;
             height: 4px;
-            z-index: 3;
         }
 
         div.n3q-points {
@@ -543,121 +540,121 @@
 
         }
     }
-    
-        input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button { 
-            all: initial; 
+
+    input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button {
+        all: initial;
+        display: inline-block;
+        vertical-align: middle;
+        width: 14px;
+        height: 14px;
+        background: url(../assets/icons/menu.svg) no-repeat center center / contain;
+    }
+
+    // LinkedIn
+    input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button:before { all: initial; }
+    input[type=checkbox].n3q-menu-open:checked + label:after { all: initial; }
+
+    input[type=checkbox].n3q-base.n3q-menu-open {
+        display: none!important;
+    }
+
+    input[type=checkbox].n3q-menu-open:checked + label.n3q-menu-open-button {
+        background: url(../assets/icons/close-circle-o.svg) no-repeat center center / contain;
+    }
+
+    div.n3q-menu-item {
+        color: black;
+        background-color: white;
+        white-space: nowrap;
+        //border: 1px solid #888;
+        min-height: 14px;
+        padding: 2px 4px 2px 2px;
+        position: absolute;
+        transition: transform ease-out 200ms;
+        transition-duration: 200ms;
+        opacity: 0.0;
+        transform: translate(-3px, -35px) scale(0.1, 0.1);
+        user-select: none;
+        // display: none;
+
+        div.n3q-menu-icon {
             display: inline-block;
             vertical-align: middle;
-            width: 14px;
-            height: 14px;
-            background: url(../assets/icons/menu.svg) no-repeat center center / contain;
+            width:14px;
+            height:14px;
         }
 
-        // LinkedIn
-        input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button:before { all: initial; } 
-        input[type=checkbox].n3q-menu-open:checked + label:after { all: initial; }
-        
-        input[type=checkbox].n3q-base.n3q-menu-open {
-            display: none!important;
+        div.n3q-menu-icon.n3q-menu-icon-noicon { width:1px; height:14px; }
+
+        div.n3q-text {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 3px;
+            min-width: 50px;
         }
+    }
 
-        input[type=checkbox].n3q-menu-open:checked + label.n3q-menu-open-button {
-            background: url(../assets/icons/close-circle-o.svg) no-repeat center center / contain;
-        }
-        
-        div.n3q-menu-item {
-            color: black;
-            background-color: white;
-            white-space: nowrap;
-            //border: 1px solid #888;
-            min-height: 14px;
-            padding: 2px 4px 2px 2px;
-            position: absolute;
-            transition: transform ease-out 200ms;
-            transition-duration: 200ms; 
-            opacity: 0.0;
-            transform: translate(-3px, -35px) scale(0.1, 0.1);
-            user-select: none;
-            // display: none;
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item {
+        opacity: 1.0;
+        transform: scale(1.0, 1.0);
+        // display: block;
+    }
 
-            div.n3q-menu-icon {
-                display: inline-block;
-                vertical-align: middle;
-                width:14px;
-                height:14px;
-            }
+    div.n3q-menuitem-chat div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-inventory div.n3q-menu-icon { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-vidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-chatwin div.n3q-menu-icon { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-settings div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-getweblin div.n3q-menu-icon { background: url(../assets/icons/weblin.png) no-repeat center center / contain; }
+    div.n3q-menuitem-privatevidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-privatechat div.n3q-menu-icon { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-greet div.n3q-menu-icon { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-bye div.n3q-menu-icon { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
 
-            div.n3q-menu-icon.n3q-menu-icon-noicon { width:1px; height:14px; }
+    div.n3q-menu-item.n3q-menu-column-main   { z-index: 1; }
+    div.n3q-menu-item.n3q-menu-column-action { z-index: 0; }
 
-            div.n3q-text {
-                display: inline-block;
-                vertical-align: middle;
-                margin-left: 3px;
-                min-width: 50px;
-            }
-        }
+    div.n3q-menu-item.n3q-menu-column-main   { transform: translate(-20px, -15px) scale(0, 0); }
+    div.n3q-menu-item.n3q-menu-column-action { transform: translate(-20px, -15px) scale(0, 0); }
+    div.n3q-menu-item.n3q-menu-column-interaction { transform: translate(-20px, -15px) scale(0, 0); }
 
-        input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item {
-            opacity: 1.0;
-            transform: scale(1.0, 1.0);
-            // display: block;
-        } 
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-test           { transform: translate(90px,   -5px) scale(1, 1); }
 
-            div.n3q-menuitem-chat div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-inventory div.n3q-menu-icon { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-vidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-chatwin div.n3q-menu-icon { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-settings div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-getweblin div.n3q-menu-icon { background: url(../assets/icons/weblin.png) no-repeat center center / contain; }
-            div.n3q-menuitem-privatevidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-privatechat div.n3q-menu-icon { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-greet div.n3q-menu-icon { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
-            div.n3q-menuitem-bye div.n3q-menu-icon { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-getweblin      { transform: translate(62px, -132px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-inventory      { transform: translate(62px, -132px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-settings       { transform: translate(62px, -110px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-vidconf        { transform: translate(62px,  -88px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chatwin        { transform: translate(62px,  -66px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat           { transform: translate(62px,  -44px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-Actions        { transform: translate(-3px, -242px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-wave           { transform: translate(-3px, -220px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-dance          { transform: translate(-3px, -198px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-cheer          { transform: translate(-3px, -176px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-kiss           { transform: translate(-3px, -154px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-clap           { transform: translate(-3px, -132px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-laugh          { transform: translate(-3px, -110px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-angry          { transform: translate(-3px,  -88px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-deny           { transform: translate(-3px,  -66px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-yawn           { transform: translate(-3px,  -44px) scale(1, 1); }
 
-            div.n3q-menu-item.n3q-menu-column-main   { z-index: 1; }
-            div.n3q-menu-item.n3q-menu-column-action { z-index: 0; }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatevidconf { transform: translate(-3px, -110px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatechat    { transform: translate(-3px,  -88px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-greet          { transform: translate(-3px,  -66px) scale(1, 1); }
+    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-bye            { transform: translate(-3px,  -44px) scale(1, 1); }
 
-            div.n3q-menu-item.n3q-menu-column-main   { transform: translate(-20px, -15px) scale(0, 0); }
-            div.n3q-menu-item.n3q-menu-column-action { transform: translate(-20px, -15px) scale(0, 0); }
-            div.n3q-menu-item.n3q-menu-column-interaction { transform: translate(-20px, -15px) scale(0, 0); }
+    div.n3q-participant-other div.n3q-menu-item.n3q-menu-column-main { transform: translate(-20px, -35px) scale(0, 0); }
+    div.n3q-participant-other input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat { transform: translate(-20px, -44px) scale(1, 1); }
 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-test           { transform: translate(90px,   -5px) scale(1, 1); } 
+    div.n3q-menu-item:hover { filter: brightness(0.9); }
+    div.n3q-menu-item:active { filter: brightness(0.8); }
 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-getweblin      { transform: translate(62px, -132px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-inventory      { transform: translate(62px, -132px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-settings       { transform: translate(62px, -110px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-vidconf        { transform: translate(62px,  -88px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chatwin        { transform: translate(62px,  -66px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat           { transform: translate(62px,  -44px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-Actions        { transform: translate(-3px, -242px) scale(1, 1); }
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-wave           { transform: translate(-3px, -220px) scale(1, 1); }
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-dance          { transform: translate(-3px, -198px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-cheer          { transform: translate(-3px, -176px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-kiss           { transform: translate(-3px, -154px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-clap           { transform: translate(-3px, -132px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-laugh          { transform: translate(-3px, -110px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-angry          { transform: translate(-3px,  -88px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-deny           { transform: translate(-3px,  -66px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-yawn           { transform: translate(-3px,  -44px) scale(1, 1); } 
-            
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatevidconf { transform: translate(-3px, -110px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatechat    { transform: translate(-3px,  -88px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-greet          { transform: translate(-3px,  -66px) scale(1, 1); } 
-            input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-bye            { transform: translate(-3px,  -44px) scale(1, 1); } 
+    div.n3q-menu-item.n3q-menu-item-disabled { background-color: #888888; }
+    div.n3q-menu-item.n3q-menu-item-disabled div.n3q-text { color: #ffffff; }
 
-            div.n3q-participant-other div.n3q-menu-item.n3q-menu-column-main { transform: translate(-20px, -35px) scale(0, 0); }
-            div.n3q-participant-other input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat { transform: translate(-20px, -44px) scale(1, 1); } 
+    div.n3q-menu-item.n3q-menu-item-disabled:hover { filter: unset; }
+    div.n3q-menu-item.n3q-menu-item-disabled:active { filter: unset; }
 
-            div.n3q-menu-item:hover { filter: brightness(0.9); }
-            div.n3q-menu-item:active { filter: brightness(0.8); }   
-
-            div.n3q-menu-item.n3q-menu-item-disabled { background-color: #888888; }
-            div.n3q-menu-item.n3q-menu-item-disabled div.n3q-text { color: #ffffff; }
-
-            div.n3q-menu-item.n3q-menu-item-disabled:hover { filter: unset; }
-            div.n3q-menu-item.n3q-menu-item-disabled:active { filter: unset; }   
-
-        // Chatout
+    // Chatout
 
     div.n3q-chatout {
         position: absolute;
@@ -719,7 +716,7 @@
         border-radius: 4px;
         -webkit-border-radius: 5px;
         white-space: nowrap;
-        padding: 0px 2px 0px 4px;
+        padding: 0 2px 0 4px;
         z-index: 5;
 
         input[type=text].n3q-text {
@@ -795,8 +792,8 @@
             vertical-align: bottom!important;
         }
 
-        label {  
-            margin-left: 4px;      
+        label {
+            margin-left: 4px;
         }
     }
 
@@ -871,7 +868,7 @@
 
         .n3q-backpack-activate {
             margin-top: 4px;
-            
+
             input[type=checkbox] { 
                 margin-left: 8px;
                 width: 16px;
@@ -895,7 +892,7 @@
     div.n3q-window.n3q-transparent {
         background-color: rgba(0, 0, 0, 0);
     }
-        
+
     div.n3q-window-title-bar {
         display: block;
         position: relative;
@@ -908,13 +905,13 @@
     div.n3q-window-title {
         display: block;
         position: absolute;
-        left: 0px;
+        left: 0;
         right: 22px;
-        top: 0px;
-        bottom: 0px;
+        top: 0;
+        bottom: 0;
         // height: 28px;
     }
-            
+
     div.n3q-window-title-text {
         display: inline-block;
         position: absolute;
@@ -960,11 +957,11 @@
         box-shadow: inset 1px 1px 5px #404040;
         // filter: brightness(0.8);
     }
-        
+
     div.n3q-window-button-2 {
         right: 30px;
     }
-    
+
     div.n3q-window-content {
         display: block;
         position: absolute;
@@ -972,7 +969,7 @@
         left: 0;
         bottom: 0;
         right: 0;
-        box-shadow: inset 0px 4px 5px -4px #404040;
+        box-shadow: inset 0 4px 5px -4px #404040;
     }
 
     div.n3q-window-resize {
@@ -981,17 +978,17 @@
     }
 
     div.n3q-window-resize-se {
-        right: 0px;
-        bottom: 0px;
+        right: 0;
+        bottom: 0;
         width: 13px;
         height: 13px;
         background: url(../assets/icons/resize-se.png) no-repeat center center / contain;
         opacity: 0.7;
         cursor: se-resize;
     }
-        
-        //  div.n3q-testwindow {}
-    
+
+    //  div.n3q-testwindow {}
+
     div.n3q-testwindow-out {
         position: absolute;
         top: 8px;
@@ -1011,13 +1008,13 @@
         .sut-label::after { content: ":"; }
         .sut-value { display: inline; }
         .sut-total .sut-value { margin-left: 0.3em; }
-        .sut-testlist { display: table; margin-top: 0.5em; } 
+        .sut-testlist { display: table; margin-top: 0.5em; }
         .sut-testlist { display: block; }
         .sut-test { display: block; padding: 2px 0;}
         .sut-test-success { color: white; background-color: rgb(0, 200, 0); }
         .sut-test-failure { color: white; background-color: red; }
         .sut-class { display: inline; font-weight: normal; }
-        .sut-class:after { content: "_"; } .sut-name { display: inline; font-weight: normal; } 
+        .sut-class:after { content: "_"; } .sut-name { display: inline; font-weight: normal; }
         .sut-name::after { content: ":"; }
         .sut-result { display: inline; margin-left: 0.3em; }
     }
@@ -1056,7 +1053,7 @@
         width: 100%;
         height: 100%;
     }
-    
+
     //  div.n3q-settingswindow {}
 
     div.n3q-settingswindow-content {
@@ -1076,7 +1073,7 @@
         bottom: 8px;
         overflow-y: scroll;
     }
-        
+
     //  div.n3q-xmppwindow {}
 
     div.n3q-xmppwindow div.n3q-window-content {
@@ -1092,7 +1089,7 @@
         bottom: 314px;
         overflow-y: scroll;
     }
-    
+
     div.n3q-xmppwindow-in {
         position: absolute;
         height: 300px;
@@ -1141,12 +1138,12 @@
     {
         outline: 0;
     }
-         
+
     div.n3q-xmppwindow div.n3q-window-content div.n3q-button {
         position: absolute;
         width: 50px;
     }
-     
+
     div.n3q-xmppwindow div.n3q-window-content div.n3q-xmppwindow-out-clear { right: 30px; top: 8px; }
     div.n3q-xmppwindow div.n3q-window-content div.n3q-xmppwindow-in-send { right: 35px; bottom: 13px; border-width: 2px; }
     div.n3q-xmppwindow div.n3q-window-content div.n3q-xmppwindow-in-save { right: 36px; bottom: 40px; }
@@ -1166,22 +1163,21 @@
         resize: none;
         padding: 4px;
         opacity: 0.8;
-        resize: auto;
     }
 
-    div.n3q-backpack-toggle { 
+    div.n3q-backpack-toggle {
         right: 4px;
         top: 68px;
         width: 50px;
     }
 
-    div.n3q-backpack-add { 
+    div.n3q-backpack-add {
         right: 4px;
         top: 92px;
         width: 50px;
     }
 
-    div.n3q-backpack-dump { 
+    div.n3q-backpack-dump {
         position: absolute;
         right: 4px;
         top: 4px;
@@ -1191,7 +1187,7 @@
         box-shadow: inset 1px 1px 3px #404040;
     }
 
-    div.n3q-backpack-dump.ui-droppable-hover { 
+    div.n3q-backpack-dump.ui-droppable-hover {
         box-shadow: inset 3px 3px 10px #000000;
         background-color: #808080;
     }
@@ -1204,7 +1200,7 @@
         bottom: 0;
         overflow: hidden;
     }
-    
+
     div.n3q-backpack-item {
         display: block;
         position: absolute;
@@ -1255,7 +1251,7 @@
             filter: opacity(0.7);
         }
     }
-            
+
     div.n3q-chatwindow {
         min-height: 150px;
         min-width: 300px;
@@ -1264,8 +1260,8 @@
         //     position: absolute;
         //     width: 40px;
         // }
-    
-        div.n3q-window-content div.n3q-chatwindow-clear { 
+
+        div.n3q-window-content div.n3q-chatwindow-clear {
             display: inline-block;
             margin-left: 8px; 
             margin-top: 8px;
@@ -1273,13 +1269,13 @@
             padding-right: 10px;
         }
 
-        div.n3q-window-content div.n3q-chatwindow-soundcheck { 
+        div.n3q-window-content div.n3q-chatwindow-soundcheck {
             display: inline-block;
             margin-left: 8px; 
             margin-top: 8px;
         }
 
-        div.n3q-window-content .n3q-chatwindow-soundcheckbox { 
+        div.n3q-window-content .n3q-chatwindow-soundcheckbox {
             margin-left: 8px;
             width: 16px;
             height: 16px;
@@ -1296,7 +1292,7 @@
         bottom: 44px;
         overflow-y: scroll;
     }
-    
+
     div.n3q-chatwindow-line {
         font-size: 12px;
         line-height: 13px;
@@ -1305,11 +1301,11 @@
         span.n3q-time {
             margin: 0 0.4em 0 0;
         }
-    
+
         span.n3q-nick {
             font-weight: bold;
         }
-    
+
         span.n3q-colon {
             font-weight: bold;
             margin: 0 0.4em 0 0;
@@ -1326,8 +1322,8 @@
         //border-radius: 4px;
         box-shadow: inset 1px 1px 3px #404040;
     }
-    
-    textarea.n3q-chatwindow-chatin-input, 
+
+    textarea.n3q-chatwindow-chatin-input,
     input[type=text].n3q-chatwindow-chatin-input
     {
         // position: absolute;
@@ -1345,7 +1341,7 @@
         resize: none;
         border-width: 0;
     }
-    
+
     textarea.n3q-chatwindow-chatin-input:focus,
     input[type=text].n3q-chatwindow-chatin-input:focus
     {
@@ -1366,7 +1362,7 @@
 
         outline: 0;
     }
-    
+
     div.n3q-chatwindow-chatin div.n3q-button-sendchat {
         position: absolute;
         right: 6px;
@@ -1376,9 +1372,9 @@
         height: 14px;
         box-shadow: none;
     }
-    
+
     div.n3q-chatin div.n3q-button-sendchat {
         margin-right: 4px;
     }
-    
+
 }

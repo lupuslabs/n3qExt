@@ -24,7 +24,6 @@ import { ActivityBar } from './ActivityBar';
 import { VpProtocol } from '../lib/VpProtocol';
 import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
-import { ChatWindow } from './ChatWindow';
 import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
 
@@ -69,14 +68,14 @@ export class Participant extends Entity
 
     async showIntroYouOnce(): Promise<void>
     {
-        let maxShowIntroYou = Config.get('client.showIntroYou', 0);
+        const maxShowIntroYou = Config.get('client.showIntroYou', 0);
         if (maxShowIntroYou > 0) {
             let countIntroYou = await Memory.getLocal('client.introYou', 0);
             if (countIntroYou < maxShowIntroYou) {
                 countIntroYou++;
                 await Memory.setLocal('client.introYou', countIntroYou);
 
-                let introYouElem = $(''
+                const introYouElem = $(''
                     + '<div class="n3q-base n3q-intro-you n3q-bounce" data-translate="children">'
                     + '  <svg class="n3q-base n3q-shadow-small" width="72" height="48" xmlns="http://www.w3.org/2000/svg">'
                     + '    <g>'
@@ -85,7 +84,7 @@ export class Participant extends Entity
                     + '  </svg>'
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
                     + '</div>').get(0);
-                let closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
+                const closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
                 $(closeElem).on('click', async ev =>
                 {
                     await Memory.setLocal('client.introYou', maxShowIntroYou + 1);
@@ -130,50 +129,50 @@ export class Participant extends Entity
 
         let hasIdentityUrl = false;
 
-        let isFirstPresence = this.isFirstPresence;
+        const isFirstPresence = this.isFirstPresence;
         this.isFirstPresence = false;
 
         // log.debug('#### recv', stanza.children[1].attrs);
 
         {
-            let from = stanza.attrs.from
+            const from = stanza.attrs.from;
             if (from != undefined) {
-                let fromJid = new jid(from);
-                let nickname = as.String(fromJid.getResource(), '');
-                if (nickname != '') {
+                const fromJid = new jid(from);
+                const nickname = as.String(fromJid.getResource());
+                if (nickname !== '') {
                     xmppNickname = nickname;
                 }
             }
         }
 
         {
-            let stateNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'firebat:avatar:state');
+            const stateNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'firebat:avatar:state');
             if (stateNode) {
-                let positionNode = stateNode.getChild('position');
+                const positionNode = stateNode.getChild('position');
                 if (positionNode) {
                     newX = as.Int(positionNode.attrs.x, -1);
-                    if (newX != -1) {
+                    if (newX !== -1) {
                         hasPosition = true;
                     }
                 }
                 hasCondition = true;
-                let conditionNode = stateNode.getChild('condition');
+                const conditionNode = stateNode.getChild('condition');
                 if (conditionNode) {
-                    newCondition = as.String(conditionNode.attrs.status, '');
+                    newCondition = as.String(conditionNode.attrs.status);
                 }
             }
         }
 
         {
-            let identityNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'firebat:user:identity');
+            const identityNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'firebat:user:identity');
             if (identityNode != null) {
-                let attrs = identityNode.attrs;
-                let url = as.String(attrs.src, '');
-                let digest = as.String(attrs.digest, '');
-                let jid = as.String(attrs.jid, url);
+                const attrs = identityNode.attrs;
+                const url = as.String(attrs.src);
+                const digest = as.String(attrs.digest);
+                const jid = as.String(attrs.jid, url);
                 this.userId = as.String(attrs.id, jid);
 
-                if (url != '') {
+                if (url !== '') {
                     hasIdentityUrl = true;
                     this.app.getPropertyStorage().setIdentity(this.userId, url, digest);
                 }
@@ -181,23 +180,23 @@ export class Participant extends Entity
         }
 
         {
-            let vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
+            const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
             if (vpPropsNode) {
-                let attrs = vpPropsNode.attrs;
+                const attrs = vpPropsNode.attrs;
                 if (attrs) {
-                    vpNickname = as.String(attrs.Nickname, '');
-                    if (vpNickname == '') { vpNickname = as.String(attrs.nickname, ''); }
+                    vpNickname = as.String(attrs.Nickname);
+                    if (vpNickname === '') { vpNickname = as.String(attrs.nickname); }
                     vpAvatarId = as.String(attrs.AvatarId, '');
-                    if (vpAvatarId == '') { vpAvatarId = as.String(attrs.avatar, ''); }
-                    vpAnimationsUrl = as.String(attrs.AnimationsUrl, '');
+                    if (vpAvatarId === '') { vpAvatarId = as.String(attrs.avatar); }
+                    vpAnimationsUrl = as.String(attrs.AnimationsUrl);
                     vpAnimationsUrl = as.String(attrs.AvatarUrl, vpAnimationsUrl);
-                    vpImageUrl = as.String(attrs.ImageUrl, '');
+                    vpImageUrl = as.String(attrs.ImageUrl);
                 }
             }
         }
 
         { // <show>: dnd, away, xa
-            let showNode = stanza.getChild('show');
+            const showNode = stanza.getChild('show');
             if (showNode) {
                 newAvailability = showNode.getText();
                 switch (newAvailability) {
@@ -212,15 +211,15 @@ export class Participant extends Entity
         }
 
         { // <status>: Status message (text)
-            let statusNode = stanza.getChild('status');
+            const statusNode = stanza.getChild('status');
             if (statusNode) {
                 newStatusMessage = statusNode.getText();
             }
         }
 
         // hasIdentityUrl = false;
-        // vpAvatar = '004/pinguin'; 
-        // vpAvatar = ''; 
+        // vpAvatar = '004/pinguin';
+        // vpAvatar = '';
         // vpAnimationsUrl = 'https://weblin-avatar.dev.sui.li/items/baum/avatar.xml';
         // vpAnimationsUrl = '';
         // vpImageUrl = 'https://weblin-avatar.dev.sui.li/items/baum/idle.png';
@@ -236,7 +235,7 @@ export class Participant extends Entity
             this.nicknameDisplay = new Nickname(this.app, this, this.isSelf, this.getElem());
             if (!this.isSelf) {
                 if (Config.get('room.nicknameOnHover', true)) {
-                    let nicknameElem = this.nicknameDisplay.getElem();
+                    const nicknameElem = this.nicknameDisplay.getElem();
                     nicknameElem.style.display = 'none';
                     $(this.getElem()).hover(function ()
                     {
@@ -252,7 +251,7 @@ export class Participant extends Entity
                 this.pointsDisplay = new PointsBar(this.app, this, this.getElem());
                 if (!this.isSelf) {
                     if (Config.get('room.pointsOnHover', true)) {
-                        let elem = this.pointsDisplay.getElem();
+                        const elem = this.pointsDisplay.getElem();
                         elem.style.display = 'none';
                         $(this.getElem()).hover(function ()
                         {
@@ -269,7 +268,7 @@ export class Participant extends Entity
                 this.activityDisplay = new ActivityBar(this.app, this, this.getElem());
                 if (!this.isSelf) {
                     if (Config.get('room.pointsOnHover', true)) {
-                        let elem = this.activityDisplay.getElem();
+                        const elem = this.activityDisplay.getElem();
                         elem.style.display = 'none';
                         $(this.getElem()).hover(function ()
                         {
@@ -291,17 +290,17 @@ export class Participant extends Entity
 
         let hasAvatar = false;
         if (this.avatarDisplay) {
-            if (vpAvatarId != '') {
-                let animationsUrl = Utils.getAvatarUrlFromAvatarId(vpAvatarId);
-                let proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(animationsUrl));
+            if (vpAvatarId !== '') {
+                const animationsUrl = Utils.getAvatarUrlFromAvatarId(vpAvatarId);
+                const proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(animationsUrl));
                 this.avatarDisplay?.updateObservableProperty('AnimationsUrl', proxiedAnimationsUrl);
                 hasAvatar = true;
-            } else if (vpAnimationsUrl != '') {
-                let proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(vpAnimationsUrl));
+            } else if (vpAnimationsUrl !== '') {
+                const proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(vpAnimationsUrl));
                 this.avatarDisplay?.updateObservableProperty('AnimationsUrl', proxiedAnimationsUrl);
                 hasAvatar = true;
             } else {
-                if (vpImageUrl != '') {
+                if (vpImageUrl !== '') {
                     this.avatarDisplay?.updateObservableProperty('ImageUrl', vpImageUrl);
                     hasAvatar = true;
                 }
@@ -313,7 +312,7 @@ export class Participant extends Entity
         }
 
         if (this.nicknameDisplay) {
-            if (vpNickname != '') {
+            if (vpNickname !== '') {
                 if (vpNickname != this.nicknameDisplay.getNickname()) {
                     this.nicknameDisplay.setNickname(vpNickname);
                 }
@@ -328,8 +327,8 @@ export class Participant extends Entity
         }
 
         if (this.pointsDisplay) {
-            if (vpPoints != '') {
-                let newPoints = as.Int(vpPoints, 0);
+            if (vpPoints !== '') {
+                const newPoints = as.Int(vpPoints);
                 if (newPoints != this.pointsDisplay.getPoints()) {
                     this.pointsDisplay.setPoints(newPoints);
                 }
@@ -375,9 +374,9 @@ export class Participant extends Entity
         if (isFirstPresence) {
             if (this.isSelf) {
                 if (Utils.isBackpackEnabled()) {
-                    let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.AutorezAspect]: 'true', [Pid.AutorezIsActive]: 'true' });
+                    const propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.AutorezAspect]: 'true', [Pid.AutorezIsActive]: 'true' });
                     for (const itemId in propSet) {
-                        let props = propSet[itemId];
+                        const props = propSet[itemId];
                         if (props[Pid.IsRezzed]) {
                             await BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
                         }
@@ -461,13 +460,13 @@ export class Participant extends Entity
 
     fetchVcardImage(avatarDisplay: IObserver)
     {
-        let stanzaId = Utils.randomString(15);
-        let iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick })
+        const stanzaId = Utils.randomString(15);
+        const iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick })
             .append(xml('vCard', { 'xmlns': 'vcard-temp' }))
             ;
         this.app.sendStanza(iq, stanzaId, (stanza) =>
         {
-            let imageUrl = this.decodeVcardImage2DataUrl(stanza);
+            const imageUrl = this.decodeVcardImage2DataUrl(stanza);
             if (imageUrl && imageUrl != '') {
                 avatarDisplay.updateObservableProperty('VCardImageUrl', imageUrl);
             }
@@ -476,25 +475,25 @@ export class Participant extends Entity
 
     fetchVersionInfo(chatWindow: IObserver)
     {
-        let stanzaId = Utils.randomString(15);
-        let attr = { 'xmlns': 'jabber:iq:version' };
+        const stanzaId = Utils.randomString(15);
+        const attr = { 'xmlns': 'jabber:iq:version' };
         if (Environment.isDevelopment() || Config.get('xmpp.verboseVersionQuery', false)) {
             attr['auth'] = Config.get('xmpp.verboseVersionQueryWeakAuth', '');
         }
-        let query = xml('query', attr);
-        let iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick }).append(query);
+        const query = xml('query', attr);
+        const iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick }).append(query);
 
         this.app.sendStanza(iq, stanzaId, (stanza: xml) =>
         {
             // chatWindow.addLine(this.roomNick + Date.now(), this.roomNick, 'xx');
 
-            let info = {};
-            let versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
+            const info = {};
+            const versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
             if (versionQuery) {
-                let children = versionQuery.children;
+                const children = versionQuery.children;
                 if (children) {
                     for (let i = 0; i < children.length; i++) {
-                        let child = children[i];
+                        const child = children[i];
                         info[child.name] = child.text();
                     }
                 }
@@ -508,18 +507,18 @@ export class Participant extends Entity
     {
         let url: string;
 
-        let vCardNode = stanza.getChildren('vCard').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vcard-temp');
+        const vCardNode = stanza.getChildren('vCard').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vcard-temp');
         if (vCardNode) {
-            let photoNodes = vCardNode.getChildren('PHOTO');
-            let photoNode = photoNodes[0];
+            const photoNodes = vCardNode.getChildren('PHOTO');
+            const photoNode = photoNodes[0];
             if (photoNode) {
-                let binvalNodes = photoNode.getChildren('BINVAL');
-                let binvalNode = binvalNodes[0];
-                let typeNodes = photoNode.getChildren('TYPE');
-                let typeNode = typeNodes[0];
+                const binvalNodes = photoNode.getChildren('BINVAL');
+                const binvalNode = binvalNodes[0];
+                const typeNodes = photoNode.getChildren('TYPE');
+                const typeNode = typeNodes[0];
                 if (binvalNode && typeNode) {
                     let data = binvalNode.text();
-                    let type = typeNode.text();
+                    const type = typeNode.text();
                     if (data && data != '' && type && type != '') {
                         data = data.replace(/(\r\n|\n|\r)/gm, '').replace(/ /g, '');
                         url = 'data:' + type + ';base64,' + data;
@@ -535,30 +534,30 @@ export class Participant extends Entity
 
     async onMessagePrivateChat(stanza: any): Promise<void>
     {
-        let from = jid(stanza.attrs.from);
-        let nick = from.getResource();
-        let name = this.getDisplayName();
+        const from = jid(stanza.attrs.from);
+        const nick = from.getResource();
+        const name = this.getDisplayName();
         let isChat = true;
 
-        let pokeNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns, '') == 'vp:poke');
+        const pokeNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:poke');
         if (pokeNode) {
             isChat = false;
             this.onReceivePoke(pokeNode);
         }
 
-        let vidconfNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns, '') == 'vp:vidconf');
+        const vidconfNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:vidconf');
         if (vidconfNode) {
             isChat = false;
             this.onReceiveVidconf(vidconfNode);
         }
 
-        let responseNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns, '') == 'vp:response');
+        const responseNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:response');
         if (responseNode) {
             isChat = false;
             this.onReceiveResponse(responseNode);
         }
 
-        let transferNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns, '') == 'vp:transfer');
+        let transferNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:transfer');
         if (transferNode) {
             isChat = false;
             this.onReceiveTransfer(transferNode);
@@ -567,7 +566,7 @@ export class Participant extends Entity
         if (!isChat) { return; }
 
         let text = '';
-        let bodyNode = stanza.getChild('body');
+        const bodyNode = stanza.getChild('body');
         if (bodyNode) {
             text = bodyNode.getText();
         }
@@ -581,7 +580,7 @@ export class Participant extends Entity
 
         if (this.room) {
             if (nick != this.room.getMyNick()) {
-                let chatWindow = this.privateChatWindow;
+                const chatWindow = this.privateChatWindow;
                 if (chatWindow) {
                     if (chatWindow.isSoundEnabled()) {
                         chatWindow.playSound();
@@ -600,10 +599,10 @@ export class Participant extends Entity
     onReceivePoke(node: any): void
     {
         try {
-            let pokeType = node.attrs.type;
+            const pokeType = node.attrs.type;
             let iconType = 'greeting';
             if (pokeType == 'bye') { iconType = 'bye'; }
-            let toast = new SimpleToast(this.app, 'poke-' + pokeType, Config.get('room.pokeToastDurationSec_' + pokeType, Config.get('room.pokeToastDurationSec', 10)), iconType, this.getDisplayName(), pokeType + 's');
+            const toast = new SimpleToast(this.app, 'poke-' + pokeType, Config.get('room.pokeToastDurationSec_' + pokeType, Config.get('room.pokeToastDurationSec', 10)), iconType, this.getDisplayName(), pokeType + 's');
             toast.actionButton(pokeType + ' back', () =>
             {
                 this.sendPoke(pokeType);
@@ -618,13 +617,13 @@ export class Participant extends Entity
     onReceiveVidconf(node: any): void
     {
         try {
-            let url = node.attrs.url;
-            let toast = new SimpleToast(this.app, 'privatevidconf', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Wants to start a private videoconference');
+            const url = node.attrs.url;
+            const toast = new SimpleToast(this.app, 'privatevidconf', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Wants to start a private videoconference');
             toast.actionButton('Accept', () =>
             {
                 this.openPrivateVidconf(this.getElem(), url);
                 toast.close();
-            })
+            });
             toast.actionButton('Decline', () =>
             {
                 this.room?.sendDeclinePrivateVidconfResponse(this.roomNick, '');
@@ -641,8 +640,7 @@ export class Participant extends Entity
         try {
             if (node.attrs.to == VpProtocol.PrivateVideoconfRequest.xmlns) {
                 if (node.attrs.type == VpProtocol.PrivateVideoconfResponse.type_decline) {
-                    let comment = node.attrs.comment;
-                    let toast = new SimpleToast(this.app, 'privatevidconfresponse', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
+                    const toast = new SimpleToast(this.app, 'privatevidconfresponse', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
                     toast.show();
                 }
             }
@@ -701,20 +699,20 @@ export class Participant extends Entity
 
     onMessageGroupchat(stanza: any): void
     {
-        let from = jid(stanza.attrs.from);
-        let nick = from.getResource();
-        let name = this.getDisplayName();
-        let now = Date.now();
+        const from = jid(stanza.attrs.from);
+        const nick = from.getResource();
+        const name = this.getDisplayName();
+        const now = Date.now();
         let timestamp = 0;
 
         {
-            let node = stanza.getChildren('delay').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'urn:xmpp:delay');
+            const node = stanza.getChildren('delay').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'urn:xmpp:delay');
             if (node != undefined) {
-                let dateStr = as.String(node.attrs.stamp, ''); // 2020-04-24T06:53:46Z
-                if (dateStr != '') {
+                const dateStr = as.String(node.attrs.stamp); // 2020-04-24T06:53:46Z
+                if (dateStr !== '') {
                     try {
-                        var date = new Date(dateStr);
-                        let time = date.getTime();
+                        const date = new Date(dateStr);
+                        const time = date.getTime();
                         if (!isNaN(time)) {
                             timestamp = time;
                         }
@@ -726,12 +724,12 @@ export class Participant extends Entity
         }
 
         {
-            let node = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:x:delay');
+            const node = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:x:delay');
             if (node != undefined) {
-                let dateStr = as.String(node.attrs.stamp, ''); // 20200424T06:53:46
+                const dateStr = as.String(node.attrs.stamp); // 20200424T06:53:46
                 try {
-                    var date = new Date(dateStr);
-                    let time = date.getTime();
+                    const date = new Date(dateStr);
+                    const time = date.getTime();
                     if (!isNaN(time)) {
                         timestamp = time;
                     }
@@ -743,17 +741,17 @@ export class Participant extends Entity
 
 
         let text = '';
-        let bodyNode = stanza.getChild('body');
+        const bodyNode = stanza.getChild('body');
         if (bodyNode) {
             text = bodyNode.getText();
         }
 
         if (text == '') { return; }
 
-        if (timestamp == 0) {
+        if (timestamp === 0) {
             timestamp = now;
         }
-        let delayMSec = now - timestamp;
+        const delayMSec = now - timestamp;
 
         // always
         this.room?.showChatMessage(name, text);
@@ -777,7 +775,7 @@ export class Participant extends Entity
 
             if (this.room) {
                 if (nick != this.room.getMyNick()) {
-                    let chatWindow = this.room.getChatWindow();
+                    const chatWindow = this.room.getChatWindow();
                     if (chatWindow) {
                         if (chatWindow.isSoundEnabled()) {
                             chatWindow.playSound();
@@ -789,13 +787,13 @@ export class Participant extends Entity
         }
     }
 
-    isChatCommand(text: string) { return text.substring(0, 1) == '/'; }
+    isChatCommand(text: string) { return text.substring(0, 1) === '/'; }
 
     onChatCommand(text: string): void
     {
-        var parts: string[] = text.split(' ');
+        const parts: string[] = text.split(' ');
         if (parts.length < 1) { return; }
-        var cmd: string = parts[0];
+        const cmd: string = parts[0];
 
         switch (cmd) {
             case '/do':
@@ -871,7 +869,7 @@ export class Participant extends Entity
 
     onMouseClickAvatar(ev: JQuery.Event): void
     {
-        super.onMouseClickAvatar(ev)
+        super.onMouseClickAvatar(ev);
 
         if (this.isSelf) {
             this.toggleChatin();
@@ -908,9 +906,9 @@ export class Participant extends Entity
         this.sendParticipantMovedToAllScriptFrames();
 
         if (this.isSelf) {
-            let items = this.getRoom().getAutoRangeItems();
+            const items = this.getRoom().getAutoRangeItems();
             for (let i = 0; i < items.length; i++) {
-                let item = items[i];
+                const item = items[i];
                 item.checkIframeAutoRange();
             }
         }
@@ -918,14 +916,14 @@ export class Participant extends Entity
 
     sendParticipantMovedToAllScriptFrames(): void
     {
-        let participantData = {
+        const participantData = {
             id: this.getRoomNick(),
             nickname: this.getDisplayName(),
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
 
-        let itemIds = this.room.getAllScriptedItems();
+        const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
             this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantMovedNotification(participantData));
         }
@@ -933,14 +931,14 @@ export class Participant extends Entity
 
     sendParticipantChatToAllScriptFrames(text: string): void
     {
-        let participantData = {
+        const participantData = {
             id: this.getRoomNick(),
             nickname: this.getDisplayName(),
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
 
-        let itemIds = this.room.getAllScriptedItems();
+        const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
             this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantChatNotification(participantData, text));
         }
@@ -948,14 +946,14 @@ export class Participant extends Entity
 
     sendParticipantEventToAllScriptFrames(data: any): void
     {
-        let participantData = {
+        const participantData = {
             id: this.getRoomNick(),
             nickname: this.getDisplayName(),
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
 
-        let itemIds = this.room.getAllScriptedItems();
+        const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
             this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantEventNotification(participantData, data));
         }
@@ -1028,7 +1026,7 @@ export class Participant extends Entity
 
     async initiatePrivateVidconf(aboveElem: HTMLElement): Promise<void>
     {
-        let roomJid = jid(this.room.getJid());
+        const roomJid = jid(this.room.getJid());
 
         let vidconfSecret = await Memory.getLocal('client.vidconfSecret', '');
         if (vidconfSecret == '') {
@@ -1036,10 +1034,10 @@ export class Participant extends Entity
             await Memory.setLocal('client.vidconfSecret', vidconfSecret);
         }
 
-        let confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
+        const confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
 
-        let urlTemplate = Config.get('room.vidconfUrl', 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
-        let url = urlTemplate
+        const urlTemplate = Config.get('room.vidconfUrl', 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
+        const url = urlTemplate
             .replace('{room}', confId)
             ;
 
@@ -1050,9 +1048,9 @@ export class Participant extends Entity
     openPrivateVidconf(aboveElem: HTMLElement, urlTemplate: string): void
     {
         if (this.privateVidconfWindow == null) {
-            let displayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
+            const displayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
 
-            let url = urlTemplate
+            const url = urlTemplate
                 .replace('{name}', displayName)
                 ;
 
@@ -1073,8 +1071,8 @@ export class Participant extends Entity
 
     async applyItem(roomItem: RoomItem)
     {
-        let itemId = roomItem.getRoomNick();
-        let roomJid = this.getRoom().getJid();
+        const itemId = roomItem.getRoomNick();
+        const roomJid = this.getRoom().getJid();
         if (this.isSelf) {
             log.debug('Participant.applyItem', 'derez', itemId, 'room', roomJid);
             await BackgroundMessage.derezBackpackItem(itemId, roomJid, -1, -1, {}, [Pid.AutorezIsActive], {});
@@ -1082,8 +1080,8 @@ export class Participant extends Entity
             log.debug('Participant.applyItem', 'transfer', itemId, 'room', roomJid);
 
             if (!as.Bool(roomItem.getProperties()[Pid.IsTransferable], true)) {
-                let fact = ItemException.fact2String(ItemException.Fact.NotTransferred);
-                let reason = ItemException.reason2String(ItemException.Reason.ItemIsNotTransferable);
+                const fact = ItemException.fact2String(ItemException.Fact.NotTransferred);
+                const reason = ItemException.reason2String(ItemException.Reason.ItemIsNotTransferable);
                 new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', fact, reason, '').show();
             } else {
                 await this.room?.transferItem(itemId, this.roomNick);

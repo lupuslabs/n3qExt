@@ -58,7 +58,7 @@ export class Entity
 
     showEffect(effect: any): void
     {
-        let pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
+        const pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
         $(this.elem).append(pulseElem);
         window.setTimeout(() => { $(pulseElem).remove(); }, 1000);
     }
@@ -93,9 +93,9 @@ export class Entity
 
         this.setPosition(this.getPosition());
 
-        var oldX = this.getPosition();
-        var diffX = newX - oldX;
-        var absDiffX = diffX < 0 ? -diffX : diffX;
+        const oldX = this.getPosition();
+        const diffX = newX - oldX;
+        const absDiffX = diffX < 0 ? -diffX : diffX;
 
         if (this.avatarDisplay) {
             if (diffX < 0) {
@@ -112,8 +112,8 @@ export class Entity
             }
         }
 
-        let speedPixelPerSec = as.Float(this.avatarDisplay.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
-        var durationSec = absDiffX / speedPixelPerSec;
+        const speedPixelPerSec = as.Float(this.avatarDisplay.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
+        const durationSec = absDiffX / speedPixelPerSec;
 
         $(this.getElem())
             .stop(true)
@@ -210,8 +210,8 @@ export class Entity
 
     onDragAvatarStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
     {
-        let dX = ui.position.left - this.dragStartPosition.left;
-        let newX = this.getPosition() + dX;
+        const dX = ui.position.left - this.dragStartPosition.left;
+        const newX = this.getPosition() + dX;
         this.onDraggedTo(newX);
     }
 
