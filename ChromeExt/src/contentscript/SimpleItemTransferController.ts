@@ -603,6 +603,7 @@ export class SimpleItemTransferController
                 'SimpleItemTransfer.senderSentCompleteTitle',
                 'SimpleItemTransfer.senderSentCompleteText',
                 'SimpleItemTransfer.senderSentCompleteToastDurationSec',
+                true,
             );
         })(itemId).catch(error => { this.app.onError(
             'SimpleItemTransferController.senderOnAcceptMsg',
@@ -683,6 +684,7 @@ export class SimpleItemTransferController
                     'SimpleItemTransfer.recipientRetrieveCompleteTitle',
                     'SimpleItemTransfer.recipientRetrieveCompleteText',
                     'SimpleItemTransfer.recipientRetrieveCompleteToastDurationSec',
+                    true,
                 );
             }
             this.recipientCleanupItem(itemId, true);
