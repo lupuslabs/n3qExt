@@ -74,6 +74,7 @@ export class ChatConsole
                 break;
             case '/v':
             case '/vid':
+            case '/video':
             case '/vidconf':
             case '/conf':
             case '/jitsi':
