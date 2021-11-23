@@ -1331,42 +1331,21 @@
     }
 
     textarea.n3q-chatwindow-chatin-input,
-    input[type=text].n3q-chatwindow-chatin-input
-    {
-        // position: absolute;
-        // left: 8px;
-        // right: 22px;
-        margin: 6px 8px;
-        padding-right: 20px;
-        top: 4px;
-        bottom: 4px;
-        box-sizing: border-box;
-
-        height: 14px;
-        overflow: hidden;
-        white-space: nowrap;
-        resize: none;
-        border-width: 0;
-    }
-
     textarea.n3q-chatwindow-chatin-input:focus,
+    input[type=text].n3q-chatwindow-chatin-input,
     input[type=text].n3q-chatwindow-chatin-input:focus
     {
-        // position: absolute;
-        // left: 8px;
-        // right: 22px;
-        margin: 6px 8px;
-        padding-right: 20px;
-        top: 4px;
-        bottom: 4px;
+        margin: 0 0 0 8px;
+        background: transparent;
+        padding: 8px 0 0 0;
         box-sizing: border-box;
-
-        height: 14px;
+        height: 26px;
+        width: calc(100% - 35px);
         overflow: hidden;
         white-space: nowrap;
         resize: none;
         border-width: 0;
-
+        overflow-wrap: break-word;
         outline: 0;
     }
 

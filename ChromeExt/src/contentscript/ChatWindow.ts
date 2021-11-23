@@ -80,7 +80,7 @@ export class ChatWindow extends Window
 
             const chatoutElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />').get(0);
             const chatinElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />').get(0);
-            const chatinTextElem = <HTMLElement>$('<input type="text" class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin" />').get(0);
+            const chatinTextElem = <HTMLElement>$('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>').get(0);
             const chatinSendElem = <HTMLElement>$('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>').get(0);
 
             const clearElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>').get(0);
@@ -117,14 +117,6 @@ export class ChatWindow extends Window
                 const left = ui.position.left;
                 const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
                 this.saveCoordinates(left, bottom, size.width, size.height);
-            };
-
-            this.fixChatInTextWidth(chatinTextElem, chatinElem);
-
-            this.onResize = (ev: JQueryEventObject) =>
-            {
-                this.fixChatInTextWidth(chatinTextElem, chatinElem);
-                // $(chatinText).focus();
             };
 
             $(chatinTextElem).on('keydown', ev =>
@@ -184,14 +176,6 @@ export class ChatWindow extends Window
         return this.windowElem != null;
     }
 
-    fixChatInTextWidth(chatinText: HTMLElement, chatin: HTMLElement)
-    {
-        const delta = 14;
-        const parentWidth = chatin.offsetWidth;
-        const width = parentWidth - delta;
-        $(chatinText).css({ 'width': width });
-    }
-
     addLine(id: string, nick: string, text: string)
     {
         const translated = this.app.translateText('Chatwindow.' + text, text);
@@ -240,13 +224,15 @@ export class ChatWindow extends Window
 
     private onChatinKeydown(ev: JQuery.KeyDownEvent): boolean
     {
-        const keycode = (ev.keyCode ? ev.keyCode : (ev.which ? ev.which : ev.charCode));
-        switch (keycode) {
-            case 13: // Enter
-                this.sendChat();
-                return false;
+        switch (ev.key) {
+            case 'Enter':
+                if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+                    this.sendChat();
+                    return false;
+                }
+                return true;
             break;
-            case 27: // Esc
+            case 'Escape':
                 this.close();
                 ev.stopPropagation();
                 return false;
