@@ -24,7 +24,7 @@ export class TestUtils
         expect(x.children[1].attrs.xmlns).to.equal('firebat:avatar:state');
         expect(x.children[1].children[0].name).to.equal('position');
         expect(x.children[1].children[0].attrs.x).to.equal('42');
-        expect(x.__proto__.__proto__.getXmlns).to.not.be.undefined;
+        expect(Object.getPrototypeOf(Object.getPrototypeOf(x)).getXmlns).to.not.be.undefined;
     }
 
     jsObject2xmlObject_message_with_string_child_as_body_text()

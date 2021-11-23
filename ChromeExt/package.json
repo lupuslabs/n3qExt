@@ -8,6 +8,7 @@
     "extension-data": "cpy manifest.json dist && cpy src/assets/* dist/assets",
     "prebuild": "npm run clean",
     "build:contentscript-background": "cross-env NODE_ENV=production webpack --config webpack.config.js",
+    "build:test": "webpack --config webpack.test.config.js",
     "build:embedded": "cross-env NODE_ENV=production webpack --config webpack.embedded.config.js",
     "prewatch": "npm run clean",
     "watch:contentscript-background": "cross-env NODE_ENV=development webpack --config webpack.config.js -w",
