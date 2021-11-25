@@ -52,8 +52,11 @@ export class TestMisc
 
     Map_delete()
     {
-        let m: Map<string, number> = new Map<string, number>();
-        m['a'] = 'b';
+        const m: Map<string, string> = new Map<string, string>();
+        m.set('a', 'b');
+        expect(m.size).to.equal(1);
+        m['x'] = 'y'; // Doesn't increment m.size.
+        expect(m.size).to.equal(1);
         m.delete('a');
         expect(m.size).to.equal(0);
     }
