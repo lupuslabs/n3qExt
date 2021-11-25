@@ -3,7 +3,6 @@ import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
-import { Client } from '../lib/Client';
 import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
 
@@ -17,7 +16,7 @@ export class ConfigUpdater
     {
     }
 
-    private updateCheckIntervalSec: number = Config.get('config.checkUpdateIntervalSec', 61);
+    private updateCheckIntervalSec: number = as.Float(Config.get('config.checkUpdateIntervalSec'), 61);
     private updateCheckTimer: number = null;
     async startUpdateTimer(onUpdate: () => void)
     {
@@ -42,9 +41,9 @@ export class ConfigUpdater
     async checkUpdate(onUpdate: ConfigUpdaterCallabck)
     {
         try {
-            let lastUpdateConfigTime = as.Int(Memory.getSession('config.lastUpdateTime', 0), 0);
-            let intervalSec = as.Int(Config.get('config.updateIntervalSec', 86331));
-            let secsSinceUpdate = Date.now() / 1000 - lastUpdateConfigTime;
+            const lastUpdateConfigTime = as.Int(Memory.getSession('config.lastUpdateTime', 0), 0);
+            const intervalSec = as.Int(Config.get('config.updateIntervalSec', 86331));
+            const secsSinceUpdate = Date.now() / 1000 - lastUpdateConfigTime;
             if (secsSinceUpdate > intervalSec) {
                 await this.getUpdate(onUpdate)
             }
@@ -55,9 +54,9 @@ export class ConfigUpdater
 
     async getUpdate(onUpdate: ConfigUpdaterCallabck)
     {
-        let configUrl = Config.get('config.serviceUrl', 'https://webex.vulcan.weblin.com/Config');
+        const configUrl = as.String(Config.get('config.serviceUrl'), 'https://webex.vulcan.weblin.com/Config');
         try {
-            let data = await this.fetchJson(configUrl);
+            const data = await this.fetchJson(configUrl);
             Config.setOnlineTree(data);
             this.gotConfig = true;
             Memory.setSession('config.lastUpdateTime', Date.now() / 1000);

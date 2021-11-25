@@ -1,6 +1,9 @@
 import * as $ from 'jquery';
-import { xml, jid } from '@xmpp/client';
+import * as jid from '@xmpp/jid';
+import * as xml from '@xmpp/xml';
+import { Element as XmlElement } from 'ltx';
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
@@ -68,9 +71,9 @@ export class Participant extends Entity
 
     async showIntroYouOnce(): Promise<void>
     {
-        const maxShowIntroYou = Config.get('client.showIntroYou', 0);
+        const maxShowIntroYou = as.Int(Config.get('client.showIntroYou'), 0);
         if (maxShowIntroYou > 0) {
-            let countIntroYou = await Memory.getLocal('client.introYou', 0);
+            let countIntroYou = as.Int(await Memory.getLocal('client.introYou', 0));
             if (countIntroYou < maxShowIntroYou) {
                 countIntroYou++;
                 await Memory.setLocal('client.introYou', countIntroYou);
@@ -108,7 +111,7 @@ export class Participant extends Entity
 
     // presence
 
-    async onPresenceAvailable(stanza: any): Promise<void>
+    async onPresenceAvailable(stanza: XmlElement): Promise<void>
     {
         let hasPosition: boolean = false;
         let newX: number = 123;
@@ -136,8 +139,8 @@ export class Participant extends Entity
 
         {
             const from = stanza.attrs.from;
-            if (from != undefined) {
-                const fromJid = new jid(from);
+            if (!is.nil(from)) {
+                const fromJid = jid(from);
                 const nickname = as.String(fromJid.getResource());
                 if (nickname !== '') {
                     xmppNickname = nickname;
@@ -313,11 +316,11 @@ export class Participant extends Entity
 
         if (this.nicknameDisplay) {
             if (vpNickname !== '') {
-                if (vpNickname != this.nicknameDisplay.getNickname()) {
+                if (vpNickname !== this.nicknameDisplay.getNickname()) {
                     this.nicknameDisplay.setNickname(vpNickname);
                 }
             } else {
-                if (xmppNickname != this.nicknameDisplay.getNickname()) {
+                if (xmppNickname !== this.nicknameDisplay.getNickname()) {
                     this.nicknameDisplay.setNickname(xmppNickname);
                 }
                 if (hasIdentityUrl && isFirstPresence) {
@@ -329,7 +332,7 @@ export class Participant extends Entity
         if (this.pointsDisplay) {
             if (vpPoints !== '') {
                 const newPoints = as.Int(vpPoints);
-                if (newPoints != this.pointsDisplay.getPoints()) {
+                if (newPoints !== this.pointsDisplay.getPoints()) {
                     this.pointsDisplay.setPoints(newPoints);
                 }
             } else {
@@ -357,7 +360,7 @@ export class Participant extends Entity
             this.setPosition(newX);
         } else {
             if (hasPosition) {
-                if (this.getPosition() != newX) {
+                if (this.getPosition() !== newX) {
                     this.move(newX);
                 }
             }
@@ -365,7 +368,7 @@ export class Participant extends Entity
 
         if (isFirstPresence) {
             if (this.isSelf) {
-                this.show(true, Config.get('room.fadeInSec', 0.3));
+                this.show(true, as.Float(Config.get('room.fadeInSec'), 0.3));
             } else {
                 this.show(true);
             }
@@ -431,7 +434,7 @@ export class Participant extends Entity
         // }
     }
 
-    onPresenceUnavailable(stanza: any): void
+    onPresenceUnavailable(stanza: XmlElement): void
     {
         this.remove();
 
@@ -483,7 +486,7 @@ export class Participant extends Entity
         const query = xml('query', attr);
         const iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick }).append(query);
 
-        this.app.sendStanza(iq, stanzaId, (stanza: xml) =>
+        this.app.sendStanza(iq, stanzaId, (stanza: XmlElement) =>
         {
             // chatWindow.addLine(this.roomNick + Date.now(), this.roomNick, 'xx');
 
@@ -503,7 +506,7 @@ export class Participant extends Entity
         });
     }
 
-    decodeVcardImage2DataUrl(stanza: xml): string
+    decodeVcardImage2DataUrl(stanza: XmlElement): string
     {
         let url: string;
 
@@ -532,26 +535,26 @@ export class Participant extends Entity
 
     // message
 
-    async onMessagePrivateChat(stanza: xml.Element): Promise<void>
+    async onMessagePrivateChat(stanza: XmlElement): Promise<void>
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
         const name = this.getDisplayName();
         let isChat = true;
 
-        const pokeNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:poke');
+        const pokeNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:poke');
         if (pokeNode) {
             isChat = false;
             this.onReceivePoke(pokeNode);
         }
 
-        const vidconfNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:vidconf');
+        const vidconfNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:vidconf');
         if (vidconfNode) {
             isChat = false;
             this.onReceiveVidconf(vidconfNode);
         }
 
-        const responseNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : as.String(child.attrs.xmlns) == 'vp:response');
+        const responseNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:response');
         if (responseNode) {
             isChat = false;
             this.onReceiveResponse(responseNode);
@@ -594,13 +597,13 @@ export class Participant extends Entity
         // }
     }
 
-    onReceivePoke(node: any): void
+    onReceivePoke(node: XmlElement): void
     {
         try {
             const pokeType = node.attrs.type;
             let iconType = 'greeting';
             if (pokeType == 'bye') { iconType = 'bye'; }
-            const toast = new SimpleToast(this.app, 'poke-' + pokeType, Config.get('room.pokeToastDurationSec_' + pokeType, Config.get('room.pokeToastDurationSec', 10)), iconType, this.getDisplayName(), pokeType + 's');
+            const toast = new SimpleToast(this.app, 'poke-' + pokeType, as.Float(Config.get('room.pokeToastDurationSec_' + pokeType) ?? Config.get('room.pokeToastDurationSec'), 10), iconType, this.getDisplayName(), pokeType + 's');
             toast.actionButton(pokeType + ' back', () =>
             {
                 this.sendPoke(pokeType);
@@ -612,11 +615,11 @@ export class Participant extends Entity
         }
     }
 
-    onReceiveVidconf(node: any): void
+    onReceiveVidconf(node: XmlElement): void
     {
         try {
             const url = node.attrs.url;
-            const toast = new SimpleToast(this.app, 'privatevidconf', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Wants to start a private videoconference');
+            const toast = new SimpleToast(this.app, 'privatevidconf', as.Float(Config.get('room.privateVidconfToastDurationSec'), 60), 'privatevidconf', this.getDisplayName(), 'Wants to start a private videoconference');
             toast.actionButton('Accept', () =>
             {
                 this.openPrivateVidconf(this.getElem(), url);
@@ -633,12 +636,12 @@ export class Participant extends Entity
         }
     }
 
-    onReceiveResponse(node: any): void
+    onReceiveResponse(node: XmlElement): void
     {
         try {
-            if (node.attrs.to == VpProtocol.PrivateVideoconfRequest.xmlns) {
-                if (node.attrs.type == VpProtocol.PrivateVideoconfResponse.type_decline) {
-                    const toast = new SimpleToast(this.app, 'privatevidconfresponse', Config.get('room.privateVidconfToastDurationSec', 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
+            if (node.attrs.to === VpProtocol.PrivateVideoconfRequest.xmlns) {
+                if (node.attrs.type === VpProtocol.PrivateVideoconfResponse.type_decline) {
+                    const toast = new SimpleToast(this.app, 'privatevidconfresponse', as.Float(Config.get('room.privateVidconfToastDurationSec'), 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
                     toast.show();
                 }
             }
@@ -647,7 +650,7 @@ export class Participant extends Entity
         }
     }
 
-    onMessageGroupchat(stanza: any): void
+    onMessageGroupchat(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -657,7 +660,7 @@ export class Participant extends Entity
 
         {
             const node = stanza.getChildren('delay').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'urn:xmpp:delay');
-            if (node != undefined) {
+            if (!is.nil(node)) {
                 const dateStr = as.String(node.attrs.stamp); // 2020-04-24T06:53:46Z
                 if (dateStr !== '') {
                     try {
@@ -675,7 +678,7 @@ export class Participant extends Entity
 
         {
             const node = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:x:delay');
-            if (node != undefined) {
+            if (!is.nil(node)) {
                 const dateStr = as.String(node.attrs.stamp); // 20200424T06:53:46
                 try {
                     const date = new Date(dateStr);
@@ -724,7 +727,7 @@ export class Participant extends Entity
             }
 
             if (this.room) {
-                if (nick != this.room.getMyNick()) {
+                if (nick !== this.room.getMyNick()) {
                     const chatWindow = this.room.getChatWindow();
                     if (chatWindow) {
                         if (chatWindow.isSoundEnabled()) {
@@ -840,7 +843,7 @@ export class Participant extends Entity
 
     onDraggedTo(newX: number): void
     {
-        if (this.getPosition() != newX) {
+        if (this.getPosition() !== newX) {
             if (this.isSelf) {
                 this.app.savePosition(newX);
                 this.room?.sendMoveMessage(newX);
@@ -1007,7 +1010,7 @@ export class Participant extends Entity
 
         const confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
 
-        const urlTemplate = Config.get('room.vidconfUrl', 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
+        const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
         const url = urlTemplate
             .replace('{room}', confId)
             ;
@@ -1076,7 +1079,7 @@ export class Participant extends Entity
             const reason = ItemException.Reason.CantDropOnSelf;
             const ex = new ItemException(fact, reason);
             const durationKey = 'room.applyItemErrorToastDurationSec';
-            const duration = Config.getNumber(durationKey);
+            const duration = as.Float(Config.get(durationKey));
             (new ItemExceptionToast(this.app, duration, ex)).show();
         } else {
             // Dropped item from backpack window on other participant.

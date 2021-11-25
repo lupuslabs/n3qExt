@@ -1,14 +1,10 @@
 import * as $ from 'jquery';
 import '../popup/popup.scss';
 import 'webpack-jquery-ui';
-import log = require('loglevel');
 import { as } from '../lib/as';
-import { Config } from '../lib/Config';
-import { Environment } from '../lib/Environment';
 import { PopupApp } from '../popup/PopupApp';
 import { ContentApp } from './ContentApp';
-import { Room } from './Room';
-import { Window } from './Window';
+import { Window, WindowOptions } from './Window';
 
 export class SettingsWindow extends Window
 {
@@ -17,21 +13,21 @@ export class SettingsWindow extends Window
         super(app);
     }
 
-    async show(options: any)
+    async show(options: WindowOptions)
     {
         options.titleText = this.app.translateText('Settingswindow.Settings', 'Settings');
         options.resizable = false;
 
         super.show(options);
 
-        let aboveElem: HTMLElement = options.above;
-        let bottom = as.Int(options.bottom, 150);
-        let width = as.Int(options.width, 420);
-        let height = as.Int(options.height, 350);
+        const aboveElem: HTMLElement = options.above;
+        const bottom = as.Int(options.bottom, 150);
+        const width = as.Int(options.width, 420);
+        const height = as.Int(options.height, 350);
 
         if (this.windowElem) {
-            let windowElem = this.windowElem;
-            let contentElem = this.contentElem;
+            const windowElem = this.windowElem;
+            const contentElem = this.contentElem;
             $(windowElem).addClass('n3q-settingswindow');
 
             let left = 50;
@@ -40,7 +36,7 @@ export class SettingsWindow extends Window
             }
             let top = this.app.getDisplay().offsetHeight - height - bottom;
             {
-                let minTop = 10;
+                const minTop = 10;
                 if (top < minTop) {
                     top = minTop;
                 }
@@ -51,7 +47,7 @@ export class SettingsWindow extends Window
             // $(contentElem).append(iframeElem);
             // this.app.translateElem(windowElem);
 
-            let popup = new PopupApp(contentElem);
+            const popup = new PopupApp(contentElem);
             await popup.start(() => this.close());
 
             $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });

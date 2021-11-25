@@ -189,8 +189,7 @@ export class BackpackItemInfo
         keys = keys.sort();
 
         const completeListElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-list" data-translate="children" />').get(0);
-        for (const i in keys) {
-            const pid = keys[i];
+        for (const pid of keys) {
             const value = props[pid];
             const lineElem = <HTMLDivElement>$(''
                 + '<div class="n3q-base n3q-itemprops-line">'

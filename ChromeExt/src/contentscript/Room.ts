@@ -1,5 +1,7 @@
 import log = require('loglevel');
-import { xml, jid } from '@xmpp/client';
+import * as jid from '@xmpp/jid';
+import * as xml from '@xmpp/xml';
+import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
@@ -14,7 +16,6 @@ import { RoomItem } from './RoomItem';
 import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and Item otherwise $().resizable does not work
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
-import { SimpleToast } from './Toast';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -158,7 +159,7 @@ export class Room
     async onUserSettingsChanged(): Promise<void>
     {
         await this.enter();
-        window.setTimeout(async () => { await this.sendPresence(); }, Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec', 1.0) * 1000);
+        window.setTimeout(async () => { await this.sendPresence(); }, as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1) * 1000);
     }
 
     async sendPresence(): Promise<void>
@@ -207,9 +208,9 @@ export class Room
 
             presence.append(xml('x', vpProps));
 
-            let identityUrl = Config.get('identity.url', '');
-            let identityDigest = Config.get('identity.digest', '1');
-            if (identityUrl == '') {
+            let identityUrl = as.String(Config.get('identity.url'), '');
+            let identityDigest = as.String(Config.get('identity.digest'), '1');
+            if (identityUrl === '') {
                 if (avatarUrl === '') {
                     avatarUrl = Utils.getAvatarUrlFromAvatarId(this.avatar);
                 }
@@ -221,8 +222,7 @@ export class Room
                     .replace('{imageUrl}', encodeURIComponent(''))
                     ;
                 if (points > 0) { identityUrl = identityUrl.replace('{points}', encodeURIComponent('' + points)); }
-            }
-            if (identityUrl != '') {
+            } else {
                 presence.append(
                     xml('x', { xmlns: 'firebat:user:identity', 'jid': this.userJid, 'src': identityUrl, 'digest': identityDigest })
                 );
@@ -272,7 +272,7 @@ export class Room
         this.app.sendStanza(presence);
     }
 
-    onPresence(stanza: any): void
+    onPresence(stanza: XmlElement): void
     {
         const presenceType = as.String(stanza.attrs.type, 'available');
         switch (presenceType) {
@@ -282,12 +282,12 @@ export class Room
         }
     }
 
-    onPresenceAvailable(stanza: any): void
+    onPresenceAvailable(stanza: XmlElement): void
     {
         const to = jid(stanza.attrs.to);
         const from = jid(stanza.attrs.from);
         const resource = from.getResource();
-        const isSelf = (resource == this.resource);
+        const isSelf = (resource === this.resource);
         let entity: Entity;
         let isItem = false;
 
@@ -363,7 +363,7 @@ export class Room
         }
     }
 
-    onPresenceUnavailable(stanza: any): void
+    onPresenceUnavailable(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
         const resource = from.getResource();
@@ -388,7 +388,7 @@ export class Room
         }
     }
 
-    onPresenceError(stanza: any): void
+    onPresenceError(stanza: XmlElement): void
     {
         const code = as.Int(stanza.getChildren('error')[0].attrs.code, -1);
         if (code === 409) {
@@ -433,7 +433,7 @@ export class Room
 
     // Keepalive
 
-    private keepAliveSec: number = Config.get('room.keepAliveSec', 180);
+    private keepAliveSec: number = as.Float(Config.get('room.keepAliveSec'), 180);
     private keepAliveTimer: undefined|number = undefined;
     private keepAlive()
     {
@@ -457,7 +457,7 @@ export class Room
 
     // message
 
-    onMessage(stanza: xml.Element)
+    onMessage(stanza: XmlElement)
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -579,7 +579,7 @@ export class Room
         if (this.vidconfWindow) {
             this.vidconfWindow.close();
         } else {
-            const urlTemplate = Config.get('room.vidconfUrl', 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
+            const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
             const url = urlTemplate
                 .replace('{room}', this.jid)
                 .replace('{name}', displayName)
@@ -670,8 +670,8 @@ export class Room
         const currentRoomJid = jid(currentRoom);
         const currentRoomName = currentRoomJid.local;
 
-        if (mappedRoomName == currentRoomName) {
-            const publicKey = Config.get('backpack.signaturePublicKey', '');
+        if (mappedRoomName === currentRoomName) {
+            const publicKey = as.String(Config.get('backpack.signaturePublicKey'), '');
             if (ItemProperties.verifySignature(props, publicKey)) {
                 return true;
             }

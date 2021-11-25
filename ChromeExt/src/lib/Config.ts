@@ -1,23 +1,18 @@
 import log = require('loglevel');
-import { Environment } from './Environment';
-import { Pid } from './ItemProperties';
 import { is } from './is';
-
-interface ConfigGetCallback { (value: any): void }
-interface ConfigSetCallback { (): void }
 
 // tslint:disable: quotemark
 
 export class Config
 {
     public static devConfigName = 'dev';
-    private static devConfig: any = {};
+    private static devConfig: {[p: string]: unknown} = {};
 
     public static onlineConfigName = 'online';
-    private static onlineConfig: any = {};
+    private static onlineConfig: {[p: string]: unknown} = {};
 
     public static staticConfigName = 'static';
-    public static staticConfig: any = {
+    private static staticConfig: {[p: string]: unknown} = {
         environment: {
             // NODE_ENV: 'production',
             reloadPageOnPanic: false,
@@ -787,102 +782,75 @@ export class Config
         },
 
         _last: 0
+    };
+
+    static get(key: string, defaultValue: unknown = undefined): any // @Todo: Actual type is unknown.
+    {
+        return Config.getDev(key) ?? Config.getOnline(key) ?? Config.getStatic(key) ?? defaultValue;
     }
 
-    static get(key: string, defaultValue: any): any
+    static getDev(key: string): unknown { return Config.getFromTree(this.devConfig, key); }
+    static getOnline(key: string): unknown { return Config.getFromTree(this.onlineConfig, key); }
+    static getStatic(key: string): unknown { return Config.getFromTree(this.staticConfig, key); }
+
+    private static getFromTree(tree: {[p: string]: unknown}, key: string): unknown
     {
-        let result = null;
-        if (result == undefined || result == null) {
-            result = Config.getDev(key);
-        }
-        if (result == undefined || result == null) {
-            result = Config.getOnline(key);
-        }
-        if (result == undefined || result == null) {
-            result = Config.getStatic(key);
-        }
-        if (result == undefined || result == null) {
-            result = defaultValue;
-        }
-        return result;
+        const parts = key.split('.');
+        let current: unknown = tree;
+        parts.forEach(part =>
+        {
+            current = current?.[part];
+        });
+        return current ?? null;
     }
 
-    static getBoolean(key: string, defaultValue: boolean = false): boolean
+    private static setInTree(tree: {[p: string]: unknown}, key: string, value: unknown)
     {
-        const val: unknown = Config.get(key, undefined);
-        return is.boolean(val) ? val : defaultValue;
-    }
-
-    static getNumber(key: string, defaultValue: number = 10): number
-    {
-        const val: unknown = Config.get(key, undefined);
-        return is.number(val) ? val : defaultValue;
-    }
-
-    static getDev(key: string): any { return Config.getFromTree(this.devConfig, key); }
-    static getOnline(key: string): any { return Config.getFromTree(this.onlineConfig, key); }
-    static getStatic(key: string): any { return Config.getFromTree(this.staticConfig, key); }
-
-    private static getFromTree(tree: any, key: string): any
-    {
-        let parts = key.split('.');
+        const parts = key.split('.');
+        if (parts.length === 0) {
+            return;
+        }
+        const lastPart = parts.pop();
         let current = tree;
         parts.forEach(part =>
         {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
+            const node = current?.[part];
+            current = is.object(node) ? node : {};
         });
-        return current;
+        current[lastPart] = value;
     }
 
-    private static setInTree(tree: any, key: string, value: any)
-    {
-        let parts = key.split('.');
-        if (parts.length == 0) { return; }
-        let lastPart = parts[parts.length - 1];
-        parts.splice(parts.length - 1, 1);
-        let current = tree;
-        parts.forEach(part =>
-        {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
-        });
-        if (current) {
-            current[lastPart] = value;
-        }
-    }
+    static getDevTree(): {[p: string]: unknown} { return this.devConfig; }
+    static getOnlineTree(): {[p: string]: unknown} { return this.onlineConfig; }
+    static getStaticTree(): {[p: string]: unknown} { return this.staticConfig; }
 
-    static getDevTree(): any { return this.devConfig; }
-    static getOnlineTree(): any { return this.onlineConfig; }
-    static getStaticTree(): any { return this.staticConfig; }
-
-    static setOnline(key: string, value: any)
+    static setOnline(key: string, value: unknown)
     {
         log.debug('Config.setOnline', key);
         return Config.setInTree(this.onlineConfig, key, value);
     }
 
-    static setDevTree(tree: any)
+    static setDevTree(tree: {[p: string]: unknown})
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setDevTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setDevTree');
+        }
         this.devConfig = tree;
     }
 
-    static setOnlineTree(tree: any): void
+    static setOnlineTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setOnlineTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setOnlineTree');
+        }
         this.onlineConfig = tree;
     }
 
-    static setStaticTree(tree: any): void
+    static setStaticTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setStaticTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setStaticTree');
+        }
         this.staticConfig = tree;
     }
 

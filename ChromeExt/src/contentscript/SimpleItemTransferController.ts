@@ -83,13 +83,15 @@ import { ContentApp } from './ContentApp';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ItemException } from '../lib/ItemException';
-import * as xml from '@xmpp/xml';
 import * as jid from '@xmpp/jid';
+import * as xml from '@xmpp/xml';
+import { Element as XmlElement } from 'ltx';
 import { Element } from 'ltx';
 import { Config } from '../lib/Config';
 import { SimpleErrorToast, SimpleToast, Toast } from './Toast';
 import { JID } from '@xmpp/jid';
 import { is } from '../lib/is';
+import { as } from '../lib/as';
 
 type ItemWithId = ItemProperties & {[Pid.Id]: string};
 
@@ -189,9 +191,9 @@ export class SimpleItemTransferController
      *
      * Returns, whether the stanza has been handled.
      */
-    public onStanza(stanza: xml.Element): boolean
+    public onStanza(stanza: XmlElement): boolean
     {
-        if (!Config.getBoolean('SimpleItemTransfer.enabled')) {
+        if (!as.Bool(Config.get('SimpleItemTransfer.enabled'))) {
             return false;
         }
         let stanzaHandled = false;
@@ -253,7 +255,7 @@ export class SimpleItemTransferController
         recipient: Participant,
         item: ItemProperties
     ): void {
-        if (!Config.getBoolean('SimpleItemTransfer.enabled')
+        if (!as.Bool(Config.get('SimpleItemTransfer.enabled'))
         || !isItemWithId(item)) {
             return;
         }
@@ -281,7 +283,7 @@ export class SimpleItemTransferController
         const reasonText = ItemException.reason2String(reason);
         const toastType = `Warning-${factText}-${reasonText}`;
         const toastDurationKey = 'room.applyItemErrorToastDurationSec';
-        const toastDuration = Config.getNumber(toastDurationKey);
+        const toastDuration = as.Float(Config.get(toastDurationKey));
         const toast = new SimpleErrorToast(
             this.app, toastType, toastDuration,
             'warning', factText, reasonText, '');
@@ -368,8 +370,8 @@ export class SimpleItemTransferController
         const timeoutKey = 'SimpleItemTransfer.recipientAcceptToastDurationSec';
         const extraKey = 'SimpleItemTransfer.senderOfferWaitToastExtraDurationSec';
         const timeout
-            = Config.getNumber(timeoutKey)
-            + Config.getNumber(extraKey);
+            = as.Float(Config.get(timeoutKey))
+            + as.Float(Config.get(extraKey));
         return this.showUserToast(
             'SimpleItemTransferSenderOfferWait',
             this.makeUserMsgTranslationModifiers(record),
@@ -470,7 +472,7 @@ export class SimpleItemTransferController
         this.recipientCleanupItem(itemId, false);
         record.transferState = SimpleItemTransferRecipientState.accepted;
         const timeoutKey = 'SimpleItemTransfer.recipientConfirmMsgTimeoutSec';
-        const timeoutSecs = Config.getNumber(timeoutKey);
+        const timeoutSecs = as.Float(Config.get(timeoutKey));
         const timeoutMs = timeoutSecs * 1000;
         const onTimeout = () => this.recipientOnConfirmMsgTimeout(itemId);
         record.timeoutHandle = window.setTimeout(onTimeout, timeoutMs);
@@ -835,7 +837,7 @@ export class SimpleItemTransferController
         if (is.number(timeoutOrId)) {
             timeoutSecs = timeoutOrId;
         } else {
-            timeoutSecs = Config.getNumber(timeoutOrId);
+            timeoutSecs = as.Float(Config.get(timeoutOrId));
         }
         const title = this.translate(
             ['textid', titleId, translationModifiers]);

@@ -1,4 +1,6 @@
-﻿export class as
+﻿import { is } from './is';
+
+export class as
 {
     private static readonly escapeHtml_entityMap = {
         '&': '&amp;',
@@ -7,24 +9,20 @@
         '\'': '&quot;',
         '"': '&#39;',
         '\n': '<br/>',
-    }
+    };
 
-    private static readonly typeBoolean: string = typeof true;
-    private static readonly typeString: string = typeof '';
-    private static readonly typeNumber: string = typeof 1;
-
-    static Bool(val: any, alt?: boolean): boolean
+    static Bool(val: unknown, alt?: boolean): boolean
     {
         let res = alt ?? false;
         try {
-            if (typeof val === this.typeBoolean) {
+            if (is.boolean(val)) {
                 res = val;
             } else {
-                if (typeof val === this.typeString) {
+                if (is.string(val)) {
                     res = val === 'true' || val === 'True' || val === 'TRUE'
                         || val === '1' || val === 'yes';
                 } else {
-                    if (typeof val === this.typeNumber) {
+                    if (is.number(val)) {
                         res = val >= 1;
                     }
                 }
@@ -35,17 +33,17 @@
         return res;
     }
 
-    static String(val: any, alt?: string): string
+    static String(val: unknown, alt?: string): string
     {
         let res = alt ?? '';
         try {
-            if (typeof val === this.typeString) {
+            if (is.string(val)) {
                 res = val;
             } else {
-                if (typeof val === this.typeNumber) {
+                if (is.number(val)) {
                     res = '' + val;
                 } else {
-                    if (typeof val === this.typeBoolean) {
+                    if (is.boolean(val)) {
                         res = val ? 'true' : 'false';
                     }
                 }
@@ -56,14 +54,14 @@
         return res;
     }
 
-    static Int(val: any, alt?: number): number
+    static Int(val: unknown, alt?: number): number
     {
         let res = alt ?? 0;
         try {
-            if (typeof val === this.typeNumber) {
+            if (is.number(val)) {
                 res = Math.round(val);
             } else {
-                if (typeof val === this.typeString) {
+                if (is.string(val)) {
                     res = parseInt(val);
                     if (isNaN(res)) {
                         res = alt ?? 0;
@@ -76,14 +74,14 @@
         return res;
     }
 
-    static Float(val: any, alt?: number): number
+    static Float(val: unknown, alt?: number): number
     {
         let res = alt ?? 0.0;
         try {
-            if (typeof val === this.typeNumber) {
+            if (is.number(val)) {
                 res = val;
             } else {
-                if (typeof val === this.typeString) {
+                if (is.string(val)) {
                     res = parseFloat(val);
                     if (isNaN(res)) {
                         res = alt ?? 0;
@@ -96,14 +94,14 @@
         return res;
     }
 
-    static Html(val: any, alt?: string): string
+    static Html(val: unknown, alt?: string): string
     {
         const res = as.String(val, alt);
         const htmlEncoded = String(res).replace(/[&<>'"\n]/g, (s) => this.escapeHtml_entityMap[s]);
         return htmlEncoded;
     }
 
-    static HtmlWithClickableLinks(val: any, alt?: string): string
+    static HtmlWithClickableLinks(val: unknown, alt?: string): string
     {
         const html = as.Html(val, alt);
         const clickableEncoded = as.makeLinksClickable(html);
@@ -125,7 +123,7 @@
         });
     }
 
-    static HtmlLink(val: any, text?: string, urlFilter?: (s: string) => string, alt?: string): string
+    static HtmlLink(val: unknown, text?: string, urlFilter?: (s: string) => string, alt?: string): string
     {
         let res = as.String(val, alt);
         if (urlFilter == null) {
@@ -133,7 +131,8 @@
         }
         const url = urlFilter(res);
         if (as.String(url) !== '') {
-            if (text == '') {
+            text = text ?? '';
+            if (text === '') {
                 text = url;
             }
             res = '<a href="' + as.Html(url) + '">' + as.Html(text) + '</a>'

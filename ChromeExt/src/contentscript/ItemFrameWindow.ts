@@ -2,13 +2,11 @@ import * as $ from 'jquery';
 import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Point2D, Utils } from '../lib/Utils';
+import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Window } from './Window';
+import { Window, WindowOptions } from './Window';
 import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
-
-type WindowOptions = any;
 
 export interface ItemFrameWindowOptions extends WindowOptions
 {
@@ -36,13 +34,13 @@ export class ItemFrameWindow extends Window
     async show(options: ItemFrameWindowOptions)
     {
         try {
-            let url: string = options.url;
+            const url: string = options.url;
             if (!url) { throw 'No url' }
 
             this.refElem = options.elem;
 
-            let json = as.String(options.item.getProperties()[Pid.IframeOptions], '{}');
-            let iframeOptions = JSON.parse(json);
+            const json = as.String(options.item.getProperties()[Pid.IframeOptions], '{}');
+            const iframeOptions = JSON.parse(json);
             options.closeIsHide = as.Bool(iframeOptions.closeIsHide, false);
 
             if (Utils.logChannel('iframeApi', true)) { log.info('ItemFrameWindow.show', url); }
@@ -79,9 +77,9 @@ export class ItemFrameWindow extends Window
 
     position(width: number, height: number, left: number, bottom: number): void
     {
-        let offset = this.refElem.getBoundingClientRect();
-        let absLeft = offset.left + left;
-        let absBottom = bottom;
+        const offset = this.refElem.getBoundingClientRect();
+        const absLeft = offset.left + left;
+        const absBottom = bottom;
         $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' });
     }
 
@@ -92,18 +90,17 @@ export class ItemFrameWindow extends Window
 
     undock(): void
     {
-        let left = Config.get('roomItem.frameUndockedLeft', 100);
-        let top = Config.get('roomItem.frameUndockedTop', 100);
-        let width = this.width;
-        let height = this.height;
-        let params = 'scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + '';
+        const left = Config.get('roomItem.frameUndockedLeft', 100);
+        const top = Config.get('roomItem.frameUndockedTop', 100);
+        const width = this.width;
+        const height = this.height;
+        const params = 'scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + '';
 
-        let url = this.url;
-        let title = this.title;
+        const url = this.url;
 
         this.close();
 
-        let undocked = window.open(url, Utils.randomString(10), params);
+        const undocked = window.open(url, Utils.randomString(10), params);
         undocked.focus();
     }
 }

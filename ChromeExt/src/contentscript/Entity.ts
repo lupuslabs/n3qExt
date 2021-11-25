@@ -3,7 +3,9 @@ import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 import log = require('loglevel');
 import * as $ from 'jquery';
 import 'jqueryui';
+import { is } from '../lib/is';
 import { as } from '../lib/as';
+import { Element as XmlElement } from 'ltx';
 import { Config } from '../lib/Config';
 import { Room } from './Room';
 import { Avatar } from './Avatar';
@@ -35,7 +37,7 @@ export class Entity
 
     show(visible: boolean, durationSec: number = 0.0): void
     {
-        if (visible != this.visible) {
+        if (visible !== this.visible) {
             if (visible) {
                 if (durationSec > 0) {
                     $(this.elem).fadeIn(durationSec * 1000);
@@ -56,7 +58,7 @@ export class Entity
         delete this.elem;
     }
 
-    showEffect(effect: any): void
+    showEffect(effect: string): void
     {
         const pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
         $(this.elem).append(pulseElem);
@@ -80,7 +82,7 @@ export class Entity
     setPosition(x: number): void
     {
         this.positionX = x;
-        if (this.elem != undefined) {
+        if (!is.nil(this.elem)) {
             this.elem.style.left = x + 'px';
         }
     }
@@ -149,7 +151,7 @@ export class Entity
             .animate(
                 { left: newX + 'px' },
                 {
-                    duration: Config.get('room.quickSlideSec', 0.1) * 1000,
+                    duration: as.Float(Config.get('room.quickSlideSec'), 0.1) * 1000,
                     step: (x) => { this.positionX = x; },
                     easing: 'linear',
                     complete: () => this.onQuickSlideReached(newX)
@@ -164,7 +166,7 @@ export class Entity
 
     // Xmpp
 
-    onPresenceAvailable(stanza: any)
+    onPresenceAvailable(stanza: XmlElement)
     {
         log.error('Entity.onPresenceAvailable', 'not implemented', 'you should not be here');
     }

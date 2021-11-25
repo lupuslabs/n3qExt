@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import * as $ from 'jquery';
-import { jid } from '@xmpp/client';
-import * as xml from '@xmpp/xml';
+import * as jid from '@xmpp/jid';
+import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { Utils } from '../lib/Utils';
@@ -45,7 +45,7 @@ export class ContentAppNotification
 }
 
 interface ContentAppNotificationCallback { (msg: any): void }
-interface StanzaResponseHandler { (stanza: xml.Element): void }
+interface StanzaResponseHandler { (stanza: XmlElement): void }
 
 export class ContentApp
 {
@@ -125,7 +125,7 @@ export class ContentApp
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
-            Config.setOnlineTree(config);
+            Config.setOnlineTree(config.config);
         } catch (error) {
             log.debug(error.message);
             Panic.now();
@@ -134,7 +134,7 @@ export class ContentApp
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.devConfigName);
-            Config.setDevTree(config);
+            Config.setDevTree(config.config);
         } catch (error) {
             log.debug(error.message);
         }
@@ -148,8 +148,8 @@ export class ContentApp
                 return;
             }
             const ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
-            for (let i = 0; i < ignoredDomains.length; i++) {
-                if (parsedUrl.host.endsWith(ignoredDomains[i])) {
+            for (const ignoredDomain of ignoredDomains) {
+                if (parsedUrl.host.endsWith(ignoredDomain)) {
                     return;
                 }
             }
@@ -157,8 +157,8 @@ export class ContentApp
 
         await Utils.sleep(as.Float(Config.get('vp.deferPageEnterSec', 1)) * 1000);
 
-        let navLang = Config.get('i18n.overrideBrowserLanguage', '');
-        if (navLang == '') {
+        let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
+        if (navLang === '') {
             navLang = navigator.language;
         }
         const language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
@@ -420,7 +420,7 @@ export class ContentApp
     // Backgound pages dont allow timers
     // and alerts were unreliable on first test.
     // So, let the content script call the background
-    private pingBackgroundToKeepConnectionAliveSec: number = Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec', 180);
+    private pingBackgroundToKeepConnectionAliveSec: number = as.Float(Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec'), 180);
     private pingBackgroundToKeepConnectionAliveTimer: number = undefined;
     private pingBackgroundToKeepConnectionAlive()
     {
@@ -459,7 +459,7 @@ export class ContentApp
         this.onSimpleRuntimeMessage(message);
     }
 
-    private onSimpleRuntimeMessage(message): any
+    private onSimpleRuntimeMessage(message): boolean
     {
         switch (message.type) {
             case ContentMessage.type_recvStanza: {
@@ -499,11 +499,11 @@ export class ContentApp
         return true;
     }
 
-    handle_recvStanza(jsStanza: any): any
+    handle_recvStanza(jsStanza: unknown): void
     {
-        const stanza: xml.Element = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: XmlElement = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
-            log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
+            log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
 
         if (this.xmppWindow) {
@@ -516,8 +516,6 @@ export class ContentApp
             case 'message': this.onMessage(stanza); break;
             case 'iq': this.onIq(stanza); break;
         }
-
-        // return true;
     }
 
     handle_userSettingsChanged(): any
@@ -539,7 +537,7 @@ export class ContentApp
         if (detail) {
             what = as.String(detail.what);
         }
-        const toast = new SimpleToast(this, 'itemframe-' + iconType + what, Config.get('client.notificationToastDurationSec', 30), iconType, title, text);
+        const toast = new SimpleToast(this, 'itemframe-' + iconType + what, as.Float(Config.get('client.notificationToastDurationSec'), 30), iconType, title, text);
         if (links) {
             links.forEach(link =>
             {
@@ -570,9 +568,7 @@ export class ContentApp
 
     handle_sendPresence(): void
     {
-        if (this.room) {
-            this.room.sendPresence();
-        }
+        this.room?.sendPresence();
     }
 
     leavePage()
@@ -598,7 +594,7 @@ export class ContentApp
 
             const newSignificatParts = pageUrl ? this.getSignificantUrlParts(pageUrl) : '';
             const oldSignificatParts = this.pageUrl ? this.getSignificantUrlParts(this.pageUrl) : '';
-            if (newSignificatParts == oldSignificatParts) { return }
+            if (newSignificatParts === oldSignificatParts) { return }
 
             if (Utils.logChannel('urlMapping', false)) { log.info('Page changed', this.pageUrl, ' => ', pageUrl); }
             this.pageUrl = pageUrl;
@@ -628,7 +624,7 @@ export class ContentApp
         }
     }
 
-    getSignificantUrlParts(url: string)
+    getSignificantUrlParts(url: string): string
     {
         const parsedUrl = new URL(url);
         return parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
@@ -641,7 +637,7 @@ export class ContentApp
         return roomJid;
     }
 
-    private checkPageUrlSec: number = Config.get('room.checkPageUrlSec', 5);
+    private checkPageUrlSec: number = as.Float(Config.get('room.checkPageUrlSec'), 5);
     private checkPageUrlTimer: number;
     private startCheckPageUrl()
     {
@@ -712,16 +708,16 @@ export class ContentApp
         }
     }
 
-    onPresence(stanza: xml.Element): void
+    onPresence(stanza: XmlElement): void
     {
         let isHandled = false;
 
         const from = jid(stanza.attrs.from);
-        const roomOrUser = from.bare();
+        const roomOrUser = from.bare().toString();
 
         if (!isHandled) {
             if (this.room) {
-                if (roomOrUser == this.room.getJid()) {
+                if (roomOrUser === this.room.getJid()) {
                     this.room.onPresence(stanza);
                     isHandled = true;
                 }
@@ -729,31 +725,29 @@ export class ContentApp
         }
     }
 
-    onMessage(stanza: xml.Element): void
+    onMessage(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
-        const roomOrUser = from.bare();
+        const roomOrUser = from.bare().toString();
 
-        if (roomOrUser == this.room?.getJid()) {
+        if (roomOrUser === this.room?.getJid()) {
             this.room?.onMessage(stanza);
         }
     }
 
-    onIq(stanza: xml.Element): void
+    onIq(stanza: XmlElement): void
     {
-        if (stanza.attrs) {
-            const id = stanza.attrs.id;
-            if (id) {
-                if (this.stanzasResponses[id]) {
-                    this.stanzasResponses[id](stanza);
-                    delete this.stanzasResponses[id];
-                }
+        const id = stanza.attrs.id;
+        if (id) {
+            if (this.stanzasResponses[id]) {
+                this.stanzasResponses[id](stanza);
+                delete this.stanzasResponses[id];
             }
         }
     }
 
     sendStanza(
-        stanza: xml.Element,
+        stanza: XmlElement,
         stanzaId: string = null,
         responseHandler: StanzaResponseHandler = null,
     ): void {
@@ -813,7 +807,7 @@ export class ContentApp
         ...data: unknown[]
     ): void {
         if (error instanceof ItemException) {
-            const duration = Config.getNumber('room.errorToastDurationSec');
+            const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
         } else {
             this.onError(src, msg, error, ...data);
@@ -1088,9 +1082,7 @@ export class ContentApp
         const [x, y] = [xNew ?? -1, yNew ?? -1];
         const propsDel = [Pid.AutorezIsActive, Pid.State];
         if (Utils.logChannel('items')) {
-            log.info(
-                'BackpackWindow.derezItem',
-                'itemId', itemId, 'roomJid', roomJid);
+            log.info('ContentApp.derezItem', 'itemId', itemId, 'roomJid', roomJid);
         }
         await BackgroundMessage.derezBackpackItem(
             itemId, roomJid, x, y, {}, propsDel, {}

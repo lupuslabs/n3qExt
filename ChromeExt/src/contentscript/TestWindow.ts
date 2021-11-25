@@ -3,7 +3,7 @@ import 'webpack-jquery-ui';
 import { as } from '../lib/as';
 import { sut } from '../lib/sut';
 import { sutGui } from '../lib/sutGui';
-import { Window } from './Window';
+import { Window, WindowOptions } from './Window';
 import { ContentApp } from './ContentApp';
 import { LiveTestPayload } from './LiveTestPayload';
 import { LiveTestSimpleRpc } from './LiveTestSimpleRpc';
@@ -17,35 +17,35 @@ export class TestWindow extends Window
         super(app);
     }
 
-    async show(options: any)
+    async show(options: WindowOptions)
     {
         options.titleText = this.app.translateText('TestWindow.Tests', 'Integration Tests');
         options.resizable = true;
 
         super.show(options);
 
-        let bottom = as.Int(options.bottom, 400);
-        let width = as.Int(options.width, 800);
+        const bottom = as.Int(options.bottom, 400);
+        const width = as.Int(options.width, 800);
         let height = as.Int(options.height, 600);
-        let onClose = options.onClose;
+        const onClose = options.onClose;
 
         if (this.windowElem) {
-            let windowElem = this.windowElem;
-            let contentElem = this.contentElem;
+            const windowElem = this.windowElem;
+            const contentElem = this.contentElem;
             $(windowElem).addClass('n3q-testwindow');
 
-            let left = 50;
+            const left = 50;
             let top = this.app.getDisplay().offsetHeight - height - bottom;
             {
-                let minTop = 10;
+                const minTop = 10;
                 if (top < minTop) {
                     height -= minTop - top;
                     top = minTop;
                 }
             }
 
-            let outElem = <HTMLElement>$('<div class="n3q-base n3q-testwindow-out" data-translate="children" />').get(0);
-            let runElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-testwindow-run" title="Run">Run</div>').get(0);
+            const outElem = <HTMLElement>$('<div class="n3q-base n3q-testwindow-out" data-translate="children" />').get(0);
+            const runElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-testwindow-run" title="Run">Run</div>').get(0);
 
             $(contentElem).append(outElem);
             $(contentElem).append(runElem);
@@ -74,7 +74,7 @@ export class TestWindow extends Window
 
     runTests()
     {
-        var s = new sut();
+        const s = new sut();
 
         s.addTestClass(LiveTestSimpleRpc);
         s.addTestClass(LiveTestPayload);

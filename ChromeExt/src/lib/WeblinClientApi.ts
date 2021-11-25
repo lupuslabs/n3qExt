@@ -16,7 +16,7 @@ export namespace WeblinClientApi
         title: string;
         text: string;
 
-        target?: string; // ['currentTab'|'notCurrentTab'|'activeTab'|'allTabs']
+        target?: 'currentTab'|'notCurrentTab'|'activeTab'|'allTabs';
         static defaultTarget = 'currentTab';
 
         static iconType_warning = 'warning';
@@ -34,6 +34,6 @@ export namespace WeblinClientApi
         static type = 'Client.CreateItem';
         template: string;
         dx: number;
-        args: ItemProperties;        
+        args: ItemProperties;
     }
 }
