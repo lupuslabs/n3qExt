@@ -12,7 +12,7 @@ import { Window, WindowOptions } from './Window';
 import { BackpackItem as BackpackItem } from './BackpackItem';
 import { Environment } from '../lib/Environment';
 import { ItemException } from '../lib/ItemException';
-import { ItemExceptionToast, SimpleToast } from './Toast';
+import { ItemExceptionToast } from './Toast';
 import { Avatar } from './Avatar';
 import { FreeSpace } from './FreeSpace';
 
@@ -46,138 +46,129 @@ export class BackpackWindow extends Window
         const width = as.Int(options.width, 600);
         let height = as.Int(options.height, 400);
 
-        if (this.windowElem) {
-            const windowElem = this.windowElem;
-            const contentElem = this.contentElem;
-            $(windowElem).addClass('n3q-backpackwindow');
+        const windowElem = this.windowElem;
+        const contentElem = this.contentElem;
+        $(windowElem).addClass('n3q-backpackwindow');
 
-            let left = as.Int(options.left, 50);
-            if (options.left == null) {
-                if (aboveElem) {
-                    left = Math.max(aboveElem.offsetLeft - 120, left);
-                }
+        let left = as.Int(options.left, 50);
+        if (options.left == null) {
+            if (aboveElem) {
+                left = Math.max(aboveElem.offsetLeft - 120, left);
             }
-            let top = this.app.getDisplay().offsetHeight - height - bottom;
+        }
+        let top = this.app.getDisplay().offsetHeight - height - bottom;
+        {
+            const minTop = 10;
+            if (top < minTop) {
+                height -= minTop - top;
+                top = minTop;
+            }
+        }
+
+        const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
+        $(contentElem).append(paneElem);
+
+        const dumpElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-dump" title="Shredder" data-translate="attr:title:Backpack"/>').get(0);
+        $(contentElem).append(dumpElem);
+        $(dumpElem).droppable({
+            tolerance: 'pointer',
+            drop: (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
             {
-                const minTop = 10;
-                if (top < minTop) {
-                    height -= minTop - top;
-                    top = minTop;
+                const droppedElem = ui.draggable.get(0);
+                if (droppedElem) {
+                    const droppedId: string = $(droppedElem).data('id');
+                    if (droppedId) {
+                        const onCancel = () => this.itemVisibility(droppedId, true);
+                        this.app.deleteItemAsk(droppedId, undefined, onCancel);
+                        this.itemVisibility(droppedId, false);
+                        ev.stopPropagation();
+                    }
                 }
             }
+        });
 
-            const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
-            $(contentElem).append(paneElem);
+        if (Environment.isDevelopment()) {
+            const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
+            $(inElem).hide();
+            $(contentElem).append(inElem);
 
-            const dumpElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-dump" title="Shredder" data-translate="attr:title:Backpack"/>').get(0);
-            $(contentElem).append(dumpElem);
-            $(dumpElem).droppable({
-                tolerance: 'pointer',
-                drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-                {
-                    const droppedElem = ui.draggable.get(0);
-                    if (droppedElem) {
-                        const droppedId: string = $(droppedElem).data('id');
-                        if (droppedId) {
-
-                            const props = await BackgroundMessage.getBackpackItemProperties(droppedId);
-                            const itemName = props[Pid.Label] ?? props[Pid.Template];
-                            const toast = new SimpleToast(this.app, 'backpack-reallyDelete', as.Float(Config.get('backpack.deleteToastDurationSec'), 1000), 'question', 'Really delete?', this.app.translateText('ItemLabel.' + itemName) + '\n' + droppedId);
-                            toast.actionButton('Yes, delete item', () => { this.deleteItem(droppedId); toast.close(); });
-                            toast.actionButton('No, keep it', () => { this.itemVisibility(droppedId, true); toast.close(); });
-                            toast.setDontShow(false);
-                            toast.show(() => { this.itemVisibility(droppedId, true); });
-                            this.itemVisibility(droppedId, false);
-
-                            ev.stopPropagation();
-                        }
-                    }
+            const toggleElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-toggle">Input</div>').get(0);
+            $(contentElem).append(toggleElem);
+            $(toggleElem).on('click', () =>
+            {
+                if ($(inElem).is(':hidden')) {
+                    $(inElem).show();
+                    this.app.toFront(inElem, ContentApp.LayerWindowContent);
+                } else {
+                    $(inElem).hide();
                 }
             });
 
-            if (Environment.isDevelopment()) {
-                const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
-                $(inElem).hide();
-                $(contentElem).append(inElem);
-
-                const toggleElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-toggle">Input</div>').get(0);
-                $(contentElem).append(toggleElem);
-                $(toggleElem).on('click', () =>
-                {
-                    if ($(inElem).is(':hidden')) {
-                        $(inElem).show();
-                        this.app.toFront(inElem, ContentApp.LayerWindowContent);
-                    } else {
-                        $(inElem).hide();
-                    }
-                });
-
-                const addElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-add">Add</div>').get(0);
-                $(contentElem).append(addElem);
-                $(addElem).on('click', () =>
-                {
-                    let text = as.String($(inElem).val());
-                    text = text.replace(/'/g, '"');
-                    if (text !== '') {
-                        const json = JSON.parse(text);
-                        const itemId = Utils.randomString(30);
-                        json.Id = itemId;
-                        this.createItem(itemId, json, {});
-                    }
-                });
-            }
-
-            this.app.translateElem(windowElem);
-
-            $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });
-
-            this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
+            const addElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-add">Add</div>').get(0);
+            $(contentElem).append(addElem);
+            $(addElem).on('click', () =>
             {
-                const left = ui.position.left;
-                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
-                this.saveCoordinates(left, bottom, ui.size.width, ui.size.height);
-            };
+                let text = as.String($(inElem).val());
+                text = text.replace(/'/g, '"');
+                if (text !== '') {
+                    const json = JSON.parse(text);
+                    const itemId = Utils.randomString(30);
+                    json.Id = itemId;
+                    this.createItem(itemId, json, {});
+                }
+            });
+        }
 
-            this.onDragStop = (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
+        this.app.translateElem(windowElem);
+
+        $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });
+
+        this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
+        {
+            const left = ui.position.left;
+            const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
+            this.saveCoordinates(left, bottom, ui.size.width, ui.size.height);
+        };
+
+        this.onDragStop = (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
+        {
+            const size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() };
+            const left = ui.position.left;
+            const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
+            this.saveCoordinates(left, bottom, size.width, size.height);
+        };
+
+        $(paneElem).droppable({
+            drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
             {
-                const size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() };
-                const left = ui.position.left;
-                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
-                this.saveCoordinates(left, bottom, size.width, size.height);
-            };
-
-            $(paneElem).droppable({
-                drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-                {
-                    const droppedElem = ui.draggable.get(0);
-                    if (droppedElem) {
-                        const droppedId = Avatar.getEntityIdByAvatarElem(droppedElem);
-                        if (droppedId) {
-                            const roomItem = this.app.getRoom().getItem(droppedId);
-                            if (roomItem) {
-                                const x = Math.round(ui.offset.left - $(paneElem).offset().left + ui.draggable.width() / 2);
-                                const y = Math.round(ui.offset.top - $(paneElem).offset().top + ui.draggable.height() / 2);
-                                const itemId = roomItem.getProperties()[Pid.Id];
-                                this.app.derezItem(itemId, x, y);
-                            }
+                const droppedElem = ui.draggable.get(0);
+                if (droppedElem) {
+                    const droppedId = Avatar.getEntityIdByAvatarElem(droppedElem);
+                    if (droppedId) {
+                        const roomItem = this.app.getRoom().getItem(droppedId);
+                        if (roomItem) {
+                            const x = Math.round(ui.offset.left - $(paneElem).offset().left + ui.draggable.width() / 2);
+                            const y = Math.round(ui.offset.top - $(paneElem).offset().top + ui.draggable.height() / 2);
+                            const itemId = roomItem.getProperties()[Pid.Id];
+                            this.app.derezItem(itemId, x, y);
                         }
                     }
                 }
-            });
-
-            this.paneElem = paneElem;
-
-            try {
-                const response = await BackgroundMessage.getBackpackState();
-                if (response && response.ok) {
-                    this.populate(response.items);
-                }
-
-                // let pos = this.getFreeCoordinate();
-
-            } catch (ex) {
-                // Ignored.
             }
+        });
+
+        this.paneElem = paneElem;
+
+        try {
+            const response = await BackgroundMessage.getBackpackState();
+            if (response && response.ok) {
+                this.populate(response.items);
+            }
+
+            // let pos = this.getFreeCoordinate();
+
+        } catch (ex) {
+            // Ignored.
         }
     }
 
@@ -270,18 +261,6 @@ export class BackpackWindow extends Window
             }
 
             await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
-        } catch (ex) {
-            new ItemExceptionToast(this.app, as.Float(Config.get('room.errorToastDurationSec'), 8), ex).show();
-        }
-    }
-
-    async deleteItem(itemId: string)
-    {
-        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.deleteItem', itemId); }
-        try {
-            await BackgroundMessage.deleteBackpackItem(itemId, { });
-            
-            this.app.getRoom().sendPresence();
         } catch (ex) {
             new ItemExceptionToast(this.app, as.Float(Config.get('room.errorToastDurationSec'), 8), ex).show();
         }

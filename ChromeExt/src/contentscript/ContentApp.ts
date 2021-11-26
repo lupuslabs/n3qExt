@@ -1089,4 +1089,52 @@ export class ContentApp
         );
     }
 
+    public deleteItemAsk(
+        itemId: string,
+        onDeleted?: (itemId: string) => void,
+        onCanceled?: (itemId: string) => void,
+        onFailed?: (itemId: string) => void, // For cleanups. Defaults to onCanceled.
+    ): void {
+        (async () => {
+            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+            const itemName = props[Pid.Label] ?? props[Pid.Template];
+            const duration = Config.get('backpack.deleteToastDurationSec', 1000);
+            const text = this.translateText('ItemLabel.' + itemName) + '\n' + itemId;
+            const toast = new SimpleToast(
+                this, 'backpack-reallyDelete', duration, 'question', 'Really delete?', text);
+            const onYes = () => {
+                toast.close();
+                this.deleteItem(itemId, onDeleted, onFailed ?? onCanceled);
+            };
+            const onNo = () => {
+                toast.close();
+                onCanceled?.(itemId);
+            };
+            toast.actionButton('Yes, delete item', onYes);
+            toast.actionButton('No, keep it', onNo);
+            toast.setDontShow(false);
+            toast.show(onNo);
+        })().catch(error => {this.onItemError(
+            'ContentApp.deleteItemAsk', 'Toast preparation failed!', error, 'itemId', itemId
+        )});
+    }
+
+    public deleteItem(
+        itemId: string,
+        onDeleted?: (itemId: string) => void,
+        onFailed?: (itemId: string) => void, // For cleanups.
+    ): void {
+        if (Utils.logChannel('items')) {
+            log.info('ContentApp.deleteItem', itemId);
+        }
+        (async () => {
+            await BackgroundMessage.deleteBackpackItem(itemId, {});
+            this.room?.sendPresence();
+            onDeleted?.(itemId);
+        })().catch(error => {
+            this.onItemError('ContentApp.deleteItem', 'Error caught!', error, 'itemId', itemId);
+            onFailed?.(itemId);
+        });
+    }
+
 }
