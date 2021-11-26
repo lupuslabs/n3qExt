@@ -806,7 +806,7 @@ export class ContentApp
         error: unknown,
         ...data: unknown[]
     ): void {
-        if (error instanceof ItemException) {
+        if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
         } else {

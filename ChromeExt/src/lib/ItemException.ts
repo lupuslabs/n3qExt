@@ -1,3 +1,5 @@
+import { is } from './is';
+
 export class ItemException
 {
     constructor(public fact: ItemException.Fact, public reason: ItemException.Reason, public detail: string = null)
@@ -53,6 +55,17 @@ export class ItemException
         }
         return reason;
     }
+
+    static isInstance(error: unknown): error is ItemException {
+        // Use duck-typing check because ItemException becomes a standard object when
+        // marshalled - leading to instanceof not working for errors received by messaging:
+        return true
+            && is.object(error)
+            && error.fact in ItemException.Fact
+            && error.reason in ItemException.Reason
+            && (is.nil(error.detail) || is.string(error.detail));
+    }
+
 }
 
 export namespace ItemException
