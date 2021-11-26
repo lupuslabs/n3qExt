@@ -448,7 +448,7 @@ export class RoomItem extends Entity
         if (this.getPosition() !== newX) {
             const itemId = this.roomNick;
             if (this.myItem) {
-                BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.RezzedX]: '' + newX }, [], {});
+                this.app.moveRezzedItem(itemId, newX);
             } else {
                 this.quickSlide(newX);
             }

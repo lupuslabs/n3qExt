@@ -1089,6 +1089,29 @@ export class ContentApp
         );
     }
 
+    /**
+     * Triggers the moving of a rezzed item on the same page.
+     */
+    public moveRezzedItem(itemId: string, xNew: number): void {
+        this.moveRezzedItemAsync(itemId, xNew
+        ).catch(error => {this.onItemError(
+            'ContentApp.moveRezzedItem', 'ContentApp.derezItemAsync failed!',
+            error, 'itemId', itemId, 'xNew', xNew
+        )});
+    }
+
+    /**
+     * Moves a rezzed item on the same page.
+     *
+     * Async version allowing direct reaction to errors.
+     */
+    public async moveRezzedItemAsync(itemId: string, xNew: number): Promise<void> {
+        if (Utils.logChannel('items')) {
+            log.info('ContentApp.moveRezzedItemAsync', 'itemId', itemId, 'xNew', xNew);
+        }
+        await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.RezzedX]: as.String(xNew) }, [], {});
+    }
+
     public deleteItemAsk(
         itemId: string,
         onDeleted?: (itemId: string) => void,
