@@ -788,7 +788,21 @@ export class Config
 
     static get(key: string, defaultValue: unknown = undefined): any // @Todo: Actual type is unknown.
     {
-        return Config.getDev(key) ?? Config.getOnline(key) ?? Config.getStatic(key) ?? defaultValue;
+        // If chain instead of coalesque chain for easier debugging of generated JavaScript:
+        let result = null;
+        if (is.nil(result)) {
+            result = Config.getDev(key);
+        }
+        if (is.nil(result)) {
+            result = Config.getOnline(key);
+        }
+        if (is.nil(result)) {
+            result = Config.getStatic(key);
+        }
+        if (is.nil(result)) {
+            result = defaultValue;
+        }
+        return result;
     }
 
     static getDev(key: string): unknown { return Config.getFromTree(this.devConfig, key); }

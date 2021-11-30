@@ -125,7 +125,7 @@ export class ContentApp
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
-            Config.setOnlineTree(config.config);
+            Config.setOnlineTree(config);
         } catch (error) {
             log.debug(error.message);
             Panic.now();
@@ -134,7 +134,7 @@ export class ContentApp
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.devConfigName);
-            Config.setDevTree(config.config);
+            Config.setDevTree(config);
         } catch (error) {
             log.debug(error.message);
         }
@@ -1082,7 +1082,7 @@ export class ContentApp
         const [x, y] = [xNew ?? -1, yNew ?? -1];
         const propsDel = [Pid.AutorezIsActive, Pid.State];
         if (Utils.logChannel('items')) {
-            log.info('ContentApp.derezItem', 'itemId', itemId, 'roomJid', roomJid);
+            log.info('ContentApp.derezItemAsync', 'itemId', itemId, 'roomJid', roomJid);
         }
         await BackgroundMessage.derezBackpackItem(
             itemId, roomJid, x, y, {}, propsDel, {}
