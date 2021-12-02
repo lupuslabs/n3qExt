@@ -222,7 +222,8 @@ export class Room
                     .replace('{imageUrl}', encodeURIComponent(''))
                     ;
                 if (points > 0) { identityUrl = identityUrl.replace('{points}', encodeURIComponent('' + points)); }
-            } else {
+            }
+            if (identityUrl !== '') {
                 presence.append(
                     xml('x', { xmlns: 'firebat:user:identity', 'jid': this.userJid, 'src': identityUrl, 'digest': identityDigest })
                 );
