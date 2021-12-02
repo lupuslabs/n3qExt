@@ -1,9 +1,8 @@
 import * as $ from 'jquery';
 import 'webpack-jquery-ui';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
-import { Window } from './Window';
+import { Window, WindowOptions } from './Window';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
 
@@ -17,7 +16,7 @@ export class VidconfWindow extends Window
         super(app);
     }
 
-    async show(options: any)
+    async show(options: WindowOptions)
     {
         options = await this.getSavedOptions('Vidconf', options);
 
@@ -27,14 +26,14 @@ export class VidconfWindow extends Window
 
         super.show(options);
 
-        let aboveElem: HTMLElement = options.above;
-        let bottom = as.Int(options.bottom, Config.get('room.vidconfBottom', 200));
-        let width = as.Int(options.width, Config.get('room.vidconfWidth', 600));
-        let height = as.Int(options.height, Config.get('room.vidconfHeight', 400));
+        const aboveElem: HTMLElement = options.above;
+        const bottom = as.Int(options.bottom ?? Config.get('room.vidconfBottom'), 200);
+        const width = as.Int(options.width ?? Config.get('room.vidconfWidth'), 600);
+        let height = as.Int(options.height ?? Config.get('room.vidconfHeight'), 400);
 
         if (this.windowElem) {
-            let windowElem = this.windowElem;
-            let contentElem = this.contentElem;
+            const windowElem = this.windowElem;
+            const contentElem = this.contentElem;
             $(windowElem).addClass('n3q-vidconfwindow');
 
             let left = as.Int(options.left, 50);
@@ -45,7 +44,7 @@ export class VidconfWindow extends Window
             }
             let top = this.app.getDisplay().offsetHeight - height - bottom;
             {
-                let minTop = 10;
+                const minTop = 10;
                 if (top < minTop) {
                     height -= minTop - top;
                     top = minTop;
@@ -56,7 +55,7 @@ export class VidconfWindow extends Window
             this.url = options.url; // member for undock
 
             this.url = encodeURI(this.url);
-            let iframeElem = <HTMLElement>$('<iframe class="n3q-base n3q-vidconfwindow-content" src="' + this.url + ' " frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>').get(0);
+            const iframeElem = <HTMLElement>$('<iframe class="n3q-base n3q-vidconfwindow-content" src="' + this.url + ' " frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>').get(0);
 
             $(contentElem).append(iframeElem);
 
@@ -64,16 +63,16 @@ export class VidconfWindow extends Window
 
             this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
             {
-                let left = ui.position.left;
-                let bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
+                const left = ui.position.left;
+                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
                 this.saveCoordinates(left, bottom, ui.size.width, ui.size.height);
             };
 
             this.onDragStop = (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
             {
-                let size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() }
-                let left = ui.position.left;
-                let bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
+                const size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() };
+                const left = ui.position.left;
+                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
                 this.saveCoordinates(left, bottom, size.width, size.height);
             };
 
@@ -83,17 +82,16 @@ export class VidconfWindow extends Window
 
     undock(): void
     {
-        let left = Config.get('room.vidconfUndockedLeft', 100);
-        let top = Config.get('room.vidconfUndockedTop', 100);
-        let width = Config.get('room.vidconfWidth', 600);
-        let height = Config.get('room.vidconfHeight', 400);
-        let params = 'scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + '';
+        const left = Config.get('room.vidconfUndockedLeft', 100);
+        const top = Config.get('room.vidconfUndockedTop', 100);
+        const width = Config.get('room.vidconfWidth', 600);
+        const height = Config.get('room.vidconfHeight', 400);
+        const params = 'scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + '';
 
-        let url = this.url;
-        let title = this.title;
+        const url = this.url;
 
         this.close();
-        let undocked = window.open(url, Utils.randomString(10), params);
+        const undocked = window.open(url, Utils.randomString(10), params);
         undocked.focus();
 
         // let undocked = window.open('about:blank', Utils.randomString(10), params);
@@ -108,7 +106,7 @@ export class VidconfWindow extends Window
         //     + '></iframe>'
         //     ;
         //     undocked.document.body.insertAdjacentHTML('afterbegin', html);
-        //     undocked.document.title = title;
+        //     undocked.document.title = this.title;
         // };
     }
 

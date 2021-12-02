@@ -1,12 +1,8 @@
 import * as $ from 'jquery';
 import 'webpack-jquery-ui';
-import { xml, jid } from '@xmpp/client';
-import log = require('loglevel');
 import { as } from '../lib/as';
-import { Config } from '../lib/Config';
-import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Window } from './Window';
+import { Window, WindowOptions } from './Window';
 import { _Changes } from '../lib/_Changes';
 
 export class ChangesWindow extends Window
@@ -18,33 +14,33 @@ export class ChangesWindow extends Window
         super(app);
     }
 
-    async show(options: any)
+    async show(options: WindowOptions)
     {
         options.titleText = this.app.translateText('ChangesWindow.Changes', 'Change History');
         options.resizable = true;
 
         super.show(options);
 
-        let bottom = as.Int(options.bottom, 400);
-        let width = as.Int(options.width, 600);
-        let height = as.Int(options.height, 600);
-        let onClose = options.onClose;
+        const bottom = as.Int(options.bottom, 400);
+        const width = as.Int(options.width, 600);
+        const height = as.Int(options.height, 600);
+        const onClose = options.onClose;
 
         if (this.windowElem) {
-            let windowElem = this.windowElem;
-            let contentElem = this.contentElem;
+            const windowElem = this.windowElem;
+            const contentElem = this.contentElem;
             $(windowElem).addClass('n3q-changeswindow');
 
-            let left = 50;
+            const left = 50;
             let top = this.app.getDisplay().offsetHeight - height - bottom;
             {
-                let minTop = 10;
+                const minTop = 10;
                 if (top < minTop) {
                     top = minTop;
                 }
             }
 
-            let outElem = <HTMLElement>$('<div class="n3q-base n3q-changeswindow-out" data-translate="children" />').get(0);
+            const outElem = <HTMLElement>$('<div class="n3q-base n3q-changeswindow-out" data-translate="children" />').get(0);
 
             $(contentElem).append(outElem);
 
@@ -79,7 +75,7 @@ export class ChangesWindow extends Window
 
     public showLine(text: string)
     {
-        let lineElem = <HTMLElement>$(
+        const lineElem = <HTMLElement>$(
             `<div class="n3q-base n3q-changeswindow-line">
                 <span class="n3q-base n3q-text n3q-changeswindow-text">`+ as.HtmlWithClickableLinks(text) + `</span>
             <div>`

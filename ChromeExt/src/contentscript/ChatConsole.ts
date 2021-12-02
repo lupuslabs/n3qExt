@@ -6,6 +6,7 @@ import { ContentApp } from './ContentApp';
 import { Room } from './Room';
 import { TestWindow } from './TestWindow';
 import { VpiResolver } from './VpiResolver';
+import {as} from '../lib/as';
 
 export interface ChatConsoleOut { (data: any): void }
 
@@ -20,7 +21,7 @@ export class ChatConsole
 {
     static isChatCommand(text: string, context: ChatConsoleContext): boolean
     {
-        if (text.substring(0, 1) == '/') {
+        if (text.substring(0, 1) === '/') {
             return ChatConsole.chatCommand(text, context);
         }
         return false;
@@ -30,9 +31,9 @@ export class ChatConsole
     {
         let isHandled = false;
 
-        var parts: string[] = text.split(' ');
+        const parts: string[] = text.split(' ');
         if (parts.length < 1) { return; }
-        var cmd: string = parts[0];
+        const cmd: string = parts[0];
 
         this.out(context, text);
 
@@ -73,6 +74,7 @@ export class ChatConsole
                 break;
             case '/v':
             case '/vid':
+            case '/video':
             case '/vidconf':
             case '/conf':
             case '/jitsi':
@@ -108,12 +110,12 @@ export class ChatConsole
                 });
                 break;
             case '/map':
-                let vpi = new VpiResolver(BackgroundMessage, Config);
-                let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
-                let translator = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
+                const vpi = new VpiResolver(BackgroundMessage, Config);
+                const language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, as.String(Config.get('i18n.defaultLanguage'), 'en-US'));
+                const translator = new Translator(Config.get('i18n.translations', {})[language], language, as.String(Config.get('i18n.serviceUrl'), ''));
                 vpi.language = Translator.getShortLanguageCode(translator.getLanguage());
-                let lines = new Array<[string, string]>();
-                let url = parts[1];
+                const lines = new Array<[string, string]>();
+                const url = parts[1];
                 lines.push(['URL', url]);
                 vpi.trace = (key, value) => { lines.push([key, value]); };
                 vpi.map(url).then(location =>

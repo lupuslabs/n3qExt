@@ -3,7 +3,6 @@ import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { ChatConsole } from './ChatConsole';
-import { isArray } from 'util';
 
 export class Chatin
 {
@@ -56,7 +55,7 @@ export class Chatin
 
     onKeydown(ev: JQuery.Event)
     {
-        var keycode = (ev.keyCode ? ev.keyCode : (ev.which ? ev.which : ev.charCode));
+        const keycode = (ev.keyCode ? ev.keyCode : (ev.which ? ev.which : ev.charCode));
         switch (keycode) {
             case 13:
                 this.sendChat();
@@ -72,8 +71,8 @@ export class Chatin
 
     sendChat(): void
     {
-        var text: string = as.String($(this.chatinInputElem).val(), '');
-        if (text != '') {
+        const text: string = as.String($(this.chatinInputElem).val());
+        if (text !== '') {
 
             let handledByChatCommand = false;
             try {
@@ -82,7 +81,7 @@ export class Chatin
                     room: this.participant?.getRoom(),
                     out: (data) =>
                     {
-                        if (typeof data == typeof '') {
+                        if (typeof data === typeof '') {
                             this.participant?.getChatout().setText(data);
                         } else if (Array.isArray(data)) {
                             if (Array.isArray(data[0])) {

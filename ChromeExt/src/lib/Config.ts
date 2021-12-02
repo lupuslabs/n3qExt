@@ -1,23 +1,18 @@
 import log = require('loglevel');
-import { Environment } from './Environment';
-import { Pid } from './ItemProperties';
-import { Utils } from './Utils';
-
-interface ConfigGetCallback { (value: any): void }
-interface ConfigSetCallback { (): void }
+import { is } from './is';
 
 // tslint:disable: quotemark
 
 export class Config
 {
     public static devConfigName = 'dev';
-    private static devConfig: any = {};
+    private static devConfig: {[p: string]: unknown} = {};
 
     public static onlineConfigName = 'online';
-    private static onlineConfig: any = {};
+    private static onlineConfig: {[p: string]: unknown} = {};
 
     public static staticConfigName = 'static';
-    public static staticConfig: any = {
+    private static staticConfig: {[p: string]: unknown} = {
         environment: {
             // NODE_ENV: 'production',
             reloadPageOnPanic: false,
@@ -57,6 +52,8 @@ export class Config
             urlMapping: false,
             web3: false,
             iframeApi: false,
+            items: false,
+            SimpleItemTransfer: false,
         },
         client: {
             name: 'weblin.io',
@@ -107,8 +104,8 @@ export class Config
             vCardAvatarFallbackOnHover: true,
             vidconfUrl: 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"',
             vidconfBottom: 200,
-            vidconfWidth: 600,
-            vidconfHeight: 400,
+            vidconfWidth: 630,
+            vidconfHeight: 530,
             vidconfPopout: true,
             pokeToastDurationSec: 10,
             pokeToastDurationSec_bye: 60,
@@ -184,7 +181,6 @@ export class Config
             itemInfoExtended: false,
             itemInfoDelay: 300,
             deleteToastDurationSec: 100,
-            receiveToastDurationSec: 10,
             dependentPresenceItemsLimit: 25,
             dependentPresenceItemsWarning: 20,
             dependentPresenceItemsWarningIntervalSec: 30,
@@ -193,6 +189,16 @@ export class Config
                 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL8cd14UE+Fy2QV6rtvbBA3UGo8TllmX\n' +
                 'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
                 '-----END PUBLIC KEY-----\n',
+        },
+        SimpleItemTransfer: {
+            enabled: true,
+            errorToastDurationSec: 8,
+            senderConfirmToastDurationSec: 60,
+            recipientAcceptToastDurationSec: 60,
+            senderOfferWaitToastExtraDurationSec: 3,
+            recipientConfirmMsgTimeoutSec: 30,
+            senderSentCompleteToastDurationSec: 8,
+            recipientRetrieveCompleteToastDurationSec: 8,
         },
         points: {
             enabled: true,
@@ -373,10 +379,50 @@ export class Config
                     'Backpack.Go to item': 'Go there',
                     'Backpack.Derez item': 'Pick up',
                     'Backpack.Rez item': 'Drop',
+                    'Backpack.Delete item': 'Delete',
                     'Backpack.Enabled': 'Enabled',
                     'Backpack.Too many items': 'Too many items',
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
+
+                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send item',
+                    'SimpleItemTransfer.senderConfirmQuestionText': 'Do you want to send {item} to {recipient}?',
+                    'SimpleItemTransfer.senderConfirmQuestionYes': 'Yes, offer item',
+                    'SimpleItemTransfer.senderConfirmQuestionNo': 'No, keep it',
+                    'SimpleItemTransfer.senderOfferWaitTitle': 'Send item',
+                    'SimpleItemTransfer.senderOfferWaitText': 'Offering {item} to {recipient}...',
+                    'SimpleItemTransfer.senderOfferWaitCancel': 'Cancel and keep item',
+                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Receive item',
+                    'SimpleItemTransfer.recipientAcceptQuestionText':
+                        '{sender} wants to send you an item.\n' +
+                        'Item: {item}\n' +
+                        'Do you accept the item?',
+                    'SimpleItemTransfer.recipientAcceptQuestionYes': 'Yes, accept item',
+                    'SimpleItemTransfer.recipientAcceptQuestionNo': 'No, reject it',
+                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderSenderTimeoutText':
+                        '{recipient} did not accept the item in time.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderSenderCanceledText':
+                        'You revoked the offer to {recipient}.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderRecipientTimeoutText':
+                        '{recipient} did not accept the item in time.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderRecipientRejectedText':
+                        '{recipient} rejected the item.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderSentCompleteTitle': 'Item sent',
+                    'SimpleItemTransfer.senderSentCompleteText': 'You sent {item} to {recipient}.',
+                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Item not received',
+                    'SimpleItemTransfer.recipientConfirmTimeoutText': '{item} from {sender} did not arrive in time.',
+                    'SimpleItemTransfer.recipientCanceledTitle': 'Item not received',
+                    'SimpleItemTransfer.recipientCanceledText': '{sender} revoked the offer of {item}.',
+                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Item received',
+                    'SimpleItemTransfer.recipientRetrieveCompleteText': 'Received {item} from {sender}.',
 
                     'Toast.Do not show this message again': 'Do not show this message again',
                     'Toast.greets': '...greeted you',
@@ -421,6 +467,7 @@ export class Config
                     'ErrorFact.NotApplied': 'Item not applied',
                     'ErrorFact.ClaimFailed': 'Failed to claim the page',
                     'ErrorFact.NotTransferred': 'Item not transferred',
+                    'ErrorFact.NotDropped': 'Item not applied',
 
                     'ErrorReason.UnknownReason': 'Unknown reason :-(',
                     'ErrorReason.ItemAlreadyRezzed': 'Item already on a page.',
@@ -444,6 +491,7 @@ export class Config
                     'ErrorReason.MissingResource': 'Missing resource',
                     'ErrorReason.InvalidCommandArgument': 'Invalid command argument',
                     'ErrorReason.NetworkProblem': 'Netzwork problem',
+                    'ErrorReason.CantDropOnSelf': 'The item can\'t be applied to yourself.',
 
                     'ErrorDetail.Applier.Apply': 'Applying an item to another',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -567,10 +615,52 @@ export class Config
                     'Backpack.Go to item': 'Dort hingehen',
                     'Backpack.Derez item': 'Einsammeln',
                     'Backpack.Rez item': 'Ablegen',
+                    'Backpack.Delete item': 'Löschen',
                     'Backpack.Enabled': 'Aktiv',
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+
+                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderConfirmQuestionText':
+                        'Willst du {item} an {recipient} übergeben?',
+                    'SimpleItemTransfer.senderConfirmQuestionYes': 'Ja, Gegenstand übergeben',
+                    'SimpleItemTransfer.senderConfirmQuestionNo': 'Nein, behalten',
+                    'SimpleItemTransfer.senderOfferWaitTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderOfferWaitText': 'Biete {item} {recipient} an...',
+                    'SimpleItemTransfer.senderOfferWaitCancel': 'Abbrechen und Gegenstand behalten',
+                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Gegenstand erhalten',
+                    'SimpleItemTransfer.recipientAcceptQuestionText':
+                        '{sender} will Dir einen Gegenstand geben.\n' +
+                        'Gegenstand: {item}\n' +
+                        'Nimmst du den Gegenstand an?',
+                    'SimpleItemTransfer.recipientAcceptQuestionYes': 'Ja, Gegenstand annehmen',
+                    'SimpleItemTransfer.recipientAcceptQuestionNo': 'Nein, ablehnen',
+                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderSenderTimeoutText':
+                        '{recipient} hat den Gegenstand nicht rechtzeitig angenommen.\n' +
+                        'Du behälst {item}.',
+                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderSenderCanceledText':
+                        'Du hast das Angebot an {recipient} zurückgezogen.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderRecipientTimeoutText':
+                        '{recipient} hat den Gegenstand nicht rechtzeitig angenommen.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderRecipientRejectedText':
+                        '{recipient} hat den Gegenstand abgelehnt.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderSentCompleteTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderSentCompleteText': 'Du hast {item} an {recipient} übergeben.',
+                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Gegenstand nicht erhalten',
+                    'SimpleItemTransfer.recipientConfirmTimeoutText': '{item} von {sender} ist nicht rechtzeitig angekommen.',
+                    'SimpleItemTransfer.recipientCanceledTitle': 'Gegenstand nicht erhalten',
+                    'SimpleItemTransfer.recipientCanceledText':
+                        '{sender} hat das Angebot zurückgezogen und behält {item}.',
+                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Gegenstand erhalten',
+                    'SimpleItemTransfer.recipientRetrieveCompleteText': '{item} von {sender} erhalten.',
 
                     'Toast.Do not show this message again': 'Diese Nachricht nicht mehr anzeigen',
                     'Toast.greets': '...hat dich gegrüßt',
@@ -615,6 +705,7 @@ export class Config
                     'ErrorFact.NotApplied': 'Gegenstand nicht angewendet',
                     'ErrorFact.ClaimFailed': 'Anspruch nicht durchgesetzt',
                     'ErrorFact.NotTransferred': 'Gegenstand nicht übertragen',
+                    'ErrorFact.NotDropped': 'Gegenstand nicht angewendet',
 
                     'ErrorReason.UnknownReason': 'Grund unbekannt :-(',
                     'ErrorReason.ItemAlreadyRezzed': 'Gegenstand ist schon auf einer Seite.',
@@ -638,6 +729,7 @@ export class Config
                     'ErrorReason.MissingResource': 'Zutat fehlt',
                     'ErrorReason.InvalidCommandArgument': 'Falsches Befehlsargument',
                     'ErrorReason.NetworkProblem': 'Netzwerkproblem',
+                    'ErrorReason.CantDropOnSelf': 'Der Gegenstand kann nicht auf dich selbst angewandt werden.',
 
                     'ErrorDetail.Applier.Apply': 'Beim Anwenden eines Gegenstands auf einen anderen.',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -692,90 +784,89 @@ export class Config
         },
 
         _last: 0
-    }
+    };
 
-    static get(key: string, defaultValue: any): any
+    static get(key: string, defaultValue: unknown = undefined): any // @Todo: Actual type is unknown.
     {
+        // If chain instead of coalesque chain for easier debugging of generated JavaScript:
         let result = null;
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getDev(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getOnline(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getStatic(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = defaultValue;
         }
         return result;
     }
 
-    static getDev(key: string): any { return Config.getFromTree(this.devConfig, key); }
-    static getOnline(key: string): any { return Config.getFromTree(this.onlineConfig, key); }
-    static getStatic(key: string): any { return Config.getFromTree(this.staticConfig, key); }
+    static getDev(key: string): unknown { return Config.getFromTree(this.devConfig, key); }
+    static getOnline(key: string): unknown { return Config.getFromTree(this.onlineConfig, key); }
+    static getStatic(key: string): unknown { return Config.getFromTree(this.staticConfig, key); }
 
-    private static getFromTree(tree: any, key: string): any
+    private static getFromTree(tree: {[p: string]: unknown}, key: string): unknown
     {
-        let parts = key.split('.');
-        let current = tree;
+        const parts = key.split('.');
+        let current: unknown = tree;
         parts.forEach(part =>
         {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
+            current = current?.[part];
         });
-        return current;
+        return current ?? null;
     }
 
-    private static setInTree(tree: any, key: string, value: any)
+    private static setInTree(tree: {[p: string]: unknown}, key: string, value: unknown)
     {
-        let parts = key.split('.');
-        if (parts.length == 0) { return; }
-        let lastPart = parts[parts.length - 1];
-        parts.splice(parts.length - 1, 1);
-        let current = tree;
-        parts.forEach(part =>
-        {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
-        });
-        if (current) {
-            current[lastPart] = value;
+        const parts = key.split('.');
+        if (parts.length === 0) {
+            return;
         }
+        const lastPart = parts.pop();
+        let current = tree;
+        parts.forEach(part =>
+        {
+            const node = current?.[part];
+            current = is.object(node) ? node : {};
+        });
+        current[lastPart] = value;
     }
 
-    static getDevTree(): any { return this.devConfig; }
-    static getOnlineTree(): any { return this.onlineConfig; }
-    static getStaticTree(): any { return this.staticConfig; }
+    static getDevTree(): {[p: string]: unknown} { return this.devConfig; }
+    static getOnlineTree(): {[p: string]: unknown} { return this.onlineConfig; }
+    static getStaticTree(): {[p: string]: unknown} { return this.staticConfig; }
 
-    static setOnline(key: string, value: any)
+    static setOnline(key: string, value: unknown)
     {
         log.debug('Config.setOnline', key);
         return Config.setInTree(this.onlineConfig, key, value);
     }
 
-    static setDevTree(tree: any)
+    static setDevTree(tree: {[p: string]: unknown})
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setDevTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setDevTree');
+        }
         this.devConfig = tree;
     }
 
-    static setOnlineTree(tree: any): void
+    static setOnlineTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setOnlineTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setOnlineTree');
+        }
         this.onlineConfig = tree;
     }
 
-    static setStaticTree(tree: any): void
+    static setStaticTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setStaticTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setStaticTree');
+        }
         this.staticConfig = tree;
     }
 

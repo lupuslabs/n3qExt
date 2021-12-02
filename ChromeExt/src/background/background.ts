@@ -1,9 +1,9 @@
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { Environment } from '../lib/Environment';
 import { BackgroundApp } from './BackgroundApp';
-import { BackgroundMessage } from '../lib/BackgroundMessage';
 
-let debug = Environment.isDevelopment();
+const debug = Environment.isDevelopment();
 console.debug('weblin.io Background', 'dev', debug);
 
 log.setLevel(log.levels.INFO);
@@ -13,25 +13,22 @@ if (debug) {
     // log.setLevel(log.levels.TRACE);
 }
 
-var app = null;
+let app = null;
 
-async function activate()
+function activate()
 {
-    if (app == null) {
+    if (is.nil(app)) {
         app = new BackgroundApp();
 
-        try {
-            await app.start();
-        }
-        catch (error) {
+        app.start().catch(error => {
             app = null;
-        }
+        });
     }
 }
 
 function deactivate()
 {
-    if (app != null) {
+    if (!is.nil(app)) {
         app.stop();
         app = null;
     }

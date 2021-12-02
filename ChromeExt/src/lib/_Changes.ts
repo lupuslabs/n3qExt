@@ -1,14 +1,17 @@
 interface IChange extends Array<string> { }
 interface IChanges extends Array<IChange> { }
-interface IRelease extends Array<string | string | IChanges> { 0: string; 1: string; 2: IChanges }
+interface IRelease extends Array<string | IChanges> { 0: string; 1: string; 2: IChanges }
 interface IHistory extends Array<IRelease> { }
 
 export class _Changes
 {
     static data: IHistory = [
         ['1.1.4', 'Effects', [
+            ['Add', 'CTRL+click drops/pickups item'],
+            ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
+            ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
         ]],
         ['1.1.3', 'OpenSource NftAvatar', [
