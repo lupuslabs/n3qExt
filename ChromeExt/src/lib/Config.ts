@@ -454,7 +454,7 @@ export class Config
                     'Activity.PointsChannelGreet': 'Greet',
                     'Activity.PointsChannelNavigation': 'Navigate',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Apply item',
+                    'Activity.PointsChannelItemApply': 'Item activity',
 
                     'ErrorFact.UnknownError': 'UnknownError',
                     'ErrorFact.NotRezzed': 'Item not dropped',
@@ -692,7 +692,7 @@ export class Config
                     'Activity.PointsChannelGreet': 'Grüßen',
                     'Activity.PointsChannelNavigation': 'Navigation',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Gegenstand anwenden',
+                    'Activity.PointsChannelItemApply': 'Gegenstandinteraktionen',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
