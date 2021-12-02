@@ -62,6 +62,10 @@ export class Backpack
     {
         await this.loadLocalItems();
 
+        // for (let provider of this.providers) {
+        //     await provider.loadItems();
+        // }
+
         if (Config.get('backpack.loadWeb3Items', false)) {
             await this.loadWeb3Items();
         }

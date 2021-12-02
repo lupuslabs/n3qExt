@@ -192,6 +192,7 @@ export class Participant extends Entity
                     vpAnimationsUrl = as.String(attrs.AnimationsUrl, '');
                     vpAnimationsUrl = as.String(attrs.AvatarUrl, vpAnimationsUrl);
                     vpImageUrl = as.String(attrs.ImageUrl, '');
+                    vpPoints = as.String(attrs.Points, '');
                 }
             }
         }
