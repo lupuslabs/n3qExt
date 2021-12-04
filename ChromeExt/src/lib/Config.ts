@@ -14,7 +14,7 @@ export class Config
     public static staticConfigName = 'static';
     private static staticConfig: {[p: string]: unknown} = {
         environment: {
-            // NODE_ENV: 'production',
+            // NODE_ENV: 'production', // 'development'
             reloadPageOnPanic: false,
         },
         extension: {
