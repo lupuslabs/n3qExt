@@ -80,7 +80,7 @@ export class BackpackWindow extends Window
                     if (droppedId) {
                         const onCancel = () => this.itemVisibility(droppedId, true);
                         this.app.deleteItemAsk(droppedId, undefined, onCancel);
-                        this.itemVisibility(droppedId, false);
+                        window.setTimeout(() => this.itemVisibility(droppedId, false), 1);
                         ev.stopPropagation();
                     }
                 }
