@@ -1095,7 +1095,7 @@ export class ContentApp
     public moveRezzedItem(itemId: string, xNew: number): void {
         this.moveRezzedItemAsync(itemId, xNew
         ).catch(error => {this.onItemError(
-            'ContentApp.moveRezzedItem', 'ContentApp.derezItemAsync failed!',
+            'ContentApp.moveRezzedItem', 'ContentApp.moveRezzedItemAsync failed!',
             error, 'itemId', itemId, 'xNew', xNew
         )});
     }

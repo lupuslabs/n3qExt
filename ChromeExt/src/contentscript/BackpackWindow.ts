@@ -260,7 +260,7 @@ export class BackpackWindow extends Window
                 await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
             }
 
-            if (as.Bool(props[Pid.IsRezzed]) && Pid.RezzedLocation === room) {
+            if (as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room) {
                 // Move on page.
                 await this.app.moveRezzedItemAsync(itemId, x);
             } else {
