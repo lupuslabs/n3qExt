@@ -1080,7 +1080,7 @@ export class ContentApp
         const props = await BackgroundMessage.getBackpackItemProperties(itemId);
         const roomJid = props[Pid.RezzedLocation];
         const [x, y] = [xNew ?? -1, yNew ?? -1];
-        const propsDel = [Pid.AutorezIsActive, Pid.State];
+        const propsDel = [Pid.AutorezIsActive];
         if (Utils.logChannel('items')) {
             log.info('ContentApp.derezItemAsync', 'itemId', itemId, 'roomJid', roomJid);
         }
