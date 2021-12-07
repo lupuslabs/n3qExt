@@ -219,8 +219,9 @@ export class Config
         itemProviders: {
             'nine3q':
             {
-                name: 'weblin.io Items',
-                description: 'Things on web pages',
+                name: 'weblin.io Items (client storage)',
+                type: 'LocalStorage',
+                description: 'Things on web pages managed by the client in a distributed fashion',
                 configUrl: 'https://webit.vulcan.weblin.com/Config?id={id}&client={client}',
                 config: {
                     apiUrl: 'https://webit.vulcan.weblin.com/rpc',
@@ -229,6 +230,16 @@ export class Config
                         '{image.item.nine3q}': 'https://webit.vulcan.weblin.com/images/Items/',
                         '{iframe.item.nine3q}': 'https://webit.vulcan.weblin.com/ItemFrame/',
                     },
+                },
+            },
+            'n3q':
+            {
+                name: 'weblin.io Items',
+                type: 'HostedInventory',
+                description: 'Things on web pages',
+                configUrl: 'https://webit.vulcan.weblin.com/Inventory/Get?body=%7B%22method%22:%22GetConfig%22,%22user%22:%22{id}%22,%22client%22:%22{client}%22%7D',
+                config: {
+                    apiUrl: 'https://webit.vulcan.weblin.com/Inventory',
                 },
             }
         },

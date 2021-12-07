@@ -13,16 +13,18 @@ import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
 import { Item } from './Item';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
+import { IItemProvider } from './ItemProvider';
+import { LocalStorageItemProvider } from './LocalStorageItemProvider';
+import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 //const Web3 = require('web3');
 const Web3Eth = require('web3-eth');
 
 export class Backpack
 {
-    private static BackpackIdsKey = 'BackpackIds';
-    private static BackpackPropsPrefix = 'BackpackItem-';
     private items: { [id: string]: Item; } = {};
     private rooms: { [jid: string]: Array<string>; } = {};
     private rpcClient: RpcClient = new RpcClient();
+    private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
 
     getItemCount(): number
     {
@@ -45,14 +47,6 @@ export class Backpack
         return count;
     }
 
-    getBackpackIdsKey(): string
-    {
-        if (Config.get('config.clusterName', 'prod') == 'dev') {
-            return Backpack.BackpackIdsKey + '-dev';
-        }
-        return Backpack.BackpackIdsKey;
-    }
-
     constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
     {
         if (rpcClient) { this.rpcClient = rpcClient; }
@@ -60,91 +54,27 @@ export class Backpack
 
     async init(): Promise<void>
     {
-        await this.loadLocalItems();
+        let providerConfigs = Config.get('itemProviders', {});
+        for (let providerId in providerConfigs) {
+            const providerConfig = providerConfigs[providerId];
+            switch (as.String(providerConfig.type, 'unknown')) {
+                case LocalStorageItemProvider.type:
+                    this.providers.set(providerId, new LocalStorageItemProvider(this));
+                    break;
+                case HostedInventoryItemProvider.type:
+                    this.providers.set(providerId, new HostedInventoryItemProvider(this));
+                    break;
+                default:
+                    break;
+            }
+        }
 
-        // for (let provider of this.providers) {
-        //     await provider.loadItems();
-        // }
+        for (let [name, provider] of this.providers) {
+            await provider.loadItems();
+        }
 
         if (Config.get('backpack.loadWeb3Items', false)) {
             await this.loadWeb3Items();
-        }
-    }
-
-    async loadLocalItems()
-    {
-        let isFirstLoad = await this.checkIsFirstLoad();
-
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-        if (itemIds == null || !Array.isArray(itemIds)) {
-            log.warn('Backpack.loadLocalItems', this.getBackpackIdsKey(), 'not an array');
-            return;
-        }
-
-        for (let i = 0; i < itemIds.length; i++) {
-            let itemId = itemIds[i];
-
-            let props = await Memory.getLocal(Backpack.BackpackPropsPrefix + itemId, null);
-            if (props == null || typeof props != 'object') {
-                log.info('Backpack.loadLocalItems', Backpack.BackpackPropsPrefix + itemId, 'not an object, skipping');
-                continue;
-            }
-
-            let item = await this.createRepositoryItem(itemId, props);
-            if (item.isRezzed()) {
-                let roomJid = item.getProperties()[Pid.RezzedLocation];
-                if (roomJid) {
-                    this.addToRoom(itemId, roomJid);
-                }
-            }
-        }
-
-        this.createInitialItems();
-    }
-
-    async checkIsFirstLoad(): Promise<boolean>
-    {
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), null);
-        if (itemIds == null) {
-            await Memory.setLocal(this.getBackpackIdsKey(), []);
-            return true;
-        }
-        return false;
-    }
-
-    async createInitialItems(): Promise<void>
-    {
-        await this.createInitialItemsPhase1();
-    }
-
-    async createInitialItemsPhase1(): Promise<void>
-    {
-        let nextPhase = 1;
-        let currentPhase = as.Int(await Memory.getLocal(Utils.localStorageKey_BackpackPhase(), 0));
-        if (currentPhase < nextPhase) {
-            if (true
-                && await this.createInitialItem('BlueprintLibrary', 68, 58)
-                && await this.createInitialItem('Maker', 167, 54)
-                && await this.createInitialItem('Recycler', 238, 54)
-                && await this.createInitialItem('MiningDrill', 310, 54)
-                && await this.createInitialItem('WaterPump', 78, 188)
-                && await this.createInitialItem('SolarPanel', 250, 188)
-                && await this.createInitialItem('CoffeeBeans', 382, 143)
-                && await this.createInitialItem('PirateFlag', 371, 45)
-            ) {
-                await Memory.setLocal(Utils.localStorageKey_BackpackPhase(), nextPhase);
-            }
-        }
-    }
-
-    async createInitialItem(template: string, x: number = -1, y: number = -1): Promise<boolean>
-    {
-        try {
-            let item = await this.createItemByTemplate(template, { [Pid.InventoryX]: as.String(x), [Pid.InventoryY]: as.String(y), });
-            return true;
-        } catch (error) {
-            log.info('Backpack.createInitialItem', 'failed to create starter item', template, error);
-            return false;
         }
     }
 
@@ -205,7 +135,7 @@ export class Backpack
 
         try {
             let contracts = this.findItems(props => { return (as.Bool(props[Pid.Web3ContractAspect], false)); });
-            for  (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
+            for (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
                 let contract = contracts[contractIdx];
 
                 let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
@@ -406,7 +336,7 @@ export class Backpack
         return found;
     }
 
-    private async createRepositoryItem(itemId: string, props: ItemProperties): Promise<Item>
+    async createRepositoryItem(itemId: string, props: ItemProperties): Promise<Item>
     {
         props[Pid.OwnerId] = await Memory.getLocal(Utils.localStorageKey_Id(), '');
 
@@ -456,7 +386,7 @@ export class Backpack
         }
     }
 
-    private addToRoom(itemId: string, roomJid: string): void
+    addToRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
         if (rezzedIds == null) {
