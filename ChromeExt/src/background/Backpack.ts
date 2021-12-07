@@ -267,6 +267,17 @@ export class Backpack
         }
     }
 
+    getProvider(itemId: string): IItemProvider
+    {
+        const item = this.items[itemId];
+        if (item) {
+            const providerName = as.String(item.getProperties()[Pid.Provider], '');
+            if (this.providers.has(providerName)) {
+                return this.providers.get(providerName);
+            } else throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoItemProviderForItem, itemId + ' provider=' + providerName);
+        } else { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId); }
+    }
+
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         let item = await this.createRepositoryItem(itemId, props);
@@ -283,7 +294,7 @@ export class Backpack
         }
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, this.items[itemId]);
         }
 
         if (!options.skipContentNotification) {
@@ -304,7 +315,7 @@ export class Backpack
             }
 
             if (!options.skipPersistentStorage) {
-                await this.persistentDeleteItem(itemId);
+                await this.getProvider(itemId).deleteItem(itemId);
             }
 
             if (!options.skipContentNotification) {
@@ -355,37 +366,6 @@ export class Backpack
         }
     }
 
-    private async persistentSaveItem(itemId: string): Promise<void>
-    {
-        let item = this.items[itemId];
-        if (item) {
-            let props = item.getProperties();
-            let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-            if (itemIds && Array.isArray(itemIds)) {
-                await Memory.setLocal(Backpack.BackpackPropsPrefix + itemId, props);
-                if (!itemIds.includes(itemId)) {
-                    itemIds.push(itemId);
-                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
-                }
-            }
-        }
-    }
-
-    private async persistentDeleteItem(itemId: string): Promise<void>
-    {
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-        if (itemIds && Array.isArray(itemIds)) {
-            await Memory.deleteLocal(Backpack.BackpackPropsPrefix + itemId);
-            if (itemIds.includes(itemId)) {
-                const index = itemIds.indexOf(itemId, 0);
-                if (index > -1) {
-                    itemIds.splice(index, 1);
-                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
-                }
-            }
-        }
-    }
-
     addToRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
@@ -432,7 +412,7 @@ export class Backpack
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
 
         item.setProperties(props, options);
-        await this.persistentSaveItem(itemId);
+        await this.getProvider(itemId).saveItem(itemId, item);
     }
 
     getItemProperties(itemId: string): ItemProperties
@@ -456,7 +436,7 @@ export class Backpack
             delete clonedProps[deleted[i]];
         }
         item.setProperties(clonedProps, options);
-        await this.persistentSaveItem(itemId);
+        await this.getProvider(itemId).saveItem(itemId, item);
     }
 
     createItemByTemplate(templateName: string, args: ItemProperties): Promise<Item>
@@ -633,7 +613,7 @@ export class Backpack
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, item);
         }
 
         if (!options.skipPresenceUpdate) {
@@ -673,7 +653,7 @@ export class Backpack
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, item);
         }
 
         if (!options.skipContentNotification) {

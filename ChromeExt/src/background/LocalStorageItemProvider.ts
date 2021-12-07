@@ -5,6 +5,7 @@ import { Pid } from '../lib/ItemProperties';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
+import { Item } from './Item';
 import { IItemProvider } from './ItemProvider';
 
 export class LocalStorageItemProvider implements IItemProvider
@@ -94,6 +95,34 @@ export class LocalStorageItemProvider implements IItemProvider
         }
 
         this.createInitialItems();
+    }
+
+    async saveItem(itemId: string, item: Item): Promise<void>
+    {
+        let props = item.getProperties();
+        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
+        if (itemIds && Array.isArray(itemIds)) {
+            await Memory.setLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId, props);
+            if (!itemIds.includes(itemId)) {
+                itemIds.push(itemId);
+                await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
+            }
+        }
+    }
+
+    async deleteItem(itemId: string): Promise<void>
+    {
+        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
+        if (itemIds && Array.isArray(itemIds)) {
+            await Memory.deleteLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId);
+            if (itemIds.includes(itemId)) {
+                const index = itemIds.indexOf(itemId, 0);
+                if (index > -1) {
+                    itemIds.splice(index, 1);
+                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
+                }
+            }
+        }
     }
 
 }

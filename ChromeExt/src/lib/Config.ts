@@ -226,10 +226,6 @@ export class Config
                 config: {
                     apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                     backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
-                    itemPropertyUrlFilter: {
-                        '{image.item.nine3q}': 'https://webit.vulcan.weblin.com/images/Items/',
-                        '{iframe.item.nine3q}': 'https://webit.vulcan.weblin.com/ItemFrame/',
-                    },
                 },
             },
             'n3q':

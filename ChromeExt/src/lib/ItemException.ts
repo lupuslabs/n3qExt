@@ -91,6 +91,7 @@ export namespace ItemException
         NotDropped,
     }
 
+
     export enum Reason
     {
         UnknownReason,
@@ -133,6 +134,7 @@ export namespace ItemException
         CapacityLimit,
         NetworkProblem,
         CantDropOnSelf,
+        NoItemProviderForItem
     }
 }
 
