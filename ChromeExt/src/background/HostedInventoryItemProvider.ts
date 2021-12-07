@@ -24,4 +24,8 @@ export class HostedInventoryItemProvider implements IItemProvider
     async deleteItem(itemId: string): Promise<void>
     {
     }
+
+    async executeItemAction(itemId: string, item: Item, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+    {
+    }
 }

@@ -1,8 +1,11 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { Pid } from '../lib/ItemProperties';
+import { ItemException } from '../lib/ItemException';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { Memory } from '../lib/Memory';
+import { RpcClient } from '../lib/RpcClient';
+import { RpcProtocol } from '../lib/RpcProtocol';
 import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
 import { Item } from './Item';
@@ -11,18 +14,13 @@ import { IItemProvider } from './ItemProvider';
 export class LocalStorageItemProvider implements IItemProvider
 {
     static type = 'LocalStorage';
+    private static BackpackIdsKey = 'BackpackIds';
+    private static BackpackPropsPrefix = 'BackpackItem-';
+    private rpcClient: RpcClient = new RpcClient();
 
     constructor(private backpack: Backpack)
     {
     }
-
-    async loadItems(): Promise<void>
-    {
-        await this.loadLocalItems();
-    }
-
-    private static BackpackIdsKey = 'BackpackIds';
-    private static BackpackPropsPrefix = 'BackpackItem-';
 
     private getBackpackIdsKey(): string
     {
@@ -97,6 +95,13 @@ export class LocalStorageItemProvider implements IItemProvider
         this.createInitialItems();
     }
 
+    // API
+
+    async loadItems(): Promise<void>
+    {
+        await this.loadLocalItems();
+    }
+
     async saveItem(itemId: string, item: Item): Promise<void>
     {
         let props = item.getProperties();
@@ -125,4 +130,69 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
+    async executeItemAction(itemId: string, item: Item, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
+
+                let providerId = 'nine3q';
+                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
+                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
+
+                let roomJid = null;
+                if (!allowUnrezzed && !as.Bool(item.getProperties()[Pid.IsUnrezzedAction], false)) {
+                    roomJid = item.getProperties()[Pid.RezzedLocation];
+                    if (roomJid == null || roomJid == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Item ' + itemId + ' missing RezzedLocation'); }
+                }
+
+                let items: { [id: string]: ItemProperties } = {};
+                for (let i = 0; i < involvedIds.length; i++) {
+                    items[involvedIds[i]] = this.backpack.getItemProperties(involvedIds[i]);
+                }
+
+                let request = new RpcProtocol.BackpackActionRequest();
+                request.method = RpcProtocol.BackpackActionRequest.method;
+                request.user = userId;
+                request.item = itemId;
+                if (roomJid) { request.room = roomJid; }
+                request.action = action;
+                request.args = args;
+                request.items = items;
+
+                let response = <RpcProtocol.BackpackActionResponse>await this.rpcClient.call(apiUrl, request);
+
+                if (response.changed) {
+                    for (let id in response.changed) {
+                        let props = response.changed[id];
+                        await this.backpack.setItemProperties(id, props, {});
+                    }
+                }
+
+                if (response.created) {
+                    for (let id in response.created) {
+                        let props = response.created[id];
+                        await this.backpack.addItem(id, props, {});
+                    }
+                }
+
+                if (response.deleted) {
+                    for (let i = 0; i < response.deleted.length; i++) {
+                        let id = response.deleted[i];
+                        await this.backpack.deleteItem(id, {});
+                    }
+                }
+
+                resolve();
+            } catch (ex) {
+                if (ex.fact) {
+                    reject(new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail));
+                } else {
+                    reject(new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NetworkProblem, as.String(ex.message, as.String(ex.status, ''))));
+                }
+            }
+        });
+    }
 }

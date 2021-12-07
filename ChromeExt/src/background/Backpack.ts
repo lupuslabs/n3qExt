@@ -7,7 +7,6 @@ import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, Cont
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { RpcProtocol } from '../lib/RpcProtocol';
-import { RpcClient } from '../lib/RpcClient';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
@@ -16,6 +15,7 @@ import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
+import { RpcClient } from '../lib/RpcClient';
 //const Web3 = require('web3');
 const Web3Eth = require('web3-eth');
 
@@ -23,8 +23,8 @@ export class Backpack
 {
     private items: { [id: string]: Item; } = {};
     private rooms: { [jid: string]: Array<string>; } = {};
-    private rpcClient: RpcClient = new RpcClient();
     private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
+    private rpcClient: RpcClient = new RpcClient();
 
     getItemCount(): number
     {
@@ -507,74 +507,10 @@ export class Backpack
         });
     }
 
-    executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
+    async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
     {
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-
-                let item = this.items[itemId];
-                if (item == null) { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemDoesNotExist, itemId); }
-
-                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
-
-                let providerId = 'nine3q';
-                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
-                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
-
-                let roomJid = null;
-                if (!allowUnrezzed && !as.Bool(item.getProperties()[Pid.IsUnrezzedAction], false)) {
-                    roomJid = item.getProperties()[Pid.RezzedLocation];
-                    if (roomJid == null || roomJid == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Item ' + itemId + ' missing RezzedLocation'); }
-                }
-
-                let items: { [id: string]: ItemProperties } = {};
-                for (let i = 0; i < involvedIds.length; i++) {
-                    items[involvedIds[i]] = this.getItemProperties(involvedIds[i]);
-                }
-
-                let request = new RpcProtocol.BackpackActionRequest();
-                request.method = RpcProtocol.BackpackActionRequest.method;
-                request.user = userId;
-                request.item = itemId;
-                if (roomJid) { request.room = roomJid; }
-                request.action = action;
-                request.args = args;
-                request.items = items;
-
-                let response = <RpcProtocol.BackpackActionResponse>await this.rpcClient.call(apiUrl, request);
-
-                if (response.changed) {
-                    for (let id in response.changed) {
-                        let props = response.changed[id];
-                        await this.setItemProperties(id, props, {});
-                    }
-                }
-
-                if (response.created) {
-                    for (let id in response.created) {
-                        let props = response.created[id];
-                        await this.addItem(id, props, {});
-                    }
-                }
-
-                if (response.deleted) {
-                    for (let i = 0; i < response.deleted.length; i++) {
-                        let id = response.deleted[i];
-                        await this.deleteItem(id, {});
-                    }
-                }
-
-                resolve();
-            } catch (ex) {
-                if (ex.fact) {
-                    reject(new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail));
-                } else {
-                    reject(new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NetworkProblem, as.String(ex.message, as.String(ex.status, ''))));
-                }
-            }
-        });
+        let item = this.items[itemId];
+        await this.getProvider(itemId).executeItemAction(itemId, item, action, args, involvedIds, allowUnrezzed);
     }
 
     getItems(): { [id: string]: ItemProperties; }
