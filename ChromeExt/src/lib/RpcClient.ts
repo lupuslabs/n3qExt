@@ -5,7 +5,7 @@ import { Utils } from './Utils';
 
 export class RpcClient
 {
-    call(url: string, request: RpcProtocol.BackpackRequest): Promise<RpcProtocol.Response>
+    call(url: string, request: RpcProtocol.Request): Promise<RpcProtocol.Response>
     {
         // log.debug('RpcClient.call', url, request);
         return new Promise((resolve, reject) =>

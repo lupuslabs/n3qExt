@@ -13,12 +13,12 @@ import { IItemProvider } from './ItemProvider';
 
 export class LocalStorageItemProvider implements IItemProvider
 {
-    static type = 'LocalStorage';
+    static type = 'LocalStorageItemProvider';
     private static BackpackIdsKey = 'BackpackIds';
     private static BackpackPropsPrefix = 'BackpackItem-';
     private rpcClient: RpcClient = new RpcClient();
 
-    constructor(private backpack: Backpack)
+    constructor(private backpack: Backpack, private config: any)
     {
     }
 

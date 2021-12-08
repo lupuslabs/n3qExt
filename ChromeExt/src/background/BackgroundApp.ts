@@ -81,6 +81,7 @@ export class BackgroundApp
 
         await this.migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal();
         await this.assertThatThereIsAUserId();
+        await this.assertThatThereIsAUserToken();
 
         let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
         this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
@@ -106,12 +107,35 @@ export class BackgroundApp
         await this.configUpdater.startUpdateTimer(() => this.onConfigUpdated());
     }
 
+    async getUserId(): Promise<string>
+    {
+        let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserId); }
+        return userId;
+    }
+
+    async getUserToken(): Promise<string>
+    {
+        let userId = await Memory.getLocal(Utils.localStorageKey_Token(), '');
+        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserToken); }
+        return userId;
+    }
+
     async assertThatThereIsAUserId()
     {
         let uniqueId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
         if (uniqueId == '') {
             uniqueId = 'mid' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
+        }
+    }
+
+    async assertThatThereIsAUserToken()
+    {
+        let token = await Memory.getLocal(Utils.localStorageKey_Token(), '');
+        if (token == '') {
+            token = 'mto' + Utils.randomString(30).toLowerCase();
+            await Memory.setLocal(Utils.localStorageKey_Token(), token);
         }
     }
 

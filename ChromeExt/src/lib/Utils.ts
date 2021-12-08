@@ -18,6 +18,7 @@ export class Utils
     static localStorageKey_ChatIsOpen(roomJid: string): string { return 'room.' + roomJid + '.chatIsOpen'; }
     static localStorageKey_CustomConfig(): string { return 'dev.config'; }
     static localStorageKey_Id(): string { return 'me.id'; }
+    static localStorageKey_Token(): string { return 'me.token'; }
     static localStorageKey_Nickname(): string { return 'me.nickname'; }
     static localStorageKey_Avatar(): string { return 'me.avatar'; }
     static localStorageKey_BackpackPhase(): string { return 'backpack.phase'; }

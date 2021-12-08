@@ -68,4 +68,38 @@ export namespace RpcProtocol
     {
         properties: ItemProperties;
     }
+
+    // --------------------------------------
+    
+    export class InventoryRequest extends Request
+    {
+    }
+
+    export class InventoryResponse extends Response
+    {
+    }
+
+    export class UserGetItemIdsRequest extends InventoryRequest
+    {
+        public readonly method = 'User.GetItemIds';
+        constructor(public user: string, public token: string) { super(); }
+    }
+
+    export class UserGetItemIdsResponse extends InventoryResponse
+    {
+        itemIds: string[];
+    }
+
+    export class UserGetItemPropertiesRequest extends InventoryRequest
+    {
+        public readonly method = 'User.GetItemProperties';
+        constructor(public user: string, public token: string, public itemIds: string[]) { super(); }
+    }
+
+    export class UserGetItemPropertiesResponse extends InventoryResponse
+    {
+        itemPropertySet: string[];
+    }
+
+
 }

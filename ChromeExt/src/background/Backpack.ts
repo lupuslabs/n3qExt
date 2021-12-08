@@ -26,6 +26,9 @@ export class Backpack
     private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
     private rpcClient: RpcClient = new RpcClient();
 
+    async getUserId(): Promise<string> { return await this.app.getUserId(); }
+    async getUserToken(): Promise<string> { return await this.app.getUserToken(); }
+
     getItemCount(): number
     {
         let count = 0;
@@ -59,10 +62,10 @@ export class Backpack
             const providerConfig = providerConfigs[providerId];
             switch (as.String(providerConfig.type, 'unknown')) {
                 case LocalStorageItemProvider.type:
-                    this.providers.set(providerId, new LocalStorageItemProvider(this));
+                    this.providers.set(providerId, new LocalStorageItemProvider(this, providerConfig.config));
                     break;
-                case HostedInventoryItemProvider.type:
-                    this.providers.set(providerId, new HostedInventoryItemProvider(this));
+                case HostedInventoryItemProvider.Provider.type:
+                    this.providers.set(providerId, new HostedInventoryItemProvider.Provider(this, <HostedInventoryItemProvider.Config>providerConfig.config));
                     break;
                 default:
                     break;

@@ -220,7 +220,7 @@ export class Config
             'nine3q':
             {
                 name: 'weblin.io Items (client storage)',
-                type: 'LocalStorage',
+                type: 'LocalStorageItemProvider',
                 description: 'Things on web pages managed by the client in a distributed fashion',
                 configUrl: 'https://webit.vulcan.weblin.com/Config?id={id}&client={client}',
                 config: {
@@ -231,7 +231,7 @@ export class Config
             'n3q':
             {
                 name: 'weblin.io Items',
-                type: 'HostedInventory',
+                type: 'HostedInventoryItemProvider',
                 description: 'Things on web pages',
                 configUrl: 'https://webit.vulcan.weblin.com/Inventory/Get?body=%7B%22method%22:%22GetConfig%22,%22user%22:%22{id}%22,%22client%22:%22{client}%22%7D',
                 config: {
