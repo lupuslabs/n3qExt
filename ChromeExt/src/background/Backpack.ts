@@ -512,8 +512,7 @@ export class Backpack
 
     async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
     {
-        let item = this.items[itemId];
-        await this.getProvider(itemId).executeItemAction(itemId, item, action, args, involvedIds, allowUnrezzed);
+        await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
     }
 
     getItems(): { [id: string]: ItemProperties; }

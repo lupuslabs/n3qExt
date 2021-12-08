@@ -57,7 +57,6 @@ export namespace HostedInventoryItemProvider
 
             for (let itemId in itemPropertySet) {
                 const props = itemPropertySet[itemId];
-
                 let item = await this.backpack.createRepositoryItem(itemId, props);
                 if (item.isRezzed()) {
                     let roomJid = item.getProperties()[Pid.RezzedLocation];
@@ -76,8 +75,25 @@ export namespace HostedInventoryItemProvider
         {
         }
 
-        async executeItemAction(itemId: string, item: Item, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+        async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
         {
+            try {
+                let request = new RpcProtocol.UserItemActionRequest(
+                    await this.backpack.getUserId(), 
+                    await this.backpack.getUserToken(),
+                    itemId,
+                    action,
+                    args,
+                    involvedIds
+                    );
+                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config.apiUrl, request);
+            } catch (ex) {
+                if (ex.fact) {
+                    throw new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail);
+                } else {
+                    throw new ItemException(ItemException.Fact.NoItemsReceived, ItemException.Reason.NetworkProblem, as.String(ex.message, as.String(ex.status, '')));
+                }
+            }
         }
     }
 

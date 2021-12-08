@@ -130,11 +130,13 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
-    async executeItemAction(itemId: string, item: Item, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+    async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
     {
         return new Promise(async (resolve, reject) =>
         {
             try {
+                let item = this.backpack.getItem(itemId);
+
                 let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
                 if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
 
