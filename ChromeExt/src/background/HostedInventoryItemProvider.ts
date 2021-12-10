@@ -58,7 +58,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        async saveItem(itemId: string, item: Item): Promise<void>
+        async saveItem(itemId: string): Promise<void>
         {
         }
 

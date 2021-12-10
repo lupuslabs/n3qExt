@@ -6,7 +6,7 @@ import { Item } from './Item';
 export interface IItemProvider
 {
     loadItems(): Promise<void>
-    saveItem(itemId: string, item: Item): Promise<void>
+    saveItem(itemId: string): Promise<void>
     deleteItem(itemId: string): Promise<void>
     itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
     rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>

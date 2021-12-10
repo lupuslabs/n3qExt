@@ -103,8 +103,9 @@ export class LocalStorageItemProvider implements IItemProvider
         await this.loadLocalItems();
     }
 
-    async saveItem(itemId: string, item: Item): Promise<void>
+    async saveItem(itemId: string): Promise<void>
     {
+        let item = this.backpack.getItem(itemId);
         let props = item.getProperties();
         let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
         if (itemIds && Array.isArray(itemIds)) {
@@ -225,7 +226,7 @@ export class LocalStorageItemProvider implements IItemProvider
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.saveItem(itemId, item);
+            await this.saveItem(itemId);
         }
 
         if (!options.skipPresenceUpdate) {
@@ -265,7 +266,7 @@ export class LocalStorageItemProvider implements IItemProvider
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.saveItem(itemId, item);
+            await this.saveItem(itemId);
         }
 
         if (!options.skipContentNotification) {

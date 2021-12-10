@@ -297,7 +297,7 @@ export class Backpack
         }
 
         if (!options.skipPersistentStorage) {
-            await this.getProvider(itemId).saveItem(itemId, this.items[itemId]);
+            await this.getProvider(itemId).saveItem(itemId);
         }
 
         if (!options.skipContentNotification) {
@@ -415,7 +415,7 @@ export class Backpack
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
 
         item.setProperties(props, options);
-        await this.getProvider(itemId).saveItem(itemId, item);
+        await this.getProvider(itemId).saveItem(itemId);
     }
 
     getItemProperties(itemId: string): ItemProperties
@@ -439,7 +439,7 @@ export class Backpack
             delete clonedProps[deleted[i]];
         }
         item.setProperties(clonedProps, options);
-        await this.getProvider(itemId).saveItem(itemId, item);
+        await this.getProvider(itemId).saveItem(itemId);
     }
 
     createItemByTemplate(templateName: string, args: ItemProperties): Promise<Item>
