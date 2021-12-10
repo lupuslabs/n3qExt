@@ -379,7 +379,7 @@ export class Backpack
         rezzedIds.push(itemId);
     }
 
-    private removeFromRoom(itemId: string, roomJid: string): void
+    removeFromRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
         if (rezzedIds) {
@@ -525,82 +525,19 @@ export class Backpack
         return itemProperties
     }
 
+    sendPresence(roomJid: string)
+    {
+        this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
+    }
+
     async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
     {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
-        if (item.isRezzed()) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemAlreadyRezzed); }
-
-        this.addToRoom(itemId, roomJid);
-
-        let clonedProps = Utils.cloneObject(item.getProperties());
-
-        clonedProps[Pid.IsRezzed] = 'true';
-        if (rezzedX >= 0) {
-            clonedProps[Pid.RezzedX] = '' + rezzedX;
-        }
-        if (as.Int(clonedProps[Pid.RezzedX], -1) < 0) {
-            clonedProps[Pid.RezzedX] = '' + Utils.randomInt(100, 400);
-        }
-        clonedProps[Pid.RezzedDestination] = destinationUrl;
-        clonedProps[Pid.RezzedLocation] = roomJid;
-        clonedProps[Pid.OwnerName] = await Memory.getLocal(Utils.localStorageKey_Nickname(), as.String(clonedProps[Pid.OwnerName]));
-
-        let setPropertiesOption = { skipPresenceUpdate: true };
-        Object.assign(setPropertiesOption, options);
-        item.setProperties(clonedProps, setPropertiesOption);
-
-        if (!options.skipPersistentStorage) {
-            await this.getProvider(itemId).saveItem(itemId, item);
-        }
-
-        if (!options.skipPresenceUpdate) {
-            this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
-        }
+        await this.getProvider(itemId).rezItem(itemId, roomJid, rezzedX, destinationUrl, options);
     }
 
     async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
-        if (!item.isRezzed()) { return; }
-        if (!item.isRezzedTo(roomJid)) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemNotRezzedHere); }
-
-        let clonedProps = Utils.cloneObject(item.getProperties());
-
-        this.removeFromRoom(itemId, roomJid);
-
-        delete clonedProps[Pid.IsRezzed];
-        if (inventoryX > 0 && inventoryY > 0) {
-            clonedProps[Pid.InventoryX] = '' + inventoryX;
-            clonedProps[Pid.InventoryY] = '' + inventoryY;
-        }
-        // delete props[Pid.RezzedX]; // preserve for rez by button
-        delete clonedProps[Pid.RezzedDestination];
-        delete clonedProps[Pid.RezzedLocation];
-
-        for (let pid in changed) {
-            clonedProps[pid] = changed[pid];
-        }
-        for (let i = 0; i < deleted.length; i++) {
-            delete clonedProps[deleted[i]];
-        }
-
-        let setPropertiesOption = { skipPresenceUpdate: true };
-        Object.assign(setPropertiesOption, options);
-        item.setProperties(clonedProps, setPropertiesOption);
-
-        if (!options.skipPersistentStorage) {
-            await this.getProvider(itemId).saveItem(itemId, item);
-        }
-
-        if (!options.skipContentNotification) {
-            this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
-        }
-
-        if (!options.skipPresenceUpdate) {
-            this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
-        }
+        await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY, changed, deleted, options);
     }
 
     stanzaOutFilter(stanza: xml): any
@@ -622,14 +559,6 @@ export class Backpack
 
             }
         }
-
-        // if (stanza.name == 'message') {
-        //     if (as.String(stanza.attrs['type'], 'normal') == 'chat') {
-        //         if (this.isItem(itemNick)) {
-        //             stanza = null;
-        //         }
-        //     }
-        // }
 
         return stanza;
     }

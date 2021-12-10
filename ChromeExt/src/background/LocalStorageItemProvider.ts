@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
+import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { Memory } from '../lib/Memory';
@@ -196,5 +197,84 @@ export class LocalStorageItemProvider implements IItemProvider
                 }
             }
         });
+    }
+
+    async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
+    {
+        let item = this.backpack.getItem(itemId);
+        if (item == null) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item.isRezzed()) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemAlreadyRezzed); }
+
+        this.backpack.addToRoom(itemId, roomJid);
+
+        let clonedProps = Utils.cloneObject(item.getProperties());
+
+        clonedProps[Pid.IsRezzed] = 'true';
+        if (rezzedX >= 0) {
+            clonedProps[Pid.RezzedX] = '' + rezzedX;
+        }
+        if (as.Int(clonedProps[Pid.RezzedX], -1) < 0) {
+            clonedProps[Pid.RezzedX] = '' + Utils.randomInt(100, 400);
+        }
+        clonedProps[Pid.RezzedDestination] = destinationUrl;
+        clonedProps[Pid.RezzedLocation] = roomJid;
+        clonedProps[Pid.OwnerName] = await Memory.getLocal(Utils.localStorageKey_Nickname(), as.String(clonedProps[Pid.OwnerName]));
+
+        let setPropertiesOption = { skipPresenceUpdate: true };
+        Object.assign(setPropertiesOption, options);
+        item.setProperties(clonedProps, setPropertiesOption);
+
+        if (!options.skipPersistentStorage) {
+            await this.saveItem(itemId, item);
+        }
+
+        if (!options.skipPresenceUpdate) {
+            this.backpack.sendPresence(roomJid);
+        }
+    }
+
+    async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    {
+        let item = this.backpack.getItem(itemId);
+        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (!item.isRezzed()) { return; }
+        if (!item.isRezzedTo(roomJid)) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemNotRezzedHere); }
+
+        let clonedProps = Utils.cloneObject(item.getProperties());
+
+        this.backpack.removeFromRoom(itemId, roomJid);
+
+        delete clonedProps[Pid.IsRezzed];
+        if (inventoryX > 0 && inventoryY > 0) {
+            clonedProps[Pid.InventoryX] = '' + inventoryX;
+            clonedProps[Pid.InventoryY] = '' + inventoryY;
+        }
+        // delete props[Pid.RezzedX]; // preserve for rez by button
+        delete clonedProps[Pid.RezzedDestination];
+        delete clonedProps[Pid.RezzedLocation];
+
+        for (let pid in changed) {
+            clonedProps[pid] = changed[pid];
+        }
+        for (let i = 0; i < deleted.length; i++) {
+            delete clonedProps[deleted[i]];
+        }
+
+        let setPropertiesOption = { skipPresenceUpdate: true };
+        Object.assign(setPropertiesOption, options);
+        item.setProperties(clonedProps, setPropertiesOption);
+
+        if (!options.skipPersistentStorage) {
+            await this.saveItem(itemId, item);
+        }
+
+        if (!options.skipContentNotification) {
+            // really?
+            // this.backpack.sendPresence(roomJid);
+        }
+
+        if (!options.skipPresenceUpdate) {
+            this.backpack.sendPresence(roomJid);
+        }
     }
 }

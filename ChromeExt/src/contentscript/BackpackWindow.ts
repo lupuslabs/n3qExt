@@ -260,13 +260,16 @@ export class BackpackWindow extends Window
                 await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
             }
 
-            if (as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room) {
-                // Move on page.
+            const moveInsteadOfRez = as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room;
+            if (moveInsteadOfRez) {
                 await this.app.moveRezzedItemAsync(itemId, x);
             } else {
-                await this.app.derezItemAsync(itemId); // Ensure it isn't rezzed anywhere else.
+                if (as.Bool(props[Pid.IsRezzed])) {
+                    await this.app.derezItemAsync(itemId);
+                }
                 await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
             }
+
         } catch (ex) {
             this.app.onItemError('BackpackWindow:rezItem', 'Caught error!', ex, 'itemId', itemId);
         }
