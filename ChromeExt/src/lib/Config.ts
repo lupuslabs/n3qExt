@@ -14,7 +14,7 @@ export class Config
     public static staticConfigName = 'static';
     private static staticConfig: {[p: string]: unknown} = {
         environment: {
-            // NODE_ENV: 'production',
+            // NODE_ENV: 'production', // 'development'
             reloadPageOnPanic: false,
         },
         extension: {
@@ -219,16 +219,23 @@ export class Config
         itemProviders: {
             'nine3q':
             {
-                name: 'weblin.io Items',
-                description: 'Things on web pages',
+                name: 'weblin.io Items (client storage)',
+                type: 'LocalStorage',
+                description: 'Things on web pages managed by the client in a distributed fashion',
                 configUrl: 'https://webit.vulcan.weblin.com/Config?id={id}&client={client}',
                 config: {
                     apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                     backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
-                    itemPropertyUrlFilter: {
-                        '{image.item.nine3q}': 'https://webit.vulcan.weblin.com/images/Items/',
-                        '{iframe.item.nine3q}': 'https://webit.vulcan.weblin.com/ItemFrame/',
-                    },
+                },
+            },
+            'n3q':
+            {
+                name: 'weblin.io Items',
+                type: 'HostedInventory',
+                description: 'Things on web pages',
+                configUrl: 'https://webit.vulcan.weblin.com/Inventory/Get?body=%7B%22method%22:%22GetConfig%22,%22user%22:%22{id}%22,%22client%22:%22{client}%22%7D',
+                config: {
+                    apiUrl: 'https://webit.vulcan.weblin.com/Inventory',
                 },
             }
         },
@@ -454,7 +461,7 @@ export class Config
                     'Activity.PointsChannelGreet': 'Greet',
                     'Activity.PointsChannelNavigation': 'Navigate',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Apply item',
+                    'Activity.PointsChannelItemApply': 'Item activity',
 
                     'ErrorFact.UnknownError': 'UnknownError',
                     'ErrorFact.NotRezzed': 'Item not dropped',
@@ -491,7 +498,7 @@ export class Config
                     'ErrorReason.MissingResource': 'Missing resource',
                     'ErrorReason.InvalidCommandArgument': 'Invalid command argument',
                     'ErrorReason.NetworkProblem': 'Netzwork problem',
-                    'ErrorReason.CantDropOnSelf': 'The item can\'t be applied on yourself.',
+                    'ErrorReason.CantDropOnSelf': 'The item can\'t be applied to yourself.',
 
                     'ErrorDetail.Applier.Apply': 'Applying an item to another',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -692,7 +699,7 @@ export class Config
                     'Activity.PointsChannelGreet': 'Grüßen',
                     'Activity.PointsChannelNavigation': 'Navigation',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Gegenstand anwenden',
+                    'Activity.PointsChannelItemApply': 'Gegenstandinteraktionen',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
@@ -705,7 +712,7 @@ export class Config
                     'ErrorFact.NotApplied': 'Gegenstand nicht angewendet',
                     'ErrorFact.ClaimFailed': 'Anspruch nicht durchgesetzt',
                     'ErrorFact.NotTransferred': 'Gegenstand nicht übertragen',
-                    'ErrorFact.NotDropped': 'Gegenstand nicht angewandt',
+                    'ErrorFact.NotDropped': 'Gegenstand nicht angewendet',
 
                     'ErrorReason.UnknownReason': 'Grund unbekannt :-(',
                     'ErrorReason.ItemAlreadyRezzed': 'Gegenstand ist schon auf einer Seite.',

@@ -1,3 +1,4 @@
+import { as } from './as';
 import { is } from './is';
 
 export class ItemException
@@ -56,16 +57,16 @@ export class ItemException
         return reason;
     }
 
-    static isInstance(error: unknown): error is ItemException {
+    static isInstance(error: unknown): error is ItemException
+    {
         // Use duck-typing check because ItemException becomes a standard object when
         // marshalled - leading to instanceof not working for errors received by messaging:
         return true
             && is.object(error)
-            && error.fact in ItemException.Fact
-            && error.reason in ItemException.Reason
+            && (is.number(error.fact) || is.string(error.fact)) && as.Int(error.fact) in ItemException.Fact
+            && (is.number(error.reason) || is.string(error.reason)) && as.Int(error.reason) in ItemException.Reason
             && (is.nil(error.detail) || is.string(error.detail));
     }
-
 }
 
 export namespace ItemException
@@ -99,6 +100,7 @@ export namespace ItemException
         ItemsNotAvailable,
         ItemDoesNotExist,
         NoUserId,
+        NoUserToken,
         SeeDetail,
         NotYourItem,
         ItemMustBeStronger,
@@ -133,6 +135,7 @@ export namespace ItemException
         CapacityLimit,
         NetworkProblem,
         CantDropOnSelf,
+        NoItemProviderForItem
     }
 }
 

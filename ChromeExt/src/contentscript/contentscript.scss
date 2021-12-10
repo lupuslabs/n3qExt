@@ -296,7 +296,7 @@
     }
 
     div.n3q-button-close-small {
-        background: url(../assets/icons/close-circle-o.svg) no-repeat center center / contain;
+        background: url(../assets/icons/ci-close-small.svg) no-repeat center center / contain;
         width: 14px;
         height: 14px;
     }
@@ -1247,7 +1247,8 @@
     }
     div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-image {
         opacity: 0.5;
-        filter: contrast(0.5) grayscale(0.5);
+        filter: contrast(0.6) grayscale(0.5);
+        background-color: #ffffff;
     }
     div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-label {
         color: rgb(160, 160, 160);

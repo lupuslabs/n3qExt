@@ -7,21 +7,23 @@ import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, Cont
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { RpcProtocol } from '../lib/RpcProtocol';
-import { RpcClient } from '../lib/RpcClient';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
 import { Item } from './Item';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
+import { IItemProvider } from './ItemProvider';
+import { LocalStorageItemProvider } from './LocalStorageItemProvider';
+import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
+import { RpcClient } from '../lib/RpcClient';
 //const Web3 = require('web3');
 const Web3Eth = require('web3-eth');
 
 export class Backpack
 {
-    private static BackpackIdsKey = 'BackpackIds';
-    private static BackpackPropsPrefix = 'BackpackItem-';
     private items: { [id: string]: Item; } = {};
     private rooms: { [jid: string]: Array<string>; } = {};
+    private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
     private rpcClient: RpcClient = new RpcClient();
 
     getItemCount(): number
@@ -45,14 +47,6 @@ export class Backpack
         return count;
     }
 
-    getBackpackIdsKey(): string
-    {
-        if (Config.get('config.clusterName', 'prod') == 'dev') {
-            return Backpack.BackpackIdsKey + '-dev';
-        }
-        return Backpack.BackpackIdsKey;
-    }
-
     constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
     {
         if (rpcClient) { this.rpcClient = rpcClient; }
@@ -60,87 +54,27 @@ export class Backpack
 
     async init(): Promise<void>
     {
-        await this.loadLocalItems();
+        let providerConfigs = Config.get('itemProviders', {});
+        for (let providerId in providerConfigs) {
+            const providerConfig = providerConfigs[providerId];
+            switch (as.String(providerConfig.type, 'unknown')) {
+                case LocalStorageItemProvider.type:
+                    this.providers.set(providerId, new LocalStorageItemProvider(this));
+                    break;
+                case HostedInventoryItemProvider.type:
+                    this.providers.set(providerId, new HostedInventoryItemProvider(this));
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        for (let [name, provider] of this.providers) {
+            await provider.loadItems();
+        }
 
         if (Config.get('backpack.loadWeb3Items', false)) {
             await this.loadWeb3Items();
-        }
-    }
-
-    async loadLocalItems()
-    {
-        let isFirstLoad = await this.checkIsFirstLoad();
-
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-        if (itemIds == null || !Array.isArray(itemIds)) {
-            log.warn('Backpack.loadLocalItems', this.getBackpackIdsKey(), 'not an array');
-            return;
-        }
-
-        for (let i = 0; i < itemIds.length; i++) {
-            let itemId = itemIds[i];
-
-            let props = await Memory.getLocal(Backpack.BackpackPropsPrefix + itemId, null);
-            if (props == null || typeof props != 'object') {
-                log.info('Backpack.loadLocalItems', Backpack.BackpackPropsPrefix + itemId, 'not an object, skipping');
-                continue;
-            }
-
-            let item = await this.createRepositoryItem(itemId, props);
-            if (item.isRezzed()) {
-                let roomJid = item.getProperties()[Pid.RezzedLocation];
-                if (roomJid) {
-                    this.addToRoom(itemId, roomJid);
-                }
-            }
-        }
-
-        this.createInitialItems();
-    }
-
-    async checkIsFirstLoad(): Promise<boolean>
-    {
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), null);
-        if (itemIds == null) {
-            await Memory.setLocal(this.getBackpackIdsKey(), []);
-            return true;
-        }
-        return false;
-    }
-
-    async createInitialItems(): Promise<void>
-    {
-        await this.createInitialItemsPhase1();
-    }
-
-    async createInitialItemsPhase1(): Promise<void>
-    {
-        let nextPhase = 1;
-        let currentPhase = as.Int(await Memory.getLocal(Utils.localStorageKey_BackpackPhase(), 0));
-        if (currentPhase < nextPhase) {
-            if (true
-                && await this.createInitialItem('BlueprintLibrary', 68, 58)
-                && await this.createInitialItem('Maker', 167, 54)
-                && await this.createInitialItem('Recycler', 238, 54)
-                && await this.createInitialItem('MiningDrill', 310, 54)
-                && await this.createInitialItem('WaterPump', 78, 188)
-                && await this.createInitialItem('SolarPanel', 250, 188)
-                && await this.createInitialItem('CoffeeBeans', 382, 143)
-                && await this.createInitialItem('PirateFlag', 371, 45)
-            ) {
-                await Memory.setLocal(Utils.localStorageKey_BackpackPhase(), nextPhase);
-            }
-        }
-    }
-
-    async createInitialItem(template: string, x: number = -1, y: number = -1): Promise<boolean>
-    {
-        try {
-            let item = await this.createItemByTemplate(template, { [Pid.InventoryX]: as.String(x), [Pid.InventoryY]: as.String(y), });
-            return true;
-        } catch (error) {
-            log.info('Backpack.createInitialItem', 'failed to create starter item', template, error);
-            return false;
         }
     }
 
@@ -201,7 +135,7 @@ export class Backpack
 
         try {
             let contracts = this.findItems(props => { return (as.Bool(props[Pid.Web3ContractAspect], false)); });
-            for  (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
+            for (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
                 let contract = contracts[contractIdx];
 
                 let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
@@ -333,6 +267,17 @@ export class Backpack
         }
     }
 
+    getProvider(itemId: string): IItemProvider
+    {
+        const item = this.items[itemId];
+        if (item) {
+            const providerName = as.String(item.getProperties()[Pid.Provider], '');
+            if (this.providers.has(providerName)) {
+                return this.providers.get(providerName);
+            } else throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoItemProviderForItem, itemId + ' provider=' + providerName);
+        } else { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId); }
+    }
+
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         let item = await this.createRepositoryItem(itemId, props);
@@ -349,7 +294,7 @@ export class Backpack
         }
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, this.items[itemId]);
         }
 
         if (!options.skipContentNotification) {
@@ -370,7 +315,7 @@ export class Backpack
             }
 
             if (!options.skipPersistentStorage) {
-                await this.persistentDeleteItem(itemId);
+                await this.getProvider(itemId).deleteItem(itemId);
             }
 
             if (!options.skipContentNotification) {
@@ -402,7 +347,7 @@ export class Backpack
         return found;
     }
 
-    private async createRepositoryItem(itemId: string, props: ItemProperties): Promise<Item>
+    async createRepositoryItem(itemId: string, props: ItemProperties): Promise<Item>
     {
         props[Pid.OwnerId] = await Memory.getLocal(Utils.localStorageKey_Id(), '');
 
@@ -421,38 +366,7 @@ export class Backpack
         }
     }
 
-    private async persistentSaveItem(itemId: string): Promise<void>
-    {
-        let item = this.items[itemId];
-        if (item) {
-            let props = item.getProperties();
-            let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-            if (itemIds && Array.isArray(itemIds)) {
-                await Memory.setLocal(Backpack.BackpackPropsPrefix + itemId, props);
-                if (!itemIds.includes(itemId)) {
-                    itemIds.push(itemId);
-                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
-                }
-            }
-        }
-    }
-
-    private async persistentDeleteItem(itemId: string): Promise<void>
-    {
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-        if (itemIds && Array.isArray(itemIds)) {
-            await Memory.deleteLocal(Backpack.BackpackPropsPrefix + itemId);
-            if (itemIds.includes(itemId)) {
-                const index = itemIds.indexOf(itemId, 0);
-                if (index > -1) {
-                    itemIds.splice(index, 1);
-                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
-                }
-            }
-        }
-    }
-
-    private addToRoom(itemId: string, roomJid: string): void
+    addToRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
         if (rezzedIds == null) {
@@ -498,7 +412,7 @@ export class Backpack
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
 
         item.setProperties(props, options);
-        await this.persistentSaveItem(itemId);
+        await this.getProvider(itemId).saveItem(itemId, item);
     }
 
     getItemProperties(itemId: string): ItemProperties
@@ -522,7 +436,7 @@ export class Backpack
             delete clonedProps[deleted[i]];
         }
         item.setProperties(clonedProps, options);
-        await this.persistentSaveItem(itemId);
+        await this.getProvider(itemId).saveItem(itemId, item);
     }
 
     createItemByTemplate(templateName: string, args: ItemProperties): Promise<Item>
@@ -593,74 +507,10 @@ export class Backpack
         });
     }
 
-    executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
+    async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
     {
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-
-                let item = this.items[itemId];
-                if (item == null) { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemDoesNotExist, itemId); }
-
-                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
-
-                let providerId = 'nine3q';
-                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
-                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
-
-                let roomJid = null;
-                if (!allowUnrezzed && !as.Bool(item.getProperties()[Pid.IsUnrezzedAction], false)) {
-                    roomJid = item.getProperties()[Pid.RezzedLocation];
-                    if (roomJid == null || roomJid == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Item ' + itemId + ' missing RezzedLocation'); }
-                }
-
-                let items: { [id: string]: ItemProperties } = {};
-                for (let i = 0; i < involvedIds.length; i++) {
-                    items[involvedIds[i]] = this.getItemProperties(involvedIds[i]);
-                }
-
-                let request = new RpcProtocol.BackpackActionRequest();
-                request.method = RpcProtocol.BackpackActionRequest.method;
-                request.user = userId;
-                request.item = itemId;
-                if (roomJid) { request.room = roomJid; }
-                request.action = action;
-                request.args = args;
-                request.items = items;
-
-                let response = <RpcProtocol.BackpackActionResponse>await this.rpcClient.call(apiUrl, request);
-
-                if (response.changed) {
-                    for (let id in response.changed) {
-                        let props = response.changed[id];
-                        await this.setItemProperties(id, props, {});
-                    }
-                }
-
-                if (response.created) {
-                    for (let id in response.created) {
-                        let props = response.created[id];
-                        await this.addItem(id, props, {});
-                    }
-                }
-
-                if (response.deleted) {
-                    for (let i = 0; i < response.deleted.length; i++) {
-                        let id = response.deleted[i];
-                        await this.deleteItem(id, {});
-                    }
-                }
-
-                resolve();
-            } catch (ex) {
-                if (ex.fact) {
-                    reject(new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail));
-                } else {
-                    reject(new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NetworkProblem, as.String(ex.message, as.String(ex.status, ''))));
-                }
-            }
-        });
+        let item = this.items[itemId];
+        await this.getProvider(itemId).executeItemAction(itemId, item, action, args, involvedIds, allowUnrezzed);
     }
 
     getItems(): { [id: string]: ItemProperties; }
@@ -699,7 +549,7 @@ export class Backpack
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, item);
         }
 
         if (!options.skipPresenceUpdate) {
@@ -739,7 +589,7 @@ export class Backpack
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.persistentSaveItem(itemId);
+            await this.getProvider(itemId).saveItem(itemId, item);
         }
 
         if (!options.skipContentNotification) {

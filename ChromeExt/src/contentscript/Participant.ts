@@ -189,11 +189,12 @@ export class Participant extends Entity
                 if (attrs) {
                     vpNickname = as.String(attrs.Nickname);
                     if (vpNickname === '') { vpNickname = as.String(attrs.nickname); }
-                    vpAvatarId = as.String(attrs.AvatarId, '');
+                    vpAvatarId = as.String(attrs.AvatarId);
                     if (vpAvatarId === '') { vpAvatarId = as.String(attrs.avatar); }
                     vpAnimationsUrl = as.String(attrs.AnimationsUrl);
                     vpAnimationsUrl = as.String(attrs.AvatarUrl, vpAnimationsUrl);
                     vpImageUrl = as.String(attrs.ImageUrl);
+                    vpPoints = as.String(attrs.Points);
                 }
             }
         }
