@@ -580,7 +580,7 @@ export class Room
         if (this.vidconfWindow) {
             this.vidconfWindow.close();
         } else {
-            const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://meet.jit.si/{room}#userInfo.displayName="{name}"');
+            const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://meet.jit.si/weblin{room}#userInfo.displayName="{name}"');
             const url = urlTemplate
                 .replace('{room}', this.jid)
                 .replace('{name}', displayName)

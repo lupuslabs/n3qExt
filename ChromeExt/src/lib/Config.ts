@@ -102,7 +102,7 @@ export class Config
             defaultAnimationSize: 100,
             vCardAvatarFallback: false,
             vCardAvatarFallbackOnHover: true,
-            vidconfUrl: 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"',
+            vidconfUrl: 'https://meet.jit.si/weblin{room}#userInfo.displayName="{name}"',
             vidconfBottom: 200,
             vidconfWidth: 630,
             vidconfHeight: 530,
