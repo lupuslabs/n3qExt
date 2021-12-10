@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
+import { is } from '../lib/is';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -118,13 +119,17 @@ export namespace HostedInventoryItemProvider
                 this.handleException(ex);
             }
 
+            let changedRooms = new Set<string>();
+
             if (createdIds) {
                 for (let i = 0; i < createdIds.length; i++) {
                     const id = createdIds[i];
                     const props = itemPropertySet[id];
                     let item = await this.backpack.createRepositoryItem(id, props);
                     if (item.isRezzed()) {
-                        this.backpack.addToRoom(itemId, item.getProperties()[Pid.RezzedLocation]);
+                        const room = item.getProperties()[Pid.RezzedLocation];
+                        this.backpack.addToRoom(itemId, room);
+                        changedRooms.add(room);
                     }
                 }
             }
@@ -132,15 +137,24 @@ export namespace HostedInventoryItemProvider
             if (changedIds) {
                 for (let i = 0; i < changedIds.length; i++) {
                     const id = changedIds[i];
-                    const props = itemPropertySet[id];
                     const item = this.backpack.getItem(itemId);
                     const wasRezzed = item.isRezzed();
-                    const wasRoom = item.getProperties()[Pid.RezzedLocation];
-                    await this.backpack.setItemProperties(id, props, {});
-                    if (!wasRezzed && item.isRezzed()) {
-                        this.backpack.addToRoom(itemId, item.getProperties()[Pid.RezzedLocation]);
-                    } else if (wasRezzed && !item.isRezzed()) {
-                        this.backpack.removeFromRoom(itemId, wasRoom);
+                    const room = item.getProperties()[Pid.RezzedLocation];
+                    if (wasRezzed) {
+                        changedRooms.add(room);
+                    }
+
+                    const props = itemPropertySet[id];
+                    await this.backpack.setItemProperties(id, props, { skipPresenceUpdate: true });
+
+                    const isRezzed = item.isRezzed();
+                    if (!wasRezzed && isRezzed) {
+                        const newRoom = item.getProperties()[Pid.RezzedLocation];
+                        this.backpack.addToRoom(itemId, newRoom);
+                        changedRooms.add(newRoom);
+                    } else if (wasRezzed && !isRezzed) {
+                        this.backpack.removeFromRoom(itemId, room);
+                        changedRooms.add(room);
                     }
                 }
             }
@@ -152,9 +166,9 @@ export namespace HostedInventoryItemProvider
                 }
             }
 
-            // if (sendPresence) {
-            //     this.backpack.sendPresence(roomJid);
-            // }
+            for (let room of changedRooms) {
+                this.backpack.sendPresence(room);
+            }
 
         }
 
