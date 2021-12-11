@@ -66,6 +66,17 @@ export namespace HostedInventoryItemProvider
         {
         }
 
+        async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+        {
+            let item = this.backpack.getItem(itemId);
+            if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+            // await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.RezzedX]: as.String(xNew) }, [], {});
+            // await BackgroundMessage.modifyBackpackItemProperties(this.roomNick, { [Pid.State]: state }, [], {});
+            // postMessage('Item.SetProperty', { pid: 'RezzedX', value: newX });
+            
+        }
+
         async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
         {
             let createdIds = [];
@@ -138,23 +149,25 @@ export namespace HostedInventoryItemProvider
                 for (let i = 0; i < changedIds.length; i++) {
                     const id = changedIds[i];
                     const item = this.backpack.getItem(itemId);
-                    const wasRezzed = item.isRezzed();
-                    const room = item.getProperties()[Pid.RezzedLocation];
-                    if (wasRezzed) {
-                        changedRooms.add(room);
-                    }
+                    if (item != null) {
+                        const wasRezzed = item.isRezzed();
+                        const room = item.getProperties()[Pid.RezzedLocation];
+                        if (wasRezzed) {
+                            changedRooms.add(room);
+                        }
 
-                    const props = itemPropertySet[id];
-                    await this.backpack.setItemProperties(id, props, { skipPresenceUpdate: true });
+                        const props = itemPropertySet[id];
+                        await this.backpack.setItemProperties(id, props, { skipPresenceUpdate: true });
 
-                    const isRezzed = item.isRezzed();
-                    if (!wasRezzed && isRezzed) {
-                        const newRoom = item.getProperties()[Pid.RezzedLocation];
-                        this.backpack.addToRoom(itemId, newRoom);
-                        changedRooms.add(newRoom);
-                    } else if (wasRezzed && !isRezzed) {
-                        this.backpack.removeFromRoom(itemId, room);
-                        changedRooms.add(room);
+                        const isRezzed = item.isRezzed();
+                        if (!wasRezzed && isRezzed) {
+                            const newRoom = item.getProperties()[Pid.RezzedLocation];
+                            this.backpack.addToRoom(itemId, newRoom);
+                            changedRooms.add(newRoom);
+                        } else if (wasRezzed && !isRezzed) {
+                            this.backpack.removeFromRoom(itemId, room);
+                            changedRooms.add(room);
+                        }
                     }
                 }
             }

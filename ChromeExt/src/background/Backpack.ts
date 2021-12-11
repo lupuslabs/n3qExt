@@ -427,19 +427,7 @@ export class Backpack
 
     async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
-
-        let clonedProps = Utils.cloneObject(item.getProperties());
-
-        for (let key in changed) {
-            clonedProps[key] = changed[key];
-        }
-        for (let i = 0; i < deleted.length; i++) {
-            delete clonedProps[deleted[i]];
-        }
-        item.setProperties(clonedProps, options);
-        await this.getProvider(itemId).saveItem(itemId);
+        await this.getProvider(itemId).modifyItemProperties(itemId, changed, deleted, options);
     }
 
     createItemByTemplate(templateName: string, args: ItemProperties): Promise<Item>

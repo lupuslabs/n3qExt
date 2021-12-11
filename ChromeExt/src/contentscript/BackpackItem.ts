@@ -178,7 +178,7 @@ export class BackpackItem
     private onMouseClick(ev: JQuery.ClickEvent): void
     {
         if (Math.abs(this.mousedownX - ev.clientX) > 2
-        || Math.abs(this.mousedownY - ev.clientY) > 2) {
+            || Math.abs(this.mousedownY - ev.clientY) > 2) {
             return;
         }
         this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
@@ -245,7 +245,8 @@ export class BackpackItem
     private onDragStop(
         ev: JQueryMouseEventObject,
         ui: JQueryUI.DraggableEventUIParams,
-    ): void {
+    ): void
+    {
         this.app.hideDropzone();
         if (this.ignoreNextDropFlag) {
             this.ignoreNextDropFlag = false;
@@ -333,19 +334,26 @@ export class BackpackItem
 
     sendSetItemCoordinates(x: number, y: number): void
     {
-        (async () => {
+        (async () =>
+        {
             const itemId = this.itemId;
             if (await BackgroundMessage.isBackpackItem(itemId)) {
-                const props = this.properties;
-                props[Pid.InventoryX] = Math.round(x).toString();
-                props[Pid.InventoryY] = Math.round(y).toString();
-                const opts = { skipPresenceUpdate: true };
-                this.backpackWindow.setItemProperties(itemId, props, opts);
+                await BackgroundMessage.modifyBackpackItemProperties(
+                    itemId,
+                    {
+                        [Pid.InventoryX]: Math.round(x).toString(),
+                        [Pid.InventoryY]: Math.round(y).toString()
+                    },
+                    [],
+                    { skipPresenceUpdate: true }
+                );
             }
-        })().catch(error => { this.app.onError(
-            'BackpackItem.sendSetItemCoordinates',
-            'Error caught!',
-            error, 'this', this);
+        })().catch(error =>
+        {
+            this.app.onError(
+                'BackpackItem.sendSetItemCoordinates',
+                'Error caught!',
+                error, 'this', this);
         });
     }
 

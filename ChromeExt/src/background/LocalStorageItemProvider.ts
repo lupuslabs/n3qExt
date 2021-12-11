@@ -132,6 +132,23 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
+    async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    {
+        let item = this.backpack.getItem(itemId);
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+        let clonedProps = Utils.cloneObject(item.getProperties());
+
+        for (let key in changed) {
+            clonedProps[key] = changed[key];
+        }
+        for (let i = 0; i < deleted.length; i++) {
+            delete clonedProps[deleted[i]];
+        }
+        item.setProperties(clonedProps, options);
+        await this.saveItem(itemId);
+    }
+
     async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
     {
         return new Promise(async (resolve, reject) =>
