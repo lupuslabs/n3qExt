@@ -71,10 +71,38 @@ export namespace HostedInventoryItemProvider
             let item = this.backpack.getItem(itemId);
             if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
 
-            // await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.RezzedX]: as.String(xNew) }, [], {});
-            // await BackgroundMessage.modifyBackpackItemProperties(this.roomNick, { [Pid.State]: state }, [], {});
-            // postMessage('Item.SetProperty', { pid: 'RezzedX', value: newX });
-            
+            if (as.Int(changed[Pid.RezzedX], -1) >= 0) {
+                await this.itemAction(
+                    itemId,
+                    'Rezable.MoveTo',
+                    {
+                        x: as.Int(changed[Pid.RezzedX], -1),
+                    },
+                    [itemId],
+                    false
+                );
+            } else if (as.Int(changed[Pid.InventoryX], -1) && as.Int(changed[Pid.InventoryY], -1)) {
+                await this.itemAction(
+                    itemId,
+                    'ClientInventory.MoveTo',
+                    {
+                        x: as.Int(changed[Pid.InventoryX], -1),
+                        y: as.Int(changed[Pid.InventoryY], -1),
+                    },
+                    [itemId],
+                    true
+                );
+            } else if (as.String(changed[Pid.State], null) !== null) {
+                await this.itemAction(
+                    itemId,
+                    'Stateful.SetState',
+                    {
+                        x: as.String(changed[Pid.State], ''),
+                    },
+                    [itemId],
+                    true
+                );
+            }
         }
 
         async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>

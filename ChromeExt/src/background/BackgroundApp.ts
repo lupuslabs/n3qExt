@@ -288,10 +288,6 @@ export class BackgroundApp
                 return this.handle_addBackpackItem(message.itemId, message.properties, message.options, sendResponse);
             } break;
 
-            case BackgroundMessage.setBackpackItemProperties.name: {
-                return this.handle_setBackpackItemProperties(message.itemId, message.properties, message.options, sendResponse);
-            } break;
-
             case BackgroundMessage.modifyBackpackItemProperties.name: {
                 return this.handle_modifyBackpackItemProperties(message.itemId, message.changed, message.deleted, message.options, sendResponse);
             } break;
@@ -572,19 +568,6 @@ export class BackgroundApp
             return true;
         } else {
             sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotAdded, ItemException.Reason.ItemsNotAvailable)));
-        }
-        return false;
-    }
-
-    handle_setBackpackItemProperties(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
-    {
-        if (this.backpack) {
-            this.backpack.setItemProperties(itemId, properties, options)
-                .then(() => { sendResponse(new BackgroundSuccessResponse()); })
-                .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
-            return true;
-        } else {
-            sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         return false;
     }

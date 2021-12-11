@@ -191,11 +191,6 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.addBackpackItem.name, 'itemId': itemId, 'properties': properties, 'options': options });
     }
 
-    static setBackpackItemProperties(itemId: string, properties: ItemProperties, options: ItemChangeOptions): Promise<void>
-    {
-        return BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.setBackpackItemProperties.name, 'itemId': itemId, 'properties': properties, 'options': options });
-    }
-
     static modifyBackpackItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
         return BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.modifyBackpackItemProperties.name, 'itemId': itemId, 'changed': changed, 'deleted': deleted, 'options': options });
