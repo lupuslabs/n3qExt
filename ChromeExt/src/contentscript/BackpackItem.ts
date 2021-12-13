@@ -255,8 +255,10 @@ export class BackpackItem
         if (this.isPositionInBackpack(ev, ui)) {
             const pos = this.getPositionRelativeToPane(ev, ui);
             if (pos.x !== this.x || pos.y !== this.y) {
-                this.setPosition(pos.x, pos.y);
-                this.sendSetItemCoordinates(pos.x, pos.y);
+                if (!this.isPositionInShredder(ev, ui)) {
+                    this.setPosition(pos.x, pos.y);
+                    this.sendSetItemCoordinates(pos.x, pos.y);
+                }
             }
         } else if (this.isPositionInDropzone(ev, ui)) {
             const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
@@ -264,11 +266,8 @@ export class BackpackItem
         }
     }
 
-    private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private draggedItemCenter(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
     {
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
         const position = $(ui.helper).position();
         const itemElem = $(ui.helper).children().get(0);
         const width = $(itemElem).width();
@@ -276,34 +275,41 @@ export class BackpackItem
         const x = position.left + width / 2;
         const y = position.top + height / 2;
 
-        const paneElem = this.backpackWindow.getPane();
-        const panePosition = $(paneElem).offset();
-        panePosition.left -= scrollLeft;
-        panePosition.top -= scrollTop;
-        const paneWidth = $(paneElem).width();
-        const paneHeight = $(paneElem).height();
+        return { x: x, y: y };
+    }
 
-        return x > panePosition.left && x < panePosition.left + paneWidth && y < panePosition.top + paneHeight && y > panePosition.top;
+    private scrolledElemRect(elem: HTMLElement): { left: number, top: number, width: number, height: number }
+    {
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const panePosition = $(elem).offset();
+        const left = panePosition.left -= scrollLeft;
+        const top = panePosition.top -= scrollTop;
+        const width = $(elem).width();
+        const height = $(elem).height();
+
+        return { left: left, top: top, width: width, height: height };
+    }
+
+    private isPositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    {
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
+        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
+    }
+
+    private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    {
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
+        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
     }
 
     private getPositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
     {
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-        const position = $(ui.helper).position();
-        const itemElem = $(ui.helper).children().get(0);
-        const width = $(itemElem).width();
-        const height = $(itemElem).height();
-        const x = position.left + width / 2;
-        const y = position.top + height / 2;
-
-        const paneElem = this.backpackWindow.getPane();
-        const panePosition = $(paneElem).offset();
-        panePosition.left -= scrollLeft;
-        panePosition.top -= scrollTop;
-
-        return { 'x': x - panePosition.left, 'y': y - panePosition.top };
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
+        return { 'x': pos.x - rect.left, 'y': pos.y - rect.top };
     }
 
     private isPositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean

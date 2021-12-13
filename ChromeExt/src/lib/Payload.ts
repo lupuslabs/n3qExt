@@ -6,12 +6,10 @@ export class Payload
 {
     static async getContextToken(api: string, user: string, item: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
     {
-        let expires = 10000000000 + ttlSec;
         var payload = {
             'user': user,
             'item': item,
             'entropy': Utils.randomString(20),
-            'expires': expires
         };
         
         for (let key in payloadOptions) {

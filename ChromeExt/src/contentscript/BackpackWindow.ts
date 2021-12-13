@@ -78,8 +78,7 @@ export class BackpackWindow extends Window
                 if (droppedElem) {
                     const droppedId: string = $(droppedElem).data('id');
                     if (droppedId) {
-                        const onCancel = () => this.itemVisibility(droppedId, true);
-                        this.app.deleteItemAsk(droppedId, undefined, onCancel);
+                        this.app.deleteItemAsk(droppedId, undefined, () => this.itemVisibility(droppedId, true));
                         window.setTimeout(() => this.itemVisibility(droppedId, false), 1);
                         ev.stopPropagation();
                     }
@@ -272,7 +271,7 @@ export class BackpackWindow extends Window
 
     itemVisibility(itemId: string, state: boolean)
     {
-        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.hideItem', itemId); }
+        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.itemVisibility', itemId, state); }
         const item = this.items[itemId];
         if (item) {
             item.setVisibility(state);

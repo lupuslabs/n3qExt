@@ -59,7 +59,7 @@ export class ContentApp
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
     private backpackWindow: BackpackWindow;
-    private simpleItemTransferController: undefined|SimpleItemTransferController;
+    private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
     private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
@@ -78,7 +78,7 @@ export class ContentApp
     getDisplay(): HTMLElement { return this.display; }
     getRoom(): Room { return this.room; }
 
-    getMyParticipant(): undefined|Participant
+    getMyParticipant(): undefined | Participant
     {
         return this.room?.getParticipant(this.room.getMyNick()) ?? null;
     }
@@ -88,10 +88,10 @@ export class ContentApp
     /**
      * null before in a room and receiving first presence for local participant.
      */
-    getSimpleItemTransferController(): undefined|SimpleItemTransferController
+    getSimpleItemTransferController(): undefined | SimpleItemTransferController
     {
         if (is.nil(this.simpleItemTransferController)
-        && !is.nil(this.getMyParticipant())) {
+            && !is.nil(this.getMyParticipant())) {
             this.simpleItemTransferController
                 = new SimpleItemTransferController(this);
         }
@@ -750,7 +750,8 @@ export class ContentApp
         stanza: XmlElement,
         stanzaId: string = null,
         responseHandler: StanzaResponseHandler = null,
-    ): void {
+    ): void
+    {
         if (Utils.logChannel('contentTraffic', false)) {
             const stanzaAttrsText = as.String(
                 stanza.attrs.type,
@@ -758,7 +759,8 @@ export class ContentApp
             log.debug('ContentApp.sendStanza',
                 stanza, stanzaAttrsText, 'to=', stanza.attrs.to);
         }
-        (async () => {
+        (async () =>
+        {
             if (this.xmppWindow) {
                 const stanzaText = stanza.toString();
                 this.xmppWindow.showLine('OUT', stanzaText);
@@ -767,10 +769,12 @@ export class ContentApp
                 this.stanzasResponses[stanzaId] = responseHandler;
             }
             await BackgroundMessage.sendStanza(stanza);
-        })().catch(error => { this.onCriticalError(
-            'ContentApp.sendStanza',
-            'BackgroundMessage.sendStanza failed!',
-            error, 'stanza', stanza);
+        })().catch(error =>
+        {
+            this.onCriticalError(
+                'ContentApp.sendStanza',
+                'BackgroundMessage.sendStanza failed!',
+                error, 'stanza', stanza);
         });
     }
 
@@ -781,7 +785,8 @@ export class ContentApp
         msg: string,
         error: unknown,
         ...data: unknown[]
-    ): void {
+    ): void
+    {
         // @todo: Send the error to background page for remote reporting here.
         if (!is.nil(error)) {
             data.push('error', error);
@@ -795,7 +800,8 @@ export class ContentApp
         msg: string,
         error: unknown,
         ...data: unknown[]
-    ): void {
+    ): void
+    {
         this.onError(src, msg, error, ...data);
         Panic.now();
     }
@@ -805,7 +811,8 @@ export class ContentApp
         msg: string,
         error: unknown,
         ...data: unknown[]
-    ): void {
+    ): void
+    {
         if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
@@ -1047,19 +1054,24 @@ export class ContentApp
      */
     public derezItem(
         itemId: string,
-        xNew?: undefined|number,
-        yNew?: undefined|number,
-    ): void {
+        xNew?: undefined | number,
+        yNew?: undefined | number,
+    ): void
+    {
         const roomItem = this.room.getItem(itemId);
         if (!is.nil(roomItem)) {
             roomItem.beginDerez();
         }
         this.derezItemAsync(itemId, xNew, yNew
-        ).catch(error => {this.onItemError(
-            'ContentApp.derezItem',
-            'ContentApp.derezItemAsync failed!',
-            error, 'itemId', itemId, 'xNew', xNew, 'yNew', yNew
-        )}).finally(() => {
+        ).catch(error =>
+        {
+            this.onItemError(
+                'ContentApp.derezItem',
+                'ContentApp.derezItemAsync failed!',
+                error, 'itemId', itemId, 'xNew', xNew, 'yNew', yNew
+            )
+        }).finally(() =>
+        {
             const roomItem = this.room.getItem(itemId);
             if (!is.nil(roomItem)) {
                 roomItem.endDerez();
@@ -1074,9 +1086,10 @@ export class ContentApp
      */
     public async derezItemAsync(
         itemId: string,
-        xNew?: undefined|number,
-        yNew?: undefined|number,
-    ): Promise<void> {
+        xNew?: undefined | number,
+        yNew?: undefined | number,
+    ): Promise<void>
+    {
         const props = await BackgroundMessage.getBackpackItemProperties(itemId);
         const roomJid = props[Pid.RezzedLocation];
         const [x, y] = [xNew ?? -1, yNew ?? -1];
@@ -1092,12 +1105,16 @@ export class ContentApp
     /**
      * Triggers the moving of a rezzed item on the same page.
      */
-    public moveRezzedItem(itemId: string, xNew: number): void {
+    public moveRezzedItem(itemId: string, xNew: number): void
+    {
         this.moveRezzedItemAsync(itemId, xNew
-        ).catch(error => {this.onItemError(
-            'ContentApp.moveRezzedItem', 'ContentApp.moveRezzedItemAsync failed!',
-            error, 'itemId', itemId, 'xNew', xNew
-        )});
+        ).catch(error =>
+        {
+            this.onItemError(
+                'ContentApp.moveRezzedItem', 'ContentApp.moveRezzedItemAsync failed!',
+                error, 'itemId', itemId, 'xNew', xNew
+            )
+        });
     }
 
     /**
@@ -1105,7 +1122,8 @@ export class ContentApp
      *
      * Async version allowing direct reaction to errors.
      */
-    public async moveRezzedItemAsync(itemId: string, xNew: number): Promise<void> {
+    public async moveRezzedItemAsync(itemId: string, xNew: number): Promise<void>
+    {
         if (Utils.logChannel('items')) {
             log.info('ContentApp.moveRezzedItemAsync', 'itemId', itemId, 'xNew', xNew);
         }
@@ -1117,44 +1135,61 @@ export class ContentApp
         onDeleted?: (itemId: string) => void,
         onCanceled?: (itemId: string) => void,
         onFailed?: (itemId: string) => void, // For cleanups. Defaults to onCanceled.
-    ): void {
-        (async () => {
+    ): void
+    {
+        (async () =>
+        {
             const props = await BackgroundMessage.getBackpackItemProperties(itemId);
             const itemName = props[Pid.Label] ?? props[Pid.Template];
             const duration = Config.get('backpack.deleteToastDurationSec', 1000);
             const text = this.translateText('ItemLabel.' + itemName) + '\n' + itemId;
             const toast = new SimpleToast(
                 this, 'backpack-reallyDelete', duration, 'question', 'Really delete?', text);
-            const onYes = () => {
-                toast.close();
-                this.deleteItem(itemId, onDeleted, onFailed ?? onCanceled);
+            let inOnAnswer = false;
+            const onYes = () =>
+            {
+                if (!inOnAnswer) {
+                    inOnAnswer = true;
+                    toast.close();
+                    this.deleteItem(itemId, onDeleted, onFailed ?? onCanceled);
+                }
             };
-            const onNo = () => {
-                toast.close();
-                onCanceled?.(itemId);
+            const onNo = () =>
+            {
+                if (!inOnAnswer) {
+                    inOnAnswer = true;
+                    toast.close();
+                    onCanceled?.(itemId);
+                }
             };
             toast.actionButton('Yes, delete item', onYes);
             toast.actionButton('No, keep it', onNo);
             toast.setDontShow(false);
             toast.show(onNo);
-        })().catch(error => {this.onItemError(
-            'ContentApp.deleteItemAsk', 'Toast preparation failed!', error, 'itemId', itemId
-        )});
+        })().catch(error =>
+        {
+            this.onItemError(
+                'ContentApp.deleteItemAsk', 'Toast preparation failed!', error, 'itemId', itemId
+            )
+        });
     }
 
     public deleteItem(
         itemId: string,
         onDeleted?: (itemId: string) => void,
         onFailed?: (itemId: string) => void, // For cleanups.
-    ): void {
+    ): void
+    {
         if (Utils.logChannel('items')) {
             log.info('ContentApp.deleteItem', itemId);
         }
-        (async () => {
+        (async () =>
+        {
             await BackgroundMessage.deleteBackpackItem(itemId, {});
-            this.room?.sendPresence();
+            // this.room?.sendPresence();
             onDeleted?.(itemId);
-        })().catch(error => {
+        })().catch(error =>
+        {
             this.onItemError('ContentApp.deleteItem', 'Error caught!', error, 'itemId', itemId);
             onFailed?.(itemId);
         });

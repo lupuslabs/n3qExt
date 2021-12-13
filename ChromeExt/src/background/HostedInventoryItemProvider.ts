@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
+import { BackpackShowItemData } from '../lib/ContentMessage';
 import { is } from '../lib/is';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
@@ -62,8 +63,19 @@ export namespace HostedInventoryItemProvider
         {
         }
 
-        async deleteItem(itemId: string): Promise<void>
+        async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
         {
+            try {
+                await this.itemAction(
+                    itemId,
+                    'Deletable.DeleteMe',
+                    {},
+                    [itemId],
+                    false
+                );
+            } catch (ex) {
+                this.handleException(ex);
+            }
         }
 
         async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
@@ -71,37 +83,41 @@ export namespace HostedInventoryItemProvider
             let item = this.backpack.getItem(itemId);
             if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
 
-            if (as.Int(changed[Pid.RezzedX], -1) >= 0) {
-                await this.itemAction(
-                    itemId,
-                    'Rezable.MoveTo',
-                    {
-                        x: as.Int(changed[Pid.RezzedX], -1),
-                    },
-                    [itemId],
-                    false
-                );
-            } else if (as.Int(changed[Pid.InventoryX], -1) && as.Int(changed[Pid.InventoryY], -1)) {
-                await this.itemAction(
-                    itemId,
-                    'ClientInventory.MoveTo',
-                    {
-                        x: as.Int(changed[Pid.InventoryX], -1),
-                        y: as.Int(changed[Pid.InventoryY], -1),
-                    },
-                    [itemId],
-                    true
-                );
-            } else if (as.String(changed[Pid.State], null) !== null) {
-                await this.itemAction(
-                    itemId,
-                    'Stateful.SetState',
-                    {
-                        x: as.String(changed[Pid.State], ''),
-                    },
-                    [itemId],
-                    true
-                );
+            try {
+                if (as.Int(changed[Pid.RezzedX], -1) >= 0) {
+                    await this.itemAction(
+                        itemId,
+                        'Rezable.MoveTo',
+                        {
+                            x: as.Int(changed[Pid.RezzedX], -1),
+                        },
+                        [itemId],
+                        false
+                    );
+                } else if (as.Int(changed[Pid.InventoryX], -1) >= 0 && as.Int(changed[Pid.InventoryY], -1) >= 0) {
+                    await this.itemAction(
+                        itemId,
+                        'ClientInventory.MoveTo',
+                        {
+                            x: as.Int(changed[Pid.InventoryX], -1),
+                            y: as.Int(changed[Pid.InventoryY], -1),
+                        },
+                        [itemId],
+                        true
+                    );
+                } else if (as.String(changed[Pid.State], null) !== null) {
+                    await this.itemAction(
+                        itemId,
+                        'Stateful.SetState',
+                        {
+                            state: as.String(changed[Pid.State], ''),
+                        },
+                        [itemId],
+                        true
+                    );
+                }
+            } catch (ex) {
+                this.handleException(ex);
             }
         }
 
@@ -167,16 +183,17 @@ export namespace HostedInventoryItemProvider
                     let item = await this.backpack.createRepositoryItem(id, props);
                     if (item.isRezzed()) {
                         const room = item.getProperties()[Pid.RezzedLocation];
-                        this.backpack.addToRoom(itemId, room);
+                        this.backpack.addToRoom(id, room);
                         changedRooms.add(room);
                     }
+                    this.backpack.sendAddItemToAllTabs(id);
                 }
             }
 
             if (changedIds) {
                 for (let i = 0; i < changedIds.length; i++) {
                     const id = changedIds[i];
-                    const item = this.backpack.getItem(itemId);
+                    const item = this.backpack.getItem(id);
                     if (item != null) {
                         const wasRezzed = item.isRezzed();
                         const room = item.getProperties()[Pid.RezzedLocation];
@@ -190,10 +207,10 @@ export namespace HostedInventoryItemProvider
                         const isRezzed = item.isRezzed();
                         if (!wasRezzed && isRezzed) {
                             const newRoom = item.getProperties()[Pid.RezzedLocation];
-                            this.backpack.addToRoom(itemId, newRoom);
+                            this.backpack.addToRoom(id, newRoom);
                             changedRooms.add(newRoom);
                         } else if (wasRezzed && !isRezzed) {
-                            this.backpack.removeFromRoom(itemId, room);
+                            this.backpack.removeFromRoom(id, room);
                             changedRooms.add(room);
                         }
                     }
@@ -203,52 +220,61 @@ export namespace HostedInventoryItemProvider
             if (deletedIds) {
                 for (let i = 0; i < deletedIds.length; i++) {
                     const id = deletedIds[i];
-                    await this.backpack.deleteItem(id, {});
+                    this.backpack.sendRemoveItemToAllTabs(id);
+                    this.backpack.deleteRepositoryItem(id);
                 }
             }
 
             for (let room of changedRooms) {
-                this.backpack.sendPresence(room);
+                this.backpack.requestSendPresenceFromTab(room);
             }
 
         }
 
         async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
         {
-            await this.itemAction(
-                itemId,
-                'Rezable.Rez',
-                {
-                    room: roomJid,
-                    x: rezzedX,
-                    destination: destinationUrl,
-                },
-                [itemId],
-                true
-            );
+            try {
+                await this.itemAction(
+                    itemId,
+                    'Rezable.Rez',
+                    {
+                        room: roomJid,
+                        x: rezzedX,
+                        destination: destinationUrl,
+                    },
+                    [itemId],
+                    true
+                );
+            } catch (ex) {
+                this.handleException(ex);
+            }
         }
 
         async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
         {
-            await this.itemAction(
-                itemId,
-                'Rezable.Derez',
-                {
-                    room: roomJid,
-                    x: inventoryX,
-                    y: inventoryY,
-                },
-                [itemId],
-                true
-            );
+            try {
+                await this.itemAction(
+                    itemId,
+                    'Rezable.Derez',
+                    {
+                        room: roomJid,
+                        x: inventoryX,
+                        y: inventoryY,
+                    },
+                    [itemId],
+                    true
+                );
+            } catch (ex) {
+                this.handleException(ex);
+            }
         }
 
         private handleException(ex: any): void
         {
-            if (ex.fact) {
+            if (!is.nil(ex.fact)) {
                 throw new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail);
             } else {
-                throw new ItemException(ItemException.Fact.NoItemsReceived, ItemException.Reason.NetworkProblem, as.String(ex.message, as.String(ex.status, '')));
+                throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.UnknownReason, as.String(ex.message, as.String(ex.status, '')));
             }
         }
 

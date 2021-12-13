@@ -370,9 +370,10 @@ export class RoomItem extends Entity
                         const magicKey = Config.get(
                             'iframeApi.messageMagicRezactive',
                             'tr67rftghg_Rezactive');
-                        const msg = {[magicKey]: true, type: 'Window.Close'};
+                        const msg = { [magicKey]: true, type: 'Window.Close' };
                         this.getScriptWindow()?.postMessage(msg, '*');
-                        window.setTimeout((): void => {
+                        window.setTimeout((): void =>
+                        {
                             this.framePopup.close();
                         }, 100);
                     } else {
@@ -390,11 +391,14 @@ export class RoomItem extends Entity
                 }
                 if (openFrame) {
                     this.openFrame(this.getElem()
-                    ).catch(error => { this.app.onError(
-                        'RoomItem.onMouseClickAvatar',
-                        'this.openFrame failed!',
-                        error, 'this', this,
-                    )});
+                    ).catch(error =>
+                    {
+                        this.app.onError(
+                            'RoomItem.onMouseClickAvatar',
+                            'this.openFrame failed!',
+                            error, 'this', this,
+                        )
+                    });
                 }
             }
         } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
@@ -464,8 +468,10 @@ export class RoomItem extends Entity
         }
     }
 
-    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
-        (async (): Promise<void> => {
+    onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
+    {
+        (async (): Promise<void> =>
+        {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on RoomItem.
                 droppedItem.getAvatar()?.ignoreDrag();
@@ -473,10 +479,12 @@ export class RoomItem extends Entity
             } else if (droppedItem instanceof BackpackItem) {
                 // BackpackItem on RoomItem.
             }
-        })().catch(error => { this.app.onError(
-            'RoomItem.onGotItemDroppedOn',
-            'Error caught!',
-            error, 'this', this, 'droppedItem', droppedItem);
+        })().catch(error =>
+        {
+            this.app.onError(
+                'RoomItem.onGotItemDroppedOn',
+                'Error caught!',
+                error, 'this', this, 'droppedItem', droppedItem);
         });
     }
 
@@ -617,6 +625,7 @@ export class RoomItem extends Entity
         const room = this.app.getRoom();
         const apiUrl = Config.get('itemProviders.' + this.providerId + '.config.' + 'apiUrl', '');
         const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+        const itemId = this.roomNick;
 
         if (iframeUrl !== '' && room && apiUrl != '' && userId != '') {
             //iframeUrl = 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"';
@@ -624,10 +633,20 @@ export class RoomItem extends Entity
             //iframeUrl = 'https://meet.jit.si/example-103#interfaceConfig.TOOLBAR_BUTTONS=%5B%22microphone%22%2C%22camera%22%2C%22desktop%22%2C%22fullscreen%22%2C%22hangup%22%2C%22profile%22%2C%22settings%22%2C%22videoquality%22%5D&interfaceConfig.SETTINGS_SECTIONS=%5B%22devices%22%2C%22language%22%5D&interfaceConfig.TOOLBAR_ALWAYS_VISIBLE=false';
 
             const roomJid = room.getJid();
+
             const tokenOptions = {};
-            tokenOptions['properties'] = this.properties;
+            if (as.String(this.properties[Pid.Provider], '') === 'n3q') {
+                tokenOptions['properties'] = {
+                    [Pid.Id]: itemId,
+                    [Pid.Provider]: 'n3q',
+                    [Pid.OwnerId]: this.properties[Pid.OwnerId],
+                };
+            } else {
+                tokenOptions['properties'] = this.properties;
+            }
+
             try {
-                const contextToken = await Payload.getContextToken(apiUrl, userId, this.roomNick, 600, { 'room': roomJid }, tokenOptions);
+                const contextToken = await Payload.getContextToken(apiUrl, userId, itemId, 600, { 'room': roomJid }, tokenOptions);
                 const participantDisplayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
 
                 iframeUrl = iframeUrl

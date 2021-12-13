@@ -50,6 +50,23 @@ export class Backpack
         return count;
     }
 
+    requestSendPresenceFromTab(roomJid: string)
+    {
+        this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
+    }
+
+    sendAddItemToAllTabs(itemId: string)
+    {
+        const data = new BackpackShowItemData(itemId, this.getItem(itemId).getProperties());
+        this.app.sendToAllTabs(ContentMessage.type_onBackpackShowItem, data);
+    }
+
+    sendRemoveItemToAllTabs(itemId: string)
+    {
+        const data = new BackpackRemoveItemData(itemId);
+        this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
+    }
+
     constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
     {
         if (rpcClient) { this.rpcClient = rpcClient; }
@@ -318,7 +335,7 @@ export class Backpack
             }
 
             if (!options.skipPersistentStorage) {
-                await this.getProvider(itemId).deleteItem(itemId);
+                await this.getProvider(itemId).deleteItem(itemId, options);
             }
 
             if (!options.skipContentNotification) {
@@ -362,7 +379,7 @@ export class Backpack
         return item;
     }
 
-    private deleteRepositoryItem(itemId: string): void
+    deleteRepositoryItem(itemId: string): void
     {
         if (this.items[itemId]) {
             delete this.items[itemId];
@@ -511,11 +528,6 @@ export class Backpack
             itemProperties[id] = item.getProperties();
         }
         return itemProperties
-    }
-
-    sendPresence(roomJid: string)
-    {
-        this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
     }
 
     async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>

@@ -468,7 +468,7 @@ export class Config
                     'ErrorFact.NotDerezzed': 'Failed to pick up item',
                     'ErrorFact.NotAdded': 'Item not added',
                     'ErrorFact.NotChanged': 'Item not changed',
-                    'ErrorFact.NoItemsReceived': 'No items recevied',
+                    'ErrorFact.NoItemsReceived': 'No items received',
                     'ErrorFact.NotExecuted': 'Not executed',
                     'ErrorFact.NotCreated': 'No item created',
                     'ErrorFact.NotApplied': 'Item not applied',

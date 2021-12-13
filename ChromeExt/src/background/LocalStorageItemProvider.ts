@@ -117,18 +117,40 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
-    async deleteItem(itemId: string): Promise<void>
+    async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
     {
-        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-        if (itemIds && Array.isArray(itemIds)) {
-            await Memory.deleteLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId);
-            if (itemIds.includes(itemId)) {
-                const index = itemIds.indexOf(itemId, 0);
-                if (index > -1) {
-                    itemIds.splice(index, 1);
-                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
+        let item = this.backpack.getItem(itemId);
+        if (item) {
+            if (item.isRezzed()) {
+                let roomJid = item.getProperties()[Pid.RezzedLocation];
+                if (roomJid) {
+                    await this.derezItem(itemId, roomJid, -1, -1, {}, [], options);
                 }
             }
+
+            if (!options.skipPersistentStorage) {
+                let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
+                if (itemIds && Array.isArray(itemIds)) {
+                    await Memory.deleteLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId);
+                    if (itemIds.includes(itemId)) {
+                        const index = itemIds.indexOf(itemId, 0);
+                        if (index > -1) {
+                            itemIds.splice(index, 1);
+                            await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
+                        }
+                    }
+                }
+            }
+
+            if (!options.skipContentNotification) {
+                this.backpack.sendRemoveItemToAllTabs(itemId);
+            }
+
+            if (!options.skipPresenceUpdate) {
+                item.sendPresence();
+            }
+
+            this.backpack.deleteRepositoryItem(itemId);
         }
     }
 
@@ -247,7 +269,7 @@ export class LocalStorageItemProvider implements IItemProvider
         }
 
         if (!options.skipPresenceUpdate) {
-            this.backpack.sendPresence(roomJid);
+            this.backpack.requestSendPresenceFromTab(roomJid);
         }
     }
 
@@ -292,7 +314,7 @@ export class LocalStorageItemProvider implements IItemProvider
         }
 
         if (!options.skipPresenceUpdate) {
-            this.backpack.sendPresence(roomJid);
+            this.backpack.requestSendPresenceFromTab(roomJid);
         }
     }
 }
