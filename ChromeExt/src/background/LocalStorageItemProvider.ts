@@ -1,15 +1,15 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
+import { xml } from '@xmpp/client';
 import { Config } from '../lib/Config';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { ItemProperties, Pid, Property } from '../lib/ItemProperties';
 import { Memory } from '../lib/Memory';
 import { RpcClient } from '../lib/RpcClient';
 import { RpcProtocol } from '../lib/RpcProtocol';
 import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
-import { Item } from './Item';
 import { IItemProvider } from './ItemProvider';
 
 export class LocalStorageItemProvider implements IItemProvider
@@ -19,7 +19,7 @@ export class LocalStorageItemProvider implements IItemProvider
     private static BackpackPropsPrefix = 'BackpackItem-';
     private rpcClient: RpcClient = new RpcClient();
 
-    constructor(private backpack: Backpack, private config: any)
+    constructor(private backpack: Backpack, private id, private config: any)
     {
     }
 
@@ -96,16 +96,11 @@ export class LocalStorageItemProvider implements IItemProvider
         this.createInitialItems();
     }
 
-    // API
-
-    async loadItems(): Promise<void>
-    {
-        await this.loadLocalItems();
-    }
-
-    async saveItem(itemId: string): Promise<void>
+    async persistentWriteItem(itemId: string): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
         let props = item.getProperties();
         let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
         if (itemIds && Array.isArray(itemIds)) {
@@ -117,29 +112,66 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
+    async persistentDeleteItem(itemId: string): Promise<void>
+    {
+        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
+        if (itemIds && Array.isArray(itemIds)) {
+            await Memory.deleteLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId);
+            if (itemIds.includes(itemId)) {
+                const index = itemIds.indexOf(itemId, 0);
+                if (index > -1) {
+                    itemIds.splice(index, 1);
+                    await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
+                }
+            }
+        }
+    }
+
+    // API
+
+    async loadItems(): Promise<void>
+    {
+        await this.loadLocalItems();
+    }
+
+    async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
+    {
+        let item = await this.backpack.createRepositoryItem(itemId, props);
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+        if (item.isRezzed()) {
+            let roomJid = item.getProperties()[Pid.RezzedLocation];
+            if (roomJid) {
+                this.backpack.addToRoom(itemId, roomJid);
+            }
+
+            if (!options.skipPresenceUpdate) {
+                item.sendPresence();
+            }
+        }
+
+        if (!options.skipPersistentStorage) {
+            await this.persistentWriteItem(itemId);
+        }
+
+        if (!options.skipContentNotification) {
+            this.backpack.sendRemoveItemToAllTabs(itemId);
+        }
+    }
+
     async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item) {
-            if (item.isRezzed()) {
-                let roomJid = item.getProperties()[Pid.RezzedLocation];
-                if (roomJid) {
-                    await this.derezItem(itemId, roomJid, -1, -1, {}, [], options);
-                }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+        if (item.isRezzed()) {
+            let roomJid = item.getProperties()[Pid.RezzedLocation];
+            if (roomJid) {
+                await this.derezItem(itemId, roomJid, -1, -1, {}, [], options);
             }
 
             if (!options.skipPersistentStorage) {
-                let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
-                if (itemIds && Array.isArray(itemIds)) {
-                    await Memory.deleteLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId);
-                    if (itemIds.includes(itemId)) {
-                        const index = itemIds.indexOf(itemId, 0);
-                        if (index > -1) {
-                            itemIds.splice(index, 1);
-                            await Memory.setLocal(this.getBackpackIdsKey(), itemIds);
-                        }
-                    }
-                }
+                this.persistentDeleteItem(itemId);
             }
 
             if (!options.skipContentNotification) {
@@ -168,7 +200,7 @@ export class LocalStorageItemProvider implements IItemProvider
             delete clonedProps[deleted[i]];
         }
         item.setProperties(clonedProps, options);
-        await this.saveItem(itemId);
+        await this.persistentWriteItem(itemId);
     }
 
     async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
@@ -181,9 +213,8 @@ export class LocalStorageItemProvider implements IItemProvider
                 let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
                 if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
 
-                let providerId = 'nine3q';
-                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
-                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
+                let apiUrl = as.String(this.config.backpackApiUrl, '');
+                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + this.id); }
 
                 let roomJid = null;
                 if (!allowUnrezzed && !as.Bool(item.getProperties()[Pid.IsUnrezzedAction], false)) {
@@ -193,7 +224,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
                 let items: { [id: string]: ItemProperties } = {};
                 for (let i = 0; i < involvedIds.length; i++) {
-                    items[involvedIds[i]] = this.backpack.getItemProperties(involvedIds[i]);
+                    items[involvedIds[i]] = this.backpack.getRepositoryItemProperties(involvedIds[i]);
                 }
 
                 let request = new RpcProtocol.BackpackActionRequest();
@@ -210,7 +241,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 if (response.changed) {
                     for (let id in response.changed) {
                         let props = response.changed[id];
-                        await this.backpack.setItemProperties(id, props, {});
+                        this.backpack.setRepositoryItemProperties(id, props, {});
                     }
                 }
 
@@ -265,7 +296,7 @@ export class LocalStorageItemProvider implements IItemProvider
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.saveItem(itemId);
+            await this.persistentWriteItem(itemId);
         }
 
         if (!options.skipPresenceUpdate) {
@@ -305,7 +336,7 @@ export class LocalStorageItemProvider implements IItemProvider
         item.setProperties(clonedProps, setPropertiesOption);
 
         if (!options.skipPersistentStorage) {
-            await this.saveItem(itemId);
+            await this.persistentWriteItem(itemId);
         }
 
         if (!options.skipContentNotification) {
@@ -316,5 +347,23 @@ export class LocalStorageItemProvider implements IItemProvider
         if (!options.skipPresenceUpdate) {
             this.backpack.requestSendPresenceFromTab(roomJid);
         }
+    }
+
+    getDependentPresence(itemId: string, roomJid: string): xml
+    {
+        let item = this.backpack.getItem(itemId);
+        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+        const props = item.getProperties();
+        var presence = xml('presence', { 'from': roomJid + '/' + itemId });
+        let attrs = { 'xmlns': 'vp:props', 'type': 'item', 'provider': this.id };
+        let signed = as.String(props[Pid.Signed] , '').split(' ');
+        for (let pid in props) {
+            if (Property.inPresence(pid) || (signed.length > 0 && signed.includes(pid))) {
+                attrs[pid] = props[pid];
+            }
+        }
+        presence.append(xml('x', attrs));
+        return presence;
     }
 }

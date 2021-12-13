@@ -1,15 +1,15 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Config } from '../lib/Config';
-import { BackpackShowItemData } from '../lib/ContentMessage';
 import { is } from '../lib/is';
+import { xml } from '@xmpp/client';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { Memory } from '../lib/Memory';
 import { RpcClient } from '../lib/RpcClient';
 import { RpcProtocol } from '../lib/RpcProtocol';
+import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
-import { Item } from './Item';
 import { IItemProvider } from './ItemProvider';
 
 export namespace HostedInventoryItemProvider
@@ -24,7 +24,7 @@ export namespace HostedInventoryItemProvider
         static type = 'HostedInventoryItemProvider';
         private rpcClient: RpcClient = new RpcClient();
 
-        constructor(private backpack: Backpack, private config: Config)
+        constructor(private backpack: Backpack, private id, private config: Config)
         {
         }
 
@@ -59,7 +59,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        async saveItem(itemId: string): Promise<void>
+        async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
         {
         }
 
@@ -202,7 +202,7 @@ export namespace HostedInventoryItemProvider
                         }
 
                         const props = itemPropertySet[id];
-                        await this.backpack.setItemProperties(id, props, { skipPresenceUpdate: true });
+                        this.backpack.setRepositoryItemProperties(id, props, { skipPresenceUpdate: true });
 
                         const isRezzed = item.isRezzed();
                         if (!wasRezzed && isRezzed) {
@@ -241,6 +241,8 @@ export namespace HostedInventoryItemProvider
                         room: roomJid,
                         x: rezzedX,
                         destination: destinationUrl,
+                        OwnerName: await Memory.getLocal(Utils.localStorageKey_Nickname(), ''),
+
                     },
                     [itemId],
                     true
@@ -276,6 +278,39 @@ export namespace HostedInventoryItemProvider
             } else {
                 throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.UnknownReason, as.String(ex.message, as.String(ex.status, '')));
             }
+        }
+
+        getDependentPresence(itemId: string, roomJid: string): xml
+        {
+
+            let item = this.backpack.getItem(itemId);
+            if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+            const props = item.getProperties();
+            var presence = xml('presence', { 'from': roomJid + '/' + itemId });
+            let attrs = {
+                'xmlns': 'vp:props',
+                'type': 'item',
+                'provider': this.id,
+                [Pid.Id]: itemId,
+            };
+
+            const version = as.String(props[Pid.Version], '');
+            if (version !== '') {
+                attrs[Pid.Version] = version;
+            }
+            const ownerId = as.String(props[Pid.OwnerId], '');
+            if (ownerId !== '') {
+                attrs[Pid.OwnerId] = ownerId;
+            }
+            // const ownerName = await Memory.getLocal(Utils.localStorageKey_Nickname(), as.String(clonedProps[Pid.OwnerName])),
+            // if (ownerName !== '') {
+            //     attrs[Pid.OwnerName] = ownerName;
+            // }
+
+            presence.append(xml('x', attrs));
+
+            return presence;
         }
 
     }

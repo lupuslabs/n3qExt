@@ -52,19 +52,4 @@ export class Item
     {
         return as.Bool(this.properties[Pid.IsRezzed], false) && as.String(this.properties[Pid.RezzedLocation], '/-definitely-not-a-room-jid-@') == roomJid;
     }
-
-    getDependentPresence(roomJid: string): xml
-    {
-        var presence = xml('presence', { 'from': roomJid + '/' + this.itemId });
-        let attrs = { 'xmlns': 'vp:props', 'type': 'item', 'provider': 'nine3q' };
-        let signed = as.String(this.properties[Pid.Signed] , '').split(' ');
-        for (let pid in this.properties) {
-            if (Property.inPresence(pid) || (signed.length > 0 && signed.includes(pid))) {
-                attrs[pid] = this.properties[pid];
-            }
-        }
-        // let attrs = Object.assign(protocolAttrs, this.properties);
-        presence.append(xml('x', attrs));
-        return presence;
-    }
 }

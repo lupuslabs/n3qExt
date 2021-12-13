@@ -652,7 +652,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             try {
-                let props = this.backpack.getItemProperties(itemId);
+                let props = this.backpack.getRepositoryItemProperties(itemId);
                 sendResponse(new GetBackpackItemPropertiesResponse(props));
             } catch (iex) {
                 sendResponse(new BackgroundItemExceptionResponse(iex));

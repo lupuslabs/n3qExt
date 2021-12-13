@@ -199,8 +199,8 @@ export class BackpackItem
             if (as.Bool(this.properties[Pid.IsRezzed], false)) {
                 this.app.derezItem(this.getItemId());
             } else {
-                const rezzXProp = this.properties[Pid.RezzedX];
-                this.rezItem(as.Int(rezzXProp, ev.clientX));
+                const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
+                this.rezItem(as.Int(rezzedX, ev.clientX));
             }
         }
     }

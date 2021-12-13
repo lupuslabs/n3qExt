@@ -517,7 +517,7 @@ export class Config
                     'ItemPid.PointsTotal': 'Collected',
                     'ItemPid.PointsCurrent': 'Available',
                     'ItemPid.RezzedDestination': 'Page',
-                    'ItemPid.IsRezzed': 'On page',
+                    'ItemPid.IsRezzed': 'Dropped',
                     'ItemPid.CoinCurrency': 'Currency',
                     'ItemPid.CoinAmount': 'Amount',
                     'ItemPid.IframeUrl': 'URL',

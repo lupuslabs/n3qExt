@@ -8,6 +8,7 @@ export enum Pid
 {
     Id = 'Id',
     Name = 'Name',
+    Version = 'Version',
     Label = 'Label',
     Description = 'Description',
     Reference = 'Reference',

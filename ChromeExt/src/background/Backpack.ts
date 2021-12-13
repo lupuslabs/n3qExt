@@ -26,8 +26,39 @@ export class Backpack
     private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
     private rpcClient: RpcClient = new RpcClient();
 
+    constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
+    {
+        if (rpcClient) { this.rpcClient = rpcClient; }
+    }
+
     async getUserId(): Promise<string> { return await this.app.getUserId(); }
     async getUserToken(): Promise<string> { return await this.app.getUserToken(); }
+
+    isItem(itemId: string): boolean
+    {
+        let item = this.items[itemId];
+        if (item) {
+            return true;
+        }
+        return false;
+    }
+
+    getItem(itemId: string): Item
+    {
+        let item = this.items[itemId];
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        return item;
+    }
+
+    getItems(): { [id: string]: ItemProperties; }
+    {
+        let itemProperties: { [id: string]: ItemProperties; } = {};
+        for (let id in this.items) {
+            let item = this.items[id];
+            itemProperties[id] = item.getProperties();
+        }
+        return itemProperties
+    }
 
     getItemCount(): number
     {
@@ -67,11 +98,6 @@ export class Backpack
         this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
     }
 
-    constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
-    {
-        if (rpcClient) { this.rpcClient = rpcClient; }
-    }
-
     async init(): Promise<void>
     {
         let providerConfigs = Config.get('itemProviders', {});
@@ -79,10 +105,10 @@ export class Backpack
             const providerConfig = providerConfigs[providerId];
             switch (as.String(providerConfig.type, 'unknown')) {
                 case LocalStorageItemProvider.type:
-                    this.providers.set(providerId, new LocalStorageItemProvider(this, providerConfig.config));
+                    this.providers.set(providerId, new LocalStorageItemProvider(this, providerId, providerConfig.config));
                     break;
                 case HostedInventoryItemProvider.Provider.type:
-                    this.providers.set(providerId, new HostedInventoryItemProvider.Provider(this, <HostedInventoryItemProvider.Config>providerConfig.config));
+                    this.providers.set(providerId, new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Config>providerConfig.config));
                     break;
                 default:
                     break;
@@ -300,55 +326,12 @@ export class Backpack
 
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
-        let item = await this.createRepositoryItem(itemId, props);
-
-        if (item.isRezzed()) {
-            let roomJid = item.getProperties()[Pid.RezzedLocation];
-            if (roomJid) {
-                this.addToRoom(itemId, roomJid);
-            }
-
-            if (!options.skipPresenceUpdate) {
-                item.sendPresence();
-            }
-        }
-
-        if (!options.skipPersistentStorage) {
-            await this.getProvider(itemId).saveItem(itemId);
-        }
-
-        if (!options.skipContentNotification) {
-            let data = new BackpackShowItemData(itemId, props);
-            this.app.sendToAllTabs(ContentMessage.type_onBackpackShowItem, data);
-        }
+        await this.getProvider(itemId).addItem(itemId, props, options);
     }
 
     async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
     {
-        let item = this.items[itemId];
-        if (item) {
-            if (item.isRezzed()) {
-                let roomJid = item.getProperties()[Pid.RezzedLocation];
-                if (roomJid) {
-                    await this.derezItem(itemId, roomJid, -1, -1, {}, [], options);
-                }
-            }
-
-            if (!options.skipPersistentStorage) {
-                await this.getProvider(itemId).deleteItem(itemId, options);
-            }
-
-            if (!options.skipContentNotification) {
-                let data = new BackpackRemoveItemData(itemId);
-                this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
-            }
-
-            if (!options.skipPresenceUpdate) {
-                item.sendPresence();
-            }
-
-            this.deleteRepositoryItem(itemId);
-        }
+        await this.getProvider(itemId).deleteItem(itemId, options);
     }
 
     findItems(filter: (props: ItemProperties) => boolean): Array<Item>
@@ -386,6 +369,21 @@ export class Backpack
         }
     }
 
+    setRepositoryItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): void
+    {
+        let item = this.items[itemId];
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+
+        item.setProperties(props, options);
+    }
+
+    getRepositoryItemProperties(itemId: string): ItemProperties
+    {
+        let item = this.items[itemId];
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); } // throw unhandled, maybe return null?
+        return item.getProperties();
+    }
+
     addToRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
@@ -408,38 +406,6 @@ export class Backpack
                 }
             }
         }
-    }
-
-    isItem(itemId: string): boolean
-    {
-        let item = this.items[itemId];
-        if (item) {
-            return true;
-        }
-        return false;
-    }
-
-    getItem(itemId: string): Item
-    {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
-        return item;
-    }
-
-    async setItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
-    {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
-
-        item.setProperties(props, options);
-        await this.getProvider(itemId).saveItem(itemId);
-    }
-
-    getItemProperties(itemId: string): ItemProperties
-    {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); } // throw unhandled, maybe return null?
-        return item.getProperties();
     }
 
     async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
@@ -520,16 +486,6 @@ export class Backpack
         await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
     }
 
-    getItems(): { [id: string]: ItemProperties; }
-    {
-        let itemProperties: { [id: string]: ItemProperties; } = {};
-        for (let id in this.items) {
-            let item = this.items[id];
-            itemProperties[id] = item.getProperties();
-        }
-        return itemProperties
-    }
-
     async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
     {
         await this.getProvider(itemId).rezItem(itemId, roomJid, rezzedX, destinationUrl, options);
@@ -608,7 +564,8 @@ export class Backpack
 
         for (let i = 0; i < ids.length; i++) {
             let id = ids[i];
-            let itemPresence: xml = this.items[id].getDependentPresence(roomJid);
+            const itemPresence = this.getProvider(id).getDependentPresence(id, roomJid);
+            // let itemPresence: xml = this.items[id].getDependentPresence(roomJid);
             result.append(itemPresence);
         }
 

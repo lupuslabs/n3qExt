@@ -127,7 +127,7 @@ export class BackpackItemInfo
             const activateCheckbox = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive]) ? 'checked' : '') + '/>').get(0); // Active
             $(activateCheckbox).on('change', async (ev) =>
             {
-                await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value' : $(activateCheckbox).is(':checked') }, [this.backpackItem.getItemId()]);
+                await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value': $(activateCheckbox).is(':checked') }, [this.backpackItem.getItemId()]);
 
                 if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
                     this.app.getRoom().sendPresence();
@@ -166,7 +166,8 @@ export class BackpackItemInfo
                 $(rezElem).on('click', (ev) =>
                 {
                     ev.stopPropagation();
-                    this.backpackItem.rezItem(-1);
+                    const rezzedX = as.Int(props[Pid.RezzedX], -1);
+                    this.backpackItem.rezItem(rezzedX);
                     this.close();
                 });
                 $(this.elem).append(rezElem);
