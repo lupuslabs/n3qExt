@@ -281,7 +281,7 @@ export class RoomItem extends Entity
         if (isFirstPresence) {
             if (as.Bool(this.getProperties()[Pid.IframeAspect])) {
                 if (as.Bool(this.getProperties()[Pid.IframeAuto])) {
-                    this.openFrame(this.getElem());
+                    this.openFrame();
                 }
             }
         }
@@ -362,15 +362,22 @@ export class RoomItem extends Entity
                 let openFrame = false;
                 if (frame === 'Popup') {
                     if (this.framePopup) {
-                        const magicKey = Config.get(
-                            'iframeApi.messageMagicRezactive',
-                            'tr67rftghg_Rezactive');
-                        const msg = { [magicKey]: true, type: 'Window.Close' };
-                        this.getScriptWindow()?.postMessage(msg, '*');
-                        window.setTimeout((): void =>
-                        {
-                            this.framePopup.close();
-                        }, 100);
+                        if (frameOpts.closeIsHide) {
+                            if (this.framePopup.getVisibility()) {
+                                this.framePopup.setVisibility(false);
+                            } else {
+                                this.framePopup.setVisibility(true);
+                            }
+                        } else {
+                            const magicKey = Config.get(
+                                'iframeApi.messageMagicRezactive',
+                                'tr67rftghg_Rezactive');
+                            const msg = {[magicKey]: true, type: 'Window.Close'};
+                            this.getScriptWindow()?.postMessage(msg, '*');
+                            window.setTimeout((): void => 
+                            {    this.framePopup.close();
+                            }, 100);
+                        }
                     } else {
                         openFrame = true;
                     }
@@ -385,15 +392,11 @@ export class RoomItem extends Entity
                     }
                 }
                 if (openFrame) {
-                    this.openFrame(this.getElem()
-                    ).catch(error =>
-                    {
-                        this.app.onError(
-                            'RoomItem.onMouseClickAvatar',
-                            'this.openFrame failed!',
-                            error, 'this', this,
-                        )
-                    });
+                    this.openFrame().catch(error => { this.app.onError(
+                        'RoomItem.onMouseClickAvatar',
+                        'this.openFrame failed!',
+                        error, 'this', this,
+                    )});
                 }
             }
         } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
@@ -429,7 +432,13 @@ export class RoomItem extends Entity
         this.statsDisplay?.close();
 
         if (this.framePopup) {
-            this.framePopup.close();
+            const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
+            const frameOpts = JSON.parse(frameOptsStr);
+            if (frameOpts.closeIsHide) {
+                // Intentionally keep open and visible.
+            } else {
+                this.framePopup.close();
+            }
         }
     }
 
@@ -463,10 +472,8 @@ export class RoomItem extends Entity
         }
     }
 
-    onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
-    {
-        (async (): Promise<void> =>
-        {
+    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
+        (async (): Promise<void> => {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on RoomItem.
                 droppedItem.getAvatar()?.ignoreDrag();
@@ -474,12 +481,10 @@ export class RoomItem extends Entity
             } else if (droppedItem instanceof BackpackItem) {
                 // BackpackItem on RoomItem.
             }
-        })().catch(error =>
-        {
-            this.app.onError(
-                'RoomItem.onGotItemDroppedOn',
-                'Error caught!',
-                error, 'this', this, 'droppedItem', droppedItem);
+        })().catch(error => { this.app.onError(
+            'RoomItem.onGotItemDroppedOn',
+            'Error caught!',
+            error, 'this', this, 'droppedItem', droppedItem);
         });
     }
 
@@ -594,7 +599,7 @@ export class RoomItem extends Entity
         const range = Utils.parseStringMap(as.String(this.getProperties()[Pid.IframeAutoRange]));
         this.showItemRange(true, range);
         if (this.isInRange(this.room?.getParticipant(this.room.getMyNick()), range)) {
-            this.openFrame(this.getElem());
+            this.openFrame();
         } else {
             this.closeFrame();
         }
@@ -613,7 +618,7 @@ export class RoomItem extends Entity
         return isInRange;
     }
 
-    async openFrame(clickedElem: HTMLElement)
+    private async openFrame()
     {
         let iframeUrl = as.String(this.properties[Pid.IframeUrl]);
         const room = this.app.getRoom();
@@ -653,15 +658,25 @@ export class RoomItem extends Entity
 
                 const iframeOptions = JSON.parse(as.String(this.properties[Pid.IframeOptions], '{}'));
 
+                let anchorElem: HTMLElement;
+                switch (as.String(iframeOptions.anchor, 'Entity')) {
+                    default:
+                    case 'Entity':
+                        anchorElem = this.elem;
+                    break;
+                    case 'Base':
+                        anchorElem = this.app.getDisplay();
+                    break;
+                }
                 switch (as.String(iframeOptions.frame, 'Window')) {
                     case 'Popup':
-                        this.openIframeAsPopup(clickedElem, iframeUrl, iframeOptions);
+                        this.openIframeAsPopup(anchorElem, iframeUrl, iframeOptions);
                         break;
                     case 'Overlay':
                         this.openIframeAsOverlay(iframeUrl, iframeOptions);
                         break;
                     default:
-                        this.openIframeAsWindow(clickedElem, iframeUrl, iframeOptions);
+                        this.openIframeAsWindow(anchorElem, iframeUrl, iframeOptions);
                         break;
                 }
 
