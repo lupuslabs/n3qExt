@@ -287,24 +287,6 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            if (this.myItem) {
-                if (as.Bool(this.getProperties()[Pid.PageEffectAspect])) {
-                    const maxDuration = as.Float(this.getProperties()[Pid.PageEffectDuration], Config.get('roomItem.maxPageEffectDurationSec', 100.0));
-                    window.setTimeout(async () =>
-                    {
-                        const itemId = this.getRoomNick();
-                        try {
-                            await BackgroundMessage.executeBackpackItemAction(itemId, 'PageEffect.Used', {}, [itemId]);
-                        } catch (error) {
-                            // Ignore
-                        }
-                        this.app.derezItem(itemId);
-                    }, maxDuration * 1000);
-                }
-            }
-        }
-
-        if (isFirstPresence) {
             if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
                 this.checkIframeAutoRange();
             }

@@ -223,6 +223,7 @@ export class Property
         [Pid.IframeOptions]: { inPresence: true },
         [Pid.IframeUrl]: { inPresence: true },
         [Pid.IframeAuto]: { inPresence: true },
+        [Pid.IframeLive]: { inPresence: true },
         [Pid.IframeAutoRange]: { inPresence: true },
         [Pid.DocumentOptions]: { inPresence: true },
         [Pid.DocumentUrl]: { inPresence: true },
