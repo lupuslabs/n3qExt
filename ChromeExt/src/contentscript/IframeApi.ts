@@ -355,7 +355,7 @@ export class IframeApi
         try {
             let item = this.app.getRoom().getItem(request.item);
             if (item) {
-                item.setFrameStyle(request.style);
+                item.setWindowStyle(request.style);
             }
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {

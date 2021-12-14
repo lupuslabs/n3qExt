@@ -50,6 +50,8 @@ export class Popup
         }
     }
 
+    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
+
     isOpen(): boolean
     {
         return this.windowElem != null;

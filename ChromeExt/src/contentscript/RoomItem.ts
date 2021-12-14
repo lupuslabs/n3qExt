@@ -2,6 +2,7 @@ import imgDefaultItem from '../assets/DefaultItem.png';
 
 import * as $ from 'jquery';
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -693,18 +694,12 @@ export class RoomItem extends Entity
         }
     }
 
-    setFrameStyle(style: any)
+    setWindowStyle(style: any)
     {
-        let iframe = null;
-        if (this.framePopup) {
-            iframe = this.framePopup.getIframeElem();
-        } else if (this.frameWindow) {
-            iframe = this.frameWindow.getIframeElem();
-        } else if (this.frameOverlay) {
-            iframe = this.frameOverlay.getIframeElem();
-        }
-        if (iframe != null) {
-            $(iframe).css(style);
+        const window = this.framePopup ?? this.frameWindow;
+        const elem = window?.getWindowElem();
+        if (!is.nil(elem)) {
+            elem.style.cssText += style;
         }
     }
 

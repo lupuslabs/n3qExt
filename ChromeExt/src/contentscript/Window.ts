@@ -155,6 +155,8 @@ export class Window
         await Memory.setLocal('window.' + name, value);
     }
 
+    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
+
     isOpen(): boolean
     {
         return this.windowElem != null;
