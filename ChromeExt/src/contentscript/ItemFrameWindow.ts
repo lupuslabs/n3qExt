@@ -83,9 +83,9 @@ export class ItemFrameWindow extends Window
         $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' });
     }
 
-    toFront(): void
+    toFront(layer?: undefined|number|string): void
     {
-        this.app.toFront(this.windowElem, ContentApp.LayerWindow);
+        this.app.toFront(this.windowElem, layer ?? ContentApp.LayerWindow);
     }
 
     undock(): void

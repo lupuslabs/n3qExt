@@ -839,12 +839,19 @@ export class ContentApp
     public static LayerWindow = 50;
     public static LayerWindowContent = 51;
     public static LayerDrag = 99;
+    public static LayerEffect = 100;
     private static layerSize = 10 * 1000 * 1000;
     private frontIndex: { [layer: number]: number; } = {};
-    toFront(elem: HTMLElement, layer: number)
+    toFront(elem: HTMLElement, layer: number|string)
     {
-        this.incrementFrontIndex(layer);
-        const absoluteIndex = this.getFrontIndex(layer);
+        let layerInt: number;
+        if (is.string(layer)) {
+            layerInt = as.Int(ContentApp[layer], ContentApp.LayerBelowEntities);
+        } else {
+            layerInt = as.Int(layer, ContentApp.LayerBelowEntities);
+        }
+        this.incrementFrontIndex(layerInt);
+        const absoluteIndex = this.getFrontIndex(layerInt);
         elem.style.zIndex = '' + absoluteIndex;
         //log.debug('ContentApp.toFront', absoluteIndex, elem.className);
     }

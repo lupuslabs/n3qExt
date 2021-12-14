@@ -773,10 +773,10 @@ export class RoomItem extends Entity
         this.frameWindow?.position(width, height, left, bottom);
     }
 
-    toFrontFrame()
+    toFrontFrame(layer?: undefined|number|string)
     {
-        this.framePopup?.toFront();
-        this.frameWindow?.toFront();
+        this.framePopup?.toFront(layer);
+        this.frameWindow?.toFront(layer);
     }
 
     async setItemProperty(pid: string, value: any)

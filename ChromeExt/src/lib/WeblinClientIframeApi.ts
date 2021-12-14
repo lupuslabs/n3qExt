@@ -73,6 +73,7 @@ export namespace WeblinClientIframeApi
     {
         static type = 'Window.ToFront';
         item: string;
+        layer?: number;
     }
 
     export class BackpackSetVisibilityRequest extends Request

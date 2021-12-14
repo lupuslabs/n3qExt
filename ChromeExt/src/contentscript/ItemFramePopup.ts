@@ -76,9 +76,9 @@ export class ItemFramePopup extends Popup
         }
     }
 
-    toFront(): void
+    toFront(layer?: undefined|number|string): void
     {
-        this.app.toFront(this.windowElem, ContentApp.LayerPopup);
+        this.app.toFront(this.windowElem, layer ?? ContentApp.LayerPopup);
     }
 
     update(): void

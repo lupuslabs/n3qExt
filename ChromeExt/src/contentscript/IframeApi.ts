@@ -1,4 +1,5 @@
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
@@ -663,7 +664,11 @@ export class IframeApi
         try {
             let roomItem = this.app.getRoom().getItem(request.item);
             if (roomItem) {
-                roomItem.toFrontFrame();
+                let layer = request.layer;
+                if (!is.string(layer)) {
+                    layer = undefined;
+                }
+                roomItem.toFrontFrame(layer);
             }
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
