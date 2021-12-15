@@ -22,7 +22,13 @@ export namespace HostedInventoryItemProvider
 
     class ItemCacheEntry
     {
-        constructor(public itemProperties: ItemProperties, public roomJid: string, public participantNick: string) { }
+        public accessTime = Date.now();
+        constructor(private itemProperties: ItemProperties, public roomJid: string, public participantNick: string) { }
+        getProperties(): ItemProperties
+        {
+            this.accessTime = Date.now();
+            return this.itemProperties;
+        }
     }
 
     class DeferredItemPropertiesRequest
@@ -334,8 +340,47 @@ export namespace HostedInventoryItemProvider
             return presence;
         }
 
-        private cachedProperties = new Map<string, ItemCacheEntry>();
-        private requestedProperties = new Set<string>();
+        // -------------------- item cache ----------------------
+
+        private itemCache = new Map<string, ItemCacheEntry>();
+        private itemRequests = new Set<string>();
+        private lastItemCacheMaintenanceTime = 0;
+
+        checkMaintainItemCache(): void
+        {
+            let now = Date.now();
+            let maintenanceIntervalSec = Config.get('itemCache.maintenanceIntervalSec', 60);
+            if (now - this.lastItemCacheMaintenanceTime > maintenanceIntervalSec * 1000) {
+                this.maintainItemCache();
+                this.lastItemCacheMaintenanceTime = now;
+            }
+        }
+
+        maintainItemCache(): void
+        {
+            if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.maintainItemCache', 'size=' + this.itemCache.size); }
+            let cacheTimeout = Config.get('itemCache.maxAgeSec', 600);
+            let now = Date.now();
+
+            let deleteKeys = new Array<string>();
+            for (let [key, cacheEntry] of this.itemCache) {
+                if (now - cacheEntry.accessTime > cacheTimeout * 1000) {
+                    deleteKeys.push(key);
+                }
+            }
+
+            for (let key of deleteKeys) {
+                if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                    const cacheEntry = this.itemCache.get(key);
+                    log.info('HostedInventoryItemProvider.maintainItemCache', 'delete',
+                        '(age=' + (now - this.itemCache.get(key).accessTime) / 1000 + ')',
+                        key, cacheEntry.roomJid, cacheEntry.participantNick);
+                }
+                this.itemCache.delete(key);
+            }
+        }
+
+        // -----------------------------------------------------
 
         async onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
         {
@@ -343,9 +388,18 @@ export namespace HostedInventoryItemProvider
             const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
             if (vpProps) {
                 const vpVersion = as.Int(vpProps.attrs[Pid.Version], -1);
-                if (this.cachedProperties.has(itemId)) {
-                    const cacheEntry = this.cachedProperties.get(itemId);
-                    const cachedProps = cacheEntry.itemProperties;
+                if (this.itemCache.has(itemId)) {
+                    const cacheEntry = this.itemCache.get(itemId);
+
+                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                        let now = Date.now();
+                        const cacheEntry = this.itemCache.get(itemId);
+                        log.info('HostedInventoryItemProvider.maintainItemCache', 'access',
+                            '(age=' + (now - this.itemCache.get(itemId).accessTime) / 1000 + ')',
+                            itemId, cacheEntry.roomJid, cacheEntry.participantNick);
+                    }
+                    const cachedProps = cacheEntry.getProperties();
+    
                     const cachedVersion = as.Int(cachedProps[Pid.Version], -1);
 
                     let cacheIsGood = true;
@@ -371,16 +425,18 @@ export namespace HostedInventoryItemProvider
                     }
                 }
             }
+
+            this.checkMaintainItemCache();
         }
 
         private deferredItemPropertiesRequests = new Map<string, DeferredItemPropertiesRequest>();
 
         async requestItemPropertiesForDependentPresence(itemId: string, ownerId: string, roomJid: string, participantNick: string): Promise<void>
         {
-            if (this.requestedProperties.has(itemId)) return;
+            if (this.itemRequests.has(itemId)) return;
 
-            this.requestedProperties.add(itemId);
-            
+            this.itemRequests.add(itemId);
+
             const timerKey = roomJid + '/' + participantNick;
             if (this.deferredItemPropertiesRequests.has(timerKey)) {
                 let deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
@@ -391,19 +447,29 @@ export namespace HostedInventoryItemProvider
                     const deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                     this.deferredItemPropertiesRequests.delete(timerKey);
 
+                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'owner='+deferredRequest.ownerId, Array.from(deferredRequest.itemIds).join(' ')); }
+
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.ownerId, Array.from(deferredRequest.itemIds));
                     this.rpcClient.call(this.config.apiUrl, request)
                         .then(async r =>
                         {
                             for (let id of deferredRequest.itemIds) {
-                                this.requestedProperties.delete(id);
+                                this.itemRequests.delete(id);
                             }
 
                             const response = <RpcProtocol.UserGetItemPropertiesResponse>r;
 
                             for (let id in response.multiItemProperties) {
                                 const props = response.multiItemProperties[id];
-                                this.cachedProperties.set(id, new ItemCacheEntry(props, deferredRequest.roomJid, deferredRequest.participantNick));
+
+                                this.itemCache.set(id, new ItemCacheEntry(props, deferredRequest.roomJid, deferredRequest.participantNick));
+
+                                if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                                    const cacheEntry = this.itemCache.get(id);
+                                    log.info('HostedInventoryItemProvider.maintainItemCache', 'set',
+                                        id, cacheEntry.roomJid, cacheEntry.participantNick);
+                                }
+                
                                 await this.forwardCachedProperties(id);
                             }
                         })
@@ -420,8 +486,8 @@ export namespace HostedInventoryItemProvider
 
         async forwardCachedProperties(itemId: string)
         {
-            if (this.cachedProperties.has(itemId)) {
-                const cacheEntry = this.cachedProperties.get(itemId);
+            if (this.itemCache.has(itemId)) {
+                const cacheEntry = this.itemCache.get(itemId);
                 await this.backpack.replayPresence(cacheEntry.roomJid, cacheEntry.participantNick);
             }
         }

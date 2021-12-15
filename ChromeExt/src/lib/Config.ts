@@ -45,6 +45,7 @@ export class Config
             rpcClient: false,
             backgroundFetchUrl: false,
             backgroundFetchUrlCache: false,
+            HostedInventoryItemProviderItemCache: false,
             backgroundJsonRpc: false,
             pingBackground: false,
             contentStart: false,
@@ -79,8 +80,8 @@ export class Config
         itemCache: {
             deferReplayPresenceSec: 0.3,
             clusterItemFetchSec: 0.1,
-            maxAgeSec: 3600,
-            maintenanceIntervalSec: 60,
+            maxAgeSec: 600,
+            maintenanceIntervalSec: 30,
         },
         room: {
             fadeInSec: 0.3,

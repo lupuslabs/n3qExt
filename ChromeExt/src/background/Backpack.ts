@@ -326,7 +326,7 @@ export class Backpack
             if (this.providers.has(providerName)) {
                 return this.providers.get(providerName);
             } else throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoItemProviderForItem, itemId + ' provider=' + providerName);
-        } else { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId); }
+        } else { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId + ' while Backpack.getProvider'); }
     }
 
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>

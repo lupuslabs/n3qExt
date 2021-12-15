@@ -344,6 +344,16 @@ export class BackgroundApp
         }
     }
 
+    checkMaintainHttpCache(): void
+    {
+        let now = Date.now();
+        let maintenanceIntervalSec = Config.get('httpCache.maintenanceIntervalSec', 60);
+        if (now - this.lastCacheMaintenanceTime > maintenanceIntervalSec * 1000) {
+            this.maintainHttpCache();
+            this.lastCacheMaintenanceTime = now;
+        }
+    }
+
     maintainHttpCache(): void
     {
         if (Utils.logChannel('backgroundFetchUrlCache', true)) { log.info('BackgroundApp.maintainHttpCache'); }
@@ -379,12 +389,7 @@ export class BackgroundApp
     lastCacheMaintenanceTime: number = 0;
     handle_fetchUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
     {
-        let now = Date.now();
-        let maintenanceIntervalSec = Config.get('httpCache.maintenanceIntervalSec', 60);
-        if (now - this.lastCacheMaintenanceTime > maintenanceIntervalSec * 1000) {
-            this.maintainHttpCache();
-            this.lastCacheMaintenanceTime = now;
-        }
+        this.checkMaintainHttpCache();
 
         let key = version + url;
         let isCached = version != '_nocache' && this.httpCacheData[key] != undefined;
@@ -418,7 +423,7 @@ export class BackgroundApp
                             this.httpCacheTime[key] = 0;
                         } else {
                             this.httpCacheData[key] = text;
-                            this.httpCacheTime[key] = now;
+                            this.httpCacheTime[key] = Date.now();
                         }
                         let response = { 'ok': true, 'data': text };
                         if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
@@ -991,7 +996,7 @@ export class BackgroundApp
             const timer = window.setTimeout(async () =>
             {
                 this.deferredReplayPresenceTimer.delete(timerKey);
-                
+
                 let stanza = this.presenceStateGetPresence(roomJid, participantNick);
                 if (stanza !== null) {
                     await this.recvStanza(stanza);
