@@ -5,6 +5,7 @@ import { xml } from '@xmpp/client';
 
 export interface IItemProvider
 {
+    init(): Promise<void>
     loadItems(): Promise<void>
     addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
@@ -13,4 +14,5 @@ export interface IItemProvider
     rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
     derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     getDependentPresence(itemId: string, roomJid: string): xml
+    onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void 
 }

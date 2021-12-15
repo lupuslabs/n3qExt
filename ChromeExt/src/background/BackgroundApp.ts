@@ -743,7 +743,7 @@ export class BackgroundApp
     handle_createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri, )
+            this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri,)
                 .then(item => { sendResponse(new CreateBackpackItemFromNftResponse(item.getProperties())); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
@@ -820,13 +820,13 @@ export class BackgroundApp
 
     // keep room state
 
-    private readonly fullJid2PresenceList: Map<string, Map<string, any>> = new Map<string, Map<string, any>>();
+    private readonly fullJid2PresenceList = new Map<string, Map<string, xml>>();
 
-    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: any): void
+    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: xml): void
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) { } else {
-            roomPresences = new Map<string, any>();
+            roomPresences = new Map<string, xml>();
             this.fullJid2PresenceList.set(roomJid, roomPresences);
         }
         roomPresences.set(participantNick, stanza);
@@ -846,6 +846,17 @@ export class BackgroundApp
         }
     }
 
+    presenceStateGetPresence(roomJid: string, participantNick: string): xml
+    {
+        let roomPresences = this.fullJid2PresenceList.get(roomJid);
+        if (roomPresences) {
+            if (roomPresences.has(participantNick)) {
+                return roomPresences.get(participantNick);
+            }
+        }
+        return null;
+    }
+
     presenceStateRemoveRoom(roomJid: string): void
     {
         if (this.fullJid2PresenceList.has(roomJid)) {
@@ -853,13 +864,13 @@ export class BackgroundApp
         }
     }
 
-    getPresenceStateOfRoom(roomJid: string): Map<string, any>
+    getPresenceStateOfRoom(roomJid: string): Map<string, xml>
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) {
             return roomPresences;
         }
-        return new Map<string, any>();
+        return new Map<string, xml>();
     }
 
     // send/recv stanza
@@ -963,13 +974,31 @@ export class BackgroundApp
     replayPresenceToTab(roomJid: string, tabId: number)
     {
         let roomPresences = this.getPresenceStateOfRoom(roomJid);
-        roomPresences.forEach((stanza, key) =>
-        {
+        for (let [nick, stanza] of roomPresences) {
             window.setTimeout(() =>
             {
                 ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
             }, 1);
-        });
+        }
+    }
+
+    private deferredReplayPresenceTimer = new Map<string, number>();
+
+    async replayPresence(roomJid: string, participantNick: string)
+    {
+        const timerKey = roomJid + '/' + participantNick;
+        if (!this.deferredReplayPresenceTimer.has(timerKey)) {
+            const timer = window.setTimeout(async () =>
+            {
+                this.deferredReplayPresenceTimer.delete(timerKey);
+                
+                let stanza = this.presenceStateGetPresence(roomJid, participantNick);
+                if (stanza !== null) {
+                    await this.recvStanza(stanza);
+                }
+            }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
+            this.deferredReplayPresenceTimer.set(timerKey, timer);
+        }
     }
 
     simulateUnavailableToTab(from: string, unavailableTabId: number)
@@ -1115,17 +1144,17 @@ export class BackgroundApp
         // this.sendStanza(xml('presence').append(xml('x', { xmlns: 'http://jabber.org/protocol/muc' })));
     }
 
-    private async recvStanza(stanza: xml)
+    private async recvStanza(xmlStanza: xml)
     {
         this.stanzasInCount++;
 
         let isConnectionPresence = false;
         {
-            if (stanza.name == 'presence') {
-                isConnectionPresence = stanza.attrs.from && (jid(stanza.attrs.from).getResource() == this.resource);
+            if (xmlStanza.name == 'presence') {
+                isConnectionPresence = xmlStanza.attrs.from && (jid(xmlStanza.attrs.from).getResource() == this.resource);
             }
             if (!isConnectionPresence) {
-                if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from); }
+                if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', xmlStanza, as.String(xmlStanza.attrs.type, xmlStanza.name == 'presence' ? 'available' : 'normal'), 'to=', xmlStanza.attrs.to, 'from=', xmlStanza.attrs.from); }
 
                 // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
                 //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
@@ -1141,53 +1170,58 @@ export class BackgroundApp
             }
         }
 
-        if (stanza.name == 'iq') {
-            if (stanza.attrs) {
-                let stanzaType = stanza.attrs.type;
-                let stanzaId = stanza.attrs.id;
+        if (this.backpack) {
+            xmlStanza = await this.backpack.stanzaInFilter(xmlStanza);
+            if (xmlStanza == null) { return; }
+        }
+
+        if (xmlStanza.name == 'iq') {
+            if (xmlStanza.attrs) {
+                let stanzaType = xmlStanza.attrs.type;
+                let stanzaId = xmlStanza.attrs.id;
                 if (stanzaType == 'result' && stanzaId) {
                     let tabId = this.iqStanzaTabId[stanzaId];
                     if (tabId) {
                         delete this.iqStanzaTabId[stanzaId];
-                        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                     }
                 }
 
                 if (stanzaType == 'get' && stanzaId) {
-                    await this.onIqGet(stanza);
+                    await this.onIqGet(xmlStanza);
                 }
             }
         }
 
-        if (stanza.name == 'message') {
-            let from = jid(stanza.attrs.from);
+        if (xmlStanza.name == 'message') {
+            let from = jid(xmlStanza.attrs.from);
             let room = from.bare().toString();
 
             let tabIds = this.getRoomJid2TabIds(room);
             if (tabIds) {
                 for (let i = 0; i < tabIds.length; i++) {
                     let tabId = tabIds[i];
-                    ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                    ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                 }
             }
         }
 
-        if (stanza.name == 'presence') {
-            let from = jid(stanza.attrs.from);
+        if (xmlStanza.name == 'presence') {
+            let from = jid(xmlStanza.attrs.from);
             let room = from.bare().toString();
             let nick = from.getResource();
 
             if (nick != '') {
-                if (as.String(stanza.attrs['type'], 'available') == 'available') {
+                if (as.String(xmlStanza.attrs['type'], 'available') == 'available') {
                     if (!isConnectionPresence) {
-                        this.presenceStateAddPresence(room, nick, stanza);
+                        this.presenceStateAddPresence(room, nick, xmlStanza);
                     }
                 } else {
                     this.presenceStateRemovePresence(room, nick);
                 }
 
                 let unavailableTabId: number = -1;
-                if (stanza.attrs && stanza.attrs['type'] == 'unavailable') {
+                if (xmlStanza.attrs && xmlStanza.attrs['type'] == 'unavailable') {
                     unavailableTabId = this.fullJid2TabWhichSentUnavailable[from];
                     if (unavailableTabId) {
                         delete this.fullJid2TabWhichSentUnavailable[from];
@@ -1195,7 +1229,7 @@ export class BackgroundApp
                 }
 
                 if (unavailableTabId >= 0) {
-                    ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                    ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                     this.removeRoomJid2TabId(room, unavailableTabId);
                     if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.recvStanza', 'removing room2tab mapping', room, '=>', unavailableTabId, 'now:', this.roomJid2tabId); }
                 } else {
@@ -1203,7 +1237,7 @@ export class BackgroundApp
                     if (tabIds) {
                         for (let i = 0; i < tabIds.length; i++) {
                             let tabId = tabIds[i];
-                            ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                            ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                         }
                     }
                 }

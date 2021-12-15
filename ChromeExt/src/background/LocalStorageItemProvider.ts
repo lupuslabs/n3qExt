@@ -129,6 +129,10 @@ export class LocalStorageItemProvider implements IItemProvider
 
     // API
 
+    async init(): Promise<void>
+    {
+    }
+
     async loadItems(): Promise<void>
     {
         await this.loadLocalItems();
@@ -365,5 +369,9 @@ export class LocalStorageItemProvider implements IItemProvider
         }
         presence.append(xml('x', attrs));
         return presence;
+    }
+
+    onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void 
+    {
     }
 }

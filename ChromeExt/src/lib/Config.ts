@@ -76,6 +76,12 @@ export class Config
             maxAgeSec: 3600,
             maintenanceIntervalSec: 60,
         },
+        itemCache: {
+            deferReplayPresenceSec: 0.3,
+            clusterItemFetchSec: 0.1,
+            maxAgeSec: 3600,
+            maintenanceIntervalSec: 60,
+        },
         room: {
             fadeInSec: 0.3,
             quickSlideSec: 0.1,

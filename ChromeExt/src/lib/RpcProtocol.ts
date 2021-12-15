@@ -98,12 +98,13 @@ export namespace RpcProtocol
         constructor(
             public user: string,
             public token: string,
+            public owner: string,
             public itemIds: string[],
         ) { super(); }
     }
     export class UserGetItemPropertiesResponse extends InventoryResponse
     {
-        itemPropertySet: string[];
+        multiItemProperties: { [id: string]: ItemProperties; };
     }
 
     export class UserItemActionRequest extends InventoryRequest

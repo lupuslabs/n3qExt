@@ -103,15 +103,20 @@ export class Backpack
         let providerConfigs = Config.get('itemProviders', {});
         for (let providerId in providerConfigs) {
             const providerConfig = providerConfigs[providerId];
+            let provider: IItemProvider = null;
             switch (as.String(providerConfig.type, 'unknown')) {
                 case LocalStorageItemProvider.type:
-                    this.providers.set(providerId, new LocalStorageItemProvider(this, providerId, providerConfig.config));
+                    provider = new LocalStorageItemProvider(this, providerId, providerConfig.config);
                     break;
                 case HostedInventoryItemProvider.Provider.type:
-                    this.providers.set(providerId, new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Config>providerConfig.config));
+                    provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Config>providerConfig.config);
                     break;
                 default:
                     break;
+            }
+            if (provider != null) {
+                this.providers.set(providerId, provider);
+                provider.init();
             }
         }
 
@@ -498,11 +503,10 @@ export class Backpack
 
     stanzaOutFilter(stanza: xml): any
     {
-        let toJid = new jid(stanza.attrs.to);
-        let roomJid = toJid.bare().toString();
-        let itemNick = toJid.getResource();
-
         if (stanza.name == 'presence') {
+            let toJid = new jid(stanza.attrs.to);
+            let roomJid = toJid.bare().toString();
+
             if (as.String(stanza.attrs['type'], 'available') == 'available') {
 
                 var rezzedIds = this.rooms[roomJid];
@@ -517,6 +521,44 @@ export class Backpack
         }
 
         return stanza;
+    }
+
+    async stanzaInFilter(stanza: xml): Promise<any>
+    {
+        if (stanza.name == 'presence') {
+            const fromJid = new jid(stanza.attrs.from);
+            const roomJid = fromJid.bare().toString();
+            const participantNick = fromJid.getResource();
+    
+            if (as.String(stanza.attrs['type'], 'available') == 'available') {
+                const vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
+                if (vpDependent) {
+                    const dependentPresences = vpDependent.getChildren('presence');
+                    if (dependentPresences.length > 0) {
+                        for (let i = 0; i < dependentPresences.length; i++) {
+                            const dependentPresence = dependentPresences[i];
+                            const dependentFrom = jid(dependentPresence.attrs.from);
+                            const itemId = dependentFrom.getResource();
+                            const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+                            if (vpProps) {
+                                const providerName = as.String(vpProps.attrs['provider'], '');
+                                if (this.providers.has(providerName)) {
+                                    const provider = this.providers.get(providerName);
+                                    await provider.onDependentPresenceReceived(itemId, roomJid, participantNick, dependentPresence);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return stanza;
+    }
+
+    async replayPresence(roomJid: string, participantNick: string)
+    {
+        await this.app.replayPresence(roomJid, participantNick);
     }
 
     private warningNotificatonTime = 0;
