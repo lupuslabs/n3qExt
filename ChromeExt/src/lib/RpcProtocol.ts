@@ -71,59 +71,70 @@ export namespace RpcProtocol
 
     // --------------------------------------
 
-    export class InventoryRequest extends Request
+    export class ItemApiRequest extends Request
     {
     }
 
-    export class InventoryResponse extends Response
+    export class ItemApiResponse extends Response
     {
     }
 
-    export class UserGetItemIdsRequest extends InventoryRequest
+    export class UserItemApiRequest extends ItemApiRequest
     {
-        public readonly method = 'User.GetItemIds';
-        constructor(
-            public user: string,
-            public token: string,
-        ) { super(); }
-    }
-    export class UserGetItemIdsResponse extends InventoryResponse
-    {
-        itemIds: string[];
-    }
-
-    export class UserGetItemPropertiesRequest extends InventoryRequest
-    {
-        public readonly method = 'User.GetItemProperties';
         constructor(
             public user: string,
             public token: string,
             public owner: string,
-            public itemIds: string[],
         ) { super(); }
     }
-    export class UserGetItemPropertiesResponse extends InventoryResponse
+
+    export class UserGetItemIdsRequest extends UserItemApiRequest
+    {
+        public readonly method = 'User.GetItemIds';
+        constructor(
+            user: string,
+            token: string,
+            owner: string,
+        ) { super(user, token, owner); }
+    }
+    export class UserGetItemIdsResponse extends ItemApiResponse
+    {
+        items: string[];
+    }
+
+    export class UserGetItemPropertiesRequest extends UserItemApiRequest
+    {
+        public readonly method = 'User.GetItemProperties';
+        constructor(
+            user: string,
+            token: string,
+            owner: string,
+            public items: string[],
+            ) { super(user, token, owner); }
+        }
+    export class UserGetItemPropertiesResponse extends ItemApiResponse
     {
         multiItemProperties: { [id: string]: ItemProperties; };
     }
 
-    export class UserItemActionRequest extends InventoryRequest
+    export class UserItemActionRequest extends UserItemApiRequest
     {
         public readonly method = 'User.ItemAction';
         constructor(
-            public user: string,
-            public token: string,
-            public itemId: string,
+            user: string,
+            token: string,
+            owner: string,
+            public item: string,
             public action: string,
             public args: any,
-            public itemIds: string[],
-        ) { super(); }
+            public involvedItems: string[],
+            ) { super(user, token, owner); }
     }
-    export class UserItemActionResponse extends InventoryResponse
+    export class UserItemActionResponse extends ItemApiResponse
     {
-        createdIds: string[];
-        changedIds: string[];
-        deletedIds: string[];
+        created: string[];
+        changed: string[];
+        deleted: string[];
     }
 
 }

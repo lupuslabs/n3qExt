@@ -56,9 +56,9 @@ export namespace HostedInventoryItemProvider
         {
             let itemIds = [];
             try {
-                let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken);
+                let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
                 const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config.apiUrl, request);
-                itemIds = response.itemIds;
+                itemIds = response.items;
             } catch (ex) {
                 this.handleException(ex);
             }
@@ -154,6 +154,7 @@ export namespace HostedInventoryItemProvider
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
                     this.accessToken,
+                    this.userId,
                     itemId,
                     action,
                     args,
@@ -161,9 +162,9 @@ export namespace HostedInventoryItemProvider
                 );
                 const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config.apiUrl, request);
 
-                createdIds = response.createdIds;
-                deletedIds = response.deletedIds;
-                changedIds = response.changedIds;
+                createdIds = response.created;
+                deletedIds = response.deleted;
+                changedIds = response.changed;
 
             } catch (ex) {
                 this.handleException(ex);

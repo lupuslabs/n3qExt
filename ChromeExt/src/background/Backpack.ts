@@ -320,7 +320,7 @@ export class Backpack
 
     getProvider(itemId: string): IItemProvider
     {
-        const item = this.items[itemId];
+        const item = this.getItem(itemId);
         if (item) {
             const providerName = as.String(item.getProperties()[Pid.Provider], '');
             if (this.providers.has(providerName)) {
