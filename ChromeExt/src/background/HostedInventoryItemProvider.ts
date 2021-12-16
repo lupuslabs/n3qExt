@@ -245,6 +245,14 @@ export namespace HostedInventoryItemProvider
             if (deletedIds) {
                 for (let i = 0; i < deletedIds.length; i++) {
                     const id = deletedIds[i];
+                    const item = this.backpack.getItem(id);
+                    if (item != null) {
+                        const wasRezzed = item.isRezzed();
+                        const room = item.getProperties()[Pid.RezzedLocation];
+                        if (wasRezzed) {
+                            changedRooms.add(room);
+                        }
+                    }
                     this.backpack.sendRemoveItemToAllTabs(id);
                     this.backpack.deleteRepositoryItem(id);
                 }
@@ -400,7 +408,7 @@ export namespace HostedInventoryItemProvider
                             itemId, cacheEntry.roomJid, cacheEntry.participantNick);
                     }
                     const cachedProps = cacheEntry.getProperties();
-    
+
                     const cachedVersion = as.Int(cachedProps[Pid.Version], -1);
 
                     let cacheIsGood = true;
@@ -448,7 +456,7 @@ export namespace HostedInventoryItemProvider
                     const deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                     this.deferredItemPropertiesRequests.delete(timerKey);
 
-                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'owner='+deferredRequest.ownerId, Array.from(deferredRequest.itemIds).join(' ')); }
+                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'owner=' + deferredRequest.ownerId, Array.from(deferredRequest.itemIds).join(' ')); }
 
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.ownerId, Array.from(deferredRequest.itemIds));
                     this.rpcClient.call(this.config.apiUrl, request)
@@ -470,7 +478,7 @@ export namespace HostedInventoryItemProvider
                                     log.info('HostedInventoryItemProvider.maintainItemCache', 'set',
                                         id, cacheEntry.roomJid, cacheEntry.participantNick);
                                 }
-                
+
                                 await this.forwardCachedProperties(id);
                             }
                         })
