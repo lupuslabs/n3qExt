@@ -16,8 +16,6 @@ import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { RpcClient } from '../lib/RpcClient';
-//const Web3 = require('web3');
-const Web3Eth = require('web3-eth');
 
 export class Backpack
 {
@@ -116,177 +114,53 @@ export class Backpack
             }
             if (provider != null) {
                 this.providers.set(providerId, provider);
-                provider.init();
             }
         }
 
-        for (let [name, provider] of this.providers) {
-            await provider.loadItems();
+        {
+            let failedProviderNames = new Set<string>();
+            for (let [name, provider] of this.providers) {
+                try {
+                    await provider.init();
+                } catch (error) {
+                    failedProviderNames.add(name);
+                }
+            }
+            for (let name of failedProviderNames) {
+                log.info('HostedInventoryItemProvider.init', 'provider.init() failed, removing', name);
+                this.providers.delete(name);
+            }
         }
 
-        if (Config.get('backpack.loadWeb3Items', false)) {
-            await this.loadWeb3Items();
+        {
+            let failedProviderNames = new Set<string>();
+            for (let [name, provider] of this.providers) {
+                try {
+                    await provider.loadItems();
+                } catch (error) {
+                    failedProviderNames.add(name);
+                }
+            }
+            for (let name of failedProviderNames) {
+                log.info('HostedInventoryItemProvider.init', 'provider.loadItems() failed, removing', name);
+                this.providers.delete(name);
+            }
         }
     }
 
     async loadWeb3Items(): Promise<void>
     {
-        let currentWeb3ItemIds = this.findItems(props => { return (as.Bool(props[Pid.Web3BasedAspect], false)); }).map(item => item.getProperties()[Pid.Id]);
-        let unverifiedWeb3ItemIds = currentWeb3ItemIds;
-
-        let wallets = this.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
-        if (wallets.length == 0) {
-            if (Utils.logChannel('web3', true)) { log.info('backpack.loadWeb3Items', 'No wallet item'); }
-            return;
-        }
-
-        for (let walletsIdx = 0; walletsIdx < wallets.length; walletsIdx++) {
-            let wallet = wallets[walletsIdx];
-            let walletAddress = wallet.getProperties()[Pid.Web3WalletAddress];
-            let network = wallet.getProperties()[Pid.Web3WalletNetwork];
-
-            let web3ItemIdsOfWallet = await this.loadWeb3ItemsForWallet(walletAddress, network);
-
-            for (let claimItemIdsOfWalletIdx = 0; claimItemIdsOfWalletIdx < web3ItemIdsOfWallet.length; claimItemIdsOfWalletIdx++) {
-                let id = web3ItemIdsOfWallet[claimItemIdsOfWalletIdx];
-                const index = unverifiedWeb3ItemIds.indexOf(id, 0);
-                if (index > -1) { unverifiedWeb3ItemIds.splice(index, 1); }
-            }
-        }
-
-        for (let previouWeb3ItemIdsIdx = 0; previouWeb3ItemIdsIdx < unverifiedWeb3ItemIds.length; previouWeb3ItemIdsIdx++) {
-            this.deleteItem(unverifiedWeb3ItemIds[previouWeb3ItemIdsIdx], { skipContentNotification: true, skipPresenceUpdate: true });
-        }
+        return await this.getProviderFromName('nine3q').loadWeb3Items();
     }
 
-    async loadWeb3ItemsForWallet(walletAddress: string, network: string): Promise<Array<string>>
+    async createItemByTemplate(templateName: string, args: ItemProperties): Promise<string>
     {
-        if (walletAddress == '' || network == '') {
-            log.info('backpack.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
-            return [];
-        }
-
-        let idsCreatedByWallet: Array<string> = [];
-
-        try {
-            let contractAddress = Config.get('web3.weblinItemContractAddess.' + network, '');
-            let contractABI = Config.get('web3.weblinItemContractAbi', null);
-            if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
-            } else {
-                let httpProvider = Config.get('web3.provider.' + network, '');
-                let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
-                for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
-                    idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
-                }
-            }
-        } catch (error) {
-            log.info(error);
-        }
-
-        try {
-            let contracts = this.findItems(props => { return (as.Bool(props[Pid.Web3ContractAspect], false)); });
-            for (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
-                let contract = contracts[contractIdx];
-
-                let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
-                let contractABI = Config.get('web3.minimumItemableContractAbi', null);
-                if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                    log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
-                } else {
-                    let httpProvider = Config.get('web3.provider.' + network, '');
-                    let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
-                    for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
-                        idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
-                    }
-                }
-
-            }
-        } catch (error) {
-            log.info(error);
-        }
-
-        return idsCreatedByWallet;
+        return await this.getProviderFromName('nine3q').createItemByTemplate(templateName, args);
     }
 
-    async loadWeb3ItemsForWalletFromContract(walletAddress: string, httpProvider: string, contractAddress: string, contractABI: any): Promise<Array<string>>
+    async createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>
     {
-        let createdIds: Array<string> = [];
-
-        let web3eth = new Web3Eth(new Web3Eth.providers.HttpProvider(httpProvider));
-        let contract = new web3eth.Contract(contractABI, contractAddress);
-        let numberOfItems = await contract.methods.balanceOf(walletAddress).call();
-        for (let i = 0; i < numberOfItems; i++) {
-            let tokenId = await contract.methods.tokenOfOwnerByIndex(walletAddress, i).call();
-            let tokenUri = await contract.methods.tokenURI(tokenId).call();
-
-            if (Config.get('config.clusterName', 'prod') == 'dev') {
-                tokenUri = tokenUri.replace('https://webit.vulcan.weblin.com/', 'http://localhost:5000/');
-                tokenUri = tokenUri.replace('https://item.weblin.com/', 'http://localhost:5000/');
-            }
-
-            let response = await fetch(tokenUri);
-
-            if (!response.ok) {
-                log.info('backpack.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
-            } else {
-                const metadata = await response.json();
-
-                let ids = await this.getOrCreateWeb3ItemFromMetadata(walletAddress, metadata);
-                for (let i = 0; i < ids.length; i++) {
-                    createdIds.push(ids[i]);
-                }
-
-            }
-        }
-
-        return createdIds;
-    }
-
-    async getOrCreateWeb3ItemFromMetadata(ownerAddress: string, metadata: any): Promise<Array<string>>
-    {
-        let data = metadata.data;
-        if (data == null) {
-            log.info('backpack.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
-            return [];
-        }
-
-        let knownIds: Array<string> = [];
-
-        data[Pid.Web3BasedOwner] = ownerAddress;
-
-        let template = as.String(data[Pid.Template], '');
-        switch (template) {
-
-            case 'CryptoClaim': {
-                let domain = as.String(data[Pid.ClaimUrl], '');
-                let existingItems = this.findItems(props =>
-                {
-                    return as.Bool(props[Pid.Web3BasedAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
-                });
-                if (existingItems.length == 0) {
-                    try {
-                        let item = await this.createItemByTemplate(template, data);
-                        knownIds.push(item.getId());
-                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, item.getId()); }
-                    } catch (error) {
-                        log.info(error);
-                    }
-                } else {
-                    for (let i = 0; i < existingItems.length; i++) {
-                        let item = existingItems[i];
-                        knownIds.push(item.getId());
-                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, item.getId()); }
-                    }
-                }
-            } break;
-
-            default:
-                log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
-                break;
-        }
-
-        return knownIds;
+        return await this.getProviderFromName('nine3q').createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri);
     }
 
     async getOrCreatePointsItem(): Promise<Item>
@@ -306,12 +180,16 @@ export class Backpack
             }
             return maxItem;
         } else if (pointsItems.length == 0) {
-            let template = 'Points';
-            try {
-                return await this.createItemByTemplate(template, {});
-            } catch (error) {
-                log.info('Backpack.getOrCreatePointsItem', 'failed to create item', template, error);
-            }
+            // Points item is now server based. 
+            // Will be restored by Config call if deleted.
+            // Not created on the fly here as before
+
+            // let template = 'Points';
+            // try {
+            //     return await this.createItemByTemplate(template, {});
+            // } catch (error) {
+            //     log.info('Backpack.getOrCreatePointsItem', 'failed to create item', template, error);
+            // }
             return null;
         } else if (pointsItems.length == 1) {
             return pointsItems[0]
@@ -322,16 +200,33 @@ export class Backpack
     {
         const item = this.getItem(itemId);
         if (item) {
-            const providerName = as.String(item.getProperties()[Pid.Provider], '');
-            if (this.providers.has(providerName)) {
-                return this.providers.get(providerName);
-            } else throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoItemProviderForItem, itemId + ' provider=' + providerName);
-        } else { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId + ' while Backpack.getProvider'); }
+            return this.getProviderFromProperties(item.getProperties());
+        }
+        throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId + ' while Backpack.getProvider');
+    }
+
+    getProviderFromProperties(props: ItemProperties): IItemProvider
+    {
+        const providerName = as.String(props[Pid.Provider], '');
+        try {
+            return this.getProviderFromName(providerName);
+        } catch (error) {
+            const itemId = as.String(props[Pid.Id], 'no-id');
+            throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoItemProviderForItem, itemId + ' provider=' + providerName);
+        }
+    }
+
+    getProviderFromName(name: string): IItemProvider
+    {
+        if (this.providers.has(name)) {
+            return this.providers.get(name);
+        }
+        throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItemProvider, name);
     }
 
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
-        await this.getProvider(itemId).addItem(itemId, props, options);
+        await this.getProviderFromProperties(props).addItem(itemId, props, options);
     }
 
     async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
@@ -418,74 +313,6 @@ export class Backpack
         await this.getProvider(itemId).modifyItemProperties(itemId, changed, deleted, options);
     }
 
-    createItemByTemplate(templateName: string, args: ItemProperties): Promise<Item>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-
-                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
-
-                let providerId = 'nine3q';
-                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
-                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
-
-                let request = new RpcProtocol.BackpackCreateRequest();
-                request.method = RpcProtocol.BackpackCreateRequest.method;
-                request.user = userId;
-                request.template = templateName;
-                request.args = args;
-
-                let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
-
-                let props = response.properties;
-                let itemId = props.Id;
-                await this.addItem(itemId, props, {});
-                let item = this.items[itemId];
-
-                resolve(item);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
-    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<Item>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-
-                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
-
-                let providerId = 'nine3q';
-                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
-                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
-
-                let request = new RpcProtocol.BackpackCreateNftRequest();
-                request.method = RpcProtocol.BackpackCreateNftRequest.method;
-                request.user = userId;
-                request.contractNetwork = contractNetwork;
-                request.contractAddress = contractAddress;
-                request.tokenId = tokenId;
-                request.tokenUri = tokenUri;
-
-                let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
-
-                let props = response.properties;
-                let itemId = props.Id;
-                await this.addItem(itemId, props, {});
-                let item = this.items[itemId];
-
-                resolve(item);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
     async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
     {
         await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
@@ -529,7 +356,7 @@ export class Backpack
             const fromJid = new jid(stanza.attrs.from);
             const roomJid = fromJid.bare().toString();
             const participantNick = fromJid.getResource();
-    
+
             if (as.String(stanza.attrs['type'], 'available') == 'available') {
                 const vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
                 if (vpDependent) {

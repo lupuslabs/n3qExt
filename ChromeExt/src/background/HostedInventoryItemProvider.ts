@@ -84,6 +84,7 @@ export namespace HostedInventoryItemProvider
                 }
             } catch (error) {
                 log.info('HostedInventoryItemProvider.init', error);
+                throw error;
             }
         }
 
@@ -94,8 +95,9 @@ export namespace HostedInventoryItemProvider
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
                 const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().apiUrl, request);
                 itemIds = response.items;
-            } catch (ex) {
-                this.handleException(ex);
+            } catch (error) {
+                // this.handleException(ex);
+                throw error;
             }
 
             let multiItemProperties = {};
@@ -104,8 +106,9 @@ export namespace HostedInventoryItemProvider
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, itemIds);
                     const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().apiUrl, request);
                     multiItemProperties = response.multiItemProperties;
-                } catch (ex) {
-                    this.handleException(ex);
+                } catch (error) {
+                    // this.handleException(ex);
+                    throw error;
                 }
             }
 
@@ -118,8 +121,26 @@ export namespace HostedInventoryItemProvider
             }
         }
 
+        async loadWeb3Items(): Promise<void>
+        {
+            log.info('HostedInventoryItemProvider.loadWeb3Items', 'not implemented');
+        }
+
+        async createItemByTemplate(templateName: string, args: ItemProperties): Promise<string>
+        {
+            log.info('HostedInventoryItemProvider.createItemByTemplate', 'not implemented');
+            return null;
+        }
+
+        async createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>
+        {
+            log.info('HostedInventoryItemProvider.createItemByNft', 'not implemented');
+            return null;
+        }
+
         async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
         {
+            log.info('HostedInventoryItemProvider.addItem', 'not implemented');
         }
 
         async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>

@@ -735,7 +735,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             this.backpack.createItemByTemplate(template, args)
-                .then(item => { sendResponse(new CreateBackpackItemFromTemplateResponse(item.getProperties())); })
+                .then(itemId => { sendResponse(new CreateBackpackItemFromTemplateResponse(this.backpack.getItem(itemId).getProperties())); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {
@@ -749,7 +749,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri,)
-                .then(item => { sendResponse(new CreateBackpackItemFromNftResponse(item.getProperties())); })
+                .then(itemId => { sendResponse(new CreateBackpackItemFromNftResponse(this.backpack.getItem(itemId).getProperties())); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {

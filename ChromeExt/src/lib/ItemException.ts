@@ -135,7 +135,8 @@ export namespace ItemException
         CapacityLimit,
         NetworkProblem,
         CantDropOnSelf,
-        NoItemProviderForItem
+        NoItemProviderForItem,
+        NoSuchItemProvider
     }
 }
 

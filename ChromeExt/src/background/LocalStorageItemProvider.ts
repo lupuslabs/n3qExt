@@ -11,6 +11,8 @@ import { RpcProtocol } from '../lib/RpcProtocol';
 import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
 import { IItemProvider } from './ItemProvider';
+import { Item } from './Item';
+const Web3Eth = require('web3-eth');
 
 export class LocalStorageItemProvider implements IItemProvider
 {
@@ -19,7 +21,7 @@ export class LocalStorageItemProvider implements IItemProvider
     private static BackpackPropsPrefix = 'BackpackItem-';
     private rpcClient: RpcClient = new RpcClient();
 
-    constructor(private backpack: Backpack, private id, private config: any)
+    constructor(private backpack: Backpack, private id, private providerDescription: any)
     {
     }
 
@@ -89,6 +91,233 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
+    async loadWeb3Items(): Promise<void>
+    {
+        let currentWeb3ItemIds = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3BasedAspect], false)); }).map(item => item.getProperties()[Pid.Id]);
+        let unverifiedWeb3ItemIds = currentWeb3ItemIds;
+
+        let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
+        if (wallets.length == 0) {
+            if (Utils.logChannel('web3', true)) { log.info('backpack.loadWeb3Items', 'No wallet item'); }
+            return;
+        }
+
+        for (let walletsIdx = 0; walletsIdx < wallets.length; walletsIdx++) {
+            let wallet = wallets[walletsIdx];
+            let walletAddress = wallet.getProperties()[Pid.Web3WalletAddress];
+            let network = wallet.getProperties()[Pid.Web3WalletNetwork];
+
+            let web3ItemIdsOfWallet = await this.loadWeb3ItemsForWallet(walletAddress, network);
+
+            for (let claimItemIdsOfWalletIdx = 0; claimItemIdsOfWalletIdx < web3ItemIdsOfWallet.length; claimItemIdsOfWalletIdx++) {
+                let id = web3ItemIdsOfWallet[claimItemIdsOfWalletIdx];
+                const index = unverifiedWeb3ItemIds.indexOf(id, 0);
+                if (index > -1) { unverifiedWeb3ItemIds.splice(index, 1); }
+            }
+        }
+
+        for (let previouWeb3ItemIdsIdx = 0; previouWeb3ItemIdsIdx < unverifiedWeb3ItemIds.length; previouWeb3ItemIdsIdx++) {
+            this.deleteItem(unverifiedWeb3ItemIds[previouWeb3ItemIdsIdx], { skipContentNotification: true, skipPresenceUpdate: true });
+        }
+    }
+
+    async loadWeb3ItemsForWallet(walletAddress: string, network: string): Promise<Array<string>>
+    {
+        if (walletAddress == '' || network == '') {
+            log.info('backpack.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
+            return [];
+        }
+
+        let idsCreatedByWallet: Array<string> = [];
+
+        try {
+            let contractAddress = Config.get('web3.weblinItemContractAddess.' + network, '');
+            let contractABI = Config.get('web3.weblinItemContractAbi', null);
+            if (contractAddress == null || contractAddress == '' || contractABI == null) {
+                log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+            } else {
+                let httpProvider = Config.get('web3.provider.' + network, '');
+                let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
+                for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
+                    idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
+                }
+            }
+        } catch (error) {
+            log.info(error);
+        }
+
+        try {
+            let contracts = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3ContractAspect], false)); });
+            for (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
+                let contract = contracts[contractIdx];
+
+                let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
+                let contractABI = Config.get('web3.minimumItemableContractAbi', null);
+                if (contractAddress == null || contractAddress == '' || contractABI == null) {
+                    log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+                } else {
+                    let httpProvider = Config.get('web3.provider.' + network, '');
+                    let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
+                    for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
+                        idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
+                    }
+                }
+
+            }
+        } catch (error) {
+            log.info(error);
+        }
+
+        return idsCreatedByWallet;
+    }
+
+    async loadWeb3ItemsForWalletFromContract(walletAddress: string, httpProvider: string, contractAddress: string, contractABI: any): Promise<Array<string>>
+    {
+        let createdIds: Array<string> = [];
+
+        let web3eth = new Web3Eth(new Web3Eth.providers.HttpProvider(httpProvider));
+        let contract = new web3eth.Contract(contractABI, contractAddress);
+        let numberOfItems = await contract.methods.balanceOf(walletAddress).call();
+        for (let i = 0; i < numberOfItems; i++) {
+            let tokenId = await contract.methods.tokenOfOwnerByIndex(walletAddress, i).call();
+            let tokenUri = await contract.methods.tokenURI(tokenId).call();
+
+            if (Config.get('config.clusterName', 'prod') == 'dev') {
+                tokenUri = tokenUri.replace('https://webit.vulcan.weblin.com/', 'http://localhost:5000/');
+                tokenUri = tokenUri.replace('https://item.weblin.com/', 'http://localhost:5000/');
+            }
+
+            let response = await fetch(tokenUri);
+
+            if (!response.ok) {
+                log.info('backpack.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
+            } else {
+                const metadata = await response.json();
+
+                let ids = await this.getOrCreateWeb3ItemFromMetadata(walletAddress, metadata);
+                for (let i = 0; i < ids.length; i++) {
+                    createdIds.push(ids[i]);
+                }
+
+            }
+        }
+
+        return createdIds;
+    }
+
+    async getOrCreateWeb3ItemFromMetadata(ownerAddress: string, metadata: any): Promise<Array<string>>
+    {
+        let data = metadata.data;
+        if (data == null) {
+            log.info('backpack.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
+            return [];
+        }
+
+        let knownIds: Array<string> = [];
+
+        data[Pid.Web3BasedOwner] = ownerAddress;
+
+        let template = as.String(data[Pid.Template], '');
+        switch (template) {
+
+            case 'CryptoClaim': {
+                let domain = as.String(data[Pid.ClaimUrl], '');
+                let existingItems = this.backpack.findItems(props =>
+                {
+                    return as.Bool(props[Pid.Web3BasedAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
+                });
+                if (existingItems.length == 0) {
+                    try {
+                        let itemId = await this.createItemByTemplate(template, data);
+                        knownIds.push(itemId);
+                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId); }
+                    } catch (error) {
+                        log.info(error);
+                    }
+                } else {
+                    for (let i = 0; i < existingItems.length; i++) {
+                        let item = existingItems[i];
+                        let itemId = item.getId();
+                        knownIds.push(itemId);
+                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
+                    }
+                }
+            } break;
+
+            default:
+                log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
+                break;
+        }
+
+        return knownIds;
+    }
+
+    createItemByTemplate(templateName: string, args: ItemProperties): Promise<string>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+
+                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
+
+                let providerId = 'nine3q';
+                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
+                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
+
+                let request = new RpcProtocol.BackpackCreateRequest();
+                request.method = RpcProtocol.BackpackCreateRequest.method;
+                request.user = userId;
+                request.template = templateName;
+                request.args = args;
+
+                let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
+
+                let props = response.properties;
+                let itemId = props.Id;
+                await this.addItem(itemId, props, {});
+
+                resolve(itemId);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+
+                let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
+
+                let providerId = 'nine3q';
+                let apiUrl = Config.get('itemProviders.' + providerId + '.config.backpackApiUrl', '');
+                if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + providerId); }
+
+                let request = new RpcProtocol.BackpackCreateNftRequest();
+                request.method = RpcProtocol.BackpackCreateNftRequest.method;
+                request.user = userId;
+                request.contractNetwork = contractNetwork;
+                request.contractAddress = contractAddress;
+                request.tokenId = tokenId;
+                request.tokenUri = tokenUri;
+
+                let response = <RpcProtocol.BackpackCreateResponse>await this.rpcClient.call(apiUrl, request);
+
+                let props = response.properties;
+                let itemId = props.Id;
+                await this.addItem(itemId, props, {});
+
+                resolve(itemId);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     // API
 
     async init(): Promise<void>
@@ -98,6 +327,10 @@ export class LocalStorageItemProvider implements IItemProvider
     async loadItems(): Promise<void>
     {
         await this.loadLocalItems();
+
+        if (Config.get('backpack.loadWeb3Items', false)) {
+            await this.loadWeb3Items();
+        }
     }
 
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
@@ -136,20 +369,20 @@ export class LocalStorageItemProvider implements IItemProvider
                 await this.derezItem(itemId, roomJid, -1, -1, {}, [], options);
             }
 
-            if (!options.skipPersistentStorage) {
-                this.persistentDeleteItem(itemId);
-            }
-
-            if (!options.skipContentNotification) {
-                this.backpack.sendRemoveItemToAllTabs(itemId);
-            }
-
             if (!options.skipPresenceUpdate) {
                 item.sendPresence();
             }
-
-            this.backpack.deleteRepositoryItem(itemId);
         }
+
+        if (!options.skipPersistentStorage) {
+            this.persistentDeleteItem(itemId);
+        }
+
+        if (!options.skipContentNotification) {
+            this.backpack.sendRemoveItemToAllTabs(itemId);
+        }
+
+        this.backpack.deleteRepositoryItem(itemId);
     }
 
     async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
@@ -179,7 +412,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
                 if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoUserId); }
 
-                let apiUrl = as.String(this.config.backpackApiUrl, '');
+                let apiUrl = as.String(this.providerDescription.config.backpackApiUrl, '');
                 if (apiUrl == null || apiUrl == '') { throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi for ' + this.id); }
 
                 let roomJid = null;
@@ -323,7 +556,7 @@ export class LocalStorageItemProvider implements IItemProvider
         const props = item.getProperties();
         var presence = xml('presence', { 'from': roomJid + '/' + itemId });
         let attrs = { 'xmlns': 'vp:props', 'type': 'item', 'provider': this.id };
-        let signed = as.String(props[Pid.Signed] , '').split(' ');
+        let signed = as.String(props[Pid.Signed], '').split(' ');
         for (let pid in props) {
             if (Property.inPresence(pid) || (signed.length > 0 && signed.includes(pid))) {
                 attrs[pid] = props[pid];
