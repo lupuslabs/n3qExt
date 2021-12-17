@@ -229,7 +229,6 @@ export class Config
                 name: 'weblin.io Items (client storage)',
                 type: 'LocalStorageItemProvider',
                 description: 'Things on web pages managed by the client in a distributed fashion',
-                configUrl: 'https://webit.vulcan.weblin.com/Config?id={id}&client={client}',
                 config: {
                     apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                     backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
@@ -240,7 +239,7 @@ export class Config
                 name: 'weblin.io Items',
                 type: 'HostedInventoryItemProvider',
                 description: 'Things on web pages',
-                configUrl: 'https://webit.vulcan.weblin.com/ItemApi/Get?body=%7B%22method%22:%22GetConfig%22,%22user%22:%22{id}%22,%22client%22:%22{client}%22%7D',
+                configUrl: 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}',
                 config: {
                     apiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
                 },

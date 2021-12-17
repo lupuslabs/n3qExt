@@ -106,10 +106,10 @@ export class Backpack
             let provider: IItemProvider = null;
             switch (as.String(providerConfig.type, 'unknown')) {
                 case LocalStorageItemProvider.type:
-                    provider = new LocalStorageItemProvider(this, providerId, providerConfig.config);
+                    provider = new LocalStorageItemProvider(this, providerId, providerConfig);
                     break;
                 case HostedInventoryItemProvider.Provider.type:
-                    provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Config>providerConfig.config);
+                    provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
                     break;
                 default:
                     break;

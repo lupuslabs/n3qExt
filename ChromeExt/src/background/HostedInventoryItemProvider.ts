@@ -12,12 +12,22 @@ import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
 import { IItemProvider } from './ItemProvider';
 import { Config } from '../lib/Config';
+import { Client } from '../lib/Client';
 
 export namespace HostedInventoryItemProvider
 {
     export interface Config
     {
         apiUrl: string;
+    }
+
+    export interface Definition
+    {
+        name: string;
+        type: string;
+        description: string;
+        configUrl: string;
+        config: Config,
     }
 
     class ItemCacheEntry
@@ -44,12 +54,37 @@ export namespace HostedInventoryItemProvider
         private userId: string;
         private accessToken: string;
 
-        constructor(private backpack: Backpack, private id, private config: Config) { }
+        constructor(private backpack: Backpack, private id, private definition: Definition) { }
+
+        config(): Config
+        {
+            return this.definition.config;
+        }
 
         async init(): Promise<void>
         {
             this.userId = await this.backpack.getUserId();
             this.accessToken = await this.backpack.getUserToken();
+
+            try {
+
+                let url = as.String(this.definition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
+                    .replace('{user}', encodeURIComponent(this.userId))
+                    .replace('{token}', encodeURIComponent(this.accessToken))
+                    .replace('{client}', encodeURIComponent(JSON.stringify(Client.getDetails())))
+                    ;
+                if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetch', url); }
+                let response = await fetch(url);
+                if (!response.ok) {
+                    log.info('HostedInventoryItemProvider.init', 'fetch failed', url, response);
+                } else {
+                    const config = await response.json();
+                    if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', config); }
+                    this.definition.config = config;
+                }
+            } catch (error) {
+                log.info('HostedInventoryItemProvider.init', error);
+            }
         }
 
         async loadItems(): Promise<void>
@@ -57,7 +92,7 @@ export namespace HostedInventoryItemProvider
             let itemIds = [];
             try {
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
-                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config.apiUrl, request);
+                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().apiUrl, request);
                 itemIds = response.items;
             } catch (ex) {
                 this.handleException(ex);
@@ -67,7 +102,7 @@ export namespace HostedInventoryItemProvider
             if (itemIds.length > 0) {
                 try {
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, itemIds);
-                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config.apiUrl, request);
+                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().apiUrl, request);
                     multiItemProperties = response.multiItemProperties;
                 } catch (ex) {
                     this.handleException(ex);
@@ -160,7 +195,7 @@ export namespace HostedInventoryItemProvider
                     args,
                     involvedIds
                 );
-                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config.apiUrl, request);
+                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config().apiUrl, request);
 
                 createdIds = response.created;
                 deletedIds = response.deleted;
@@ -189,7 +224,7 @@ export namespace HostedInventoryItemProvider
                 if (changedOrCreated.length > 0) {
                     try {
                         const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, changedOrCreated);
-                        const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config.apiUrl, request);
+                        const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().apiUrl, request);
                         multiItemProperties = response.multiItemProperties;
                     } catch (ex) {
                         this.handleException(ex);
@@ -459,7 +494,7 @@ export namespace HostedInventoryItemProvider
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'owner=' + deferredRequest.ownerId, Array.from(deferredRequest.itemIds).join(' ')); }
 
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.ownerId, Array.from(deferredRequest.itemIds));
-                    this.rpcClient.call(this.config.apiUrl, request)
+                    this.rpcClient.call(this.config().apiUrl, request)
                         .then(async r =>
                         {
                             for (let id of deferredRequest.itemIds) {
