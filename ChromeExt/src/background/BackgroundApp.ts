@@ -1500,6 +1500,11 @@ export class BackgroundApp
             }
         }
 
+        let args: { [pid: string]: string } = {};
+        for (let key in consolidated) {
+            args[key] = as.String(consolidated[key], '');
+        }
+
         this.pointsActivities = [];
 
         if (this.backpack) {
@@ -1508,7 +1513,7 @@ export class BackgroundApp
                 if (points) {
                     let itemId = as.String(points.getProperties()[Pid.Id], '');
                     if (itemId != '') {
-                        this.backpack.executeItemAction(itemId, 'Points.ChannelValues', consolidated, [itemId], true)
+                        this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true)
                     }
                 }
             }
