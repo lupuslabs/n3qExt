@@ -11,7 +11,6 @@ export enum Pid
     Version = 'Version',
     Label = 'Label',
     Description = 'Description',
-    Reference = 'Reference',
     Template = 'Template',
     OwnerId = 'OwnerId',
     OwnerName = 'OwnerName',
