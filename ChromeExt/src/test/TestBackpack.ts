@@ -4,18 +4,34 @@ import { BackgroundApp } from '../background/BackgroundApp';
 import { Backpack } from '../background/Backpack';
 import { as } from '../lib/as';
 import { Pid } from '../lib/ItemProperties';
-import { ItemChangeOptions } from '../lib/ItemChangeOptions';
+import { Config } from '../lib/Config';
 
 export class TestBackpack
 {
     async Backpack_stanzaOutFilter()
     {
+        Config.setOnlineTree({});
+        Config.setStaticTree({
+            itemProviders: {
+                'nine3q':
+                {
+                    name: 'weblin.io Items (client storage)',
+                    type: 'LocalStorageItemProvider',
+                    description: 'Things on web pages managed by the client in a distributed fashion',
+                    config: {
+                        apiUrl: 'https://webit.vulcan.weblin.com/rpc',
+                        backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
+                    },
+                }
+            }
+            });
         let ba = new BackgroundApp();
         let rep = new Backpack(ba);
+        await rep.init();
 
-        await rep.addItem('item1', { 'Test1': 'Value1', 'Test2': '41' , 'Test3': 'x' , 'Test4': 'y' }, { skipPersistentStorage: true });
-        await rep.addItem('item2', { 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
-        await rep.addItem('item3', { 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
+        await rep.addItem('item1', { 'Provider': 'nine3q', 'Test1': 'Value1', 'Test2': '41' , 'Test3': 'x' , 'Test4': 'y' }, { skipPersistentStorage: true });
+        await rep.addItem('item2', { 'Provider': 'nine3q', 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
+        await rep.addItem('item3', { 'Provider': 'nine3q', 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
 
         await rep.rezItem('item1', 'room1@server', 41, 'Destination1', { skipPersistentStorage: true });
         await rep.rezItem('item2', 'room1@server', 42, 'Destination2', { skipPersistentStorage: true });
