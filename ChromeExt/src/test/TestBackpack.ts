@@ -10,11 +10,9 @@ export class TestBackpack
 {
     async Backpack_stanzaOutFilter()
     {
-        Config.setOnlineTree({});
-        Config.setStaticTree({
+        Config.setDevTree({
             itemProviders: {
-                'nine3q':
-                {
+                'nine3q': {
                     name: 'weblin.io Items (client storage)',
                     type: 'LocalStorageItemProvider',
                     description: 'Things on web pages managed by the client in a distributed fashion',
@@ -24,12 +22,12 @@ export class TestBackpack
                     },
                 }
             }
-            });
+        });
         let ba = new BackgroundApp();
         let rep = new Backpack(ba);
         await rep.init();
 
-        await rep.addItem('item1', { 'Provider': 'nine3q', 'Test1': 'Value1', 'Test2': '41' , 'Test3': 'x' , 'Test4': 'y' }, { skipPersistentStorage: true });
+        await rep.addItem('item1', { 'Provider': 'nine3q', 'Test1': 'Value1', 'Test2': '41', 'Test3': 'x', 'Test4': 'y' }, { skipPersistentStorage: true });
         await rep.addItem('item2', { 'Provider': 'nine3q', 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
         await rep.addItem('item3', { 'Provider': 'nine3q', 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
 
