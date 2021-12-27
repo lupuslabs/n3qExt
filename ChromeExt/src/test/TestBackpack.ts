@@ -62,7 +62,7 @@ export class TestBackpack
         let pres1 = dependentPresences[0].getChildren('x')[0];
         expect(pres1.attrs['xmlns']).to.equal('vp:props');
         expect(pres1.attrs['type']).to.equal('item');
-        expect(pres1.attrs['provider']).to.equal('nine3q');
+        expect(pres1.attrs['Provider']).to.equal('nine3q');
         expect(pres1.attrs['Test1']).to.equal('Value1');
         expect(pres1.attrs['Test2']).to.equal('41');
         expect(pres1.attrs['Test3']).to.equal(undefined);
@@ -71,7 +71,7 @@ export class TestBackpack
         let pres2 = dependentPresences[1].getChildren('x')[0];
         expect(pres2.attrs['xmlns']).to.equal('vp:props');
         expect(pres2.attrs['type']).to.equal('item');
-        expect(pres2.attrs['provider']).to.equal('nine3q');
+        expect(pres2.attrs['Provider']).to.equal('nine3q');
         expect(pres2.attrs['Test1']).to.equal('Value2');
         expect(pres2.attrs['Test2']).to.equal('42');
     }

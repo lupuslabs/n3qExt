@@ -44,7 +44,12 @@ export namespace HostedInventoryItemProvider
     class DeferredItemPropertiesRequest
     {
         public itemIds = new Set<string>();
-        constructor(public timer: number, public ownerId: string, public roomJid: string, public participantNick: string) { }
+        constructor(
+            public timer: number, 
+            public inventoryId: string, 
+            public roomJid: string, 
+            public participantNick: string) 
+            { }
     }
 
     export class Provider implements IItemProvider
@@ -210,8 +215,8 @@ export namespace HostedInventoryItemProvider
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
                     this.accessToken,
-                    this.userId,
                     itemId,
+                    this.userId,
                     action,
                     args,
                     involvedIds
@@ -379,17 +384,14 @@ export namespace HostedInventoryItemProvider
             let attrs = {
                 'xmlns': 'vp:props',
                 'type': 'item',
-                'provider': this.id,
+                [Pid.Provider]: this.id,
                 [Pid.Id]: itemId,
+                [Pid.InventoryId]: as.String(props[Pid.InventoryId], ''),
             };
 
             const version = as.String(props[Pid.Version], '');
             if (version !== '') {
                 attrs[Pid.Version] = version;
-            }
-            const ownerId = as.String(props[Pid.OwnerId], '');
-            if (ownerId !== '') {
-                attrs[Pid.OwnerId] = ownerId;
             }
             const rezzedX = as.Int(props[Pid.RezzedX], -1);
             if (rezzedX > 0) {
@@ -477,16 +479,16 @@ export namespace HostedInventoryItemProvider
                             vpProps.attrs[key] = cachedProps[key];
                         }
                     } else {
-                        const ownerId = as.String(vpProps.attrs[Pid.OwnerId], '');
-                        if (ownerId !== '') {
-                            this.requestItemPropertiesForDependentPresence(itemId, ownerId, roomJid, participantNick);
+                        const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
+                        if (inventoryId !== '') {
+                            this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                         }
                     }
 
                 } else {
-                    const ownerId = as.String(vpProps.attrs[Pid.OwnerId], '');
-                    if (ownerId !== '') {
-                        this.requestItemPropertiesForDependentPresence(itemId, ownerId, roomJid, participantNick);
+                    const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
+                    if (inventoryId !== '') {
+                        this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                     }
                 }
             }
@@ -496,7 +498,7 @@ export namespace HostedInventoryItemProvider
 
         private deferredItemPropertiesRequests = new Map<string, DeferredItemPropertiesRequest>();
 
-        async requestItemPropertiesForDependentPresence(itemId: string, ownerId: string, roomJid: string, participantNick: string): Promise<void>
+        async requestItemPropertiesForDependentPresence(itemId: string, inventoryId: string, roomJid: string, participantNick: string): Promise<void>
         {
             if (this.itemRequests.has(itemId)) return;
 
@@ -512,9 +514,9 @@ export namespace HostedInventoryItemProvider
                     const deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                     this.deferredItemPropertiesRequests.delete(timerKey);
 
-                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'owner=' + deferredRequest.ownerId, Array.from(deferredRequest.itemIds).join(' ')); }
+                    if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'inventory=' + deferredRequest.inventoryId, Array.from(deferredRequest.itemIds).join(' ')); }
 
-                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.ownerId, Array.from(deferredRequest.itemIds));
+                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.inventoryId, Array.from(deferredRequest.itemIds));
                     this.rpcClient.call(this.config().apiUrl, request)
                         .then(async r =>
                         {
@@ -543,7 +545,7 @@ export namespace HostedInventoryItemProvider
                             console.info('HostedInventoryItemProvider.onDependentPresenceReceived', error);
                         });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
-                let deferredRequest = new DeferredItemPropertiesRequest(timer, ownerId, roomJid, participantNick);
+                let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);
                 deferredRequest.itemIds.add(itemId);
                 this.deferredItemPropertiesRequests.set(timerKey, deferredRequest);
             }

@@ -7,7 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.1.4', 'ServerItems Effects', [
-            ['Add', 'Support server based items'],
+            ['Add', 'Server based items'],
             ['Add', 'CTRL+click drops/pickups item'],
             ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],

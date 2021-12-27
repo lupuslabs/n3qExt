@@ -555,7 +555,11 @@ export class LocalStorageItemProvider implements IItemProvider
 
         const props = item.getProperties();
         var presence = xml('presence', { 'from': roomJid + '/' + itemId });
-        let attrs = { 'xmlns': 'vp:props', 'type': 'item', 'provider': this.id };
+        let attrs = {
+            'xmlns': 'vp:props',
+            'type': 'item',
+            [Pid.Provider]: this.id
+        };
         let signed = as.String(props[Pid.Signed], '').split(' ');
         for (let pid in props) {
             if (Property.inPresence(pid) || (signed.length > 0 && signed.includes(pid))) {

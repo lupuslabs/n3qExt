@@ -7,6 +7,7 @@ const NodeRSA = require('node-rsa');
 export enum Pid
 {
     Id = 'Id',
+    InventoryId = 'InventoryId',
     Name = 'Name',
     Version = 'Version',
     Label = 'Label',

@@ -368,7 +368,7 @@ export class Backpack
                             const itemId = dependentFrom.getResource();
                             const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
                             if (vpProps) {
-                                const providerName = as.String(vpProps.attrs['provider'], '');
+                                const providerName = as.String(vpProps.attrs[Pid.Provider], '');
                                 if (this.providers.has(providerName)) {
                                     const provider = this.providers.get(providerName);
                                     await provider.onDependentPresenceReceived(itemId, roomJid, participantNick, dependentPresence);
