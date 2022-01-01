@@ -12,6 +12,7 @@ export class _Changes
             ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
+            ['Add', 'Unique chat line id to be able to store a chat history later'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
         ]],

@@ -3,6 +3,7 @@ import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { ChatConsole } from './ChatConsole';
+import { Utils } from '../lib/Utils';
 
 export class Chatin
 {
@@ -89,7 +90,7 @@ export class Chatin
                                     this.participant.getRoom().showChatWindow(this.participant.getElem());
                                     data.forEach(line =>
                                     {
-                                        this.participant.getRoom().showChatMessage(line[0], line[1]);
+                                        this.participant.getRoom().showChatMessage(Utils.randomString(10), line[0], line[1]);
                                     });
                                 }
                             } else {

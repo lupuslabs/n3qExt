@@ -16,6 +16,7 @@ import { RoomItem } from './RoomItem';
 import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and Item otherwise $().resizable does not work
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
+import { is } from '../lib/is';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -493,7 +494,7 @@ export class Room
     sendGroupChat(text: string)
     {
         const message = xml('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick })
-            .append(xml('body', {}, text))
+            .append(xml('body', { id: Utils.randomString(10) }, text))
             ;
         this.app.sendStanza(message);
         if (Config.get('points.enabled', false)) {
@@ -565,9 +566,12 @@ export class Room
         }
     }
 
-    showChatMessage(name: string, text: string)
+    showChatMessage(id: string, name: string, text: string)
     {
-        this.chatWindow.addLine(name + Date.now(), name, text);
+        if (is.nil(id)) {
+            id = name + Date.now() + Utils.randomString(4);
+        }
+        this.chatWindow.addLine(id, name, text);
     }
 
     clearChatWindow()

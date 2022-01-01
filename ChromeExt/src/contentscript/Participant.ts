@@ -398,16 +398,16 @@ export class Participant extends Entity
             // if (this.isSelf && Environment.isDevelopment()) { this.showChatWindow(); }
             if (this.isSelf) {
                 if (Config.get('room.chatlogEnteredTheRoomSelf', true)) {
-                    this.room?.showChatMessage(this.roomNick, 'entered the room');
+                    this.room?.showChatMessage(null, this.roomNick, 'entered the room');
                 }
             } else {
                 if (this.room?.iAmAlreadyHere()) {
                     if (Config.get('room.chatlogEnteredTheRoom', true)) {
-                        this.room?.showChatMessage(this.roomNick, 'entered the room');
+                        this.room?.showChatMessage(null, this.roomNick, 'entered the room');
                     }
                 } else {
                     if (Config.get('room.chatlogWasAlreadyThere', true)) {
-                        this.room?.showChatMessage(this.roomNick, 'was already there');
+                        this.room?.showChatMessage(null, this.roomNick, 'was already there');
                     }
                 }
             }
@@ -440,7 +440,7 @@ export class Participant extends Entity
         this.remove();
 
         if (Config.get('room.chatlogLeftTheRoom', true)) {
-            this.room?.showChatMessage(this.roomNick, 'left the room');
+            this.room?.showChatMessage(null, this.roomNick, 'left the room');
         }
 
         this.sendParticipantEventToAllScriptFrames({ event: 'leave' });
@@ -695,9 +695,11 @@ export class Participant extends Entity
 
 
         let text = '';
+        let id = null;
         const bodyNode = stanza.getChild('body');
         if (bodyNode) {
             text = bodyNode.getText();
+            id = bodyNode.attrs['id'];
         }
 
         if (text == '') { return; }
@@ -708,7 +710,7 @@ export class Participant extends Entity
         const delayMSec = now - timestamp;
 
         // always
-        this.room?.showChatMessage(name, text);
+        this.room?.showChatMessage(id, name, text);
 
         this.sendParticipantChatToAllScriptFrames(text);
 

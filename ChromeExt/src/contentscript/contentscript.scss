@@ -1331,6 +1331,11 @@
         box-shadow: inset 1px 1px 3px #404040;
     }
 
+    textarea::placeholder
+    {
+        font: normal 11px/12px Arial, sans-serif;
+    }
+
     textarea.n3q-chatwindow-chatin-input,
     textarea.n3q-chatwindow-chatin-input:focus,
     input[type=text].n3q-chatwindow-chatin-input,

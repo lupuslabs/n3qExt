@@ -322,11 +322,11 @@ export class RoomItem extends Entity
         if (isFirstPresence) {
             if (this.room?.iAmAlreadyHere()) {
                 if (Config.get('roomItem.chatlogItemAppeared', true)) {
-                    this.room?.showChatMessage(this.getDisplayName(), 'appeared');
+                    this.room?.showChatMessage(null, this.getDisplayName(), 'appeared');
                 }
             } else {
                 if (Config.get('roomItem.chatlogItemIsPresent', true)) {
-                    this.room?.showChatMessage(this.getDisplayName(), 'is present');
+                    this.room?.showChatMessage(null, this.getDisplayName(), 'is present');
                 }
             }
         }
@@ -345,7 +345,7 @@ export class RoomItem extends Entity
         }
 
         if (Config.get('roomItem.chatlogItemDisappeared', true)) {
-            this.room?.showChatMessage(this.getDisplayName(), 'disappeared');
+            this.room?.showChatMessage(null, this.getDisplayName(), 'disappeared');
         }
 
         this.sendItemEventToAllScriptFrames({ event: 'derez' });
