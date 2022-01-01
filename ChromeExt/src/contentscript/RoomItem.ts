@@ -639,7 +639,7 @@ export class RoomItem extends Entity
                 tokenOptions['properties'] = {
                     [Pid.Id]: itemId,
                     [Pid.Provider]: 'n3q',
-                    [Pid.OwnerId]: this.properties[Pid.OwnerId],
+                    [Pid.InventoryId]: this.properties[Pid.InventoryId],
                 };
             } else {
                 tokenOptions['properties'] = this.properties;
