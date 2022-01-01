@@ -112,6 +112,11 @@ export class ItemProperties
             }
         }
 
+        const provider = as.String(props[Pid.Provider]);
+        if (provider) {
+            display[Pid.Provider] = provider;
+        }
+
         return display;
     }
 

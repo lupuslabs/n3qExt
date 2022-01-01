@@ -513,6 +513,7 @@ export class Config
 
                     'ItemPid.Label': 'Label',
                     'ItemPid.Description': 'Description',
+                    'ItemPid.Provider': 'Kind',
                     'ItemPid.ClaimStrength': 'Strength',
                     'ItemPid.ClaimUrl': 'For',
                     'ItemPid.CommodityConversionFactor': 'Efficiency',
@@ -549,6 +550,8 @@ export class Config
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
+                    'ItemValue.nine3q': 'Local',
+                    'ItemValue.n3q': 'Server',
 
                     'ItemLabel.Dot1': '1 Point',
                 },
@@ -751,6 +754,7 @@ export class Config
 
                     'ItemPid.Label': 'Bezeichnung',
                     'ItemPid.Description': 'Beschreibung',
+                    'ItemPid.Provider': 'Art',
                     'ItemPid.ClaimStrength': 'Stärke',
                     'ItemPid.ClaimUrl': 'Für',
                     'ItemPid.CommodityConversionFactor': 'Effzienz',
@@ -787,6 +791,8 @@ export class Config
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',
+                    'ItemValue.nine3q': 'Lokal',
+                    'ItemValue.n3q': 'Server',
 
                     'ItemLabel.Points': 'Punkte',
                     'ItemLabel.Dot1': '1 Punkt',
