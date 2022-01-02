@@ -462,6 +462,7 @@ export class Config
                     'Toast.NoBlueprint': 'No blueprint',
                     'Toast.TooManyBlueprints': 'Too many blueprints',
 
+                    'Activity.TotalPoints': 'Total points',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Greet',
@@ -513,7 +514,7 @@ export class Config
 
                     'ItemPid.Label': 'Label',
                     'ItemPid.Description': 'Description',
-                    'ItemPid.Provider': 'Kind',
+                    'ItemPid.Provider': 'Source',
                     'ItemPid.ClaimStrength': 'Strength',
                     'ItemPid.ClaimUrl': 'For',
                     'ItemPid.CommodityConversionFactor': 'Efficiency',
@@ -703,6 +704,7 @@ export class Config
                     'Toast.NoBlueprint': 'Kein Bauplan',
                     'Toast.TooManyBlueprints': 'Mehr als ein Bauplan',
 
+                    'Activity.TotalPoints': 'Gesamtpunkte',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Grüßen',
@@ -754,7 +756,7 @@ export class Config
 
                     'ItemPid.Label': 'Bezeichnung',
                     'ItemPid.Description': 'Beschreibung',
-                    'ItemPid.Provider': 'Art',
+                    'ItemPid.Provider': 'Quelle',
                     'ItemPid.ClaimStrength': 'Stärke',
                     'ItemPid.ClaimUrl': 'Für',
                     'ItemPid.CommodityConversionFactor': 'Effzienz',

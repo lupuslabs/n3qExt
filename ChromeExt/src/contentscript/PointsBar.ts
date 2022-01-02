@@ -60,7 +60,7 @@ export class PointsBar implements IObserver
 
     async showTitleWithActivities(): Promise<void>
     {
-        let title = String(this.points);
+        let title = this.app.translateText('Activity.TotalPoints') + ': ' + String(this.points);
 
         if (Utils.isBackpackEnabled()) {
             let activitiesConfig = Config.get('points.activities', {});
