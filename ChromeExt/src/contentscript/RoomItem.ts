@@ -27,7 +27,6 @@ import { BackpackItem } from './BackpackItem';
 export class RoomItem extends Entity
 {
     private properties: { [pid: string]: string } = {};
-    private providerId: string;
     private frameWindow: ItemFrameWindow;
     private framePopup: ItemFramePopup;
     private frameOverlay: ItemFrameOverlay;
@@ -156,8 +155,6 @@ export class RoomItem extends Entity
             if (vpPropsNode) {
                 const attrs = vpPropsNode.attrs;
                 if (attrs) {
-                    newProviderId = as.String(attrs.provider);
-
                     for (const attrName in attrs) {
                         newProperties[attrName] = attrs[attrName];
                     }
@@ -165,9 +162,7 @@ export class RoomItem extends Entity
             }
         }
 
-        this.providerId = newProviderId;
-
-        if (newProperties && newProviderId !== '') {
+        if (newProperties) {
             this.setProperties(newProperties);
         }
 
