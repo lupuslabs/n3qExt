@@ -108,11 +108,7 @@ export class RoomItem extends Entity
         let hasPosition: boolean = false;
         let newX: number = 123;
 
-        let newProviderId: string = '';
-        let newProperties: ItemProperties = {};
-
-        const isFirstPresence = this.isFirstPresence;
-        this.isFirstPresence = false;
+        let isFirstPresence = this.isFirstPresence;
 
         // Collect info
 
@@ -133,43 +129,64 @@ export class RoomItem extends Entity
             this.myItem = await BackgroundMessage.isBackpackItem(this.roomNick);
         }
 
-        if (this.myItem) {
-            try {
-                newProperties = await BackgroundMessage.getBackpackItemProperties(this.roomNick);
-                newProviderId = as.String(newProperties[Pid.Provider]);
-            } catch (error) {
-                log.debug('RoomItem.onPresenceAvailable', 'no properties for', this.roomNick);
-            }
-        } else {
-            const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
-            if (vpPropsNode) {
-                const attrs = vpPropsNode.attrs;
-                if (attrs) {
-                    for (const attrName in attrs) {
-                        newProperties[attrName] = attrs[attrName];
+        {
+            let newProperties: ItemProperties = {};
+            if (this.myItem) {
+                try {
+                    newProperties = await BackgroundMessage.getBackpackItemProperties(this.roomNick);
+                } catch (error) {
+                    log.debug('RoomItem.onPresenceAvailable', 'no properties for', this.roomNick);
+                }
+            } else {
+                const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
+                if (vpPropsNode) {
+                    const attrs = vpPropsNode.attrs;
+                    if (attrs) {
+                        for (const attrName in attrs) {
+                            newProperties[attrName] = attrs[attrName];
+                        }
                     }
                 }
             }
+    
+            if (newProperties) {
+                
+                // Race condition due to preceeding awaits, so check version to decide which properties are newer:
+                const oldProperties = this.getProperties();
+                const oldVersion = as.Int(oldProperties[Pid.Version]);
+                const newVersion = as.Int(newProperties[Pid.Version]);
+                if (oldProperties && (false
+                    // When a presence with newer version has been processed while we await-ed:
+                    || oldVersion > newVersion 
+                    // when processing first presence, but second presence got processed while we await-ed:
+                    || (isFirstPresence && oldVersion === newVersion)
+                )) {
+                    // A newer presence has been processed while we await-ed.
+                    newProperties = oldProperties;
+                    isFirstPresence = false;
+                } else {
+                    // No race detected - our version is newer.
+                }
+                
+                this.setProperties(newProperties);
+            }
         }
+        this.isFirstPresence = false; // This is a safe and race-free place to set it.
 
-        if (newProperties) {
-            this.setProperties(newProperties);
-        }
-
-        const vpAnimationsUrl = as.String(newProperties[Pid.AnimationsUrl]);
-        const vpImageUrl = as.String(newProperties[Pid.ImageUrl]);
-        const vpRezzedX = as.Int(newProperties[Pid.RezzedX], -1);
+        const vpAnimationsUrl = as.String(this.getProperties()[Pid.AnimationsUrl]);
+        const vpImageUrl = as.String(this.getProperties()[Pid.ImageUrl]);
+        const vpRezzedX = as.Int(this.getProperties()[Pid.RezzedX], -1);
 
         // Do someting with the data
 
         if (isFirstPresence) {
             if (this.myItem) {
-                this.app.incrementRezzedItems(newProperties[Pid.Label] + ' ' + newProperties[Pid.Id]);
+                this.app.incrementRezzedItems(this.getProperties()[Pid.Label] + ' ' + this.getProperties()[Pid.Id]);
             }
         }
 
-        if (isFirstPresence) {
-            const props = newProperties;
+        {
+            const props = this.getProperties();
             if (as.Bool(props[Pid.ClaimAspect])) {
                 // The new item has a claim
                 const claimingRoomItem = this.room.getPageClaimItem();
@@ -194,12 +211,12 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            if (!as.Bool(this.getProperties()[Pid.IsInvisible])) {
+            if (!as.Bool(this.getProperties()[Pid.IsInvisible])) { // Todo: Make race-proof or remove.
                 this.avatarDisplay = new Avatar(this.app, this, false);
                 if (Utils.isBackpackEnabled()) {
                     this.avatarDisplay.addClass('n3q-item-avatar');
                 }
-                if (as.Bool(newProperties[Pid.ApplierAspect])) {
+                if (as.Bool(this.getProperties()[Pid.ApplierAspect])) {
                     this.avatarDisplay.makeDroppable();
                 }
             }
@@ -221,7 +238,7 @@ export class RoomItem extends Entity
             this.statsDisplay.update();
         }
 
-        if (isFirstPresence) {
+        if (is.nil(this.screenUnderlay)) {
             if (as.Bool(this.getProperties()[Pid.ScreenAspect])) {
                 this.screenUnderlay = new ItemFrameUnderlay(this.app, this);
                 this.screenUnderlay.show();
@@ -232,15 +249,15 @@ export class RoomItem extends Entity
             }
         }
 
-        if (newProperties[Pid.Width] && newProperties[Pid.Height]) {
-            const w = as.Int(newProperties[Pid.Width], -1);
-            const h = as.Int(newProperties[Pid.Height], -1);
+        if (this.getProperties()[Pid.Width] && this.getProperties()[Pid.Height]) {
+            const w = as.Int(this.getProperties()[Pid.Width], -1);
+            const h = as.Int(this.getProperties()[Pid.Height], -1);
             if (w > 0 && h > 0) {
                 this.avatarDisplay?.setSize(w, h);
             }
         }
 
-        const newState = as.String(newProperties[Pid.State]);
+        const newState = as.String(this.getProperties()[Pid.State]);
         if (newState !== this.state) {
             this.avatarDisplay.setState(newState);
             this.state = newState;
@@ -268,18 +285,14 @@ export class RoomItem extends Entity
             this.show(true, Config.get('room.fadeInSec', 0.3));
         }
 
-        if (isFirstPresence) {
-            if (as.Bool(this.getProperties()[Pid.IframeAspect])) {
-                if (as.Bool(this.getProperties()[Pid.IframeAuto])) {
-                    this.openFrame();
-                }
+        if (as.Bool(this.getProperties()[Pid.IframeAspect])) {
+            if (as.Bool(this.getProperties()[Pid.IframeAuto])) {
+                this.openFrame();
             }
         }
 
-        if (isFirstPresence) {
-            if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
-                this.checkIframeAutoRange();
-            }
+        if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
+            this.checkIframeAutoRange();
         }
 
         if (isFirstPresence) {
