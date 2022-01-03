@@ -710,7 +710,7 @@ export class Config
                     'Activity.PointsChannelGreet': 'Grüßen',
                     'Activity.PointsChannelNavigation': 'Navigation',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Gegenstandinteraktionen',
+                    'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
