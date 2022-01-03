@@ -581,7 +581,7 @@ export class RoomItem extends Entity
             } else {
                 tokenOptions['properties'] = this.properties;
             }
-            const contextToken = await Payload.getContextToken(Config.get('config.apiUrl', 'https://webit.vulcan.weblin.com/rpc'), userId, this.roomNick, 600, { 'room': room.getJid() }, tokenOptions);
+            const contextToken = await Payload.getContextToken(userId, this.roomNick, 600, { 'room': room.getJid() }, tokenOptions);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -639,7 +639,7 @@ export class RoomItem extends Entity
             }
 
             try {
-                const contextToken = await Payload.getContextToken(Config.get('config.apiUrl', 'https://webit.vulcan.weblin.com/rpc'), userId, itemId, 600, { 'room': roomJid }, tokenOptions);
+                const contextToken = await Payload.getContextToken(userId, itemId, 600, { 'room': roomJid }, tokenOptions);
                 const participantDisplayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
 
                 iframeUrl = iframeUrl
