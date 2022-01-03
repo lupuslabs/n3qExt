@@ -17,7 +17,6 @@ export class TestBackpack
                     type: 'LocalStorageItemProvider',
                     description: 'Things on web pages managed by the client in a distributed fashion',
                     config: {
-                        apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                         backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
                     },
                 }

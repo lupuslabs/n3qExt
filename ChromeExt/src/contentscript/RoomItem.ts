@@ -577,17 +577,16 @@ export class RoomItem extends Entity
     {
         let url = as.String(this.properties[Pid.DocumentUrl]);
         const room = this.app.getRoom();
-        const apiUrl = Config.get('itemProviders.' + this.providerId + '.config.' + 'apiUrl', '');
         const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
 
-        if (url !== '' && room && apiUrl != '' && userId != '') {
+        if (url !== '' && room && userId != '') {
             const tokenOptions = {};
             if (this.myItem) {
                 tokenOptions['properties'] = await BackgroundMessage.getBackpackItemProperties(this.roomNick);
             } else {
                 tokenOptions['properties'] = this.properties;
             }
-            const contextToken = await Payload.getContextToken(apiUrl, userId, this.roomNick, 600, { 'room': room.getJid() }, tokenOptions);
+            const contextToken = await Payload.getContextToken(Config.get('config.apiUrl', 'https://webit.vulcan.weblin.com/rpc'), userId, this.roomNick, 600, { 'room': room.getJid() }, tokenOptions);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -623,11 +622,10 @@ export class RoomItem extends Entity
     {
         let iframeUrl = as.String(this.properties[Pid.IframeUrl]);
         const room = this.app.getRoom();
-        const apiUrl = Config.get('itemProviders.' + this.providerId + '.config.' + 'apiUrl', '');
         const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
         const itemId = this.roomNick;
 
-        if (iframeUrl !== '' && room && apiUrl != '' && userId != '') {
+        if (iframeUrl !== '' && room && userId != '') {
             //iframeUrl = 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"';
             //iframeUrl = 'https://jitsi.vulcan.weblin.com/8lgGTypkGd#userInfo.displayName="{name}"';
             //iframeUrl = 'https://meet.jit.si/example-103#interfaceConfig.TOOLBAR_BUTTONS=%5B%22microphone%22%2C%22camera%22%2C%22desktop%22%2C%22fullscreen%22%2C%22hangup%22%2C%22profile%22%2C%22settings%22%2C%22videoquality%22%5D&interfaceConfig.SETTINGS_SECTIONS=%5B%22devices%22%2C%22language%22%5D&interfaceConfig.TOOLBAR_ALWAYS_VISIBLE=false';
@@ -646,7 +644,7 @@ export class RoomItem extends Entity
             }
 
             try {
-                const contextToken = await Payload.getContextToken(apiUrl, userId, itemId, 600, { 'room': roomJid }, tokenOptions);
+                const contextToken = await Payload.getContextToken(Config.get('config.apiUrl', 'https://webit.vulcan.weblin.com/rpc'), userId, itemId, 600, { 'room': roomJid }, tokenOptions);
                 const participantDisplayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
 
                 iframeUrl = iframeUrl

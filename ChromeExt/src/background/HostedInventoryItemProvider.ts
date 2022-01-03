@@ -18,7 +18,7 @@ export namespace HostedInventoryItemProvider
 {
     export interface Config
     {
-        apiUrl: string;
+        itemApiUrl: string;
     }
 
     export interface Definition
@@ -98,7 +98,7 @@ export namespace HostedInventoryItemProvider
             let itemIds = [];
             try {
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
-                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().apiUrl, request);
+                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
                 itemIds = response.items;
             } catch (error) {
                 // this.handleException(ex);
@@ -109,7 +109,7 @@ export namespace HostedInventoryItemProvider
             if (itemIds.length > 0) {
                 try {
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, itemIds);
-                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().apiUrl, request);
+                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
                     multiItemProperties = response.multiItemProperties;
                 } catch (error) {
                     // this.handleException(ex);
@@ -221,7 +221,7 @@ export namespace HostedInventoryItemProvider
                     args,
                     involvedIds
                 );
-                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config().apiUrl, request);
+                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
 
                 createdIds = response.created;
                 deletedIds = response.deleted;
@@ -250,7 +250,7 @@ export namespace HostedInventoryItemProvider
                 if (changedOrCreated.length > 0) {
                     try {
                         const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, changedOrCreated);
-                        const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().apiUrl, request);
+                        const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
                         multiItemProperties = response.multiItemProperties;
                     } catch (ex) {
                         this.handleException(ex);
@@ -517,7 +517,7 @@ export namespace HostedInventoryItemProvider
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'inventory=' + deferredRequest.inventoryId, Array.from(deferredRequest.itemIds).join(' ')); }
 
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.inventoryId, Array.from(deferredRequest.itemIds));
-                    this.rpcClient.call(this.config().apiUrl, request)
+                    this.rpcClient.call(this.config().itemApiUrl, request)
                         .then(async r =>
                         {
                             for (let id of deferredRequest.itemIds) {

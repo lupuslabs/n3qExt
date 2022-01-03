@@ -28,6 +28,7 @@ export class Config
         },
         config: {
             serviceUrl: 'https://webex.vulcan.weblin.com/Config',
+            apiUrl: 'https://webit.vulcan.weblin.com/rpc',
             updateIntervalSec: 83567,
             checkUpdateIntervalSec: 123,
             clusterName: 'prod',
@@ -230,7 +231,6 @@ export class Config
                 type: 'LocalStorageItemProvider',
                 description: 'Things on web pages managed by the client in a distributed fashion',
                 config: {
-                    apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                     backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
                 },
             },
@@ -241,7 +241,7 @@ export class Config
                 description: 'Things on web pages',
                 configUrl: 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}',
                 config: {
-                    apiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
+                    itemApiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
                 },
             }
         },
