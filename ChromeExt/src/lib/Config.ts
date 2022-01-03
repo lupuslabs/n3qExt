@@ -110,7 +110,7 @@ export class Config
             defaultAnimationSize: 100,
             vCardAvatarFallback: false,
             vCardAvatarFallbackOnHover: true,
-            vidconfUrl: 'https://meet.jit.si/weblin{room}#userInfo.displayName="{name}"',
+            vidconfUrl: 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}"',
             vidconfBottom: 200,
             vidconfWidth: 630,
             vidconfHeight: 530,

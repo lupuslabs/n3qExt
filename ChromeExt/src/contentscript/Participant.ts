@@ -1013,7 +1013,7 @@ export class Participant extends Entity
 
         const confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
 
-        const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://meet.jit.si/weblin{room}#userInfo.displayName="{name}"');
+        const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}');
         const url = urlTemplate
             .replace('{room}', confId)
             ;
