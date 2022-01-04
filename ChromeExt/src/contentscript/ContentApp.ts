@@ -139,6 +139,12 @@ export class ContentApp
             log.debug(error.message);
         }
 
+        if (Utils.logChannel('contentStart', false)) {
+            log.debug('ContentApp.start', 'static', Config.getStaticTree());
+            log.debug('ContentApp.start', 'online', Config.getOnlineTree());
+            log.debug('ContentApp.start', 'dev', Config.getDevTree());
+        }
+        
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
         {
