@@ -50,13 +50,10 @@ export class IframeApi
 
     async onMessage(ev: any): Promise<any>
     {
-        if (Utils.logChannel('iframeApi', false)) {
-            log.debug('IframeApi.onMessage', ev);
-        }
-
         let request = <WeblinClientApi.Request>ev.data;
 
         if (request[Config.get('iframeApi.messageMagicW2WMigration', 'hbv67u5rf_w2wMigrate')]) {
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             let cid = (<any>request).cid;
             if (cid) {
                 let nickname = as.String((<any>request).nickname, cid);
@@ -66,6 +63,7 @@ export class IframeApi
         }
 
         if (request[Config.get('iframeApi.messageMagicCreateCryptoWallet', 'tr67rftghg_CreateCryptoWallet')]) {
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             let address = (<any>request).address;
             let network = (<any>request).network;
             if (address != null && network != null) {
@@ -75,6 +73,7 @@ export class IframeApi
         }
 
         if (request[Config.get('iframeApi.messageMagic', 'a67igu67puz_iframeApi')]) {
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             if (request.type == WeblinClientApi.ClientNotificationRequest.type) {
                 this.handle_ClientNotificationRequest(<WeblinClientApi.ClientNotificationRequest>request);
             } else if (request.type == WeblinClientApi.ClientCreateItemRequest.type) {
@@ -85,6 +84,7 @@ export class IframeApi
         }
 
         if (request[Config.get('iframeApi.messageMagicPage', 'x7ft76zst7g_pageApi')]) {
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             if (request.type == WeblinClientApi.ClientCreateItemRequest.type) {
                 this.handle_ClientCreateItemRequest(<WeblinClientApi.ClientCreateItemRequest>request);
             } else {
