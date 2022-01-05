@@ -68,6 +68,12 @@
         letter-spacing: normal;
     }
 
+
+    label.n3q-base:before
+    {
+        display: none;
+    }
+
     input.n3q-base {
         display: inline;
     }
