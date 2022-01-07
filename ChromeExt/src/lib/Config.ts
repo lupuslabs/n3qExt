@@ -222,6 +222,7 @@ export class Config
                 PointsChannelNavigation: { weight: 1, x0: 0, css: { backgroundColor: '#ff00ff' } },
                 PointsChannelPowerup: { weight: 1, x0: 0, css: { backgroundColor: '#ff00ff' } },
                 PointsChannelItemApply: { weight: 1, x0: 0, css: { backgroundColor: '#00ffff' } },
+                PointsChannelPageOwned: { weight: 1, x0: 0, css: { backgroundColor: '#ff8080' } },
             }
         },
         itemProviders: {
@@ -469,6 +470,7 @@ export class Config
                     'Activity.PointsChannelNavigation': 'Navigate',
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Item activity',
+                    'Activity.PointsChannelPageOwned': 'Page ownership',
 
                     'ErrorFact.UnknownError': 'UnknownError',
                     'ErrorFact.NotRezzed': 'Item not dropped',
@@ -524,6 +526,7 @@ export class Config
                     'ItemPid.NicknameText': 'Name',
                     'ItemPid.PointsTotal': 'Collected',
                     'ItemPid.PointsCurrent': 'Available',
+                    'ItemPid.PointsUnclaimed': 'Unclaimed',
                     'ItemPid.RezzedDestination': 'Page',
                     'ItemPid.IsRezzed': 'Dropped',
                     'ItemPid.CoinCurrency': 'Currency',
@@ -711,6 +714,7 @@ export class Config
                     'Activity.PointsChannelNavigation': 'Navigation',
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
+                    'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
@@ -766,6 +770,7 @@ export class Config
                     'ItemPid.NicknameText': 'Name',
                     'ItemPid.PointsTotal': 'Gesammelt',
                     'ItemPid.PointsCurrent': 'Verfügbar',
+                    'ItemPid.PointsUnclaimed': 'Unbeansprucht',
                     'ItemPid.RezzedDestination': 'Webseite',
                     'ItemPid.IsRezzed': 'Auf Webseite',
                     'ItemPid.CoinCurrency': 'Währung',

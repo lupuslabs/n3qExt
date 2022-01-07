@@ -402,7 +402,7 @@ export class LocalStorageItemProvider implements IItemProvider
         await this.persistentWriteItem(itemId);
     }
 
-    async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+    async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -458,7 +458,7 @@ export class LocalStorageItemProvider implements IItemProvider
                     }
                 }
 
-                resolve();
+                resolve(response.result);
             } catch (ex) {
                 if (ex.fact) {
                     reject(new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail));

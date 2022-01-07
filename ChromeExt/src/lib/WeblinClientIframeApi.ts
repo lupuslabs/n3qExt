@@ -140,6 +140,7 @@ export namespace WeblinClientIframeApi
         created: { [id: string]: { [pid: string]: string } };
         changed: { [id: string]: { [pid: string]: string } };
         deleted: string[];
+        result: ItemProperties;
     }
 
     export class RoomGetItemsRequest extends Request

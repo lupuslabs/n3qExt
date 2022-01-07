@@ -32,16 +32,4 @@ export class Payload
         let tokenBase64Encoded = Utils.base64Encode(tokenString);
         return tokenBase64Encoded;
     }
-
-    static async getPayloadHash(api: string, payload: any): Promise<string>
-    {
-        let response = await new SimpleRpc('getPayloadHash')
-            .param('payload', payload)
-            .send(api);
-        if (response.ok) {
-            return response.get('result', null);
-        }
-        throw response.message;
-    }
-
 }

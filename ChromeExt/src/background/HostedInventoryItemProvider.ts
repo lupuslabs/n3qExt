@@ -206,11 +206,12 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<void>
+        async itemAction(itemId: string, action: string, args: any, involvedIds: string[], allowUnrezzed: boolean): Promise<ItemProperties>
         {
             let createdIds = [];
             let deletedIds = [];
             let changedIds = [];
+            let result = {};
             try {
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
@@ -226,6 +227,7 @@ export namespace HostedInventoryItemProvider
                 createdIds = response.created;
                 deletedIds = response.deleted;
                 changedIds = response.changed;
+                result = response.result;
 
             } catch (ex) {
                 this.handleException(ex);
@@ -323,6 +325,7 @@ export namespace HostedInventoryItemProvider
                 this.backpack.requestSendPresenceFromTab(room);
             }
 
+            return result;
         }
 
         async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>

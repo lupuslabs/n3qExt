@@ -16,7 +16,6 @@ export namespace RpcProtocol
         status: string;
         static status_ok = 'ok';
         static status_error = 'error';
-        result: string;
         message: string;
     }
 
@@ -44,6 +43,7 @@ export namespace RpcProtocol
         created: { [id: string]: ItemProperties };
         changed: { [id: string]: ItemProperties };
         deleted: string[];
+        result: ItemProperties;
     }
 
     export class BackpackCreateRequest extends BackpackRequest
@@ -134,6 +134,7 @@ export namespace RpcProtocol
         created: string[];
         changed: string[];
         deleted: string[];
+        result: ItemProperties;
     }
 
 }
