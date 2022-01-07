@@ -16,6 +16,14 @@ export namespace WeblinClientIframeApi
         }
     }
 
+    export class Response extends WeblinClientApi.Response
+    {
+        constructor(type: string)
+        {
+            super(type, true);
+        }
+    }
+
     export class ItemErrorResponse extends WeblinClientApi.Response
     {
         constructor(public fact: string, public reason: string, public detail: string)
@@ -134,13 +142,11 @@ export namespace WeblinClientIframeApi
         args: any;
         items: string[];
     }
-
-    export class ItemActionResponse extends Response
+    export class ItemActionResponse extends WeblinClientApi.ContentResponse
     {
-        created: { [id: string]: { [pid: string]: string } };
-        changed: { [id: string]: { [pid: string]: string } };
-        deleted: string[];
-        result: ItemProperties;
+        constructor(
+            public result: ItemProperties,
+        ) { super('Item.Action.Response'); }
     }
 
     export class RoomGetItemsRequest extends Request

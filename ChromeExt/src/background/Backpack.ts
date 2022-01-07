@@ -313,9 +313,9 @@ export class Backpack
         await this.getProvider(itemId).modifyItemProperties(itemId, changed, deleted, options);
     }
 
-    async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<void>
+    async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<ItemProperties>
     {
-        await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
+        return await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
     }
 
     async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>

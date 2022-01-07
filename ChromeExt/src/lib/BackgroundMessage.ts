@@ -50,6 +50,11 @@ export class GetBackpackItemPropertiesResponse extends BackgroundResponse
     constructor(public properties: ItemProperties) { super(true); }
 }
 
+export class ExecuteBackpackItemActionResponse extends BackgroundResponse
+{
+    constructor(public result: ItemProperties) { super(true); }
+}
+
 export class CreateBackpackItemFromTemplateResponse extends BackgroundResponse
 {
     constructor(public properties: ItemProperties) { super(true); }
@@ -281,9 +286,17 @@ export class BackgroundMessage
         });
     }
 
-    static executeBackpackItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>): Promise<void>
+    static executeBackpackItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>): Promise<ItemProperties>
     {
-        return BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.executeBackpackItemAction.name, 'itemId': itemId, 'action': action, 'args': args, 'involvedIds': involvedIds });
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.executeBackpackItemAction.name, 'itemId': itemId, 'action': action, 'args': args, 'involvedIds': involvedIds });
+                resolve((<ExecuteBackpackItemActionResponse>response).result);
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
 }

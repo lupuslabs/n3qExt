@@ -702,9 +702,10 @@ export class IframeApi
                     }
                 }
             }
-            await BackgroundMessage.executeBackpackItemAction(itemId, actionName, args, involvedIds);
+            let result = await BackgroundMessage.executeBackpackItemAction(itemId, actionName, args, involvedIds);
             await BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1);
-            return new WeblinClientApi.SuccessResponse();
+
+            return new WeblinClientIframeApi.ItemActionResponse(result);
         } catch (error) {
             let fact = ItemException.factFrom(error.fact);
             let reason = ItemException.reasonFrom(error.reason);
