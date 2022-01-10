@@ -462,6 +462,7 @@ export class Config
                     'Toast.NotExecuted': 'Not executed',
                     'Toast.NoBlueprint': 'No blueprint',
                     'Toast.TooManyBlueprints': 'Too many blueprints',
+                    'Toast.PointsClaimed': 'Activity points claimed',
 
                     'Activity.TotalPoints': 'Total points',
                     'Activity.PointsChannelChat': 'Chat',
