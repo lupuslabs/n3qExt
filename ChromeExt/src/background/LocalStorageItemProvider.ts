@@ -570,7 +570,7 @@ export class LocalStorageItemProvider implements IItemProvider
         return presence;
     }
 
-    onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void 
+    async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
     {
     }
 }

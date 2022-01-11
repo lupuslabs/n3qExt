@@ -14,7 +14,7 @@ export interface IItemProvider
     rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>;
     derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>;
     getDependentPresence(itemId: string, roomJid: string): xml;
-    onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void;
+    onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void;
     loadWeb3Items(): Promise<void>;
     createItemByTemplate(templateName: string, args: ItemProperties): Promise<string>;
     createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>;

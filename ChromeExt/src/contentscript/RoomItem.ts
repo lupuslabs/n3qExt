@@ -108,8 +108,6 @@ export class RoomItem extends Entity
         let hasPosition: boolean = false;
         let newX: number = 123;
 
-        let isFirstPresence = this.isFirstPresence;
-
         // Collect info
 
         {
@@ -125,7 +123,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             this.myItem = await BackgroundMessage.isBackpackItem(this.roomNick);
         }
 
@@ -151,41 +149,40 @@ export class RoomItem extends Entity
     
             if (newProperties) {
                 
-                // Race condition due to preceeding awaits, so check version to decide which properties are newer:
-                const oldProperties = this.getProperties();
-                const oldVersion = as.Int(oldProperties[Pid.Version]);
-                const newVersion = as.Int(newProperties[Pid.Version]);
-                if (oldProperties && (false
-                    // When a presence with newer version has been processed while we await-ed:
-                    || oldVersion > newVersion 
-                    // when processing first presence, but second presence got processed while we await-ed:
-                    || (isFirstPresence && oldVersion === newVersion)
-                )) {
-                    // A newer presence has been processed while we await-ed.
-                    newProperties = oldProperties;
-                    isFirstPresence = false;
-                } else {
-                    // No race detected - our version is newer.
-                }
+                // // Race condition due to preceeding awaits, so check version to decide which properties are newer:
+                // const oldProperties = this.getProperties();
+                // const oldVersion = as.Int(oldProperties[Pid.Version]);
+                // const newVersion = as.Int(newProperties[Pid.Version]);
+                // if (oldProperties && (false
+                //     // When a presence with newer version has been processed while we await-ed:
+                //     || oldVersion > newVersion 
+                //     // when processing first presence, but second presence got processed while we await-ed:
+                //     || (this.isFirstPresence && oldVersion === newVersion)
+                // )) {
+                //     // A newer presence has been processed while we await-ed.
+                //     newProperties = oldProperties;
+                //     this.isFirstPresence = false;
+                // } else {
+                //     // No race detected - our version is newer.
+                // }
                 
                 this.setProperties(newProperties);
             }
         }
-        this.isFirstPresence = false; // This is a safe and race-free place to set it.
 
         const vpAnimationsUrl = as.String(this.getProperties()[Pid.AnimationsUrl]);
         const vpImageUrl = as.String(this.getProperties()[Pid.ImageUrl]);
         const vpRezzedX = as.Int(this.getProperties()[Pid.RezzedX], -1);
 
-        // Do someting with the data
+        // Do something with the data
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             if (this.myItem) {
                 this.app.incrementRezzedItems(this.getProperties()[Pid.Label] + ' ' + this.getProperties()[Pid.Id]);
             }
         }
 
-        {
+        if (this.isFirstPresence) {
             const props = this.getProperties();
             if (as.Bool(props[Pid.ClaimAspect])) {
                 // The new item has a claim
@@ -210,7 +207,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             if (!as.Bool(this.getProperties()[Pid.IsInvisible])) { // Todo: Make race-proof or remove.
                 this.avatarDisplay = new Avatar(this.app, this, false);
                 if (Utils.isBackpackEnabled()) {
@@ -267,7 +264,7 @@ export class RoomItem extends Entity
             newX = vpRezzedX;
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             if (!hasPosition && vpRezzedX < 0) {
                 newX = this.isSelf ? await this.app.getSavedPosition() : this.app.getDefaultPosition(this.roomNick);
             }
@@ -281,7 +278,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             this.show(true, Config.get('room.fadeInSec', 0.3));
         }
 
@@ -295,11 +292,11 @@ export class RoomItem extends Entity
             this.checkIframeAutoRange();
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             this.sendItemEventToAllScriptFrames({ event: 'rez' });
         }
 
-        if (isFirstPresence) {
+        if (this.isFirstPresence) {
             if (this.room?.iAmAlreadyHere()) {
                 if (Config.get('roomItem.chatlogItemAppeared', true)) {
                     this.room?.showChatMessage(null, this.getDisplayName(), 'appeared');
@@ -310,6 +307,8 @@ export class RoomItem extends Entity
                 }
             }
         }
+
+        this.isFirstPresence = false;
     }
 
     public async onPresenceUnavailable(stanza: any): Promise<void>

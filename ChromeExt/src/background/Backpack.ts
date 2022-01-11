@@ -6,7 +6,6 @@ import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
-import { RpcProtocol } from '../lib/RpcProtocol';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
@@ -350,7 +349,7 @@ export class Backpack
         return stanza;
     }
 
-    async stanzaInFilter(stanza: xml): Promise<any>
+    async stanzaInFilter(stanza: xml): Promise<xml>
     {
         if (stanza.name == 'presence') {
             const fromJid = new jid(stanza.attrs.from);
@@ -371,7 +370,7 @@ export class Backpack
                                 const providerName = as.String(vpProps.attrs[Pid.Provider], '');
                                 if (this.providers.has(providerName)) {
                                     const provider = this.providers.get(providerName);
-                                    await provider.onDependentPresenceReceived(itemId, roomJid, participantNick, dependentPresence);
+                                    await provider.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
                                 }
                             }
                         }

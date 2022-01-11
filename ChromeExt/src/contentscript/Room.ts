@@ -341,11 +341,14 @@ export class Room
                 if (dependentPresences.length > 0) {
                     for (let i = 0; i < dependentPresences.length; i++) {
                         const dependentPresence = dependentPresences[i];
-                        dependentPresence.attrs['to'] = to.toString();
-                        const dependentFrom = jid(dependentPresence.attrs.from);
-                        const dependentResource = dependentFrom.getResource();
-                        currentDependents.push(dependentResource);
-                        this.onPresence(dependentPresence);
+                        const incomplete = as.Bool(dependentPresence.attrs._incomplete, false);
+                        if (!incomplete) {
+                            dependentPresence.attrs['to'] = to.toString();
+                            const dependentFrom = jid(dependentPresence.attrs.from);
+                            const dependentResource = dependentFrom.getResource();
+                            currentDependents.push(dependentResource);
+                            this.onPresence(dependentPresence);
+                        }
                     }
                 }
             }
@@ -436,7 +439,7 @@ export class Room
     // Keepalive
 
     private keepAliveSec: number = as.Float(Config.get('room.keepAliveSec'), 180);
-    private keepAliveTimer: undefined|number = undefined;
+    private keepAliveTimer: undefined | number = undefined;
     private keepAlive()
     {
         if (this.keepAliveTimer === undefined) {
@@ -621,7 +624,8 @@ export class Room
     applyBackpackItemToParticipant(
         participant: Participant,
         backpackItem: BackpackItem,
-    ): void {
+    ): void
+    {
         participant.applyBackpackItem(backpackItem);
     }
 

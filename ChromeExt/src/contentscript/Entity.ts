@@ -114,7 +114,7 @@ export class Entity
             }
         }
 
-        const speedPixelPerSec = as.Float(this.avatarDisplay.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
+        const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
         const durationSec = absDiffX / speedPixelPerSec;
 
         $(this.getElem())

@@ -45,11 +45,11 @@ export namespace HostedInventoryItemProvider
     {
         public itemIds = new Set<string>();
         constructor(
-            public timer: number, 
-            public inventoryId: string, 
-            public roomJid: string, 
-            public participantNick: string) 
-            { }
+            public timer: number,
+            public inventoryId: string,
+            public roomJid: string,
+            public participantNick: string)
+        { }
     }
 
     export class Provider implements IItemProvider
@@ -452,11 +452,12 @@ export namespace HostedInventoryItemProvider
 
         // -----------------------------------------------------
 
-        async onDependentPresenceReceived(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
+        async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
         {
-            // log.info('HostedInventoryItemProvider.onDependentPresenceReceived', 'presence for', itemId, dependentPresence);
             const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
             if (vpProps) {
+                dependentPresence.attrs._incomplete = true;
+
                 const vpVersion = as.Int(vpProps.attrs[Pid.Version], -1);
                 if (this.itemCache.has(itemId)) {
                     const cacheEntry = this.itemCache.get(itemId);
@@ -477,11 +478,12 @@ export namespace HostedInventoryItemProvider
                         if (vpVersion > cachedVersion) { cacheIsGood = false; }
                     }
 
-                    if (cacheIsGood) {
-                        for (let key in cachedProps) {
-                            vpProps.attrs[key] = cachedProps[key];
-                        }
-                    } else {
+                    delete dependentPresence.attrs._incomplete;
+                    for (let key in cachedProps) {
+                        vpProps.attrs[key] = cachedProps[key];
+                    }
+
+                    if (!cacheIsGood) {
                         const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
                         if (inventoryId !== '') {
                             this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
@@ -545,7 +547,7 @@ export namespace HostedInventoryItemProvider
                         })
                         .catch(error =>
                         {
-                            console.info('HostedInventoryItemProvider.onDependentPresenceReceived', error);
+                            console.info('HostedInventoryItemProvider.onDependentPresence', error);
                         });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
                 let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);
