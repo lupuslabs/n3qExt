@@ -999,6 +999,7 @@ export class BackgroundApp
 
                 let stanza = this.presenceStateGetPresence(roomJid, participantNick);
                 if (stanza !== null) {
+                    stanza.attrs._replay = true;
                     await this.recvStanza(stanza);
                 }
             }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
@@ -1159,7 +1160,10 @@ export class BackgroundApp
                 isConnectionPresence = xmlStanza.attrs.from && (jid(xmlStanza.attrs.from).getResource() == this.resource);
             }
             if (!isConnectionPresence) {
-                if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', xmlStanza, as.String(xmlStanza.attrs.type, xmlStanza.name == 'presence' ? 'available' : 'normal'), 'to=', xmlStanza.attrs.to, 'from=', xmlStanza.attrs.from); }
+                const isReplay = as.Bool(xmlStanza.attrs._replay, false);
+                if (!isReplay) {
+                    if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', xmlStanza, as.String(xmlStanza.attrs.type, xmlStanza.name == 'presence' ? 'available' : 'normal'), 'to=', xmlStanza.attrs.to, 'from=', xmlStanza.attrs.from); }
+                }
 
                 // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
                 //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
