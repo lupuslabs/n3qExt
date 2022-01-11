@@ -499,7 +499,7 @@ export class Config
                     'ErrorReason.NotYourItem': 'This is not your item.',
                     'ErrorReason.ItemMustBeStronger': 'Your item is not stronger than the other.',
                     'ErrorReason.ItemIsNotTransferable': 'Item not transferable.',
-                    'ErrorReason.NoMatch': 'Item do not match.',
+                    'ErrorReason.NoMatch': 'Items do not match.',
                     'ErrorReason.NoSuchAspect': 'The item is missing a feature.',
                     'ErrorReason.NoSuchItem': 'Missing item',
                     'ErrorReason.Ambiguous': 'Ambiguous',
