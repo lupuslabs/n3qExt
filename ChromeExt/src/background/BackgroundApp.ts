@@ -987,24 +987,32 @@ export class BackgroundApp
         }
     }
 
-    private deferredReplayPresenceTimer = new Map<string, number>();
+    //private deferredReplayPresenceToAvoidManyConsecutivePresencesTimer = new Map<string, number>();
 
     async replayPresence(roomJid: string, participantNick: string)
     {
-        const timerKey = roomJid + '/' + participantNick;
-        if (!this.deferredReplayPresenceTimer.has(timerKey)) {
-            const timer = window.setTimeout(async () =>
-            {
-                this.deferredReplayPresenceTimer.delete(timerKey);
-
-                let stanza = this.presenceStateGetPresence(roomJid, participantNick);
-                if (stanza !== null) {
-                    stanza.attrs._replay = true;
-                    await this.recvStanza(stanza);
-                }
-            }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
-            this.deferredReplayPresenceTimer.set(timerKey, timer);
+        let stanza = this.presenceStateGetPresence(roomJid, participantNick);
+        if (stanza !== null) {
+            stanza.attrs._replay = true;
+            await this.recvStanza(stanza);
         }
+
+        // const timerKey = roomJid + '/' + participantNick;
+        // if (!this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.has(timerKey)) {
+
+        //     const timer = window.setTimeout(async () =>
+        //     {
+        //         this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.delete(timerKey);
+
+        //         let stanza = this.presenceStateGetPresence(roomJid, participantNick);
+        //         if (stanza !== null) {
+        //             stanza.attrs._replay = true;
+        //             await this.recvStanza(stanza);
+        //         }
+        //     }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
+            
+        //     this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.set(timerKey, timer);
+        // }
     }
 
     simulateUnavailableToTab(from: string, unavailableTabId: number)

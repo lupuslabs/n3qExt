@@ -390,16 +390,14 @@ export namespace HostedInventoryItemProvider
                 [Pid.Provider]: this.id,
                 [Pid.Id]: itemId,
                 [Pid.InventoryId]: as.String(props[Pid.InventoryId], ''),
+                [Pid.Version]: as.String(props[Pid.Version], ''),
             };
 
-            const version = as.String(props[Pid.Version], '');
-            if (version !== '') {
-                attrs[Pid.Version] = version;
-            }
-            const rezzedX = as.Int(props[Pid.RezzedX], -1);
-            if (rezzedX > 0) {
-                attrs[Pid.RezzedX] = rezzedX;
-            }
+            // const rezzedX = as.Int(props[Pid.RezzedX], -1);
+            // if (rezzedX > 0) {
+            //     attrs[Pid.RezzedX] = rezzedX;
+            // }
+
             // const ownerName = await Memory.getLocal(Utils.localStorageKey_Nickname(), as.String(clonedProps[Pid.OwnerName])),
             // if (ownerName !== '') {
             //     attrs[Pid.OwnerName] = ownerName;

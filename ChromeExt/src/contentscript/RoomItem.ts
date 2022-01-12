@@ -88,7 +88,7 @@ export class RoomItem extends Entity
         }
     }
 
-    protected getScriptWindow(): undefined|Window
+    protected getScriptWindow(): undefined | Window
     {
         let window = this.framePopup ?? this.frameWindow;
         return window?.getIframeElem()?.contentWindow;
@@ -108,6 +108,9 @@ export class RoomItem extends Entity
         let hasPosition: boolean = false;
         let newX: number = 123;
 
+        let isFirstPresence = this.isFirstPresence;
+        this.isFirstPresence = false;
+
         // Collect info
 
         {
@@ -123,7 +126,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             this.myItem = await BackgroundMessage.isBackpackItem(this.roomNick);
         }
 
@@ -146,9 +149,9 @@ export class RoomItem extends Entity
                     }
                 }
             }
-    
+
             if (newProperties) {
-                
+
                 // // Race condition due to preceeding awaits, so check version to decide which properties are newer:
                 // const oldProperties = this.getProperties();
                 // const oldVersion = as.Int(oldProperties[Pid.Version]);
@@ -157,15 +160,15 @@ export class RoomItem extends Entity
                 //     // When a presence with newer version has been processed while we await-ed:
                 //     || oldVersion > newVersion 
                 //     // when processing first presence, but second presence got processed while we await-ed:
-                //     || (this.isFirstPresence && oldVersion === newVersion)
+                //     || (isFirstPresence && oldVersion === newVersion)
                 // )) {
                 //     // A newer presence has been processed while we await-ed.
                 //     newProperties = oldProperties;
-                //     this.isFirstPresence = false;
+                //     isFirstPresence = false;
                 // } else {
                 //     // No race detected - our version is newer.
                 // }
-                
+
                 this.setProperties(newProperties);
             }
         }
@@ -176,13 +179,13 @@ export class RoomItem extends Entity
 
         // Do something with the data
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             if (this.myItem) {
                 this.app.incrementRezzedItems(this.getProperties()[Pid.Label] + ' ' + this.getProperties()[Pid.Id]);
             }
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             const props = this.getProperties();
             if (as.Bool(props[Pid.ClaimAspect])) {
                 // The new item has a claim
@@ -207,7 +210,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (this.isFirstPresence) {
+        if (is.nil(this.avatarDisplay)) {
             if (!as.Bool(this.getProperties()[Pid.IsInvisible])) { // Todo: Make race-proof or remove.
                 this.avatarDisplay = new Avatar(this.app, this, false);
                 if (Utils.isBackpackEnabled()) {
@@ -264,7 +267,7 @@ export class RoomItem extends Entity
             newX = vpRezzedX;
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             if (!hasPosition && vpRezzedX < 0) {
                 newX = this.isSelf ? await this.app.getSavedPosition() : this.app.getDefaultPosition(this.roomNick);
             }
@@ -278,7 +281,7 @@ export class RoomItem extends Entity
             }
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             this.show(true, Config.get('room.fadeInSec', 0.3));
         }
 
@@ -292,11 +295,11 @@ export class RoomItem extends Entity
             this.checkIframeAutoRange();
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             this.sendItemEventToAllScriptFrames({ event: 'rez' });
         }
 
-        if (this.isFirstPresence) {
+        if (isFirstPresence) {
             if (this.room?.iAmAlreadyHere()) {
                 if (Config.get('roomItem.chatlogItemAppeared', true)) {
                     this.room?.showChatMessage(null, this.getDisplayName(), 'appeared');
@@ -307,8 +310,6 @@ export class RoomItem extends Entity
                 }
             }
         }
-
-        this.isFirstPresence = false;
     }
 
     public async onPresenceUnavailable(stanza: any): Promise<void>
@@ -356,9 +357,10 @@ export class RoomItem extends Entity
                             const magicKey = Config.get(
                                 'iframeApi.messageMagicRezactive',
                                 'tr67rftghg_Rezactive');
-                            const msg = {[magicKey]: true, type: 'Window.Close'};
+                            const msg = { [magicKey]: true, type: 'Window.Close' };
                             this.getScriptWindow()?.postMessage(msg, '*');
-                            window.setTimeout((): void => {
+                            window.setTimeout((): void =>
+                            {
                                 this.framePopup.close();
                             }, 100);
                         }
@@ -452,8 +454,10 @@ export class RoomItem extends Entity
         }
     }
 
-    public onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
-        (async (): Promise<void> => {
+    public onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
+    {
+        (async (): Promise<void> =>
+        {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on RoomItem.
                 droppedItem.getAvatar()?.ignoreDrag();
@@ -461,10 +465,12 @@ export class RoomItem extends Entity
             } else if (droppedItem instanceof BackpackItem) {
                 // BackpackItem on RoomItem.
             }
-        })().catch(error => { this.app.onError(
-            'RoomItem.onGotItemDroppedOn',
-            'Error caught!',
-            error, 'this', this, 'droppedItem', droppedItem);
+        })().catch(error =>
+        {
+            this.app.onError(
+                'RoomItem.onGotItemDroppedOn',
+                'Error caught!',
+                error, 'this', this, 'droppedItem', droppedItem);
         });
     }
 
@@ -591,7 +597,8 @@ export class RoomItem extends Entity
 
     private openFrame(): void
     {
-        (async () => {
+        (async () =>
+        {
             let iframeUrl = as.String(this.properties[Pid.IframeUrl]);
             const room = this.app.getRoom();
             const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
@@ -635,10 +642,10 @@ export class RoomItem extends Entity
                 default:
                 case 'Entity':
                     anchorElem = this.elem;
-                break;
+                    break;
                 case 'Base':
                     anchorElem = this.app.getDisplay();
-                break;
+                    break;
             }
             switch (as.String(iframeOptions.frame, 'Window')) {
                 case 'Popup':
@@ -650,7 +657,8 @@ export class RoomItem extends Entity
                     break;
             }
 
-        })().catch(error => {
+        })().catch(error =>
+        {
             this.app.onError('RoomItem.openFrame', 'Error caught!', error);
         });
     }
@@ -735,7 +743,7 @@ export class RoomItem extends Entity
         this.frameWindow?.position(width, height, left, bottom);
     }
 
-    public toFrontFrame(layer?: undefined|number|string): void
+    public toFrontFrame(layer?: undefined | number | string): void
     {
         this.framePopup?.toFront(layer);
         this.frameWindow?.toFront(layer);
