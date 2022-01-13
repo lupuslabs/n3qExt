@@ -136,7 +136,8 @@ export namespace ItemException
         NetworkProblem,
         CantDropOnSelf,
         NoItemProviderForItem,
-        NoSuchItemProvider
+        NoSuchItemProvider,
+        NoClientItem,
     }
 }
 

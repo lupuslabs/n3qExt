@@ -228,7 +228,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 });
                 if (existingItems.length == 0) {
                     try {
-                        let itemId = await this.createItemByTemplate(template, '', data);
+                        let itemId = await this.createItemByTemplate('', template, data);
                         knownIds.push(itemId);
                         if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId); }
                     } catch (error) {
@@ -252,7 +252,7 @@ export class LocalStorageItemProvider implements IItemProvider
         return knownIds;
     }
 
-    createItemByTemplate(templateName: string, auth: string, args: ItemProperties): Promise<string>
+    createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
     {
         return new Promise(async (resolve, reject) =>
         {

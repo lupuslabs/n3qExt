@@ -152,9 +152,9 @@ export class Backpack
         return await this.getProviderFromName('nine3q').loadWeb3Items();
     }
 
-    async createItemByTemplate(templateName: string, provider: string, auth: string, args: ItemProperties): Promise<string>
+    async createItemByTemplate(provider: string, auth: string, templateName: string, args: ItemProperties): Promise<string>
     {
-        return await this.getProviderFromName(provider).createItemByTemplate(templateName, auth, args);
+        return await this.getProviderFromName(provider).createItemByTemplate(auth, templateName, args);
     }
 
     async createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>

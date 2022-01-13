@@ -59,11 +59,11 @@ export namespace HostedInventoryItemProvider
         private userId: string;
         private accessToken: string;
 
-        constructor(private backpack: Backpack, private id, private definition: Definition) { }
+        constructor(private backpack: Backpack, private id, private providerDefinition: Definition) { }
 
         config(): Config
         {
-            return this.definition.config;
+            return this.providerDefinition.config;
         }
 
         async init(): Promise<void>
@@ -73,7 +73,7 @@ export namespace HostedInventoryItemProvider
 
             try {
 
-                let url = as.String(this.definition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
+                let url = as.String(this.providerDefinition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
                     .replace('{user}', encodeURIComponent(this.userId))
                     .replace('{token}', encodeURIComponent(this.accessToken))
                     .replace('{client}', encodeURIComponent(JSON.stringify(Client.getDetails())))
@@ -85,7 +85,7 @@ export namespace HostedInventoryItemProvider
                 } else {
                     const config = await response.json();
                     if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', config); }
-                    this.definition.config = config;
+                    this.providerDefinition.config = config;
                 }
             } catch (error) {
                 log.info('HostedInventoryItemProvider.init', error);
@@ -131,21 +131,31 @@ export namespace HostedInventoryItemProvider
             log.info('HostedInventoryItemProvider.loadWeb3Items', 'not implemented');
         }
 
-        async createItemByTemplate(templateName: string, auth: string, args: ItemProperties): Promise<string>
+        async createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
         {
+            let clientItemIds = this.backpack.findItems(
+                props => { return (as.Bool(props[Pid.ClientAspect], false) && as.String(props[Pid.Provider]) == this.providerDefinition.name); }
+            ).map(item => item.getProperties()[Pid.Id]);
 
+            if (clientItemIds.length == 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }
 
+            const itemId = clientItemIds[0];
 
+            const result = await this.itemAction(
+                itemId,
+                'Client.CreateItemByTemplate',
+                {
+                    'Auth': auth,
+                    'Template': templateName,
+                    'Properties': JSON.stringify(args),
+                },
+                [itemId],
+                true
+            );
 
+            const createdId = result[Pid.Id];
 
-
-
-
-
-
-
-
-            return null;
+            return createdId;
         }
 
         async createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>

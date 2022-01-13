@@ -247,12 +247,12 @@ export class BackgroundMessage
         });
     }
 
-    static createBackpackItemFromTemplate(template: string, provider: string, auth: string, args: ItemProperties): Promise<ItemProperties>
+    static createBackpackItemFromTemplate(provider: string, auth: string, template: string, args: ItemProperties): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
             try {
-                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromTemplate.name, 'template': template, 'provider': provider, 'token': token, 'args': args });
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromTemplate.name, 'provider': provider, 'auth': auth, 'template': template, 'args': args });
                 resolve((<CreateBackpackItemFromTemplateResponse>response).properties);
             } catch (error) {
                 reject(error);
