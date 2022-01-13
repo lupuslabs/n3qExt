@@ -176,6 +176,9 @@ export class Config
             messageMagicW2WMigration: 'hbv67u5rf_w2wMigrate',
             messageMagicCreateCryptoWallet: 'tr67rftghg_CreateCryptoWallet',
             allowedDomQueryPrefixes: [ 'https://opensea.io/', 'https://testnets.opensea.io/' ],
+            w2WMigrationProvider: 'n3q',
+            w2WMigrationToken: 'JVxIJIdR9ueq7sJwwPmM',
+            createCryptoWalletProvider: 'n3q',
         },
         backpack: {
             enabled: true,

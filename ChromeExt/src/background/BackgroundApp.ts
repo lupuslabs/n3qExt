@@ -329,7 +329,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.createBackpackItemFromTemplate.name: {
-                return this.handle_createBackpackItemFromTemplate(message.template, message.args, sendResponse);
+                return this.handle_createBackpackItemFromTemplate(message.template, message.provider, message.auth, message.args, sendResponse);
             } break;
 
             case BackgroundMessage.createBackpackItemFromNft.name: {
@@ -731,10 +731,10 @@ export class BackgroundApp
         return false;
     }
 
-    handle_createBackpackItemFromTemplate(template: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
+    handle_createBackpackItemFromTemplate(template: string, provider: string, auth: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByTemplate(template, args)
+            this.backpack.createItemByTemplate(template, provider, auth, args)
                 .then(itemId => { sendResponse(new CreateBackpackItemFromTemplateResponse(this.backpack.getItem(itemId).getProperties())); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;

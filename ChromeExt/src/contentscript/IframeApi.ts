@@ -67,8 +67,9 @@ export class IframeApi
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             let address = (<any>request).address;
             let network = (<any>request).network;
+            let auth = (<any>request).auth;
             if (address != null && network != null) {
-                await this.handle_CreateCryptoWallet(address, network);
+                await this.handle_CreateCryptoWallet(address, network, auth);
             }
             return;
         }
@@ -101,7 +102,7 @@ export class IframeApi
             let nick = this.app.getRoom().getMyNick();
             let participant = this.app.getRoom().getParticipant(nick);
             let x = participant.getPosition() + 120;
-            let props = await BackgroundMessage.createBackpackItemFromTemplate('Migration', { [Pid.MigrationCid]: cid });
+            let props = await BackgroundMessage.createBackpackItemFromTemplate('Migration', Config.get('iframeApi.w2WMigrationProvider', 'n3q'), Config.get('iframeApi.w2WMigrationToken', 'JVxIJIdR9ueq7sJwwPmM'), { [Pid.MigrationCid]: cid });
             let itemId = props[Pid.Id];
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
             await BackgroundMessage.executeBackpackItemAction(itemId, 'Migration.CreateItems', {}, [itemId]);
@@ -111,7 +112,7 @@ export class IframeApi
         }
     }
 
-    async handle_CreateCryptoWallet(address: string, network: string)
+    async handle_CreateCryptoWallet(address: string, network: string, auth: string)
     {
         try {
 
@@ -124,7 +125,7 @@ export class IframeApi
             let nick = this.app.getRoom().getMyNick();
             let participant = this.app.getRoom().getParticipant(nick);
             let x = participant.getPosition() + 120;
-            let props = await BackgroundMessage.createBackpackItemFromTemplate('CryptoWallet', { [Pid.Web3WalletAddress]: address, [Pid.Web3WalletNetwork]: network });
+            let props = await BackgroundMessage.createBackpackItemFromTemplate('CryptoWallet', Config.get('iframeApi.createCryptoWalletProvider', 'n3q'), auth, { [Pid.Web3WalletAddress]: address, [Pid.Web3WalletNetwork]: network, });
             let itemId = props[Pid.Id];
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
             await BackgroundMessage.loadWeb3BackpackItems();
@@ -165,7 +166,7 @@ export class IframeApi
     {
         try {
 
-            let props = await BackgroundMessage.createBackpackItemFromTemplate(request.template, request.args ?? {});
+            let props = await BackgroundMessage.createBackpackItemFromTemplate(request.template, request.provider, request.auth, request.args ?? {});
             let itemId = props[Pid.Id];
 
             let nick = this.app.getRoom().getMyNick();

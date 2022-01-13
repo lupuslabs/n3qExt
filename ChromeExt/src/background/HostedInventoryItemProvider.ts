@@ -131,9 +131,20 @@ export namespace HostedInventoryItemProvider
             log.info('HostedInventoryItemProvider.loadWeb3Items', 'not implemented');
         }
 
-        async createItemByTemplate(templateName: string, args: ItemProperties): Promise<string>
+        async createItemByTemplate(templateName: string, auth: string, args: ItemProperties): Promise<string>
         {
-            log.info('HostedInventoryItemProvider.createItemByTemplate', 'not implemented');
+
+
+
+
+
+
+
+
+
+
+
+
             return null;
         }
 

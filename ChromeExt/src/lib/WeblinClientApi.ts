@@ -34,6 +34,8 @@ export namespace WeblinClientApi
         static type = 'Client.CreateItem';
         template: string;
         dx: number;
+        provider: string;
+        auth: string;
         args: ItemProperties;
     }
 }
