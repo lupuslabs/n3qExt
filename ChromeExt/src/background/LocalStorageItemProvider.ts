@@ -1,4 +1,5 @@
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { xml } from '@xmpp/client';
 import { Config } from '../lib/Config';
@@ -312,6 +313,21 @@ export class LocalStorageItemProvider implements IItemProvider
         });
     }
 
+    async transferAuthorize(itemId: string, duration: number): Promise<string>
+    {
+        throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi');
+    }
+
+    async transferUnauthorize(itemId: string): Promise<void>
+    {
+        throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi');
+    }
+
+    async transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>
+    {
+        throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.SeeDetail, 'Missing backpackApi');
+    }
+
     createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
@@ -359,6 +375,15 @@ export class LocalStorageItemProvider implements IItemProvider
         if (Config.get('backpack.loadWeb3Items', false)) {
             await this.loadWeb3Items();
         }
+    }
+
+    async getItemIds(): Promise<string[]> {
+        let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
+        if (!is.array<string>(itemIds)) {
+            log.warn('Backpack.loadLocalItems', this.getBackpackIdsKey(), 'not an array');
+            return [];
+        }
+        return itemIds;
     }
 
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>

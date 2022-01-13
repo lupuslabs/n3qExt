@@ -1,7 +1,31 @@
 import * as xml from '@xmpp/xml';
+import { is } from './is';
 import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
+import { ItemException } from './ItemException';
+import { ErrorWithDataBase } from './debugUtils';
+
+export class ErrorWithData extends ErrorWithDataBase
+{
+    constructor(msg: string, data?: {[p: string]: unknown}) {
+        super(msg, data);
+    }
+
+    // Wraps an error into a new error with its own stacktrace and keeps item error user info by default:
+    static ofError(error: unknown, msg?: string, data?: object, copyUserMsg: boolean = true): ErrorWithData
+    {
+        const msgNew = msg ?? (is.object(error) && is.string(error.message) ? error.message : 'Unknown error!');
+        const dataNew = {error: error, ...data ?? {}};
+        let errorNew: ErrorWithData;
+        if (copyUserMsg && ItemException.isInstance(error)) {
+            errorNew = new ItemException(error.fact, error.reason, error.detail, msgNew, dataNew);
+        } else {
+            errorNew = new ErrorWithData(msgNew, dataNew);
+        }
+        return errorNew;
+    }
+}
 
 export class Point2D
 {

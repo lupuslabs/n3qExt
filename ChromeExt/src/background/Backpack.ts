@@ -157,6 +157,54 @@ export class Backpack
         await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
     }
 
+    async transferAuthorize(itemId: string, duration: number): Promise<string>
+    {
+        return await this.getProvider(itemId).transferAuthorize(itemId, duration);
+    }
+
+    async transferUnauthorize(itemId: string): Promise<void>
+    {
+        await this.getProvider(itemId).transferUnauthorize(itemId);
+    }
+
+    async transferComplete(provider: string, senderInventory: string, senderItem: string, transferToken: string): Promise<string>
+    {
+        return await this.getProviderFromName(provider).transferComplete(senderInventory, senderItem, transferToken);
+    }
+
+    // Tests whether a known item has been deleted. Removes it from backpack if it isn't known by the repository:
+    async isItemStillInRepo(itemId: string): Promise<boolean>
+    {
+        if (!this.isItem(itemId)) {
+            // Item unknown now. Probably lost a race.
+            return false;
+        }
+        const provider = this.getProvider(itemId);
+        const providerItemIds = await provider.getItemIds();
+
+        // Synchronous section start.
+        if (!this.isItem(itemId)) {
+            // Item unknown now. Removed while waiting for provider.getItemIds.
+            return false;
+        }
+        if (providerItemIds.includes(itemId)) {
+            // Item known and in repository.
+            return true;
+        }
+        // Item known but removed from repository.
+        const item = this.getItem(itemId);
+        const wasRezzed = item.isRezzed();
+        const room = item.getProperties()[Pid.RezzedLocation];
+        this.sendRemoveItemToAllTabs(itemId);
+        this.deleteRepositoryItem(itemId);
+        if (wasRezzed) {
+            this.requestSendPresenceFromTab(room);
+        }
+        // Synchronous section end.
+
+        return false;
+    }
+
     async createItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
     {
         return await this.getProviderFromName(provider).createItem(auth, method, args);

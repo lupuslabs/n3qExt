@@ -3,80 +3,99 @@
  *
  * Communication between item sender and item recipient and local actions:
  *
- * 1.a. Sender: user triggered single item transfer ->
- * Adds item to controller memory
- * with state SimpleItemTransferSenderState.askingUser.
- * Shows item transfer question in toast to user.
  *
- * 2.a. Sender: User cancels transfer ->
- * Deletes item from controller memory.
+ * Sender 1.a.                                                          |
+ *  |                                                                   |
+ *  |--local-timeout--> Sender 2.a.                                     |
+ *  |                                                                   |
+ *  |--local-cancel---> Sender 2.b.                                     |
+ *  |                                 .--local-timeout--> Sender 3.a. --|--msg-cancel-timeout---------.
+ *  '--local-confirm--> Sender 2.c. --|                                 |                             |-> Recipient 2.a.
+ *                       |            '--local-cancel---> Sender 3.b. --|--msg-cancel-senderCanceled--'
+ *                       |                                              |
+ * ---------------------------------------------------------------------'
+ *                       |
+ *                   msg offer
+ *                       v
+ *                 Recipient 1.a.                             .---------------------------------------------------------
+ *                       |                                    |
+ *                       |--local-timeout--> Recipient 2.b. --|--msg-reject-timeout------------.
+ *                       |                                    |                                |--> Sender 4.a.
+ *                       |--local-reject---> Recipient 2.c. --|--msg-reject-recipientRejected--'
+ *                       |                                    |
+ *                       '--local-accept---> Recipient 2.d.   |
+ *                                            |               |
+ * -----------------------------------------------------------'
+ *                                            |
+ *                                       msg accept
+ *                                            v
+ *                                       Sender 4.b.
  *
- * 2.b. Sender: User doesn't react in time ->
- * Deletes item from controller memory.
  *
- * 2.c. Sender: User confirmed transfer ->
+ * Sender 1.a: user triggered single item transfer ->
+ * Adds item to controller memory with state SimpleItemTransferSenderState.askingUser.
+ * Show item transfer question toast.
+ *
+ * Sender 2.a.: User doesn't react in time ->
+ * Delete item from controller memory.
+ *
+ * Sender 2.b.: User cancels transfer ->
+ * Delete item from controller memory.
+ *
+ * Sender: 2.c.: User confirmed transfer ->
  * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.offer.
  * Adds item to controller memory
+ * Authorizes recipient for item per API call to item server.
  * Sets state to SimpleItemTransferSenderState.offered in controller memory.
- * Show transfer cancel dialog (cancel and timeout handled in 5.a / 5.b).
+ * Show transfer cancel dialog.
  *
- * 3.a. Recipient: Receives offer message ->
- * Adds item to local list with state SimpleItemTransferRecipientState.asking.
- * Shows item accept question in toast to user.
- *
- * 4.a. Recipient: User rejects item ->
- * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
- * .cause = SimpleItemTransferRejectCause.recipientRejected.
- * Deletes item from controller memory.
- *
- * 4.b. Recipient: User doesn't react in time ->
- * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
+ * Sender 3.a.: Receives no reaction in time ->
+ * Delete item from controller memory.
+ * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.cancel.
  * .cause = SimpleItemTransferRejectCause.timeout.
- * Deletes item from controller memory.
+ * Show timeout error toast.
  *
- * 4.c. Recipient: User accepts item ->
- * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.accept.
- * Sets state to SimpleItemTransferSenderState.accepted in controller memory.
- *
- * 5.a. Sender: User cancels transfer ->
- * Shows appropriate confirmation toast.
- * Deletes item from controller memory.
+ * Sender 3.b.: User cancels transfer ->
+ * Delete item from controller memory.
  * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.cancel.
  * .cause = SimpleItemTransferRejectCause.senderCanceled.
- * Next step: 6.b
+ * Show appropriate confirmation toast.
  *
- * 5.b. Sender: Receives no reaction in time ->
- * Shows timeout error toast.
- * Deletes item from controller memory.
- * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.cancel.
+ * Sender 4.a.: Receives rejection message ->
+ * Delete item from controller memory
+ * Show appropriate error toast - message depending on vp:transfer/x.cause.
+ *
+ * Sender 4.b.: Receives acceptance message ->
+ * Delete item from controller memory.
+ * Check that transfer actually happened.
+ * Show transfer success toast.
+ * 
+ * Recipient 1.a.: Receives offer message ->
+ * Add item to local list with state SimpleItemTransferRecipientState.asking.
+ * Show item accept question in toast to user.
+ * 
+ * Recipient 2.a.: Receives cancel message ->
+ * Delete item from controller memory.
+ * Show appropriate failure toast.
+ * 
+ * Recipient 2.b.: User doesn't react in time ->
+ * Delete item from controller memory.
+ * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
  * .cause = SimpleItemTransferRejectCause.timeout.
- * Next step: 6.b
  *
- * 5.c. Sender: Receives rejection message ->
- * Shows appropriate error toast - message depending on vp:transfer/x.cause.
- * Deletes item from controller memory
+ * Recipient 2.c.: User rejects item ->
+ * Delete item from controller memory.
+ * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
+ * .cause = SimpleItemTransferRejectCause.recipientRejected.
  *
- * 5.d. Sender: Receives acceptance message ->
- * XMPP Message vp:transfer/x.type = 'confirm'.
- * Deletes the item from own backpack.
- * Shows transfer success toast.
- * Deletes item from controller memory.
- *
- * 6.a. Recipient: Sender doesn't react in time ->
- * Shows appropriate failure toast if user already accepted the transfer.
- * Deletes item from controller memory.
- *
- * 6.b. Recipient: Receives cancel message ->
- * Shows appropriate failure toast if user already accepted the transfer.
- * Deletes item from controller memory.
- *
- * 6.c. Recipient: Receives confirmation message ->
- * Adds the item to own backpack.
- * Shows transfer success toast.
- * Deletes item from controller memory.
+ * Recipient 2.d.: User accepts item ->
+ * Delete item from controller memory.
+ * Accept transfer for item per API call to item server.
+ * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.accept.
+ * Show transfer success toast.
  */
 import log = require('loglevel');
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { Room } from './Room';
 import { Participant } from './Participant';
 import { ContentApp } from './ContentApp';
@@ -93,7 +112,7 @@ import { JID } from '@xmpp/jid';
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 
-type ItemWithId = ItemProperties & {[Pid.Id]: string};
+type ItemWithId = ItemProperties & {[Pid.Id]: string, [Pid.Provider]: string, [Pid.InventoryId]: string};
 
 type Translatable
     = undefined
@@ -115,17 +134,28 @@ type TranslatableReplacement = [string, Translatable];
 
 enum SimpleItemTransferMsgType {
     offer = 'offer',
+    cancel = 'cancel',
     accept = 'accept',
     reject = 'reject',
-    cancel = 'cancel',
-    confirm = 'confirm',
 }
 
-type SimpleItemTransferMsg = {
-    from: Participant,
-    item: ItemWithId,
-    type: SimpleItemTransferMsgType,
-    cause: undefined|SimpleItemTransferCancelCause,
+class SimpleItemTransferMsg {
+    constructor(
+        public readonly from: Participant,
+        public readonly item: ItemWithId,
+        public readonly type: SimpleItemTransferMsgType,
+        public readonly cause: undefined|SimpleItemTransferCancelCause,
+    ) {}
+}
+
+class SimpleItemTransferMsgOffer extends SimpleItemTransferMsg {
+    constructor(
+        from: Participant,
+        item: ItemWithId,
+        public readonly transferToken: string,
+    ) {
+        super(from, item, SimpleItemTransferMsgType.offer, undefined);
+    }
 }
 
 enum SimpleItemTransferCancelCause {
@@ -143,23 +173,42 @@ const enum SimpleItemTransferSenderState {
 
 const enum SimpleItemTransferRecipientState {
     askingUser,
-    accepted,
     cleanup,
 }
 
-type SimpleItemTransferSenderRecord = {
-    recipient: Participant,
-    item: ItemWithId,
-    transferState: SimpleItemTransferSenderState,
-    toast?: undefined|Toast,
-};
-type SimpleItemTransferRecipientRecord = {
-    sender: Participant,
-    item: ItemWithId,
-    transferState: SimpleItemTransferRecipientState,
-    toast?: undefined|Toast,
-    timeoutHandle?: undefined|number,
-};
+abstract class SimpleItemTransferRecord {
+    public transferState: SimpleItemTransferSenderState|SimpleItemTransferRecipientState;
+    public toast:         undefined|Toast;
+    public timeoutHandle: undefined|number;
+    protected constructor(
+        public item: ItemWithId
+    ) {}
+    abstract getMsgReceiver(): Participant;
+}
+
+class SimpleItemTransferSenderRecord extends SimpleItemTransferRecord {
+    transferState: SimpleItemTransferSenderState = SimpleItemTransferSenderState.askingUser;
+    transferToken: undefined|string = undefined;
+    constructor(
+        public readonly recipient: Participant,
+        item: ItemWithId,
+    ) {
+        super(item);
+    }
+    getMsgReceiver(): Participant { return this.recipient; }
+}
+
+class SimpleItemTransferRecipientRecord extends SimpleItemTransferRecord {
+    transferState: SimpleItemTransferRecipientState = SimpleItemTransferRecipientState.askingUser;
+    constructor(
+        public readonly sender: Participant,
+        item: ItemWithId,
+        public readonly transferToken: string,
+    ) {
+        super(item);
+    }
+    getMsgReceiver(): Participant { return this.sender; }
+}
 
 export class SimpleItemTransferController
 {
@@ -167,19 +216,17 @@ export class SimpleItemTransferController
     protected readonly room: Room;
     protected readonly myParticipant: Participant;
 
-    protected readonly itemsSending:
-        {[itemId: string]: SimpleItemTransferSenderRecord};
-    protected readonly itemsReceiving:
-        {[itemId: string]: SimpleItemTransferRecipientRecord};
+    protected readonly itemsSending: {[itemId: string]: SimpleItemTransferSenderRecord};
+    protected readonly itemsReceiving: {[itemId: string]: SimpleItemTransferRecipientRecord};
 
-    constructor(app: ContentApp) {
+    constructor(app: ContentApp)
+    {
         this.app = app;
         this.room = app.getRoom();
         const participant = app.getMyParticipant();
         if (is.nil(participant)) {
-            throw new Error('Bug found:'
-            + ' Constructing SimpleItemTransferController'
-            + ' before local participant has been initialized!');
+            const msg = 'Bug found: Constructing SimpleItemTransferController before local participant has been initialized!';
+            throw new ErrorWithData(msg);
         }
         this.myParticipant = participant;
         this.itemsSending = {};
@@ -204,7 +251,11 @@ export class SimpleItemTransferController
                 switch (msg.type) {
                     case SimpleItemTransferMsgType.offer: {
                         // Sender offered an item.
-                        this.recipientOnOfferMsg(msg);
+                        this.recipientOnOfferMsg(<SimpleItemTransferMsgOffer>msg);
+                    } break;
+                    case SimpleItemTransferMsgType.cancel: {
+                        // Sender offered an item.
+                        this.recipientOnCancelMsg(msg);
                     } break;
                     case SimpleItemTransferMsgType.accept: {
                         // Recipient accepted the item.
@@ -214,24 +265,14 @@ export class SimpleItemTransferController
                         // Recipient rejected transfer.
                         this.senderOnRejectMsg(msg);
                     } break;
-                    case SimpleItemTransferMsgType.cancel: {
-                        // Sender offered an item.
-                        this.recipientOnCancelMsg(msg);
-                    } break;
-                    case SimpleItemTransferMsgType.confirm: {
-                        // Sender confirmed the accepted transfer.
-                        this.recipientOnConfirmMsg(msg);
-                    } break;
                     default: {
                         // noinspection JSUnusedLocalSymbols
                         const _: never = msg.type; // Exhaustiveness check.
                     } break;
                 }
             }
-        } catch (error) { this.app.onError(
-            'SimpleItemTransferController.onStanza',
-            'Error caught!',
-            error, 'stanza', stanza);
+        } catch (error) {
+            this.app.onError(ErrorWithData.ofError(error, undefined, {this: this}));
         }
         return stanzaHandled;
     }
@@ -248,34 +289,30 @@ export class SimpleItemTransferController
         //       a cancellation toast and removing the local record.
     }
 
-    //--------------------------------------------------------------------------
-    // Step 1.a.
+    //==========================================================================
+    // Sender steps
 
-    public senderInitiateItemTransfer(
-        recipient: Participant,
-        item: ItemProperties
-    ): void {
-        if (!as.Bool(Config.get('SimpleItemTransfer.enabled'))
-        || !isItemWithId(item)) {
+    //--------------------------------------------------------------------------
+    // Step: Sender 1.a.
+
+    public senderInitiateItemTransfer(recipient: Participant, item: ItemProperties): void
+    {
+        if (!as.Bool(Config.get('SimpleItemTransfer.enabled')) || !isItemWithId(item)) {
             return;
         }
-
         const itemId: string = item[Pid.Id];
-        if (itemId in this.itemsSending
-        || (item[Pid.IsTransferable] ?? '1') !== '1') {
+        if (itemId in this.itemsSending || (item[Pid.IsTransferable] ?? '1') !== '1') {
             this.senderShowItemNontransferableToast();
             return;
         }
-        const record: SimpleItemTransferSenderRecord = {
-            recipient: recipient,
-            item: item,
-            transferState: SimpleItemTransferSenderState.askingUser,
-        };
+
+        const record: SimpleItemTransferSenderRecord = new SimpleItemTransferSenderRecord(recipient, item);
         record.toast = this.senderShowConfirmDlg(record);
         this.itemsSending[itemId] = record;
     }
 
-    protected senderShowItemNontransferableToast(): void {
+    protected senderShowItemNontransferableToast(): void
+    {
         // Todo: Mention item name in message.
         const fact = ItemException.Fact.NotTransferred;
         const factText = ItemException.fact2String(fact);
@@ -284,426 +321,431 @@ export class SimpleItemTransferController
         const toastType = `Warning-${factText}-${reasonText}`;
         const toastDurationKey = 'room.applyItemErrorToastDurationSec';
         const toastDuration = as.Float(Config.get(toastDurationKey));
-        const toast = new SimpleErrorToast(
-            this.app, toastType, toastDuration,
+        const toast = new SimpleErrorToast(this.app, toastType, toastDuration,
             'warning', factText, reasonText, '');
         toast.show();
     }
 
-    protected senderShowConfirmDlg(
-        record: SimpleItemTransferSenderRecord
-    ): Toast {
+    protected senderShowConfirmDlg(record: SimpleItemTransferSenderRecord): Toast
+    {
         const itemId: string = record.item[Pid.Id];
-        return this.showUserToast(
-            'SimpleItemTransferSenderConfirm',
-            this.makeUserMsgTranslationModifiers(record),
-            'question',
-            'SimpleItemTransfer.senderConfirmQuestionTitle',
-            'SimpleItemTransfer.senderConfirmQuestionText',
-            'SimpleItemTransfer.senderConfirmToastDurationSec',
-            false,
-            () => this.senderConfirmDlgOnClose(itemId),
-            [
-                ['SimpleItemTransfer.senderConfirmQuestionYes',
-                    () => this.senderConfirmDlgOnYes(itemId),
-                ],
-                ['SimpleItemTransfer.senderConfirmQuestionNo',
-                    () => this.senderConfirmDlgOnNo(itemId),
-                ],
-            ],
-        );
+        const translationMods = this.makeUserMsgTranslationModifiers(record);
+        const toastType = 'SimpleItemTransferSenderConfirm';
+        const toastTitleId = 'SimpleItemTransfer.senderConfirmQuestionTitle';
+        const toastTextId = 'SimpleItemTransfer.senderConfirmQuestionText';
+        const toastDurationId = 'SimpleItemTransfer.senderConfirmToastDurationSec';
+        const closeAction = () => this.senderConfirmDlgOnClose(itemId);
+        return this.showUserToast(toastType, translationMods, 'question',
+            toastTitleId, toastTextId, toastDurationId, false, closeAction, [
+                ['SimpleItemTransfer.senderConfirmQuestionYes', () => this.senderConfirmDlgOnYes(itemId)],
+                ['SimpleItemTransfer.senderConfirmQuestionNo', () => this.senderConfirmDlgOnNo(itemId)],
+            ]);
     }
 
     //--------------------------------------------------------------------------
-    // Step 2.a. / 2.b.
+    // Steps: Sender 2.a., Sender 2.b.
 
-    protected senderConfirmDlgOnNo(itemId: string): void {
+    protected senderConfirmDlgOnClose(itemId: string): void
+    {
+        this.senderConfirmDlgOnNo(itemId);
+    }
+
+    protected senderConfirmDlgOnNo(itemId: string): void
+    {
         const record = this.itemsSending[itemId];
-        const transferState = record?.transferState;
-        if (transferState !== SimpleItemTransferSenderState.askingUser) {
+        if (record?.transferState !== SimpleItemTransferSenderState.askingUser) {
             return; // Transfer canceled while waiting for user action.
         }
         this.senderCleanupItem(itemId, true);
     }
 
-    protected senderConfirmDlgOnClose(itemId: string): void {
-        this.senderConfirmDlgOnNo(itemId);
-    }
-
     //--------------------------------------------------------------------------
-    // Step 2.c.
+    // Step: Sender 2.c.
 
-    protected senderConfirmDlgOnYes(itemId: string): void {
+    protected senderConfirmDlgOnYes(itemId: string): void
+    {
         (async (): Promise<void> => {
-            const expectedState = SimpleItemTransferSenderState.askingUser;
-            const record = this.itemsSending[itemId];
-            if (record?.transferState !== expectedState) {
+            let record = this.itemsSending[itemId];
+            if (record?.transferState !== SimpleItemTransferSenderState.askingUser) {
                 return; // Safety net.
             }
-            const item =
-                await BackgroundMessage.getBackpackItemProperties(itemId);
+            const item = await BackgroundMessage.getBackpackItemProperties(itemId);
             if (!isItemWithId(item)) {
-                throw new Error('Backpack item has no ID!');
+                throw new ErrorWithData('Backpack item has no ID!', {itemId: itemId, item: item});
             }
-            if (record.transferState !== expectedState) {
-                return; // Safety net.
+            record = this.itemsSending[itemId];
+            if (record?.transferState !== SimpleItemTransferSenderState.askingUser) { // Race protection.
+                return;
             }
             this.senderCleanupItem(itemId, false);
-            record.item = item;
-            record.transferState = SimpleItemTransferSenderState.offered;
-            record.toast = this.senderShowOfferWaitDlg(record);
-            const msgType = SimpleItemTransferMsgType.offer;
-            this.sendMsg(record.recipient, item, msgType);
+
+            const itemGone = await this.senderHandleItemUpdate(record, false);
+            if (itemGone) {
+                // Final toast already shown by senderHandleItemUpdate.
+            } else {
+                await this.senderAutorize(record);
+                record.item = item;
+                record.transferState = SimpleItemTransferSenderState.offered;
+                record.toast = this.senderShowOfferWaitDlg(record);
+                this.sendMsg(record, SimpleItemTransferMsgType.offer);
+            }
         })().catch(error => {
             this.senderCleanupItem(itemId, true);
-            this.app.onError(
-                'SimpleItemTransferController.senderConfirmDlgOnYes',
-                'Error caught!',
-                error, 'this', this, 'itemId', itemId);
+            this.app.onError(new ItemException(
+                ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                undefined, {error: error, this: this, itemId: itemId}));
         });
     }
 
-    protected senderShowOfferWaitDlg(
-        record: SimpleItemTransferSenderRecord
-    ): Toast {
-        const itemId: string = record.item[Pid.Id];
+    protected getOfferWaitDlgTimeout(): number
+    {
         const timeoutKey = 'SimpleItemTransfer.recipientAcceptToastDurationSec';
         const extraKey = 'SimpleItemTransfer.senderOfferWaitToastExtraDurationSec';
-        const timeout
-            = as.Float(Config.get(timeoutKey))
-            + as.Float(Config.get(extraKey));
-        return this.showUserToast(
-            'SimpleItemTransferSenderOfferWait',
-            this.makeUserMsgTranslationModifiers(record),
-            'question',
-            'SimpleItemTransfer.senderOfferWaitTitle',
-            'SimpleItemTransfer.senderOfferWaitText',
-            timeout,
-            false,
-            () => this.senderOfferWaitDlgOnTimeout(itemId),
-            [
-                ['SimpleItemTransfer.senderOfferWaitCancel',
-                    () => this.senderOfferWaitDlgOnCancel(itemId),
-                ],
-            ],
-        );
+        return as.Float(Config.get(timeoutKey)) + as.Float(Config.get(extraKey));
+    }
+
+    protected senderShowOfferWaitDlg(record: SimpleItemTransferSenderRecord): Toast
+    {
+        const itemId: string = record.item[Pid.Id];
+        const translationMods = this.makeUserMsgTranslationModifiers(record);
+        const toastType = 'SimpleItemTransferSenderOfferWait';
+        const toastTitleId = 'SimpleItemTransfer.senderOfferWaitTitle';
+        const toastTextId = 'SimpleItemTransfer.senderOfferWaitText';
+        const toastDuration = this.getOfferWaitDlgTimeout();
+        const closeAction = () => this.senderOfferWaitDlgOnTimeout(itemId);
+        return this.showUserToast(toastType, translationMods, 'question',
+            toastTitleId, toastTextId, toastDuration, false, closeAction, [
+                ['SimpleItemTransfer.senderOfferWaitCancel', () => this.senderOfferWaitDlgOnCancel(itemId)],
+            ]);
     }
 
     //--------------------------------------------------------------------------
-    // Step 3.a.
+    // Steps: Sender 3.a., Sender 3.b.
 
-    protected recipientOnOfferMsg(msg: SimpleItemTransferMsg): void
+    protected senderOfferWaitDlgCancelTransfer(itemId: string, cause: SimpleItemTransferCancelCause): void
+    {
+        (async (): Promise<void> => {
+            const record = this.itemsSending[itemId];
+            if (record?.transferState !== SimpleItemTransferSenderState.offered) {
+                return; // Safety net.
+            }
+            this.senderCleanupItem(itemId, true);
+    
+            this.senderUnauthorize(record).catch(error => {
+                this.app.onError(ErrorWithData.ofError(
+                    error, 'senderDeauthorize failed!', {record: record}, false));
+            });
+            this.sendMsg(record, SimpleItemTransferMsgType.cancel, cause);
+    
+            const itemGone = await this.senderHandleItemUpdate(record, true);
+            if (itemGone) {
+                // Item disappeared for non-transfer-related reasons.
+            } else {
+                const translationMods = this.makeUserMsgTranslationModifiers(record);
+                switch (cause) {
+                    case SimpleItemTransferCancelCause.senderTimeout: {
+                        const toastType = 'SimpleItemTransferSenderSenderTimeout';
+                        const toastTitleId = 'SimpleItemTransfer.senderSenderTimeoutTitle';
+                        const toastTextId = 'SimpleItemTransfer.senderSenderTimeoutText';
+                        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+                        this.showUserToast(toastType, translationMods, 'notice',
+                            toastTitleId, toastTextId, toastDurationId, false);
+                    } break;
+                    default: {
+                        const toastType = 'SimpleItemTransferSenderSenderCanceled';
+                        const toastTitleId = 'SimpleItemTransfer.senderSenderCanceledTitle';
+                        const toastTextId = 'SimpleItemTransfer.senderSenderCanceledText';
+                        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+                        this.showUserToast(toastType, translationMods, 'notice',
+                            toastTitleId, toastTextId, toastDurationId, true);
+                    } break;
+                }
+            }
+        })().catch(error => {
+            this.app.onError(new ItemException(
+                ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                undefined, {error: error, this: this, itemId: itemId}));
+        });
+    }
+
+    protected senderOfferWaitDlgOnTimeout(itemId: string): void
+    {
+        this.senderOfferWaitDlgCancelTransfer(itemId, SimpleItemTransferCancelCause.senderTimeout);
+    }
+
+    protected senderOfferWaitDlgOnCancel(itemId: string): void
+    {
+        this.senderOfferWaitDlgCancelTransfer(itemId, SimpleItemTransferCancelCause.senderCanceled);
+    }
+
+    //--------------------------------------------------------------------------
+    // Step: Sender 4.a.
+
+    protected senderOnRejectMsg(msg: SimpleItemTransferMsg): void
+    {
+        const itemId = msg.item[Pid.Id];
+        (async (): Promise<void> => {
+            const record = this.itemsSending[itemId];
+            if (record?.transferState !== SimpleItemTransferSenderState.offered) {
+                return; // Safety net.
+            }
+            this.senderCleanupItem(itemId, true);
+
+            this.senderUnauthorize(record).catch(error => {
+                this.app.onError(ErrorWithData.ofError(
+                    error, 'senderDeauthorize failed!', {record: record}, false));
+            });
+
+            const itemGone = await this.senderHandleItemUpdate(record, true);
+            if (itemGone) {
+                // Item transfered regardless and final toast already shown by senderHandleItemUpdate.
+            } else {
+                const translationMods = this.makeUserMsgTranslationModifiers(record);
+                switch (msg.cause) {
+                    case SimpleItemTransferCancelCause.recipientTimeout: {
+                        const toastType = 'SimpleItemTransferSenderRecipientTimeout';
+                        const toastTitleId = 'SimpleItemTransfer.senderRecipientTimeoutTitle';
+                        const toastTextId = 'SimpleItemTransfer.senderRecipientTimeoutText';
+                        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+                        this.showUserToast(toastType, translationMods, 'notice',
+                            toastTitleId, toastTextId, toastDurationId, false);
+                    } break;
+                    default: {
+                        const toastType = 'SimpleItemTransferSenderRecipientRejected';
+                        const toastTitleId = 'SimpleItemTransfer.senderRecipientRejectedTitle';
+                        const toastTextId = 'SimpleItemTransfer.senderRecipientRejectedText';
+                        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+                        this.showUserToast(toastType, translationMods, 'notice',
+                            toastTitleId, toastTextId, toastDurationId, false);
+                    } break;
+                }
+            }
+        })().catch(error => {
+            this.app.onError(new ItemException(
+                ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                undefined, {error: error, this: this, itemId: itemId}));
+        });
+    }
+
+    //--------------------------------------------------------------------------
+    // Step: Sender 4.b.
+
+    protected senderOnAcceptMsg(msg: SimpleItemTransferMsg): void
+    {
+        const itemId = msg.item[Pid.Id];
+        (async (): Promise<void> => {
+            const record = this.itemsSending[itemId];
+            if (record?.transferState !== SimpleItemTransferSenderState.offered) {
+                return; // Safety net.
+            }
+            this.senderCleanupItem(itemId, true);
+
+            const itemGone = await this.senderHandleItemUpdate(record, true);
+            if (itemGone) {
+                // Item indeed transfered and final toast already shown by senderHandleItemUpdate.
+            } else {
+                this.app.onError(new ItemException(
+                    ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                    'Item still in item repository!',
+                    {record: record, itemId: itemId}));
+            }
+        })().catch(error => {
+            this.app.onError(new ItemException(
+                ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                undefined, {error: error, this: this, itemId: itemId}));
+        });
+    }
+
+    //==========================================================================
+    // Recipient steps
+
+    //--------------------------------------------------------------------------
+    // Step: Recipient 1.a.
+
+    protected recipientOnOfferMsg(msg: SimpleItemTransferMsgOffer): void
     {
         const item = msg.item;
         const itemId = item[Pid.Id];
         if (!is.nil(this.itemsReceiving[itemId])) {
             return;
         }
-        const record: SimpleItemTransferRecipientRecord = {
-            sender: msg.from,
-            item: item,
-            transferState: SimpleItemTransferRecipientState.askingUser,
-        };
+
+        const record = new SimpleItemTransferRecipientRecord(msg.from, item, msg.transferToken);
         record.toast = this.recipientShowAcceptDlg(record);
         this.itemsReceiving[itemId] = record;
     }
 
-    protected recipientShowAcceptDlg(
-        record: SimpleItemTransferRecipientRecord
-    ): Toast {
+    protected recipientShowAcceptDlg(record: SimpleItemTransferRecipientRecord): Toast
+    {
         const itemId: string = record.item[Pid.Id];
-        return this.showUserToast(
-            'SimpleItemTransferRecipientAccept',
-            this.makeUserMsgTranslationModifiers(record),
-            'question',
-            'SimpleItemTransfer.recipientAcceptQuestionTitle',
-            'SimpleItemTransfer.recipientAcceptQuestionText',
-            'SimpleItemTransfer.recipientAcceptToastDurationSec',
-            false,
-            () => this.recipientAcceptDlgOnClose(itemId),
-            [
-                ['SimpleItemTransfer.recipientAcceptQuestionYes',
-                    () => this.recipientAcceptDlgYes(itemId),
-                ],
-                ['SimpleItemTransfer.recipientAcceptQuestionNo',
-                    () => this.recipientAcceptDlgOnNo(itemId),
-                ],
-            ],
-        );
-    }
-
-    //--------------------------------------------------------------------------
-    // Step 4.a. / 4.b.
-
-    protected recipientAcceptDlgOnReject(
-        itemId: string,
-        cause: SimpleItemTransferCancelCause,
-    ): void {
-        const expectedState = SimpleItemTransferRecipientState.askingUser;
-        const record = this.itemsReceiving[itemId];
-        if (record?.transferState !== expectedState) {
-            return; // Safety net.
-        }
-        this.recipientCleanupItem(itemId, true);
-        const item = record.item;
-        const msgType = SimpleItemTransferMsgType.reject;
-        this.sendMsg(record.sender, item, msgType, cause);
-    }
-
-    protected recipientAcceptDlgOnNo(itemId: string): void {
-        this.recipientAcceptDlgOnReject(
-            itemId, SimpleItemTransferCancelCause.recipientRejected);
-    }
-
-    protected recipientAcceptDlgOnClose(itemId: string): void {
-        this.recipientAcceptDlgOnReject(
-            itemId, SimpleItemTransferCancelCause.senderTimeout);
-    }
-
-    //--------------------------------------------------------------------------
-    // Step 4.c.
-
-    protected recipientAcceptDlgYes(itemId: string): void {
-        const expectedState = SimpleItemTransferRecipientState.askingUser;
-        const record = this.itemsReceiving[itemId];
-        if (record?.transferState !== expectedState) {
-            return; // Safety net.
-        }
-        this.recipientCleanupItem(itemId, false);
-        record.transferState = SimpleItemTransferRecipientState.accepted;
-        const timeoutKey = 'SimpleItemTransfer.recipientConfirmMsgTimeoutSec';
-        const timeoutSecs = as.Float(Config.get(timeoutKey));
-        const timeoutMs = timeoutSecs * 1000;
-        const onTimeout = () => this.recipientOnConfirmMsgTimeout(itemId);
-        record.timeoutHandle = window.setTimeout(onTimeout, timeoutMs);
-        const [from, item] = [record.sender, record.item];
-        this.sendMsg(from, item, SimpleItemTransferMsgType.accept);
-    }
-
-    //--------------------------------------------------------------------------
-    // Step 5.a., 5.b., 5.c.
-
-    protected senderOfferWaitDlgCancelTransfer(
-        itemId: string,
-        cause: SimpleItemTransferCancelCause,
-    ): void {
-        const expectedState = SimpleItemTransferSenderState.offered;
-        const record = this.itemsSending[itemId];
-        if (record?.transferState !== expectedState) {
-            return; // Safety net.
-        }
-        this.senderCleanupItem(itemId, true);
-
-        let toastType: string;
-        let toastIconId: string;
-        let toastTitleId: string;
-        let toastTextId: string;
-        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
-        let supressible: boolean;
-        let sendMsg = false;
-        switch (cause) {
-            case SimpleItemTransferCancelCause.senderTimeout: {
-                toastType = 'SimpleItemTransferSenderSenderTimeout';
-                toastIconId = 'notice';
-                toastTitleId = 'SimpleItemTransfer.senderSenderTimeoutTitle';
-                toastTextId = 'SimpleItemTransfer.senderSenderTimeoutText';
-                supressible = false;
-                sendMsg = true;
-            } break;
-            case SimpleItemTransferCancelCause.senderCanceled: {
-                toastType = 'SimpleItemTransferSenderSenderCanceled';
-                toastIconId = 'notice';
-                toastTitleId = 'SimpleItemTransfer.senderSenderCanceledTitle';
-                toastTextId = 'SimpleItemTransfer.senderSenderCanceledText';
-                supressible = true;
-                sendMsg = true;
-            } break;
-            case SimpleItemTransferCancelCause.recipientTimeout: {
-                toastType = 'SimpleItemTransferSenderRecipientTimeout';
-                toastIconId = 'notice';
-                toastTitleId = 'SimpleItemTransfer.senderRecipientTimeoutTitle';
-                toastTextId = 'SimpleItemTransfer.senderRecipientTimeoutText';
-                supressible = false;
-            } break;
-            case SimpleItemTransferCancelCause.recipientRejected: {
-                toastType = 'SimpleItemTransferSenderRecipientRejected';
-                toastIconId = 'notice';
-                toastTitleId = 'SimpleItemTransfer.senderRecipientRejectedTitle';
-                toastTextId = 'SimpleItemTransfer.senderRecipientRejectedText';
-                supressible = false;
-            } break;
-            default: {
-                // noinspection JSUnusedLocalSymbols
-                const _: never = cause; // Exhaustiveness check.
-            } break;
-        }
-
         const translationMods = this.makeUserMsgTranslationModifiers(record);
-        this.showUserToast(
-            toastType, translationMods, toastIconId,
-            toastTitleId, toastTextId, toastDurationId, supressible);
-
-        if (sendMsg) {
-            const msgType = SimpleItemTransferMsgType.cancel;
-            this.sendMsg(record.recipient, record.item, msgType, cause);
-        }
-    }
-
-    protected senderOfferWaitDlgOnCancel(itemId: string): void
-    {
-        this.senderOfferWaitDlgCancelTransfer(
-            itemId, SimpleItemTransferCancelCause.senderCanceled);
-    }
-
-    protected senderOfferWaitDlgOnTimeout(itemId: string): void
-    {
-        this.senderOfferWaitDlgCancelTransfer(
-            itemId, SimpleItemTransferCancelCause.senderTimeout);
-    }
-
-    protected senderOnRejectMsg(msg: SimpleItemTransferMsg): void
-    {
-        const itemId = msg.item[Pid.Id];
-        const cause
-            = msg.cause
-            ?? SimpleItemTransferCancelCause.recipientTimeout;
-        this.senderOfferWaitDlgCancelTransfer(itemId, cause);
+        const toastType = 'SimpleItemTransferRecipientAccept';
+        const toastTitleId = 'SimpleItemTransfer.recipientAcceptQuestionTitle';
+        const toastTextId = 'SimpleItemTransfer.recipientAcceptQuestionText';
+        const toastDurationId = 'SimpleItemTransfer.recipientAcceptToastDurationSec';
+        const closeAction = () => this.recipientAcceptDlgOnClose(itemId);
+        return this.showUserToast(toastType, translationMods, 'question',
+            toastTitleId, toastTextId, toastDurationId, false, closeAction, [
+                ['SimpleItemTransfer.recipientAcceptQuestionYes', () => this.recipientAcceptDlgYes(itemId)],
+                ['SimpleItemTransfer.recipientAcceptQuestionNo', () => this.recipientAcceptDlgOnNo(itemId)],
+            ]);
     }
 
     //--------------------------------------------------------------------------
-    // Step 5.d.
-
-    protected senderOnAcceptMsg(msg: SimpleItemTransferMsg): void
-    {
-        const itemId = msg.item[Pid.Id];
-        (async (itemId: string): Promise<void> => {
-            const expectedState = SimpleItemTransferSenderState.offered;
-            const record = this.itemsSending[itemId];
-            if (record?.transferState !== expectedState) {
-                return; // Safety net.
-            }
-            this.senderCleanupItem(itemId, false);
-
-            const item =
-                await BackgroundMessage.getBackpackItemProperties(itemId);
-            if (!isItemWithId(item)) {
-                throw new Error('Backpack item has no ID!');
-            }
-            record.item = item;
-
-            // Delete first to avoid duplication timing attack:
-            // noinspection JSUnusedGlobalSymbols
-            await BackgroundMessage.deleteBackpackItem(itemId, {});
-
-            const msgType = SimpleItemTransferMsgType.confirm;
-            this.sendMsg(record.recipient, item, msgType);
-
-            this.showUserToast(
-                'SimpleItemTransferSenderSent',
-                this.makeUserMsgTranslationModifiers(record),
-                'notice',
-                'SimpleItemTransfer.senderSentCompleteTitle',
-                'SimpleItemTransfer.senderSentCompleteText',
-                'SimpleItemTransfer.senderSentCompleteToastDurationSec',
-                true,
-            );
-        })(itemId).catch(error => { this.app.onError(
-            'SimpleItemTransferController.senderOnAcceptMsg',
-            'Error caught!',
-            error, 'this', this, 'msg', msg);
-        });
-    }
-
-    //--------------------------------------------------------------------------
-    // Step 6.a.
-
-    protected recipientOnConfirmMsgTimeout(itemId: string): void
-    {
-        const expectedState = SimpleItemTransferRecipientState.accepted;
-        const record = this.itemsReceiving[itemId];
-        if (record?.transferState !== expectedState) {
-            return; // Safety net.
-        }
-        this.recipientCleanupItem(itemId, true);
-        this.showUserToast(
-            'SimpleItemTransferRecipientConfirmTimeout',
-            this.makeUserMsgTranslationModifiers(record),
-            'warning',
-            'SimpleItemTransfer.recipientConfirmTimeoutTitle',
-            'SimpleItemTransfer.recipientConfirmTimeoutText',
-            'SimpleItemTransfer.errorToastDurationSec',
-        );
-    }
-
-    //--------------------------------------------------------------------------
-    // Step 6.b.
+    // Step: Recipient 2.a.
 
     protected recipientOnCancelMsg(msg: SimpleItemTransferMsg): void
     {
         const itemId = msg.item[Pid.Id];
         const record = this.itemsReceiving[itemId];
-        const state = record?.transferState;
-        if (state !== SimpleItemTransferRecipientState.askingUser
-        && state !== SimpleItemTransferRecipientState.accepted) {
+        if (record?.transferState !== SimpleItemTransferRecipientState.askingUser) {
             return; // Safety net.
         }
         this.recipientCleanupItem(itemId, true);
-        this.showUserToast(
-            'SimpleItemTransferRecipientCanceled',
-            this.makeUserMsgTranslationModifiers(record),
-            'warning',
-            'SimpleItemTransfer.recipientCanceledTitle',
-            'SimpleItemTransfer.recipientCanceledText',
-            'SimpleItemTransfer.errorToastDurationSec',
-        );
+
+        const translationMods = this.makeUserMsgTranslationModifiers(record);
+        const toastType = 'SimpleItemTransferRecipientCanceled';
+        const toastTitleId = 'SimpleItemTransfer.recipientCanceledTitle';
+        const toastTextId = 'SimpleItemTransfer.recipientCanceledText';
+        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+        this.showUserToast(toastType, translationMods, 'warning',
+            toastTitleId, toastTextId, toastDurationId, false);
     }
 
     //--------------------------------------------------------------------------
-    // Step 6.c.
+    // Steps: Recipient 2.b.
 
-    protected recipientOnConfirmMsg(msg: SimpleItemTransferMsg): void
+    protected recipientAcceptDlgOnClose(itemId: string): void
     {
-        (async (item: ItemWithId): Promise<void> => {
-            const itemId = item[Pid.Id];
-            const expectedState = SimpleItemTransferRecipientState.accepted;
+        const record = this.itemsReceiving[itemId];
+        if (record?.transferState !== SimpleItemTransferRecipientState.askingUser) {
+            return; // Safety net.
+        }
+        this.recipientCleanupItem(itemId, true);
+
+        this.sendMsg(record, SimpleItemTransferMsgType.reject, SimpleItemTransferCancelCause.senderTimeout);
+    }
+
+    //--------------------------------------------------------------------------
+    // Steps: Recipient 2.c.
+
+    protected recipientAcceptDlgOnNo(itemId: string): void
+    {
+        const record = this.itemsReceiving[itemId];
+        if (record?.transferState !== SimpleItemTransferRecipientState.askingUser) {
+            return; // Safety net.
+        }
+        this.recipientCleanupItem(itemId, true);
+
+        this.sendMsg(record, SimpleItemTransferMsgType.reject, SimpleItemTransferCancelCause.recipientRejected);
+    }
+
+    //--------------------------------------------------------------------------
+    // Step: Recipient 2.d.
+
+    protected recipientAcceptDlgYes(itemId: string): void
+    {
+        (async (): Promise<void> => {
+            const expectedState = SimpleItemTransferRecipientState.askingUser;
             const record = this.itemsReceiving[itemId];
             if (record?.transferState !== expectedState) {
                 return; // Safety net.
             }
-            this.recipientCleanupItem(itemId, false);
-            if (!await BackgroundMessage.isBackpackItem(itemId)) {
-                // Only if we don't already have an item with same ID (dupe).
-                delete item[Pid.InventoryX];
-                delete item[Pid.InventoryY];
-
-                await BackgroundMessage.addBackpackItem(
-                    itemId, item, {});
-
-                this.showUserToast(
-                    'SimpleItemTransferRecipientRetrieveComplete',
-                    this.makeUserMsgTranslationModifiers(record),
-                    'notice',
-                    'SimpleItemTransfer.recipientRetrieveCompleteTitle',
-                    'SimpleItemTransfer.recipientRetrieveCompleteText',
-                    'SimpleItemTransfer.recipientRetrieveCompleteToastDurationSec',
-                    true,
-                );
-            }
             this.recipientCleanupItem(itemId, true);
-        })(msg.item).catch(error => { this.app.onError(
-            'SimpleItemTransferController.recipientOnConfirmMsg',
-            'Error caught!',
-            error, 'this', this, 'msg', msg);
+
+            await this.recipientAccept(record);
+            this.sendMsg(record, SimpleItemTransferMsgType.accept);
+
+            const translationMods = this.makeUserMsgTranslationModifiers(record);
+            const toastType = 'SimpleItemTransferRecipientRetrieveComplete';
+            const toastTitleId = 'SimpleItemTransfer.recipientRetrieveCompleteTitle';
+            const toastTextId = 'SimpleItemTransfer.recipientRetrieveCompleteText';
+            const toastDurationId = 'SimpleItemTransfer.recipientRetrieveCompleteToastDurationSec';
+            this.showUserToast(toastType, translationMods, 'notice',
+                toastTitleId, toastTextId, toastDurationId, true);
+        })().catch(error => {
+            this.app.onError(new ItemException(
+                ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
+                undefined, {error: error, this: this, itemId: itemId}));
         });
     }
+
+    //==========================================================================
 
     //--------------------------------------------------------------------------
     // Dynamic helpers
 
-    protected logInfo(src: string, msg: string, ...data: unknown[]): void {
+    protected logInfo(src: string, msg: string, data?: {[p: string]: unknown}): void
+    {
         if (Utils.logChannel('SimpleItemTransfer')) {
-            log.info(`${src}: ${msg}`, ...data);
+            log.info(`${src}: ${msg}`, data ?? {});
         }
+    }
+
+    protected async senderAutorize(record: SimpleItemTransferSenderRecord): Promise<void>
+    {
+        const itemId = record.item.Id;
+        const timeoutSecs = this.getOfferWaitDlgTimeout() + 3.0; // Actual timeout plus safety margin.
+        record.transferToken = await BackgroundMessage.backpackTransferAuthorize(itemId, timeoutSecs);
+    }
+
+    protected async senderUnauthorize(record: SimpleItemTransferSenderRecord): Promise<void>
+    {
+        const itemId = record.item.Id;
+        await BackgroundMessage.backpackTransferUnauthorize(itemId);
+    }
+
+    protected async recipientAccept(record: SimpleItemTransferRecipientRecord): Promise<void>
+    {
+        const itemId = record.item.Id;
+        const providerId = record.item.Provider;
+        const senderInvId = record.item.InventoryId;
+        const transferToken = record.transferToken;
+        const item = await BackgroundMessage.backpackTransferComplete(providerId, senderInvId, itemId, transferToken);
+        if (!isItemWithId(item)) {
+            throw new ErrorWithData(
+                'BackgroundMessage.backpackTransferComplete returned incomplete ItemProperties!', 
+                {record: record, item: item});
+        }
+        record.item = item;
+    }
+
+    protected async senderHandleItemUpdate(
+        record: SimpleItemTransferSenderRecord, mayBeTransferred: boolean
+    ): Promise<boolean> {
+        const itemId = record.item.Id;
+        let itemGone = false;
+
+        // Update item state and properties:
+        const itemProps = this.app.getBackpackWindow().getItem(itemId)?.getProperties();
+        const itemGoneFromBackpack = is.nil(itemProps);
+        if (itemGoneFromBackpack) {
+            itemGone = true;
+        } else if (isItemWithId(itemProps)) {
+            record.item = itemProps;
+        }
+        if (!itemGone && !(await BackgroundMessage.backpackIsItemStillInRepo(itemId))) {
+            itemGone = true;
+        }
+
+        // Handle completion and external item use:
+        if (itemGone) {
+            this.senderCleanupItem(itemId, true);
+            // Todo: Remove check for itemGoneFromBackpack after implementing server-side push updates:
+            if (!itemGoneFromBackpack && mayBeTransferred) {  
+                // Probably successfully transfered.
+                const translationMods = this.makeUserMsgTranslationModifiers(record);
+                const toastType = 'SimpleItemTransferSenderSent';
+                const toastTitleId = 'SimpleItemTransfer.senderSentCompleteTitle';
+                const toastTextId = 'SimpleItemTransfer.senderSentCompleteText';
+                const toastDurationId = 'SimpleItemTransfer.senderSentCompleteToastDurationSec';
+                this.showUserToast(toastType, translationMods, 'notice',
+                    toastTitleId, toastTextId, toastDurationId, true);
+            } else {
+                // Probably something non-transfer-related made the item disappear, so abort silently.
+            }
+        }
+        return itemGone;
     }
 
     /**
@@ -718,7 +760,7 @@ export class SimpleItemTransferController
         const record = this.itemsSending[itemId];
         if (!is.nil(record)) {
             record.transferState = SimpleItemTransferSenderState.cleanup;
-            record.toast?.close();
+            this.cleanupItemRecord(record);
             if (forget) {
                 delete this.itemsSending[itemId];
             }
@@ -738,18 +780,26 @@ export class SimpleItemTransferController
         const record = this.itemsReceiving[itemId];
         if (!is.nil(record)) {
             record.transferState = SimpleItemTransferRecipientState.cleanup;
-            record.toast?.close();
-            record.toast = undefined;
-            window.clearTimeout(record.timeoutHandle);
-            record.timeoutHandle = undefined;
+            this.cleanupItemRecord(record);
             if (forget) {
                 delete this.itemsReceiving[itemId];
             }
         }
     }
 
-    protected parseTransferNodeOfStanza(stanza: Element
-    ): undefined|SimpleItemTransferMsg {
+    protected cleanupItemRecord(record: SimpleItemTransferRecord): void
+    {
+        record.toast?.close();
+        record.toast = undefined;
+        window.clearTimeout(record.timeoutHandle);
+        record.timeoutHandle = undefined;
+    }
+
+    //--------------------------------------------------------------------------
+    // Inter client communication
+
+    protected parseTransferNodeOfStanza(stanza: Element): undefined|SimpleItemTransferMsg
+    {
         const fromStr: unknown = stanza.attrs.from;
         let fromJid: undefined|JID = undefined;
         let from: undefined|Participant = undefined;
@@ -757,66 +807,116 @@ export class SimpleItemTransferController
             fromJid = jid(fromStr);
             from = this.room.getParticipant(fromJid.getResource());
         }
+
         const transferNode = stanza.getChild('x', 'vp:transfer');
         const itemNode = transferNode?.getChild('item');
         const item = ItemProperties.getStrings(itemNode?.attrs ?? {});
+
         const type: unknown = transferNode?.attrs?.type;
-        const cause: unknown = transferNode?.attrs?.cause;
         let result: undefined|SimpleItemTransferMsg = undefined;
         if (true
             && !is.nil(from)
             && !is.nil(item) && isItemWithId(item)
             && isSimpleItemTransferMsgType(type)
-            && (is.nil(cause) || isSimpleItemTransferRejectCause(cause))
         ) {
-            result = {from: from, item: item, type: type, cause: cause};
+            switch (type) {
+                case SimpleItemTransferMsgType.offer:
+                    const transferToken: unknown = transferNode?.attrs?.transferToken;
+                    if (is.string(transferToken)) {
+                        result = new SimpleItemTransferMsgOffer(from, item, transferToken);
+                    }
+                break;
+                default:
+                    const cause: unknown = transferNode?.attrs?.cause;
+                    if (is.nil(cause) || isSimpleItemTransferRejectCause(cause)) {
+                        result = new SimpleItemTransferMsg(from, item, type, cause);
+                    }
+                break;
+            }
         }
-        this.logInfo(
-            'SimpleItemTransfer.parseTransferNodeOfStanza',
-            'Parsed stanza.',
-            'args', ['stanza', stanza],
-            'fromStr', fromStr, 'fromJid', fromJid, 'from', from,
-            'transferNode', transferNode,
-            'itemNode', itemNode, 'item', item,
-            'type', type, 'cause', cause,
-            'result', result);
+
+        this.logInfo('SimpleItemTransfer.parseTransferNodeOfStanza', 'Parsed stanza.', {
+            stanza: stanza,
+            fromStr: fromStr, fromJid: fromJid, from: from,
+            transferNode: transferNode, itemNode: itemNode, item: item,
+            result: result});
         return result;
     }
 
     protected sendMsg(
-        to:     Participant,
-        item:   ItemWithId,
+        record: SimpleItemTransferRecord,
         type:   SimpleItemTransferMsgType,
         cause?: SimpleItemTransferCancelCause,
     ): void {
-        let itemFiltered = item;
-        if (type !== SimpleItemTransferMsgType.offer
-        && type !== SimpleItemTransferMsgType.confirm) {
-            itemFiltered = {[Pid.Id]: item[Pid.Id]};
-        }
-        const itemNode = xml('item', itemFiltered);
-        const transferNode = xml('x', {
-            'xmlns': 'vp:transfer',
-            'type':  type,
-        }, itemNode);
-        if (!is.nil(cause)) {
-            transferNode.setAttrs({cause: cause});
-        }
+        const itemNode     = this.makeMsgItemNode(record, type);
+        const transferNode = this.makeMsgTransferNode(record, itemNode, type, cause);
+        const stanza       = this.makeMsgStanza(record, transferNode);
+        this.app.sendStanza(stanza);
+        this.logInfo('SimpleItemTransfer.sendMsg','Sent stanza.', {
+            record: record, type: type, cause: cause,
+            stanza: stanza});
+    }
+
+    protected makeMsgStanza(record: SimpleItemTransferRecord, transferNode: xml.Element): xml.Element
+    {
+        const to = record.getMsgReceiver();
         const roomJidStr = this.room.getJid();
         const toJid = jid(roomJidStr);
         toJid.setResource(to.getRoomNick());
         const fromJid = jid(roomJidStr);
         fromJid.setResource(this.myParticipant.getRoomNick());
+
         const stanza = xml('message', {
             type: 'chat',
             to:   toJid.toString(),
             from: fromJid.toString(),
         }, transferNode);
-        this.app.sendStanza(stanza);
-        this.logInfo(
-            'SimpleItemTransfer.sendMsg','Sent stanza.',
-            'args', ['to', to, 'item', item, 'type', type, 'cause', cause],
-            'stanza', stanza);
+        return stanza;
+    }
+
+    protected makeMsgTransferNode(
+        record:   SimpleItemTransferRecord,
+        itemNode: xml.Element,
+        type:     SimpleItemTransferMsgType,
+        cause?:   SimpleItemTransferCancelCause,
+    ): xml.Element {
+        const transferAttrs = {};
+        transferAttrs['xmlns'] = 'vp:transfer';
+        transferAttrs['type'] = type;
+        if (!is.nil(cause)) {
+            transferAttrs['cause'] = cause;
+        }
+
+        if (type === SimpleItemTransferMsgType.offer) {
+            if (!(record instanceof SimpleItemTransferSenderRecord)) {
+                throw new ErrorWithData(
+                    'Preparing to send an offer msg on reciepient side!', {record: record});
+            }
+            if (is.nil(record.transferToken)) {
+                throw new ErrorWithData(
+                    'Preparing to send an offer msg without transferToken!', {record: record});
+            }
+            transferAttrs['transferToken'] = record.transferToken;
+        }
+
+        const transferNode = xml('x', transferAttrs, itemNode);
+        return transferNode;
+    }
+
+    protected makeMsgItemNode(record: SimpleItemTransferRecord, type: SimpleItemTransferMsgType): xml.Element
+    {
+        let itemFiltered: ItemWithId;
+        if (type !== SimpleItemTransferMsgType.offer) {
+            itemFiltered = {
+                [Pid.Id]:          record.item[Pid.Id],
+                [Pid.Provider]:    record.item[Pid.Provider],
+                [Pid.InventoryId]: record.item[Pid.InventoryId],
+            };
+        } else {
+            itemFiltered = record.item;
+        }
+        const itemNode = xml('item', itemFiltered);
+        return itemNode;
     }
 
     //--------------------------------------------------------------------------
@@ -839,29 +939,22 @@ export class SimpleItemTransferController
         } else {
             timeoutSecs = as.Float(Config.get(timeoutOrId));
         }
-        const title = this.translate(
-            ['textid', titleId, translationModifiers]);
-        const text = this.translate(
-            ['textid', textId, translationModifiers]);
-        const toast = new SimpleToast(
-            this.app, toastType, timeoutSecs, iconId, title, text);
+        const title = this.translate(['textid', titleId, translationModifiers]);
+        const text = this.translate(['textid', textId, translationModifiers]);
+        const toast = new SimpleToast(this.app, toastType, timeoutSecs, iconId, title, text);
         for (const [btnTextId, btnAction] of buttons) {
-            const btnText = this.translate(
-                ['textid', btnTextId, translationModifiers]);
+            const btnText = this.translate(['textid', btnTextId, translationModifiers]);
             toast.actionButton(btnText, btnAction);
         }
         toast.setDontShow(suppressible);
         toast.show(closeAction);
-        this.logInfo(
-            'SimpleItemTransfer.showUserToast','Shown toast.',
-            'args', [
-                'toastType', toastType,
-                'translationModifiers', translationModifiers,
-                'iconId', iconId, 'titleId', titleId, 'textId', textId,
-                'timeoutOrId', timeoutOrId, 'suppressible', suppressible,
-                'closeAction', closeAction, 'buttons', buttons],
-            'timeoutSecs', timeoutSecs, 'toast', toast,
-        );
+        this.logInfo('SimpleItemTransfer.showUserToast',`Shown toast ${toastType}.`, {
+            toastType: toastType,
+            translationModifiers: translationModifiers,
+            iconId: iconId, titleId: titleId, textId: textId,
+            timeoutOrId: timeoutOrId, suppressible: suppressible,
+            closeAction: closeAction, buttons: buttons,
+            timeoutSecs: timeoutSecs, toast: toast});
         return toast;
     }
 
@@ -884,28 +977,27 @@ export class SimpleItemTransferController
         };
     }
 
-    protected translatableOfParticipant(recipient: Participant): Translatable {
+    protected translatableOfParticipant(recipient: Participant): Translatable
+    {
         return ['text', recipient.getDisplayName()];
     }
 
-    protected translatableOfItem(item: ItemProperties): Translatable {
+    protected translatableOfItem(item: ItemProperties): Translatable
+    {
         const text = item[Pid.Label] ?? item[Pid.Template] ?? 'item';
         return ['textid', `ItemLabel.${text}`, text];
     }
 
-    protected translate(translatable: Translatable): string {
+    protected translate(translatable: Translatable): string
+    {
         return this._translate(translatable, 1);
     }
 
-    protected _translate(
-        translatable: Translatable,
-        iteration: number=1
-    ): string {
-        if (iteration > 100) { this.app.onError(
-            'SimpleItemTransferController._translate',
-            'Endless recursion detected!',
-            undefined,
-            'translatable', translatable, 'iteration', iteration);
+    protected _translate(translatable: Translatable, iteration: number=1): string
+    {
+        if (iteration > 100) {
+            throw new ErrorWithData(
+                'Endless recursion detected!', {translatable: translatable, iteration: iteration}); 
         }
         const nextIteration = iteration + 1;
         const [srcType, srcString, fallback, modifiers]
@@ -979,11 +1071,8 @@ export class SimpleItemTransferController
         return srcStringNew;
     }
 
-    protected applyReplacements(
-        tpl: string,
-        modifiers: TranslatableModifiers,
-        nextIteration: number,
-    ): string {
+    protected applyReplacements(tpl: string, modifiers: TranslatableModifiers, nextIteration: number): string
+    {
         const replacements = modifiers.replacements ?? [];
         const fun = (text: string, rule: TranslatableReplacement): string => {
             const [token, replacement] = rule;
@@ -998,16 +1087,17 @@ export class SimpleItemTransferController
 //------------------------------------------------------------------------------
 // Type guards
 
-function isItemWithId(item: ItemProperties): item is ItemWithId {
-    return is.string(item[Pid.Id]);
+function isItemWithId(item: ItemProperties): item is ItemWithId
+{
+    return is.string(item[Pid.Id]) && is.string(item[Pid.Provider]) && is.string(item[Pid.InventoryId]);
 }
 
-function isSimpleItemTransferMsgType(type: unknown
-): type is SimpleItemTransferMsgType {
+function isSimpleItemTransferMsgType(type: unknown): type is SimpleItemTransferMsgType
+{
     return type in SimpleItemTransferMsgType;
 }
 
-function isSimpleItemTransferRejectCause(type: unknown
-): type is SimpleItemTransferCancelCause {
+function isSimpleItemTransferRejectCause(type: unknown): type is SimpleItemTransferCancelCause
+{
     return type in SimpleItemTransferCancelCause;
 }

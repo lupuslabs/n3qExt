@@ -3,7 +3,7 @@ import imgDefaultItem from '../assets/DefaultItem.png';
 import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
@@ -356,10 +356,7 @@ export class BackpackItem
             }
         })().catch(error =>
         {
-            this.app.onError(
-                'BackpackItem.sendSetItemCoordinates',
-                'Error caught!',
-                error, 'this', this);
+            this.app.onError(ErrorWithData.ofError(error, undefined, {this: this}));
         });
     }
 

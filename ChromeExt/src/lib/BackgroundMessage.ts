@@ -40,6 +40,11 @@ export class GetBackpackStateResponse extends BackgroundResponse
     constructor(public items: { [id: string]: ItemProperties; }) { super(true); }
 }
 
+export class BackpackIsItemStillInRepoResponse extends BackgroundSuccessResponse
+{
+    constructor(public result: boolean) { super(); }
+}
+
 export class IsBackpackItemResponse extends BackgroundResponse
 {
     constructor(public isItem: boolean) { super(true); }
@@ -53,6 +58,21 @@ export class GetBackpackItemPropertiesResponse extends BackgroundResponse
 export class ExecuteBackpackItemActionResponse extends BackgroundResponse
 {
     constructor(public result: ItemProperties) { super(true); }
+}
+
+export class BackpackTransferAuthorizeResponse extends BackgroundSuccessResponse
+{
+    constructor(public transferToken: string) { super(); }
+}
+
+export class BackpackTransferUnauthorizeResponse extends BackgroundSuccessResponse
+{
+    constructor() { super(); }
+}
+
+export class BackpackTransferCompleteResponse extends BackgroundSuccessResponse
+{
+    constructor(public properties: ItemProperties) { super(); }
 }
 
 export class ApplyItemToBackpackItemResponse extends BackgroundResponse
@@ -191,6 +211,16 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.getBackpackState.name });
     }
 
+    static async backpackIsItemStillInRepo(itemId: string): Promise<boolean>
+    {
+        const msg = {
+            'type': BackgroundMessage.backpackIsItemStillInRepo.name,
+            'itemId': itemId,
+        };
+        const response = await BackgroundMessage.sendMessageCheckOk(msg);
+        return (<BackpackIsItemStillInRepoResponse>response).result;
+    }
+
     static addBackpackItem(itemId: string, properties: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         return BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.addBackpackItem.name, 'itemId': itemId, 'properties': properties, 'options': options });
@@ -258,6 +288,40 @@ export class BackgroundMessage
                 reject(error);
             }
         });
+    }
+
+    static async backpackTransferAuthorize(itemId: string, duration: number): Promise<string>
+    {
+        const msg = {
+            'type': BackgroundMessage.backpackTransferAuthorize.name,
+            'itemId': itemId,
+            'duration': duration,
+        };
+        const response = await BackgroundMessage.sendMessageCheckOk(msg);
+        return (<BackpackTransferAuthorizeResponse>response).transferToken;
+    }
+
+    static async backpackTransferUnauthorize(itemId: string): Promise<void>
+    {
+        const msg = {
+            'type': BackgroundMessage.backpackTransferUnauthorize.name,
+            'itemId': itemId,
+        };
+        await BackgroundMessage.sendMessageCheckOk(msg);
+    }
+
+    static async backpackTransferComplete(
+        provider: string, senderInventoryId: string, senderItemId: string, transferToken: string
+    ): Promise<ItemProperties> {
+        const msg = {
+            'type': BackgroundMessage.backpackTransferComplete.name,
+            'provider': provider,
+            'senderInventoryId': senderInventoryId,
+            'senderItemId': senderItemId,
+            'transferToken': transferToken,
+        };
+        const response = await BackgroundMessage.sendMessageCheckOk(msg);
+        return (<BackpackTransferCompleteResponse>response).properties;
     }
 
     static createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>

@@ -3,7 +3,23 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse, ExecuteBackpackItemActionResponse, ApplyItemToBackpackItemResponse } from '../lib/BackgroundMessage';
+import {
+    BackgroundErrorResponse,
+    BackgroundItemExceptionResponse,
+    BackgroundMessage,
+    BackgroundResponse,
+    BackgroundSuccessResponse,
+    FindBackpackItemPropertiesResponse,
+    GetBackpackItemPropertiesResponse,
+    GetBackpackStateResponse,
+    IsBackpackItemResponse,
+    ExecuteBackpackItemActionResponse,
+    CreateBackpackItemResponse,
+    ApplyItemToBackpackItemResponse,
+    BackpackTransferCompleteResponse,
+    BackpackTransferUnauthorizeResponse,
+    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse
+} from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
@@ -284,6 +300,10 @@ export class BackgroundApp
                 return this.handle_getBackpackState(sendResponse);
             } break;
 
+            case BackgroundMessage.backpackIsItemStillInRepo.name: {
+                return this.handle_backpackIsItemStillInRepo(message.itemId, sendResponse);
+            } break;
+
             case BackgroundMessage.addBackpackItem.name: {
                 return this.handle_addBackpackItem(message.itemId, message.properties, message.options, sendResponse);
             } break;
@@ -330,6 +350,19 @@ export class BackgroundApp
 
             case BackgroundMessage.applyItemToBackpackItem.name: {
                 return this.handle_applyItemToBackpackItem(message.activeId, message.passiveId, sendResponse);
+            } break;
+
+            case BackgroundMessage.backpackTransferAuthorize.name: {
+                return this.handle_backpackTransferAuthorize(message.itemId, message.duration, sendResponse);
+            } break;
+
+            case BackgroundMessage.backpackTransferUnauthorize.name: {
+                return this.handle_backpackTransferUnauthorize(message.itemId, sendResponse);
+            } break;
+
+            case BackgroundMessage.backpackTransferComplete.name: {
+                return this.handle_backpackTransferComplete(message.provider, 
+                    message.senderInventoryId, message.senderItemId, message.transferToken, sendResponse);
             } break;
 
             case BackgroundMessage.createBackpackItem.name: {
@@ -564,6 +597,19 @@ export class BackgroundApp
         return false;
     }
 
+    handle_backpackIsItemStillInRepo(itemId: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.isItemStillInRepo(itemId)
+            .then(result => sendResponse(new BackpackIsItemStillInRepoResponse(result)))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
     handle_addBackpackItem(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
@@ -742,6 +788,49 @@ export class BackgroundApp
             sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         return false;
+    }
+
+    handle_backpackTransferAuthorize(itemId: string, duration: number, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferAuthorize(itemId, duration)
+            .then(transferToken => sendResponse(new BackpackTransferAuthorizeResponse(transferToken)))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
+    handle_backpackTransferUnauthorize(itemId: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferUnauthorize(itemId)
+            .then(() => sendResponse(new BackpackTransferUnauthorizeResponse()))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
+    handle_backpackTransferComplete(
+        provider: string, senderInventoryId: string, senderItemId: string, transferToken: string, 
+        sendResponse: (response?: any) => void,
+    ): boolean {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferComplete(provider, senderInventoryId, senderItemId, transferToken)
+            .then(itemId => {
+                const itemProps = this.backpack.getItem(itemId).getProperties();
+                sendResponse(new BackpackTransferCompleteResponse(itemProps));
+            }).catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
     }
 
     handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean

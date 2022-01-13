@@ -4,7 +4,7 @@ import * as jid from '@xmpp/jid';
 import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
@@ -29,6 +29,7 @@ import { RandomNames } from '../lib/RandomNames';
 import { Participant } from './Participant';
 import { SimpleItemTransferController } from './SimpleItemTransferController';
 import { ItemException } from '../lib/ItemException';
+import { prepareValueForLog } from '../lib/debugUtils';
 
 interface ILocationMapperResponse
 {
@@ -777,54 +778,26 @@ export class ContentApp
             await BackgroundMessage.sendStanza(stanza);
         })().catch(error =>
         {
-            this.onCriticalError(
-                'ContentApp.sendStanza',
-                'BackgroundMessage.sendStanza failed!',
-                error, 'stanza', stanza);
+            this.onCriticalError(ErrorWithData.ofError(
+                error, 'BackgroundMessage.sendStanza failed!', {stanza: stanza}));
         });
     }
 
     // Error handling
 
-    public onError(
-        src: string,
-        msg: string,
-        error: unknown,
-        ...data: unknown[]
-    ): void
+    public onError(error: Error): void
     {
-        // @todo: Send the error to background page for remote reporting here.
-        if (!is.nil(error)) {
-            data.push('error', error);
-        }
-        // Log to info channel only so it doesn't appear on extensions page:
-        log.info(`${src}: ${msg}`, ...data);
-    }
-
-    public onCriticalError(
-        src: string,
-        msg: string,
-        error: unknown,
-        ...data: unknown[]
-    ): void
-    {
-        this.onError(src, msg, error, ...data);
-        Panic.now();
-    }
-
-    public onItemError(
-        src: string,
-        msg: string,
-        error: unknown,
-        ...data: unknown[]
-    ): void
-    {
+        log.info({error: prepareValueForLog(error)}); // Log to info channel only so it doesn't appear on extensions page.
         if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
-        } else {
-            this.onError(src, msg, error, ...data);
         }
+    }
+
+    public onCriticalError(error: Error): void
+    {
+        this.onError(error);
+        Panic.now();
     }
 
     // Window management
@@ -1078,11 +1051,8 @@ export class ContentApp
         this.derezItemAsync(itemId, xNew, yNew
         ).catch(error =>
         {
-            this.onItemError(
-                'ContentApp.derezItem',
-                'ContentApp.derezItemAsync failed!',
-                error, 'itemId', itemId, 'xNew', xNew, 'yNew', yNew
-            )
+            this.onError(ErrorWithData.ofError(
+                error, 'ContentApp.derezItemAsync failed!', {itemId: itemId, xNew: xNew, yNew: yNew}));
         }).finally(() =>
         {
             const roomItem = this.room.getItem(itemId);
@@ -1123,10 +1093,8 @@ export class ContentApp
         this.moveRezzedItemAsync(itemId, xNew
         ).catch(error =>
         {
-            this.onItemError(
-                'ContentApp.moveRezzedItem', 'ContentApp.moveRezzedItemAsync failed!',
-                error, 'itemId', itemId, 'xNew', xNew
-            )
+            this.onError(ErrorWithData.ofError(
+                error, 'ContentApp.moveRezzedItemAsync failed!', {itemId: itemId, xNew: xNew}));
         });
     }
 
@@ -1181,9 +1149,7 @@ export class ContentApp
             toast.show(onNo);
         })().catch(error =>
         {
-            this.onItemError(
-                'ContentApp.deleteItemAsk', 'Toast preparation failed!', error, 'itemId', itemId
-            )
+            this.onError(ErrorWithData.ofError(error, 'Toast preparation failed!', {itemId: itemId}));
         });
     }
 
@@ -1203,7 +1169,7 @@ export class ContentApp
             onDeleted?.(itemId);
         })().catch(error =>
         {
-            this.onItemError('ContentApp.deleteItem', 'Error caught!', error, 'itemId', itemId);
+            this.onError(ErrorWithData.ofError(error, 'Error caught!', {itemId: itemId}));
             onFailed?.(itemId);
         });
     }

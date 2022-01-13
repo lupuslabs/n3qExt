@@ -2,7 +2,7 @@ import * as $ from 'jquery';
 import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
@@ -265,7 +265,7 @@ export class BackpackWindow extends Window
             }
 
         } catch (ex) {
-            this.app.onItemError('BackpackWindow:rezItem', 'Caught error!', ex, 'itemId', itemId);
+            this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', {itemId: itemId}));
         }
     }
 

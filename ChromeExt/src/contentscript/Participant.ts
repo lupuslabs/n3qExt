@@ -6,7 +6,7 @@ import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
 import { Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
@@ -59,6 +59,7 @@ export class Participant extends Entity
 
     getRoomNick(): string { return this.roomNick; }
     getChatout(): Chatout { return this.chatoutDisplay; }
+    getUserId(): string { return this.userId; }
 
     getDisplayName(): string
     {
@@ -884,10 +885,9 @@ export class Participant extends Entity
                 // Own BackpackItem on any Participant.
                 await this.room.applyBackpackItemToParticipant(this, droppedItem);
             }
-        })().catch(error => { this.app.onError(
-            'Participant.onGotItemDroppedOn',
-            'Error caught!',
-            error, 'this', this, 'droppedItem', droppedItem);
+        })().catch(error => {
+            this.app.onError(ErrorWithData.ofError(
+                error, undefined, {this: this, droppedItem: droppedItem}));
         });
     }
 

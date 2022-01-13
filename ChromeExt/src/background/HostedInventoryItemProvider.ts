@@ -104,8 +104,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        async loadServerItems(): Promise<void>
-        {
+        public async getItemIds(): Promise<string[]> {
             let itemIds = [];
             try {
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
@@ -115,6 +114,12 @@ export namespace HostedInventoryItemProvider
                 // this.handleException(ex);
                 throw error;
             }
+            return itemIds;
+        }
+
+        async loadServerItems(): Promise<void>
+        {
+            let itemIds = await this.getItemIds();
 
             let multiItemProperties = {};
             if (itemIds.length > 0) {
@@ -354,6 +359,38 @@ export namespace HostedInventoryItemProvider
             }
         }
 
+        async transferAuthorize(itemId: string, duration: number): Promise<string>
+        {
+            try {
+                const action = 'Transferable.Authorize';
+                const args = {duration: String(duration)};
+                const result = await this.itemAction(itemId, action, args, [itemId], false);
+                const transferToken = result.TransferToken;
+                return transferToken;
+            } catch (ex) {
+                this.handleException(ex);
+            }
+        }
+
+        async transferUnauthorize(itemId: string): Promise<void>
+        {
+            try {
+                const action = 'Transferable.RemoveAuthorization';
+                await this.itemAction(itemId, action, {}, [itemId], false);
+            } catch (ex) {
+                this.handleException(ex);
+            }
+        }
+
+        async transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>
+        {
+            const action = 'Transferable.CompleteTransfer';
+            const args = {senderInventory: senderInventoryId, senderItem: senderItemId, transferToken: transferToken};
+            const result = await this.genericAction(action, args);
+            const receivedId = result[Pid.Id];
+            return receivedId;
+        }
+
         async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
         {
             log.info('HostedInventoryItemProvider.addItem', 'not implemented');
@@ -535,6 +572,21 @@ export namespace HostedInventoryItemProvider
             return result;
         }
 
+        async genericAction(action: string, args: ItemProperties): Promise<ItemProperties>
+        {
+            const guard: (ItemProperties) => boolean = props => {
+                return as.Bool(props[Pid.N3qAspect])
+                    && as.String(props[Pid.Provider]) === 'n3q'; // Not the value set as this.providerDefinition.name.
+            };
+            const clientItemIds = this.backpack.findItems(guard).map(item => item.getProperties()[Pid.Id]);
+            if (clientItemIds.length === 0) {
+                throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoClientItem, '');
+            }
+            const itemId = clientItemIds[0];
+
+            return await this.itemAction(itemId, action, args, [itemId], true);
+        }
+
         async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
         {
             try {
@@ -575,7 +627,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        private handleException(ex: any): void
+        private handleException(ex: any): never
         {
             if (!is.nil(ex.fact)) {
                 throw new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail);

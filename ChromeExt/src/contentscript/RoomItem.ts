@@ -4,7 +4,7 @@ import * as $ from 'jquery';
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -467,10 +467,8 @@ export class RoomItem extends Entity
             }
         })().catch(error =>
         {
-            this.app.onError(
-                'RoomItem.onGotItemDroppedOn',
-                'Error caught!',
-                error, 'this', this, 'droppedItem', droppedItem);
+            this.app.onError(ErrorWithData.ofError(
+                error, undefined, {this: this, droppedItem: droppedItem}));
         });
     }
 
@@ -659,7 +657,7 @@ export class RoomItem extends Entity
 
         })().catch(error =>
         {
-            this.app.onError('RoomItem.openFrame', 'Error caught!', error);
+            this.app.onError(ErrorWithData.ofError(error));
         });
     }
 
