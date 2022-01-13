@@ -634,7 +634,7 @@ export class Room
         participant.applyItem(roomItem);
     }
 
-    async propsClaimDefersToExistingClaim(props: ItemProperties): Promise<boolean>
+    async propsClaimYieldsToExistingClaim(props: ItemProperties): Promise<boolean>
     {
         const roomItem = this.getPageClaimItem();
         if (roomItem) {
