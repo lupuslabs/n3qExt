@@ -519,7 +519,7 @@ export class RoomItem extends Entity
 
         if (this.myItem) {
             try {
-                await BackgroundMessage.executeBackpackItemAction(itemId, 'Applier.Apply', { 'passive': passiveItemId }, [itemId, passiveItemId]);
+                await BackgroundMessage.applyItemToBackpackItem(itemId, passiveItemId);
                 if (Config.get('points.enabled', false)) {
                     /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1);
                 }

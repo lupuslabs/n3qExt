@@ -152,6 +152,11 @@ export class Backpack
         return await this.getProviderFromName('nine3q').loadWeb3Items();
     }
 
+    async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+    {
+        await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
+    }
+
     async createItemByTemplate(provider: string, auth: string, templateName: string, args: ItemProperties): Promise<string>
     {
         return await this.getProviderFromName(provider).createItemByTemplate(auth, templateName, args);

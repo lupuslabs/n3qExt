@@ -3,7 +3,7 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, CreateBackpackItemFromNftResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse, ExecuteBackpackItemActionResponse } from '../lib/BackgroundMessage';
+import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, CreateBackpackItemFromNftResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse, ExecuteBackpackItemActionResponse, ApplyItemToBackpackItemResponse } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
@@ -326,6 +326,10 @@ export class BackgroundApp
 
             case BackgroundMessage.pointsActivity.name: {
                 return this.handle_pointsActivity(message.channel, message.n, sendResponse);
+            } break;
+
+            case BackgroundMessage.applyItemToBackpackItem.name: {
+                return this.handle_applyItemToBackpackItem(message.activeId, message.passiveId, sendResponse);
             } break;
 
             case BackgroundMessage.createBackpackItemFromTemplate.name: {
@@ -728,6 +732,19 @@ export class BackgroundApp
             //     sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         sendResponse(new BackgroundSuccessResponse());
+        return false;
+    }
+
+    handle_applyItemToBackpackItem(activeId: string, passiveId: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (this.backpack) {
+            this.backpack.applyItemToItem(activeId, passiveId)
+                .then(itemId => { sendResponse(new ApplyItemToBackpackItemResponse()); })
+                .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
+            return true;
+        } else {
+            sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
+        }
         return false;
     }
 

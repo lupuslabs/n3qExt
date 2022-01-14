@@ -55,6 +55,11 @@ export class ExecuteBackpackItemActionResponse extends BackgroundResponse
     constructor(public result: ItemProperties) { super(true); }
 }
 
+export class ApplyItemToBackpackItemResponse extends BackgroundResponse
+{
+    constructor() { super(true); }
+}
+
 export class CreateBackpackItemFromTemplateResponse extends BackgroundResponse
 {
     constructor(public properties: ItemProperties) { super(true); }
@@ -241,6 +246,19 @@ export class BackgroundMessage
             try {
                 let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.getBackpackItemProperties.name, 'itemId': itemId });
                 resolve((<GetBackpackItemPropertiesResponse>response).properties);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    static applyItemToBackpackItem(activeId: string, passiveId: string): Promise<void>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.applyItemToBackpackItem.name, 'activeId': activeId, 'passiveId': passiveId });
+                resolve();
             } catch (error) {
                 reject(error);
             }

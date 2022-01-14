@@ -252,6 +252,25 @@ export class LocalStorageItemProvider implements IItemProvider
         return knownIds;
     }
 
+    async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                const result = await this.itemAction(
+                    activeId,
+                    'Applier.Apply',
+                    { 'passive': passiveId },
+                    [activeId, passiveId],
+                    false
+                );
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
     {
         return new Promise(async (resolve, reject) =>

@@ -131,7 +131,7 @@ export namespace HostedInventoryItemProvider
             log.info('HostedInventoryItemProvider.loadWeb3Items', 'not implemented');
         }
 
-        async createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
+        getGenericItemId(): string
         {
             let clientItemIds = this.backpack.findItems(
                 props => { return (as.Bool(props[Pid.N3qAspect], false) && as.String(props[Pid.Provider]) == this.providerDefinition.name); }
@@ -139,7 +139,27 @@ export namespace HostedInventoryItemProvider
 
             if (clientItemIds.length == 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }
 
-            const itemId = clientItemIds[0];
+            return clientItemIds[0];
+        }
+
+        async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+        {
+            try {
+                await this.itemAction(
+                    activeId,
+                    'Applier.Apply',
+                    { 'passive': passiveId },
+                    [activeId, passiveId],
+                    false
+                );
+            } catch (ex) {
+                this.handleException(ex);
+            }
+        }
+
+        async createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
+        {
+            const itemId = this.getGenericItemId();
 
             const result = await this.itemAction(
                 itemId,
