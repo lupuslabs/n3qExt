@@ -484,6 +484,7 @@ export class Config
                     'ErrorFact.NoItemsReceived': 'No items received',
                     'ErrorFact.NotExecuted': 'Not executed',
                     'ErrorFact.NotCreated': 'No item created',
+                    'ErrorFact.NotDeleted': 'Item not deleted',
                     'ErrorFact.NotApplied': 'Item not applied',
                     'ErrorFact.ClaimFailed': 'Failed to claim the page',
                     'ErrorFact.NotTransferred': 'Item not transferred',
@@ -512,6 +513,7 @@ export class Config
                     'ErrorReason.InvalidCommandArgument': 'Invalid command argument',
                     'ErrorReason.NetworkProblem': 'Netzwork problem',
                     'ErrorReason.CantDropOnSelf': 'The item can\'t be applied to yourself.',
+                    'ErrorReason.NotDeletable': 'The item can\'t be deleted.',
 
                     'ErrorDetail.Applier.Apply': 'Applying an item to another',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -729,6 +731,7 @@ export class Config
                     'ErrorFact.NoItemsReceived': 'Keine Gegenstände bekommen',
                     'ErrorFact.NotExecuted': 'Nicht ausgeführt',
                     'ErrorFact.NotCreated': 'Kein Gegenstand erstellt',
+                    'ErrorFact.NotDeleted': 'Gegenstand nicht gelöscht',
                     'ErrorFact.NotApplied': 'Gegenstand nicht angewendet',
                     'ErrorFact.ClaimFailed': 'Anspruch nicht durchgesetzt',
                     'ErrorFact.NotTransferred': 'Gegenstand nicht übertragen',
@@ -757,6 +760,7 @@ export class Config
                     'ErrorReason.InvalidCommandArgument': 'Falsches Befehlsargument',
                     'ErrorReason.NetworkProblem': 'Netzwerkproblem',
                     'ErrorReason.CantDropOnSelf': 'Der Gegenstand kann nicht auf dich selbst angewandt werden.',
+                    'ErrorReason.NotDeletable': 'Der Gegenstand kann nicht gelöscht werden.',
 
                     'ErrorDetail.Applier.Apply': 'Beim Anwenden eines Gegenstands auf einen anderen.',
                     'ErrorDetail.Pid.Id': 'Id',
