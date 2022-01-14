@@ -134,7 +134,7 @@ export namespace HostedInventoryItemProvider
         async createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
         {
             let clientItemIds = this.backpack.findItems(
-                props => { return (as.Bool(props[Pid.ClientToolAspect], false) && as.String(props[Pid.Provider]) == this.providerDefinition.name); }
+                props => { return (as.Bool(props[Pid.N3qAspect], false) && as.String(props[Pid.Provider]) == this.providerDefinition.name); }
             ).map(item => item.getProperties()[Pid.Id]);
 
             if (clientItemIds.length == 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }

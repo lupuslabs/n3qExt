@@ -53,7 +53,7 @@ export enum Pid
     ClaimStrength = 'ClaimStrength',
     ClaimUrl = 'ClaimUrl',
     ClaimAccumulatedDuration = 'ClaimAccumulatedDuration',
-    ClientToolAspect = 'ClientToolAspect',
+    N3qAspect = 'N3qAspect',
     PageEffectAspect = 'PageEffectAspect',
     PointsAspect = 'PointsAspect',
     SettingsAspect = 'SettingsAspect',
