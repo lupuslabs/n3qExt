@@ -60,12 +60,7 @@ export class ApplyItemToBackpackItemResponse extends BackgroundResponse
     constructor() { super(true); }
 }
 
-export class CreateBackpackItemFromTemplateResponse extends BackgroundResponse
-{
-    constructor(public properties: ItemProperties) { super(true); }
-}
-
-export class CreateBackpackItemFromNftResponse extends BackgroundResponse
+export class CreateBackpackItemResponse extends BackgroundResponse
 {
     constructor(public properties: ItemProperties) { super(true); }
 }
@@ -265,26 +260,13 @@ export class BackgroundMessage
         });
     }
 
-    static createBackpackItemFromTemplate(provider: string, auth: string, template: string, args: ItemProperties): Promise<ItemProperties>
+    static createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
             try {
-                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromTemplate.name, 'provider': provider, 'auth': auth, 'template': template, 'args': args });
-                resolve((<CreateBackpackItemFromTemplateResponse>response).properties);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
-    static createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<ItemProperties>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItemFromNft.name, 'contractNetwork': contractNetwork, 'contractAddress': contractAddress, 'tokenId': tokenId, 'tokenUri': tokenUri });
-                resolve((<CreateBackpackItemFromNftResponse>response).properties);
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.createBackpackItem.name, 'provider': provider, 'auth': auth, 'method': method, 'args': args });
+                resolve((<CreateBackpackItemResponse>response).properties);
             } catch (error) {
                 reject(error);
             }

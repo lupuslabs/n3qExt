@@ -157,14 +157,9 @@ export class Backpack
         await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
     }
 
-    async createItemByTemplate(provider: string, auth: string, templateName: string, args: ItemProperties): Promise<string>
+    async createItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
     {
-        return await this.getProviderFromName(provider).createItemByTemplate(auth, templateName, args);
-    }
-
-    async createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>
-    {
-        return await this.getProviderFromName('nine3q').createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri);
+        return await this.getProviderFromName(provider).createItem(auth, method, args);
     }
 
     async getOrCreatePointsItem(): Promise<Item>

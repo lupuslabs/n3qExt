@@ -3,7 +3,7 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, CreateBackpackItemFromNftResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse, ExecuteBackpackItemActionResponse, ApplyItemToBackpackItemResponse } from '../lib/BackgroundMessage';
+import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse, ExecuteBackpackItemActionResponse, ApplyItemToBackpackItemResponse } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
@@ -332,12 +332,8 @@ export class BackgroundApp
                 return this.handle_applyItemToBackpackItem(message.activeId, message.passiveId, sendResponse);
             } break;
 
-            case BackgroundMessage.createBackpackItemFromTemplate.name: {
-                return this.handle_createBackpackItemFromTemplate(message.provider, message.auth, message.template, message.args, sendResponse);
-            } break;
-
-            case BackgroundMessage.createBackpackItemFromNft.name: {
-                return this.handle_createBackpackItemFromNft(message.contractNetwork, message.contractAddress, message.tokenId, message.tokenUri, sendResponse);
+            case BackgroundMessage.createBackpackItem.name: {
+                return this.handle_createBackpackItem(message.provider, message.auth, message.method, message.args, sendResponse);
             } break;
 
             default: {
@@ -748,11 +744,11 @@ export class BackgroundApp
         return false;
     }
 
-    handle_createBackpackItemFromTemplate(provider: string, auth: string, template: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
+    handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByTemplate(provider, auth, template, args)
-                .then(itemId => { sendResponse(new CreateBackpackItemFromTemplateResponse(this.backpack.getItem(itemId).getProperties())); })
+            this.backpack.createItem(provider, auth, method, args)
+                .then(props => { sendResponse(new CreateBackpackItemResponse(props)); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {
@@ -760,21 +756,6 @@ export class BackgroundApp
         }
         return false;
     }
-
-    // manage stanza from 2 tabId mappings
-    handle_createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string, sendResponse: (response?: any) => void): boolean
-    {
-        if (this.backpack) {
-            this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri,)
-                .then(itemId => { sendResponse(new CreateBackpackItemFromNftResponse(this.backpack.getItem(itemId).getProperties())); })
-                .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
-            return true;
-        } else {
-            sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
-        }
-        return false;
-    }
-
 
     addRoomJid2TabId(room: string, tabId: number): void
     {

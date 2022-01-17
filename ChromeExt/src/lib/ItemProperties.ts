@@ -87,6 +87,10 @@ export enum Pid
     Web3ContractAspect = 'Web3ContractAspect',
     Web3ContractAddress = 'Web3ContractAddress',
     Web3ContractNetwork = 'Web3ContractNetwork',
+    NftNetwork = 'NftNetwork',
+    NftContract = 'NftContract',
+    NftTokenId = 'NftTokenId',
+    NftTokenUri = 'NftTokenUri',
     ShopImageUrl = 'ShopImageUrl',
 }
 

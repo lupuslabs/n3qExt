@@ -32,10 +32,10 @@ export namespace WeblinClientApi
     export class ClientCreateItemRequest extends Request
     {
         static type = 'Client.CreateItem';
-        template: string;
-        dx: number;
         provider: string;
         auth: string;
+        template: string;
+        dx: number;
         args: ItemProperties;
     }
 }

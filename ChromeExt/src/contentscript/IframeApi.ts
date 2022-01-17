@@ -102,7 +102,12 @@ export class IframeApi
             let nick = this.app.getRoom().getMyNick();
             let participant = this.app.getRoom().getParticipant(nick);
             let x = participant.getPosition() + 120;
-            let props = await BackgroundMessage.createBackpackItemFromTemplate(Config.get('iframeApi.w2WMigrationProvider', 'n3q'), Config.get('iframeApi.w2WMigrationToken', 'JVxIJIdR9ueq7sJwwPmM'), 'Migration', { [Pid.MigrationCid]: cid });
+            let props = await BackgroundMessage.createBackpackItem(
+                Config.get('iframeApi.w2WMigrationProvider', 'n3q'),
+                Config.get('iframeApi.w2WMigrationAuth', 'JVxIJIdR9ueq7sJwwPmM'),
+                'ByTemplate',
+                { [Pid.Template]: 'Migration', [Pid.MigrationCid]: cid }
+            );
             let itemId = props[Pid.Id];
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
             await BackgroundMessage.executeBackpackItemAction(itemId, 'Migration.CreateItems', {}, [itemId]);
@@ -125,7 +130,12 @@ export class IframeApi
             let nick = this.app.getRoom().getMyNick();
             let participant = this.app.getRoom().getParticipant(nick);
             let x = participant.getPosition() + 120;
-            let props = await BackgroundMessage.createBackpackItemFromTemplate(Config.get('iframeApi.createCryptoWalletProvider', 'n3q'), auth, 'CryptoWallet', { [Pid.Web3WalletAddress]: address, [Pid.Web3WalletNetwork]: network, });
+            let props = await BackgroundMessage.createBackpackItem(
+                Config.get('iframeApi.createCryptoWalletProvider', 'n3q'),
+                auth,
+                'ByTemplate',
+                { [Pid.Template]: 'CryptoWallet', [Pid.Web3WalletAddress]: address, [Pid.Web3WalletNetwork]: network, }
+            );
             let itemId = props[Pid.Id];
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
             await BackgroundMessage.loadWeb3BackpackItems();
@@ -166,7 +176,9 @@ export class IframeApi
     {
         try {
 
-            let props = await BackgroundMessage.createBackpackItemFromTemplate(request.provider, request.auth, request.template, request.args ?? {});
+            let args = request.args ?? {};
+            args[Pid.Template] = request.template;
+            let props = await BackgroundMessage.createBackpackItem(request.provider, request.auth, 'ByTemplate', args);
             let itemId = props[Pid.Id];
 
             let nick = this.app.getRoom().getMyNick();
@@ -183,15 +195,18 @@ export class IframeApi
     {
         try {
 
-            let props = await BackgroundMessage.createBackpackItemFromNft(request.contractNetwork, request.contractAddress, request.tokenId, request.tokenUri);
+            let args = new ItemProperties();
+            args[Pid.NftNetwork] = request.contractNetwork;
+            args[Pid.NftContract] = request.contractAddress;
+            args[Pid.NftTokenId] = request.tokenId;
+            args[Pid.NftTokenUri] = request.tokenUri;
+            let props = await BackgroundMessage.createBackpackItem(request.provider, request.auth, 'ByNft', args);
+            let itemId = props[Pid.Id];
 
-            if (request.dx) {
-                let itemId = props[Pid.Id];
-                let nick = this.app.getRoom().getMyNick();
-                let participant = this.app.getRoom().getParticipant(nick);
-                let x = participant.getPosition() + as.Int(request.dx, 120);
-                await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
-            }
+            let nick = this.app.getRoom().getMyNick();
+            let participant = this.app.getRoom().getParticipant(nick);
+            let x = participant.getPosition() + as.Int(request.dx, 120);
+            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
 
         } catch (error) {
             return new WeblinClientApi.ErrorResponse(error);

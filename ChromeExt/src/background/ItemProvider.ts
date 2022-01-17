@@ -17,6 +17,5 @@ export interface IItemProvider
     onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void;
     loadWeb3Items(): Promise<void>;
     applyItemToItem(activeId: string, passiveId: string): Promise<void>;
-    createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>;
-    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>;
+    createItem(auth: string, method: string, args: ItemProperties): Promise<ItemProperties>;
 }

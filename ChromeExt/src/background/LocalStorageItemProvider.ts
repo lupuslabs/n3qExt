@@ -228,8 +228,9 @@ export class LocalStorageItemProvider implements IItemProvider
                 });
                 if (existingItems.length == 0) {
                     try {
-                        let itemId = await this.createItemByTemplate('', template, data);
-                        knownIds.push(itemId);
+                        let props = await this.createItemByTemplate('', template, data);
+                        let itemId = props[Pid.Id];
+                        knownIds.push();
                         if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId); }
                     } catch (error) {
                         log.info(error);
@@ -271,7 +272,15 @@ export class LocalStorageItemProvider implements IItemProvider
         });
     }
 
-    createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<string>
+    createItem(auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            reject('Not implemented');
+        });
+    }
+
+    createItemByTemplate(auth: string, templateName: string, args: ItemProperties): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -296,14 +305,14 @@ export class LocalStorageItemProvider implements IItemProvider
                 let itemId = props.Id;
                 await this.addItem(itemId, props, {});
 
-                resolve(itemId);
+                resolve(props);
             } catch (error) {
                 reject(error);
             }
         });
     }
 
-    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<string>
+    createItemByNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -330,7 +339,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 let itemId = props.Id;
                 await this.addItem(itemId, props, {});
 
-                resolve(itemId);
+                resolve(props);
             } catch (error) {
                 reject(error);
             }

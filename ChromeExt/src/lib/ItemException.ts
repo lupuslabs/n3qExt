@@ -138,6 +138,7 @@ export namespace ItemException
         NoItemProviderForItem,
         NoSuchItemProvider,
         NoClientItem,
+        NotDeletable,
     }
 }
 

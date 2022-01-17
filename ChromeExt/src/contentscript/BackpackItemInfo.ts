@@ -44,7 +44,10 @@ export class BackpackItemInfo
         // Fix (jquery?) bug: 
         // Uncaught TypeError: Cannot read property 'ownerDocument' of undefined
         // at jQuery.fn.init.$.fn.scrollParent (scroll-parent.js:41)
-        $(this.elem).on('mousemove', ev => { ev.stopPropagation(); });
+        $(this.elem).on('mousemove', ev =>
+        {
+            ev.stopPropagation();
+        });
 
         this.update();
 

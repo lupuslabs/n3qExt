@@ -384,7 +384,7 @@ export class Participant extends Entity
                         if (props[Pid.IsRezzed]) {
                             await BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
                         }
-                        await BackgroundMessage.rezBackpackItem(itemId, this.room.getJid(), -1, this.room.getDestination(), {});
+                        await BackgroundMessage.rezBackpackItem(itemId, this.room.getJid(), as.Int(props[Pid.RezzedX], -1), this.room.getDestination(), {});
                     }
                 }
             }
