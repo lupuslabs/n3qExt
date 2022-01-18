@@ -1,3 +1,4 @@
+import { ItemException } from './ItemException';
 import { ItemProperties } from './ItemProperties';
 
 export namespace WeblinClientApi
@@ -27,6 +28,19 @@ export namespace WeblinClientApi
 
         links?: Array<any>;
         detail?: any;
+    }
+
+    export class ClientItemExceptionRequest extends Request
+    {
+        static type = 'Client.ItemException';
+
+        target?: 'currentTab'|'notCurrentTab'|'activeTab'|'allTabs';
+        static defaultTarget = 'currentTab';
+
+        durationSec: number;
+        ex: ItemException;
+
+        links?: Array<any>;
     }
 
     export class ClientCreateItemRequest extends Request

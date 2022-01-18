@@ -126,7 +126,7 @@ export class BackpackItemInfo
 
         if (as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect])) {
             const activateGroup = <HTMLElement>$('<div class="n3q-base n3q-backpack-activate" data-translate="children" />').get(0);
-            const activateLabel = <HTMLElement>$('<span class="n3q-base " data-translate="text:Backpack">Enabled</div>').get(0);
+            const activateLabel = <HTMLElement>$('<span class="n3q-base " data-translate="text:Backpack">Active</div>').get(0);
             const activateCheckbox = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack" ' + (as.Bool(props[Pid.ActivatableIsActive]) ? 'checked' : '') + '/>').get(0); // Active
             $(activateCheckbox).on('change', async (ev) =>
             {

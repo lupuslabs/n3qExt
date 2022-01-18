@@ -78,6 +78,8 @@ export class IframeApi
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
             if (request.type == WeblinClientApi.ClientNotificationRequest.type) {
                 this.handle_ClientNotificationRequest(<WeblinClientApi.ClientNotificationRequest>request);
+            } else if (request.type == WeblinClientApi.ClientItemExceptionRequest.type) {
+                this.handle_ClientItemExceptionRequest(<WeblinClientApi.ClientItemExceptionRequest>request);
             } else if (request.type == WeblinClientApi.ClientCreateItemRequest.type) {
                 this.handle_ClientCreateItemRequest(<WeblinClientApi.ClientCreateItemRequest>request);
             } else {
@@ -659,6 +661,17 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_ClientNotificationRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_ClientItemExceptionRequest(request: WeblinClientApi.ClientItemExceptionRequest): WeblinClientApi.Response
+    {
+        try {
+            new ItemExceptionToast(this.app, request.durationSec, request.ex).show();
+            return new WeblinClientApi.SuccessResponse();
+        } catch (ex) {
+            log.info('IframeApi.handle_ClientItemExceptionRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }
