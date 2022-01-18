@@ -468,7 +468,7 @@ export class Config
                     'Toast.TooManyBlueprints': 'Too many blueprints',
                     'Toast.PointsClaimed': 'Activity points claimed',
 
-                    'Activity.TotalPoints': 'Total points',
+                    'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Greet',
@@ -715,7 +715,7 @@ export class Config
                     'Toast.NoBlueprint': 'Kein Bauplan',
                     'Toast.TooManyBlueprints': 'Mehr als ein Bauplan',
 
-                    'Activity.TotalPoints': 'Gesamtpunkte',
+                    'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Grüßen',

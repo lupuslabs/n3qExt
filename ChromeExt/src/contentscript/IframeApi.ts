@@ -114,6 +114,7 @@ export class IframeApi
             await BackgroundMessage.deleteBackpackItem(itemId, {});
         } catch (ex) {
             log.info('IframeApi.handle_W2WMigration', ex);
+            new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
         }
     }
 
@@ -140,6 +141,7 @@ export class IframeApi
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
             await BackgroundMessage.loadWeb3BackpackItems();
         } catch (ex) {
+            new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
             log.info('IframeApi.handle_CreateCryptoWallet', ex);
         }
     }
