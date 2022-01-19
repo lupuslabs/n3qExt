@@ -6,7 +6,7 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.1.4', 'ServerItems Effects', [
+        ['1.2.0', 'ServerItems', [
             ['Add', 'Server based items'],
             ['Add', 'CTRL+click drops/pickups item'],
             ['Add', 'Confirmation on item transfer'],
