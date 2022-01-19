@@ -149,7 +149,7 @@ export class Backpack
 
     async loadWeb3Items(): Promise<void>
     {
-        return await this.getProviderFromName('nine3q').loadWeb3Items();
+        return await this.getProviderFromName('n3q').loadWeb3Items();
     }
 
     async applyItemToItem(activeId: string, passiveId: string): Promise<void>

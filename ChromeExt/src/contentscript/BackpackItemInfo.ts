@@ -176,14 +176,17 @@ export class BackpackItemInfo
                 $(this.elem).append(rezElem);
             }
         }
-        const delBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Delete item</div>').get(0);
-        $(delBtn).on('click', (ev) =>
-        {
-            ev.stopPropagation();
-            this.app.deleteItemAsk(this.backpackItem.getItemId());
-            this.close();
-        });
-        $(this.elem).append(delBtn);
+        
+        if (as.Bool(props[Pid.DeletableAspect], true)) {
+            const delBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Delete item</div>').get(0);
+            $(delBtn).on('click', (ev) =>
+            {
+                ev.stopPropagation();
+                this.app.deleteItemAsk(this.backpackItem.getItemId());
+                this.close();
+            });
+            $(this.elem).append(delBtn);
+        }
 
         if (Config.get('backpack.itemInfoExtended', false)) {
             this.extend();

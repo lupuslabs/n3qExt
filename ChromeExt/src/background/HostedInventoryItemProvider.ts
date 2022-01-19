@@ -139,8 +139,11 @@ export namespace HostedInventoryItemProvider
 
         async loadWeb3Items(): Promise<void>
         {
-            let currentWeb3ItemIds = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3BasedAspect], false)); }).map(item => item.getProperties()[Pid.Id]);
-            let unverifiedWeb3ItemIds = currentWeb3ItemIds;
+            let currentWeb3SyncedItemIds = this.backpack.findItems(props =>
+            {
+                return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.NftSync], true);
+            }).map(item => item.getProperties()[Pid.Id]);
+            let unverifiedWeb3ItemIds = currentWeb3SyncedItemIds;
 
             let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
             if (wallets.length == 0) {
@@ -163,7 +166,7 @@ export namespace HostedInventoryItemProvider
             }
 
             for (let previouWeb3ItemIdsIdx = 0; previouWeb3ItemIdsIdx < unverifiedWeb3ItemIds.length; previouWeb3ItemIdsIdx++) {
-                this.deleteItem(unverifiedWeb3ItemIds[previouWeb3ItemIdsIdx], { skipContentNotification: true, skipPresenceUpdate: true });
+                this.deleteItem(unverifiedWeb3ItemIds[previouWeb3ItemIdsIdx], {});
             }
         }
 
@@ -183,7 +186,7 @@ export namespace HostedInventoryItemProvider
                     log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                 } else {
                     let httpProvider = Config.get('web3.provider.' + network, '');
-                    let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
+                    let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
                     for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
                         idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
                     }
@@ -203,7 +206,7 @@ export namespace HostedInventoryItemProvider
                         log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                     } else {
                         let httpProvider = Config.get('web3.provider.' + network, '');
-                        let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
+                        let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
                         for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
                             idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
                         }
@@ -217,7 +220,7 @@ export namespace HostedInventoryItemProvider
             return idsCreatedByWallet;
         }
 
-        async loadWeb3ItemsForWalletFromContract(walletAddress: string, httpProvider: string, contractAddress: string, contractABI: any): Promise<Array<string>>
+        async loadWeb3ItemsForWalletFromContract(network: string, walletAddress: string, httpProvider: string, contractAddress: string, contractABI: any): Promise<Array<string>>
         {
             let createdIds: Array<string> = [];
 
@@ -240,7 +243,7 @@ export namespace HostedInventoryItemProvider
                 } else {
                     const metadata = await response.json();
 
-                    let ids = await this.getOrCreateWeb3ItemFromMetadata(walletAddress, metadata);
+                    let ids = await this.getOrCreateWeb3ItemFromMetadata(network, walletAddress, contractAddress, tokenId, metadata);
                     for (let i = 0; i < ids.length; i++) {
                         createdIds.push(ids[i]);
                     }
@@ -251,7 +254,7 @@ export namespace HostedInventoryItemProvider
             return createdIds;
         }
 
-        async getOrCreateWeb3ItemFromMetadata(ownerAddress: string, metadata: any): Promise<Array<string>>
+        async getOrCreateWeb3ItemFromMetadata(network: string, ownerAddress: string, contractAddress: string, tokenId: string, metadata: any): Promise<Array<string>>
         {
             let data = metadata.data;
             if (data == null) {
@@ -261,7 +264,10 @@ export namespace HostedInventoryItemProvider
 
             let knownIds: Array<string> = [];
 
-            data[Pid.Web3BasedOwner] = ownerAddress;
+            data[Pid.NftOwner] = ownerAddress;
+            data[Pid.NftNetwork] = network;
+            data[Pid.NftContract] = contractAddress;
+            data[Pid.NftTokenId] = tokenId;
 
             let template = as.String(data[Pid.Template], '');
             switch (template) {
@@ -270,7 +276,7 @@ export namespace HostedInventoryItemProvider
                     let domain = as.String(data[Pid.ClaimUrl], '');
                     let existingItems = this.backpack.findItems(props =>
                     {
-                        return as.Bool(props[Pid.Web3BasedAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
+                        return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
                     });
                     if (existingItems.length == 0) {
                         try {

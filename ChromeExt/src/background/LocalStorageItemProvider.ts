@@ -93,7 +93,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
     async loadWeb3Items(): Promise<void>
     {
-        let currentWeb3ItemIds = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3BasedAspect], false)); }).map(item => item.getProperties()[Pid.Id]);
+        let currentWeb3ItemIds = this.backpack.findItems(props => { return (as.Bool(props[Pid.NftAspect], false)); }).map(item => item.getProperties()[Pid.Id]);
         let unverifiedWeb3ItemIds = currentWeb3ItemIds;
 
         let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
@@ -215,7 +215,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
         let knownIds: Array<string> = [];
 
-        data[Pid.Web3BasedOwner] = ownerAddress;
+        data[Pid.NftOwner] = ownerAddress;
 
         let template = as.String(data[Pid.Template], '');
         switch (template) {
@@ -224,7 +224,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 let domain = as.String(data[Pid.ClaimUrl], '');
                 let existingItems = this.backpack.findItems(props =>
                 {
-                    return as.Bool(props[Pid.Web3BasedAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
+                    return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
                 });
                 if (existingItems.length == 0) {
                     try {
