@@ -152,7 +152,7 @@ export namespace HostedInventoryItemProvider
 
             let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
             if (wallets.length == 0) {
-                if (Utils.logChannel('web3', true)) { log.info('backpack.loadWeb3Items', 'No wallet item'); }
+                if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3Items', 'No wallet item'); }
                 return;
             }
 
@@ -178,7 +178,7 @@ export namespace HostedInventoryItemProvider
         async loadWeb3ItemsForWallet(walletAddress: string, network: string): Promise<Array<string>>
         {
             if (walletAddress == '' || network == '') {
-                log.info('backpack.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
+                log.info('HostedInventoryItemProvider.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
                 return [];
             }
 
@@ -188,7 +188,7 @@ export namespace HostedInventoryItemProvider
                 let contractAddress = Config.get('web3.weblinItemContractAddess.' + network, '');
                 let contractABI = Config.get('web3.weblinItemContractAbi', null);
                 if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                    log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+                    log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                 } else {
                     let httpProvider = Config.get('web3.provider.' + network, '');
                     let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
@@ -208,7 +208,7 @@ export namespace HostedInventoryItemProvider
                     let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
                     let contractABI = Config.get('web3.minimumItemableContractAbi', null);
                     if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                        log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+                        log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                     } else {
                         let httpProvider = Config.get('web3.provider.' + network, '');
                         let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
@@ -219,7 +219,7 @@ export namespace HostedInventoryItemProvider
 
                 }
             } catch (error) {
-                log.info(error);
+                log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', error);
             }
 
             return idsCreatedByWallet;
@@ -244,7 +244,7 @@ export namespace HostedInventoryItemProvider
                 let response = await fetch(tokenUri);
 
                 if (!response.ok) {
-                    log.info('backpack.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
+                    log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
                 } else {
                     const metadata = await response.json();
 
@@ -263,7 +263,7 @@ export namespace HostedInventoryItemProvider
         {
             let data = metadata.data;
             if (data == null) {
-                log.info('backpack.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
+                log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
                 return [];
             }
 
@@ -288,7 +288,7 @@ export namespace HostedInventoryItemProvider
                             let props = await this.createItem(this.config().createItemWiCryptoClaimAuth, 'ByTemplate', data);
                             let itemId = props[Pid.Id];
                             knownIds.push();
-                            if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId, data); }
+                            if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId, data); }
                         } catch (error) {
                             log.info(error);
                         }
@@ -297,13 +297,13 @@ export namespace HostedInventoryItemProvider
                             let item = existingItems[i];
                             let itemId = item.getId();
                             knownIds.push(itemId);
-                            if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
+                            if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
                         }
                     }
                 } break;
 
                 default:
-                    log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
+                    log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
                     break;
             }
 
@@ -722,7 +722,7 @@ export namespace HostedInventoryItemProvider
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                         let now = Date.now();
                         const cacheEntry = this.itemCache.get(itemId);
-                        log.info('HostedInventoryItemProvider.maintainItemCache', 'access',
+                        log.info('HostedInventoryItemProvider.onDependentPresence', 'access',
                             '(age=' + (now - this.itemCache.get(itemId).accessTime) / 1000 + ')',
                             itemId, cacheEntry.roomJid, cacheEntry.participantNick);
                     }
@@ -795,7 +795,7 @@ export namespace HostedInventoryItemProvider
 
                                 if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                                     const cacheEntry = this.itemCache.get(id);
-                                    log.info('HostedInventoryItemProvider.maintainItemCache', 'set',
+                                    log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set',
                                         id, cacheEntry.roomJid, cacheEntry.participantNick);
                                 }
 

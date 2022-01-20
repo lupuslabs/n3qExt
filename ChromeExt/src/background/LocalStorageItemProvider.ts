@@ -47,7 +47,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
             let props = await Memory.getLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId, null);
             if (props == null || typeof props != 'object') {
-                log.info('Backpack.loadLocalItems', LocalStorageItemProvider.BackpackPropsPrefix + itemId, 'not an object, skipping');
+                log.info('LocalStorageItemProvider.loadLocalItems', LocalStorageItemProvider.BackpackPropsPrefix + itemId, 'not an object, skipping');
                 continue;
             }
 
@@ -99,7 +99,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
         let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
         if (wallets.length == 0) {
-            if (Utils.logChannel('web3', true)) { log.info('backpack.loadWeb3Items', 'No wallet item'); }
+            if (Utils.logChannel('web3', true)) { log.info('LocalStorageItemProvider.loadWeb3Items', 'No wallet item'); }
             return;
         }
 
@@ -125,7 +125,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async loadWeb3ItemsForWallet(walletAddress: string, network: string): Promise<Array<string>>
     {
         if (walletAddress == '' || network == '') {
-            log.info('backpack.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
+            log.info('LocalStorageItemProvider.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
             return [];
         }
 
@@ -135,7 +135,7 @@ export class LocalStorageItemProvider implements IItemProvider
             let contractAddress = Config.get('web3.weblinItemContractAddess.' + network, '');
             let contractABI = Config.get('web3.weblinItemContractAbi', null);
             if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+                log.info('LocalStorageItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
             } else {
                 let httpProvider = Config.get('web3.provider.' + network, '');
                 let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
@@ -155,7 +155,7 @@ export class LocalStorageItemProvider implements IItemProvider
                 let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
                 let contractABI = Config.get('web3.minimumItemableContractAbi', null);
                 if (contractAddress == null || contractAddress == '' || contractABI == null) {
-                    log.info('backpack.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
+                    log.info('LocalStorageItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                 } else {
                     let httpProvider = Config.get('web3.provider.' + network, '');
                     let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(walletAddress, httpProvider, contractAddress, contractABI);
@@ -191,7 +191,7 @@ export class LocalStorageItemProvider implements IItemProvider
             let response = await fetch(tokenUri);
 
             if (!response.ok) {
-                log.info('backpack.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
+                log.info('LocalStorageItemProvider.loadWeb3ItemsForWalletFromContract', 'fetch failed', 'tokenId', tokenId, 'tokenUri', tokenUri, response);
             } else {
                 const metadata = await response.json();
 
@@ -210,7 +210,7 @@ export class LocalStorageItemProvider implements IItemProvider
     {
         let data = metadata.data;
         if (data == null) {
-            log.info('backpack.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
+            log.info('LocalStorageItemProvider.getOrCreateWeb3ItemFromMetadata', 'No item creation data in', metadata);
             return [];
         }
 
@@ -232,7 +232,7 @@ export class LocalStorageItemProvider implements IItemProvider
                         let props = await this.createItemByTemplate('', template, data);
                         let itemId = props[Pid.Id];
                         knownIds.push();
-                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId); }
+                        if (Utils.logChannel('web3', true)) { log.info('LocalStorageItemProvider.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId); }
                     } catch (error) {
                         log.info(error);
                     }
@@ -241,13 +241,13 @@ export class LocalStorageItemProvider implements IItemProvider
                         let item = existingItems[i];
                         let itemId = item.getId();
                         knownIds.push(itemId);
-                        if (Utils.logChannel('web3', true)) { log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
+                        if (Utils.logChannel('web3', true)) { log.info('LocalStorageItemProvider.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
                     }
                 }
             } break;
 
             default:
-                log.info('Backpack.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
+                log.info('LocalStorageItemProvider.getOrCreateWeb3ItemFromMetadata', 'Not supported', data);
                 break;
         }
 
