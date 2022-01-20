@@ -1008,7 +1008,7 @@ export class BackgroundApp
         //             await this.recvStanza(stanza);
         //         }
         //     }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
-            
+
         //     this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.set(timerKey, timer);
         // }
     }
@@ -1523,7 +1523,11 @@ export class BackgroundApp
                 if (points) {
                     let itemId = as.String(points.getProperties()[Pid.Id], '');
                     if (itemId != '') {
-                        this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true)
+                        try {
+                            this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true)
+                        } catch (error) {
+                            log.info('BackgroundApp.submitPoints', error);
+                        }
                     }
                 }
             }
