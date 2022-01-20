@@ -185,7 +185,7 @@ export class ContentApp
 
         $('div#n3q').remove();
         const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
-        this.display = $('<div id="n3qdisplay" class="n3q-base n3q-display" />').get(0);
+        this.display = $('<div class="n3q-base n3q-display" />').get(0);
         $(page).append(this.display);
         this.appendToMe.append(page);
 
