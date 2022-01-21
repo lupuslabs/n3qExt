@@ -36,6 +36,11 @@ export class Config
         test: {
             itemServiceRpcUrl: 'http://localhost:5000/rpc',
         },
+        system: {
+            activateBackgroundPageProbeDelayMinSec: 0.1,
+            activateBackgroundPageProbeDelayMaxSec: 10,
+            activateBackgroundPageProbeDelayFactor: 2,
+        },
         log: {
             all: false,
             startup: false,

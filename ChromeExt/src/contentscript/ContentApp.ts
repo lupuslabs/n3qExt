@@ -103,6 +103,50 @@ export class ContentApp
     {
     }
 
+    activateBackgroundPageProbeDelaySec = 0;
+    getActivateBackgroundPageProbeDelay()
+    {
+        if (this.activateBackgroundPageProbeDelaySec <= 0) {
+            this.activateBackgroundPageProbeDelaySec = Config.get('system.activateBackgroundPageProbeDelayMinSec', 0.1);
+        } else {
+            this.activateBackgroundPageProbeDelaySec *= Config.get('system.activateBackgroundPageProbeDelayFactor', 2);
+            const max = Config.get('system.activateBackgroundPageProbeDelayMaxSec', 10);
+            if (this.activateBackgroundPageProbeDelaySec > max) {
+                this.activateBackgroundPageProbeDelaySec = max;
+            }
+        }
+        return this.activateBackgroundPageProbeDelaySec;
+    }
+    async activateBackgroundPage(): Promise<void>
+    {
+        return new Promise(async (resolve) =>
+        {
+            let awake = false;
+            while (!awake) {
+                if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'probing'); }
+                try {
+                    awake = await BackgroundMessage.wakeup();
+                } catch (error) {
+                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'unreachable'); }
+                }
+                if (!awake) {
+                    const delay = this.getActivateBackgroundPageProbeDelay();
+                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'sleeping', delay); }
+                    await Utils.sleep(delay * 1000);
+                } else {
+                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'available'); }
+                }
+            }
+            resolve();
+        });
+
+        // WFT: chrome.runtime.getBackgroundPage is not a function
+        // return new Promise(resolve =>
+        // {
+        //     chrome.runtime.getBackgroundPage(resolve);
+        // });
+    }
+
     async start(params: any)
     {
         if (params && params.nickname) { await Memory.setLocal(Utils.localStorageKey_Nickname(), params.nickname); }
@@ -111,6 +155,7 @@ export class ContentApp
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
 
         try {
+            await this.activateBackgroundPage();
             await BackgroundMessage.waitReady();
         } catch (error) {
             log.debug(error.message);
@@ -145,7 +190,7 @@ export class ContentApp
             log.debug('ContentApp.start', 'online', Config.getOnlineTree());
             log.debug('ContentApp.start', 'dev', Config.getDevTree());
         }
-        
+
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
         {
@@ -779,7 +824,7 @@ export class ContentApp
         })().catch(error =>
         {
             this.onCriticalError(ErrorWithData.ofError(
-                error, 'BackgroundMessage.sendStanza failed!', {stanza: stanza}));
+                error, 'BackgroundMessage.sendStanza failed!', { stanza: stanza }));
         });
     }
 
@@ -787,7 +832,7 @@ export class ContentApp
 
     public onError(error: Error): void
     {
-        log.info({error: prepareValueForLog(error)}); // Log to info channel only so it doesn't appear on extensions page.
+        log.info({ error: prepareValueForLog(error) }); // Log to info channel only so it doesn't appear on extensions page.
         if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
@@ -815,7 +860,7 @@ export class ContentApp
     public static LayerEffect = 100;
     private static layerSize = 10 * 1000 * 1000;
     private frontIndex: { [layer: number]: number; } = {};
-    toFront(elem: HTMLElement, layer: number|string)
+    toFront(elem: HTMLElement, layer: number | string)
     {
         let layerInt: number;
         if (is.string(layer)) {
@@ -1052,7 +1097,7 @@ export class ContentApp
         ).catch(error =>
         {
             this.onError(ErrorWithData.ofError(
-                error, 'ContentApp.derezItemAsync failed!', {itemId: itemId, xNew: xNew, yNew: yNew}));
+                error, 'ContentApp.derezItemAsync failed!', { itemId: itemId, xNew: xNew, yNew: yNew }));
         }).finally(() =>
         {
             const roomItem = this.room.getItem(itemId);
@@ -1094,7 +1139,7 @@ export class ContentApp
         ).catch(error =>
         {
             this.onError(ErrorWithData.ofError(
-                error, 'ContentApp.moveRezzedItemAsync failed!', {itemId: itemId, xNew: xNew}));
+                error, 'ContentApp.moveRezzedItemAsync failed!', { itemId: itemId, xNew: xNew }));
         });
     }
 
@@ -1149,7 +1194,7 @@ export class ContentApp
             toast.show(onNo);
         })().catch(error =>
         {
-            this.onError(ErrorWithData.ofError(error, 'Toast preparation failed!', {itemId: itemId}));
+            this.onError(ErrorWithData.ofError(error, 'Toast preparation failed!', { itemId: itemId }));
         });
     }
 
@@ -1169,7 +1214,7 @@ export class ContentApp
             onDeleted?.(itemId);
         })().catch(error =>
         {
-            this.onError(ErrorWithData.ofError(error, 'Error caught!', {itemId: itemId}));
+            this.onError(ErrorWithData.ofError(error, 'Error caught!', { itemId: itemId }));
             onFailed?.(itemId);
         });
     }

@@ -254,6 +254,11 @@ export class BackgroundApp
                 return false;
             } break;
 
+            case BackgroundMessage.wakeup.name: {
+                sendResponse(this.handle_wakeup());
+                return false;
+            } break;
+
             case BackgroundMessage.fetchUrl.name: {
                 return this.handle_fetchUrl(message.url, message.version, sendResponse);
             } break;
@@ -1560,6 +1565,11 @@ export class BackgroundApp
 
     // 
 
+    handle_wakeup(): boolean
+    {
+        return true;
+    }
+
     handle_log(pieces: any): BackgroundResponse
     {
         log.debug(...pieces);
@@ -1626,5 +1636,4 @@ export class BackgroundApp
     handle_test(): any
     {
     }
-
 }

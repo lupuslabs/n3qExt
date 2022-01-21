@@ -156,6 +156,11 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.test.name });
     }
 
+    static wakeup(): Promise<boolean>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.wakeup.name });
+    }
+
     static jsonRpc(url: string, jsonBodyData: any): Promise<FetchUrlResponse>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.jsonRpc.name, 'url': url, 'json': jsonBodyData });
