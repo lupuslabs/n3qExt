@@ -167,7 +167,7 @@ export class ContentApp
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
 
         try {
-            await this.activateBackgroundPage();
+            // await this.activateBackgroundPage();
             await BackgroundMessage.waitReady();
         } catch (error) {
             log.debug(error.message);

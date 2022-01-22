@@ -16,6 +16,9 @@ export class _Changes
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
         ]],
+        ['1.1.4', 'VideoUrlFix', [
+            ['Fix', 'Invalid vidconfUrl after extension start'],
+        ]],
         ['1.1.3', 'OpenSource NftAvatar', [
             ['Add', 'Config i18n.overrideBrowserLanguage'],
             ['Add', 'Load web3 nft items for all web nft contract items'],
