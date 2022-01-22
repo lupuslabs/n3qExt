@@ -38,8 +38,9 @@ export class Config
         },
         system: {
             activateBackgroundPageProbeDelayMinSec: 0.1,
-            activateBackgroundPageProbeDelayMaxSec: 10,
+            activateBackgroundPageProbeDelayMaxSec: 8,
             activateBackgroundPageProbeDelayFactor: 2,
+            activateBackgroundPageProbeTotalSec: 120,
         },
         log: {
             all: false,

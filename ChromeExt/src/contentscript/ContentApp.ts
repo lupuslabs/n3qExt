@@ -119,8 +119,9 @@ export class ContentApp
     }
     async activateBackgroundPage(): Promise<void>
     {
-        return new Promise(async (resolve) =>
+        return new Promise(async (resolve, reject) =>
         {
+            const probeStartTime = Date.now() / 1000;
             let awake = false;
             while (!awake) {
                 if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'probing'); }
@@ -130,14 +131,25 @@ export class ContentApp
                     if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'unreachable'); }
                 }
                 if (!awake) {
-                    const delay = this.getActivateBackgroundPageProbeDelay();
-                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'sleeping', delay); }
-                    await Utils.sleep(delay * 1000);
+                    const now = Date.now() / 1000;
+                    const since = now - probeStartTime;
+                    if (since > Config.get('system.activateBackgroundPageProbeTotalSec', 60)) {
+                        break;
+                    } else {
+
+                        const delay = this.getActivateBackgroundPageProbeDelay();
+                        if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'sleeping', delay); }
+                        await Utils.sleep(delay * 1000);
+                    }
                 } else {
                     if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'available'); }
                 }
             }
-            resolve();
+            if (awake) {
+                resolve();
+            } else {
+                reject({ message: 'BackgroundApp seems unreachable, giving up' });
+            }
         });
 
         // WFT: chrome.runtime.getBackgroundPage is not a function
