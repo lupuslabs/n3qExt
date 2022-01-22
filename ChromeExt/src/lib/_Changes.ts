@@ -6,6 +6,9 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.1.4', 'VideoUrlFix', [
+            ['Fix', 'Invalid vidconfUrl after extension start'],
+        ]],
         ['1.1.3', 'OpenSource NftAvatar', [
             ['Add', 'Config i18n.overrideBrowserLanguage'],
             ['Add', 'Load web3 nft items for all web nft contract items'],
