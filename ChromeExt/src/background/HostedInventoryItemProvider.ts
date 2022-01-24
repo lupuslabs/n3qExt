@@ -642,7 +642,7 @@ export namespace HostedInventoryItemProvider
             if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
 
             const props = item.getProperties();
-            var presence = xml('presence', { 'from': roomJid + '/' + itemId });
+            var presence = xml('presence', { 'from': roomJid + '/' + as.String(props[Pid.InventoryId], '') + itemId });
             let attrs = {
                 'xmlns': 'vp:props',
                 'type': 'item',

@@ -58,8 +58,8 @@ export class RoomItem extends Entity
 
     public isMyItem(): boolean { return this.myItem; }
     public getDefaultAvatar(): string { return imgDefaultItem; }
-    public getRoomNick(): string { return this.roomNick; }
-    public getDisplayName(): string { return as.String(this.getProperties()[Pid.Label], this.roomNick); }
+    public getItemId(): string { return this.getProperties()[Pid.Id]; }
+    public getDisplayName(): string { return as.String(this.getProperties()[Pid.Label], this.getItemId()); }
 
     public getProperties(pids: Array<string> = null): ItemProperties
     {
@@ -111,7 +111,22 @@ export class RoomItem extends Entity
         let isFirstPresence = this.isFirstPresence;
         this.isFirstPresence = false;
 
+        let stanzaProperties: ItemProperties = {};
+
         // Collect info
+
+        {
+            const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
+            if (vpPropsNode) {
+                const attrs = vpPropsNode.attrs;
+                if (attrs) {
+                    for (const attrName in attrs) {
+                        stanzaProperties[attrName] = attrs[attrName];
+                    }
+                }
+                this.setProperties(stanzaProperties);
+            }
+        }
 
         {
             const stateNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'firebat:avatar:state');
@@ -127,49 +142,15 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            this.myItem = await BackgroundMessage.isBackpackItem(this.roomNick);
+            this.myItem = await BackgroundMessage.isBackpackItem(this.getItemId());
         }
 
-        {
-            let newProperties: ItemProperties = {};
-            if (this.myItem) {
-                try {
-                    newProperties = await BackgroundMessage.getBackpackItemProperties(this.roomNick);
-                } catch (error) {
-                    log.debug('RoomItem.onPresenceAvailable', 'no properties for', this.roomNick);
-                }
-            } else {
-                const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
-                if (vpPropsNode) {
-                    const attrs = vpPropsNode.attrs;
-                    if (attrs) {
-                        for (const attrName in attrs) {
-                            newProperties[attrName] = attrs[attrName];
-                        }
-                    }
-                }
-            }
-
-            if (newProperties) {
-
-                // // Race condition due to preceeding awaits, so check version to decide which properties are newer:
-                // const oldProperties = this.getProperties();
-                // const oldVersion = as.Int(oldProperties[Pid.Version]);
-                // const newVersion = as.Int(newProperties[Pid.Version]);
-                // if (oldProperties && (false
-                //     // When a presence with newer version has been processed while we await-ed:
-                //     || oldVersion > newVersion 
-                //     // when processing first presence, but second presence got processed while we await-ed:
-                //     || (isFirstPresence && oldVersion === newVersion)
-                // )) {
-                //     // A newer presence has been processed while we await-ed.
-                //     newProperties = oldProperties;
-                //     isFirstPresence = false;
-                // } else {
-                //     // No race detected - our version is newer.
-                // }
-
-                this.setProperties(newProperties);
+        if (this.myItem) {
+            try {
+                const backpackProperties = await BackgroundMessage.getBackpackItemProperties(this.getItemId());
+                this.setProperties(backpackProperties);
+            } catch (error) {
+                log.debug('RoomItem.onPresenceAvailable', 'no properties for', this.getItemId());
             }
         }
 
@@ -199,9 +180,9 @@ export class RoomItem extends Entity
                         // The new item is a remote item
                         if (! await this.room.propsClaimYieldsToExistingClaim(props)) {
                             // The new item is better
-                            if (await BackgroundMessage.isBackpackItem(claimingRoomItem.getRoomNick())) {
+                            if (await BackgroundMessage.isBackpackItem(claimingRoomItem.getItemId())) {
                                 // The existing claim is mine
-                                this.app.derezItem(claimingRoomItem.getRoomNick());
+                                this.app.derezItem(claimingRoomItem.getItemId());
                                 new SimpleToast(this.app, 'ClaimDerezzed', Config.get('room.claimToastDurationSec', 15), 'notice', this.app.translateText('Toast.Your claim has been removed'), 'A stronger item just appeared').show();
                             }
                         }
@@ -269,7 +250,7 @@ export class RoomItem extends Entity
 
         if (isFirstPresence) {
             if (!hasPosition && vpRezzedX < 0) {
-                newX = this.isSelf ? await this.app.getSavedPosition() : this.app.getDefaultPosition(this.roomNick);
+                newX = this.isSelf ? await this.app.getSavedPosition() : this.app.getDefaultPosition(this.getItemId());
             }
             if (newX < 0) { newX = 100; }
             this.setPosition(newX);
@@ -436,7 +417,7 @@ export class RoomItem extends Entity
     public onDraggedTo(newX: number): void
     {
         if (this.getPosition() !== newX) {
-            const itemId = this.roomNick;
+            const itemId = this.getItemId();
             if (this.myItem) {
                 this.app.moveRezzedItem(itemId, newX);
             } else {
@@ -468,7 +449,7 @@ export class RoomItem extends Entity
         })().catch(error =>
         {
             this.app.onError(ErrorWithData.ofError(
-                error, undefined, {this: this, droppedItem: droppedItem}));
+                error, undefined, { this: this, droppedItem: droppedItem }));
         });
     }
 
@@ -476,7 +457,7 @@ export class RoomItem extends Entity
     {
         super.onMoveDestinationReached(newX);
 
-        const itemId = this.roomNick;
+        const itemId = this.getItemId();
         if (this.myItem) {
             const props = await BackgroundMessage.getBackpackItemProperties(itemId);
             if (as.Bool(props[Pid.IframeLive])) {
@@ -499,8 +480,8 @@ export class RoomItem extends Entity
 
     public async applyItem(passiveItem: RoomItem): Promise<void>
     {
-        const itemId = this.roomNick;
-        const passiveItemId = passiveItem.getRoomNick();
+        const itemId = this.getItemId();
+        const passiveItemId = passiveItem.getItemId();
 
         if (this.framePopup) {
             this.getScriptWindow()?.postMessage({ [Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')]: true, type: 'Window.Close' }, '*');
@@ -557,11 +538,11 @@ export class RoomItem extends Entity
         if (url !== '' && room && userId !== '') {
             const tokenOptions = {};
             if (this.myItem) {
-                tokenOptions['properties'] = await BackgroundMessage.getBackpackItemProperties(this.roomNick);
+                tokenOptions['properties'] = await BackgroundMessage.getBackpackItemProperties(this.getItemId());
             } else {
                 tokenOptions['properties'] = this.properties;
             }
-            const contextToken = await Payload.getContextToken(userId, this.roomNick, 600, { 'room': room.getJid() }, tokenOptions);
+            const contextToken = await Payload.getContextToken(userId, this.getItemId(), 600, { 'room': room.getJid() }, tokenOptions);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -600,7 +581,7 @@ export class RoomItem extends Entity
             let iframeUrl = as.String(this.properties[Pid.IframeUrl]);
             const room = this.app.getRoom();
             const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
-            const itemId = this.roomNick;
+            const itemId = this.getItemId();
             if (iframeUrl === '' || !room || userId === '') {
                 return;
             }
@@ -749,15 +730,15 @@ export class RoomItem extends Entity
 
     public async setItemProperty(pid: string, value: any): Promise<void>
     {
-        if (await BackgroundMessage.isBackpackItem(this.roomNick)) {
-            await BackgroundMessage.modifyBackpackItemProperties(this.roomNick, { [pid]: value }, [], {});
+        if (await BackgroundMessage.isBackpackItem(this.getItemId())) {
+            await BackgroundMessage.modifyBackpackItemProperties(this.getItemId(), { [pid]: value }, [], {});
         }
     }
 
     public async setItemState(state: string): Promise<void>
     {
-        if (await BackgroundMessage.isBackpackItem(this.roomNick)) {
-            await BackgroundMessage.modifyBackpackItemProperties(this.roomNick, { [Pid.State]: state }, [], {});
+        if (await BackgroundMessage.isBackpackItem(this.getItemId())) {
+            await BackgroundMessage.modifyBackpackItemProperties(this.getItemId(), { [Pid.State]: state }, [], {});
         }
     }
 
@@ -778,7 +759,7 @@ export class RoomItem extends Entity
     protected sendItemEventToAllScriptFrames(data: any): void
     {
         const itemData = {
-            id: this.getRoomNick(),
+            id: this.getItemId(),
             x: this.getPosition(),
             isOwn: this.isMyItem(),
             properties: this.getProperties([Pid.Template, Pid.OwnerId]),
@@ -786,7 +767,7 @@ export class RoomItem extends Entity
 
         const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemEventNotification(itemData, data));
+            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemEventNotification(itemData, data));
         }
     }
 
@@ -794,7 +775,7 @@ export class RoomItem extends Entity
     {
         const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemPropertiesChangedNotification(this.roomNick, this.properties));
+            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemPropertiesChangedNotification(this.getItemId(), this.properties));
         }
     }
 

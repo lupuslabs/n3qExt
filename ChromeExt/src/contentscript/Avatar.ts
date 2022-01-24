@@ -269,17 +269,17 @@ export class Avatar implements IObserver
 
     getRoomItemByDomElem(elem: HTMLElement): RoomItem
     {
-        const avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
-        if (avatarEntityId) {
-            return this.app.getRoom().getItem(avatarEntityId);
+        const entityId = Avatar.getEntityIdByAvatarElem(elem);
+        if (entityId) {
+            return this.app.getRoom().getItem(entityId);
         }
     }
 
     getParticipantByAvatarElem(elem: HTMLElement): Participant
     {
-        const avatarEntityId = Avatar.getEntityIdByAvatarElem(elem);
-        if (avatarEntityId) {
-            return this.app.getRoom().getParticipant(avatarEntityId);
+        const entityId = Avatar.getEntityIdByAvatarElem(elem);
+        if (entityId) {
+            return this.app.getRoom().getParticipant(entityId);
         }
     }
 

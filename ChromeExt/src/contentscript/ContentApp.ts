@@ -1101,7 +1101,7 @@ export class ContentApp
         yNew?: undefined | number,
     ): void
     {
-        const roomItem = this.room.getItem(itemId);
+        const roomItem = this.room.getItemByItemId(itemId);
         if (!is.nil(roomItem)) {
             roomItem.beginDerez();
         }
@@ -1112,7 +1112,7 @@ export class ContentApp
                 error, 'ContentApp.derezItemAsync failed!', { itemId: itemId, xNew: xNew, yNew: yNew }));
         }).finally(() =>
         {
-            const roomItem = this.room.getItem(itemId);
+            const roomItem = this.room.getItemByItemId(itemId);
             if (!is.nil(roomItem)) {
                 roomItem.endDerez();
             }

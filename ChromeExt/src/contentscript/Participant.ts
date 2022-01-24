@@ -57,7 +57,6 @@ export class Participant extends Entity
         }
     }
 
-    getRoomNick(): string { return this.roomNick; }
     getChatout(): Chatout { return this.chatoutDisplay; }
     getUserId(): string { return this.userId; }
 
@@ -876,7 +875,7 @@ export class Participant extends Entity
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on Participant.
                 droppedItem.getAvatar()?.ignoreDrag();
-                const itemId = droppedItem.getRoomNick();
+                const itemId = droppedItem.getItemId();
                 if (await BackgroundMessage.isBackpackItem(itemId)) {
                     // Own RoomItem on any Participant.
                     await this.room.applyItemToParticipant(this, droppedItem);
@@ -902,7 +901,7 @@ export class Participant extends Entity
 
         const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantMovedNotification(participantData));
+            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantMovedNotification(participantData));
         }
     }
 
@@ -917,7 +916,7 @@ export class Participant extends Entity
 
         const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantChatNotification(participantData, text));
+            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantChatNotification(participantData, text));
         }
     }
 
@@ -932,7 +931,7 @@ export class Participant extends Entity
 
         const itemIds = this.room.getAllScriptedItems();
         for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItem(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantEventNotification(participantData, data));
+            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantEventNotification(participantData, data));
         }
     }
 
@@ -1048,7 +1047,7 @@ export class Participant extends Entity
 
     applyItem(roomItem: RoomItem): void
     {
-        const itemId = roomItem.getRoomNick();
+        const itemId = roomItem.getItemId();
         const roomJid = this.room.getJid();
         if (this.isSelf) {
             if (Utils.logChannel('items', true)) {

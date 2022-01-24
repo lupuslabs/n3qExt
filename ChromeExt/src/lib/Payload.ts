@@ -4,11 +4,11 @@ import { SimpleRpc } from '../contentscript/SimpleRpc';
 
 export class Payload
 {
-    static async getContextToken(user: string, item: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
+    static async getContextToken(user: string, itemId: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
     {
         var payload = {
             'user': user,
-            'item': item,
+            'item': itemId,
             'entropy': Utils.randomString(20),
         };
         

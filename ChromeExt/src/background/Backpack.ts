@@ -412,9 +412,9 @@ export class Backpack
                         for (let i = 0; i < dependentPresences.length; i++) {
                             const dependentPresence = dependentPresences[i];
                             const dependentFrom = jid(dependentPresence.attrs.from);
-                            const itemId = dependentFrom.getResource();
                             const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
                             if (vpProps) {
+                                const itemId = vpProps.attrs[Pid.Id];
                                 const providerName = as.String(vpProps.attrs[Pid.Provider], '');
                                 if (this.providers.has(providerName)) {
                                     const provider = this.providers.get(providerName);
@@ -481,7 +481,6 @@ export class Backpack
         for (let i = 0; i < ids.length; i++) {
             let id = ids[i];
             const itemPresence = this.getProvider(id).getDependentPresence(id, roomJid);
-            // let itemPresence: xml = this.items[id].getDependentPresence(roomJid);
             result.append(itemPresence);
         }
 

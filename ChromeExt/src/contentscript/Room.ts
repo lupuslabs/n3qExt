@@ -67,6 +67,18 @@ export class Room
     setPageUrl(pageUrl: string): void { this.pageUrl = pageUrl; }
     getParticipant(nick: string): Participant { return this.participants[nick]; }
     getItem(nick: string): RoomItem { return this.items[nick]; }
+
+    getItemByItemId(itemId: string): null | RoomItem
+    {
+        for (const id in this.items) {
+            const item = this.items[id];
+            if (itemId === item.getItemId()) {
+                return item;
+            }
+        }
+        return null;
+    }
+    
     getParticipantIds(): Array<string>
     {
         const ids = [];
@@ -75,21 +87,24 @@ export class Room
         }
         return ids;
     }
+
     getItemIds(): Array<string>
     {
-        const ids = [];
+        const itemIds = [];
         for (const id in this.items) {
-            ids.push(id);
+            const item = this.items[id];
+            itemIds.push(item.getItemId());
         }
-        return ids;
+        return itemIds;
     }
 
-    getPageClaimItem(): RoomItem
+    getPageClaimItem(): null | RoomItem
     {
         for (const nick in this.items) {
-            const props = this.items[nick].getProperties();
+            const roomItem = this.items[nick];
+            const props = roomItem.getProperties();
             if (as.Bool(props[Pid.ClaimAspect])) {
-                return this.getItem(nick);
+                return roomItem;
             }
         }
         return null;
@@ -99,9 +114,10 @@ export class Room
     {
         const items = [];
         for (const nick in this.items) {
+            const roomItem = this.items[nick];
             const props = this.items[nick].getProperties();
             if (as.Bool(props[Pid.IframeAspect]) && as.String(props[Pid.IframeAutoRange]) !== '') {
-                items.push(this.getItem(nick));
+                items.push(roomItem);
             }
         }
         return items;
@@ -429,7 +445,7 @@ export class Room
 
     private removeAllItems()
     {
-        const itemIds = this.getItemIds();
+        const itemIds = Object.keys(this.items);
         itemIds.forEach(itemId =>
         {
             this.items[itemId].remove();
@@ -705,7 +721,7 @@ export class Room
         const itemIds = this.getItemIds();
         for (let i = 0; i < itemIds.length; i++) {
             const itemId = itemIds[i];
-            const props = this.getItem(itemId).getProperties();
+            const props = this.getItemByItemId(itemId).getProperties();
             if (as.Bool(props[Pid.IframeLive])) {
                 scriptItemIds.push(itemId);
             }

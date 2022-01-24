@@ -30,6 +30,7 @@ export class Entity
     }
 
     getRoom(): Room { return this.room; }
+    getRoomNick(): string { return this.roomNick; }
     getElem(): HTMLElement { return this.elem; }
     getDefaultAvatar(): string { return imgDefaultAvatar; }
     getAvatar(): Avatar { return this.avatarDisplay; }

@@ -334,7 +334,7 @@ export class IframeApi
         }
 
         if (request.id) {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 if (response == null) { response = new WeblinClientApi.SuccessResponse(); }
                 response.id = request.id;
@@ -345,7 +345,7 @@ export class IframeApi
 
     handle_CloseWindowRequest(request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
     {
-        let roomItem = this.app.getRoom().getItem(request.item);
+        let roomItem = this.app.getRoom().getItemByItemId(request.item);
         try {
             if (roomItem) {
                 roomItem.closeFrame();
@@ -360,7 +360,7 @@ export class IframeApi
     handle_WindowSetVisibilityRequest(request: WeblinClientIframeApi.WindowSetVisibilityRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom().getItem(request.item);
+            let item = this.app.getRoom().getItemByItemId(request.item);
             if (item) {
                 item.setFrameVisibility(request.visible);
             }
@@ -374,7 +374,7 @@ export class IframeApi
     handle_WindowSetStyleRequest(request: WeblinClientIframeApi.WindowSetStyleRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom().getItem(request.item);
+            let item = this.app.getRoom().getItemByItemId(request.item);
             if (item) {
                 item.setWindowStyle(request.style);
             }
@@ -403,7 +403,7 @@ export class IframeApi
     handle_ItemSetPropertyRequest(request: WeblinClientIframeApi.ItemSetPropertyRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemProperty(request.pid, request.value);
             }
@@ -417,7 +417,7 @@ export class IframeApi
     handle_ItemSetStateRequest(request: WeblinClientIframeApi.ItemSetStateRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemState(request.state);
             }
@@ -431,7 +431,7 @@ export class IframeApi
     handle_ItemSetConditionRequest(request: WeblinClientIframeApi.ItemSetConditionRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemCondition(request.condition);
             }
@@ -445,7 +445,7 @@ export class IframeApi
     handle_ItemEffectRequest(request: WeblinClientIframeApi.ItemEffectRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.showEffect(request.effect);
             }
@@ -491,7 +491,7 @@ export class IframeApi
     handle_ItemRangeRequest(request: WeblinClientIframeApi.ItemRangeRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.showItemRange(request.visible, request.range);
             }
@@ -506,7 +506,7 @@ export class IframeApi
     {
         try {
             let itemId = as.String(request.itemId, request.item);
-            let roomItem = this.app.getRoom().getItem(itemId);
+            let roomItem = this.app.getRoom().getItemByItemId(itemId);
             if (roomItem) {
                 return new WeblinClientIframeApi.ItemGetPropertiesResponse(roomItem.getProperties(request.pids));
             } else {
@@ -572,9 +572,9 @@ export class IframeApi
 
             let itemIds = room.getItemIds();
             for (let i = 0; i < itemIds.length; i++) {
-                let item = room.getItem(itemIds[i]);
+                let item = room.getItemByItemId(itemIds[i]);
                 let itemData = {
-                    id: item.getRoomNick(),
+                    id: item.getItemId(),
                     x: item.getPosition(),
                     isOwn: item.isMyItem(),
                     properties: item.getProperties(pids),
@@ -643,7 +643,7 @@ export class IframeApi
     handle_WindowOpenDocumentUrlRequest(request: WeblinClientIframeApi.WindowOpenDocumentUrlRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.openDocumentUrl(roomItem.getElem());
             }
@@ -679,7 +679,7 @@ export class IframeApi
     handle_WindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.positionFrame(request.width, request.height, request.left, request.bottom, request.options);
             }
@@ -693,7 +693,7 @@ export class IframeApi
     handle_WindowToFrontRequest(request: WeblinClientIframeApi.WindowToFrontRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 let layer = request.layer;
                 if (!is.string(layer)) {
@@ -711,7 +711,7 @@ export class IframeApi
     handle_ScreenContentMessageRequest(request: WeblinClientIframeApi.ScreenContentMessageRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItem(request.item);
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.sendMessageToScreenItemFrame(request.message);
             }
