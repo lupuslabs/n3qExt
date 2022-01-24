@@ -409,43 +409,43 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
 
-                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send item',
+                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send Item',
                     'SimpleItemTransfer.senderConfirmQuestionText': 'Do you want to send {item} to {recipient}?',
                     'SimpleItemTransfer.senderConfirmQuestionYes': 'Yes, offer item',
                     'SimpleItemTransfer.senderConfirmQuestionNo': 'No, keep it',
-                    'SimpleItemTransfer.senderOfferWaitTitle': 'Send item',
+                    'SimpleItemTransfer.senderOfferWaitTitle': 'Send Item',
                     'SimpleItemTransfer.senderOfferWaitText': 'Offering {item} to {recipient}...',
                     'SimpleItemTransfer.senderOfferWaitCancel': 'Cancel and keep item',
-                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Receive item',
+                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Receive Item',
                     'SimpleItemTransfer.recipientAcceptQuestionText':
                         '{sender} wants to send you an item.\n' +
                         'Item: {item}\n' +
                         'Do you accept the item?',
                     'SimpleItemTransfer.recipientAcceptQuestionYes': 'Yes, accept item',
                     'SimpleItemTransfer.recipientAcceptQuestionNo': 'No, reject it',
-                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Item Not Sent',
                     'SimpleItemTransfer.senderSenderTimeoutText':
                         '{recipient} did not accept the item in time.\n' +
                         'You keep {item}.',
-                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Item Not Sent',
                     'SimpleItemTransfer.senderSenderCanceledText':
                         'You revoked the offer to {recipient}.\n' +
                         'You keep {item}.',
-                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Item Not Sent',
                     'SimpleItemTransfer.senderRecipientTimeoutText':
                         '{recipient} did not accept the item in time.\n' +
                         'You keep {item}.',
-                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Item not sent',
+                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Item Not Sent',
                     'SimpleItemTransfer.senderRecipientRejectedText':
                         '{recipient} rejected the item.\n' +
                         'You keep {item}.',
-                    'SimpleItemTransfer.senderSentCompleteTitle': 'Item sent',
+                    'SimpleItemTransfer.senderSentCompleteTitle': 'Item Sent',
                     'SimpleItemTransfer.senderSentCompleteText': 'You sent {item} to {recipient}.',
-                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Item not received',
+                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Item Not Received',
                     'SimpleItemTransfer.recipientConfirmTimeoutText': '{item} from {sender} did not arrive in time.',
-                    'SimpleItemTransfer.recipientCanceledTitle': 'Item not received',
+                    'SimpleItemTransfer.recipientCanceledTitle': 'Item Not Received',
                     'SimpleItemTransfer.recipientCanceledText': '{sender} revoked the offer of {item}.',
-                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Item received',
+                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Item Received',
                     'SimpleItemTransfer.recipientRetrieveCompleteText': 'Received {item} from {sender}.',
 
                     'Toast.Do not show this message again': 'Do not show this message again',
@@ -483,7 +483,7 @@ export class Config
                     'Activity.PointsChannelItemApply': 'Item activity',
                     'Activity.PointsChannelPageOwned': 'Page ownership',
 
-                    'ErrorFact.UnknownError': 'UnknownError',
+                    'ErrorFact.UnknownError': 'Unknown Error',
                     'ErrorFact.NotRezzed': 'Item Not Dropped',
                     'ErrorFact.NotDerezzed': 'Failed to Pick Up Item',
                     'ErrorFact.NotAdded': 'Item Not Added',
