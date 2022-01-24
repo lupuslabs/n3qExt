@@ -714,17 +714,23 @@ export class SimpleItemTransferController
         record: SimpleItemTransferSenderRecord, mayBeTransferred: boolean
     ): Promise<boolean> {
         const itemId = record.item.Id;
-        let itemGone = false;
 
-        // Update item state and properties:
-        const itemProps = this.app.getBackpackWindow().getItem(itemId)?.getProperties();
-        const itemGoneFromBackpack = is.nil(itemProps);
-        if (itemGoneFromBackpack) {
-            itemGone = true;
-        } else if (isItemWithId(itemProps)) {
-            record.item = itemProps;
+        // Check backpack:
+        let itemGoneFromBackpack: boolean;
+        try {
+            let itemProps = await BackgroundMessage.getBackpackItemProperties(itemId);
+            if (isItemWithId(itemProps)) {
+                itemGoneFromBackpack = false;
+                record.item = itemProps;
+            } else {
+                itemGoneFromBackpack = true;
+            }
+        } catch (error) {
+            itemGoneFromBackpack = true;
         }
-        if (!itemGone && !(await BackgroundMessage.backpackIsItemStillInRepo(itemId))) {
+
+        let itemGone = itemGoneFromBackpack;
+        if (!itemGone && !await BackgroundMessage.backpackIsItemStillInRepo(itemId)) {
             itemGone = true;
         }
 
