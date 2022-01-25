@@ -656,6 +656,7 @@ export class SimpleItemTransferController
             await this.recipientAccept(record);
             this.sendMsg(record, SimpleItemTransferMsgType.accept);
 
+            this.showReceivedItemEffect(itemId);
             const translationMods = this.makeUserMsgTranslationModifiers(record);
             const toastType = 'SimpleItemTransferRecipientRetrieveComplete';
             const toastTitleId = 'SimpleItemTransfer.recipientRetrieveCompleteTitle';
@@ -668,6 +669,19 @@ export class SimpleItemTransferController
                 ItemException.Fact.NotTransferred, ItemException.Reason.InternalError, '',
                 undefined, {error: error, this: this, itemId: itemId}));
         });
+    }
+
+    protected showReceivedItemEffect(itemId: string, tries: number = 12) {
+        // RoomItem might not be created yet or may still be the old owner's one.
+        const roomItem = this.room.getItemByItemId(itemId);
+        if (is.nil(roomItem) || !roomItem.isMyItem()) {
+            if (tries > 1) {
+                const doRetryFun = this.showReceivedItemEffect.bind(this, itemId, tries - 1);
+                window.setTimeout(doRetryFun, 250);
+            }
+        } else {
+            roomItem.showEffect('pulse');
+        }
     }
 
     //==========================================================================
