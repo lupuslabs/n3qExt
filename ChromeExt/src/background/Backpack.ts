@@ -117,32 +117,32 @@ export class Backpack
         }
 
         {
-            let failedProviderNames = new Set<string>();
-            for (let [name, provider] of this.providers) {
+            let failedProviderIds = new Set<string>();
+            for (let [providerId, provider] of this.providers) {
                 try {
                     await provider.init();
                 } catch (error) {
-                    failedProviderNames.add(name);
+                    failedProviderIds.add(providerId);
                 }
             }
-            for (let name of failedProviderNames) {
-                log.info('HostedInventoryItemProvider.init', 'provider.init() failed, removing', name);
-                this.providers.delete(name);
+            for (let providerId of failedProviderIds) {
+                log.info('HostedInventoryItemProvider.init', 'provider.init() failed, removing', providerId);
+                this.providers.delete(providerId);
             }
         }
 
         {
-            let failedProviderNames = new Set<string>();
-            for (let [name, provider] of this.providers) {
+            let failedProviderIds = new Set<string>();
+            for (let [providerId, provider] of this.providers) {
                 try {
                     await provider.loadItems();
                 } catch (error) {
-                    failedProviderNames.add(name);
+                    failedProviderIds.add(providerId);
                 }
             }
-            for (let name of failedProviderNames) {
-                log.info('HostedInventoryItemProvider.init', 'provider.loadItems() failed, removing', name);
-                this.providers.delete(name);
+            for (let providerId of failedProviderIds) {
+                log.info('HostedInventoryItemProvider.init', 'provider.loadItems() failed, removing', providerId);
+                this.providers.delete(providerId);
             }
         }
     }
@@ -375,8 +375,16 @@ export class Backpack
         await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY, changed, deleted, options);
     }
 
-    stanzaOutFilter(stanza: xml): any
+    stanzaOutFilter(stanza: xml): xml
     {
+        for (let [providerId, provider] of this.providers) {
+            try {
+                stanza = provider.stanzaOutFilter(stanza);
+            } catch (error) {
+                log.info('Backpack.stanzaOutFilter', 'provider.stanzaOutFilter failed for provider', providerId);
+            }
+        }
+
         if (stanza.name == 'presence') {
             let toJid = new jid(stanza.attrs.to);
             let roomJid = toJid.bare().toString();

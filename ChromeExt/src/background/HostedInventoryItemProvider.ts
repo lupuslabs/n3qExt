@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { is } from '../lib/is';
-import { xml } from '@xmpp/client';
+import { xml, jid } from '@xmpp/client';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -104,7 +104,8 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        public async getItemIds(): Promise<string[]> {
+        public async getItemIds(): Promise<string[]>
+        {
             let itemIds = [];
             try {
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
@@ -363,7 +364,7 @@ export namespace HostedInventoryItemProvider
         {
             try {
                 const action = 'Transferable.Authorize';
-                const args = {duration: String(duration)};
+                const args = { duration: String(duration) };
                 const result = await this.itemAction(itemId, action, args, [itemId], false);
                 const transferToken = result.TransferToken;
                 return transferToken;
@@ -385,7 +386,7 @@ export namespace HostedInventoryItemProvider
         async transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>
         {
             const action = 'Transferable.CompleteTransfer';
-            const args = {senderInventory: senderInventoryId, senderItem: senderItemId, transferToken: transferToken};
+            const args = { senderInventory: senderInventoryId, senderItem: senderItemId, transferToken: transferToken };
             const result = await this.genericAction(action, args);
             const receivedId = result[Pid.Id];
             return receivedId;
@@ -574,9 +575,10 @@ export namespace HostedInventoryItemProvider
 
         async genericAction(action: string, args: ItemProperties): Promise<ItemProperties>
         {
-            const guard: (ItemProperties) => boolean = props => {
+            const guard: (ItemProperties) => boolean = props =>
+            {
                 return as.Bool(props[Pid.N3qAspect])
-                    && as.String(props[Pid.Provider]) === 'n3q'; // Not the value set as this.providerDefinition.name.
+                    && as.String(props[Pid.Provider]) === this.id;
             };
             const clientItemIds = this.backpack.findItems(guard).map(item => item.getProperties()[Pid.Id]);
             if (clientItemIds.length === 0) {
@@ -633,6 +635,56 @@ export namespace HostedInventoryItemProvider
                 throw new ItemException(ItemException.factFrom(ex.fact), ItemException.reasonFrom(ex.reason), ex.detail);
             } else {
                 throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.UnknownReason, as.String(ex.message, as.String(ex.status, '')));
+            }
+        }
+
+        nicknameKnownByServer = '';
+        stanzaOutFilter(stanza: xml): xml
+        {
+            if (stanza.name == 'presence') {
+                if (as.String(stanza.attrs['type'], 'available') == 'available') {
+
+                    const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
+                    if (vpPropsNode) {
+                        const attrs = vpPropsNode.attrs;
+                        if (attrs) {
+                            const vpNickname = as.String(attrs.Nickname);
+
+                            if (vpNickname != '' && vpNickname != this.nicknameKnownByServer) {
+                                try {
+                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname);
+                                    this.nicknameKnownByServer = vpNickname;
+                                } catch (error) {
+                                    log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            return stanza;
+        }
+
+        async sendNicknameToServer(nickname: string)
+        {
+            const itemId = this.getGenericItemId();
+
+            try {
+                const result = await this.itemAction(
+                    itemId,
+                    'N3q.SetNickname',
+                    {
+                        Nickname: nickname,
+                    },
+                    [itemId],
+                    true
+                );
+
+                return result;
+            } catch (ex) {
+                log.info('HostedInventoryItemProvider.sendNicknameToServer', 'set name at server failed', ex);
             }
         }
 

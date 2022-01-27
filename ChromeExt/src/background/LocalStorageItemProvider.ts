@@ -377,7 +377,8 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
-    async getItemIds(): Promise<string[]> {
+    async getItemIds(): Promise<string[]>
+    {
         let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
         if (!is.array<string>(itemIds)) {
             log.warn('Backpack.loadLocalItems', this.getBackpackIdsKey(), 'not an array');
@@ -599,6 +600,11 @@ export class LocalStorageItemProvider implements IItemProvider
         if (!options.skipPresenceUpdate) {
             this.backpack.requestSendPresenceFromTab(roomJid);
         }
+    }
+
+    stanzaOutFilter(stanza: xml): xml
+    {
+        return stanza;
     }
 
     getDependentPresence(itemId: string, roomJid: string): xml
