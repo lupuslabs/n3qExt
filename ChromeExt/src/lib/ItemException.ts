@@ -103,8 +103,9 @@ export namespace ItemException
         NotRezzed,
         NotStacked,
         NotTransferred,
+        NotSent,
+        NotProcessed,
         Refused,
-        SubmissionIgnored,
         UnknownError,
     }
 
