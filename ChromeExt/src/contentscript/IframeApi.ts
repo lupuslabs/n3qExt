@@ -747,7 +747,11 @@ export class IframeApi
             let reason = ItemException.reasonFrom(error.reason);
             let detail = as.String(error.detail, error.message);
             let ex = new ItemException(fact, reason, detail);
-            new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
+            if (request.ignoreError) {
+                log.info('IframeApi.handle_ItemActionRequest', error);
+            } else {
+                new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
+            }
             return new WeblinClientIframeApi.ItemErrorResponse(ItemException.fact2String(fact), ItemException.reason2String(reason), detail);
         }
     }

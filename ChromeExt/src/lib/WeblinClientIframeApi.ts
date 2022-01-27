@@ -142,6 +142,7 @@ export namespace WeblinClientIframeApi
         action: string;
         args: any;
         items: string[];
+        ignoreError: boolean;
     }
     export class ItemActionResponse extends WeblinClientApi.ContentResponse
     {
