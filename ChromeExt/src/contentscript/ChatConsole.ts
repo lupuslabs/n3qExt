@@ -6,7 +6,7 @@ import { ContentApp } from './ContentApp';
 import { Room } from './Room';
 import { TestWindow } from './TestWindow';
 import { VpiResolver } from './VpiResolver';
-import {as} from '../lib/as';
+import { as } from '../lib/as';
 
 export interface ChatConsoleOut { (data: any): void }
 
@@ -118,12 +118,15 @@ export class ChatConsole
                 const url = parts[1];
                 lines.push(['URL', url]);
                 vpi.trace = (key, value) => { lines.push([key, value]); };
-                vpi.map(url).then(location =>
+                vpi.map(url).then(result =>
                 {
                     lines.forEach(line =>
                     {
                         ChatConsole.out(context, [line[0], line[1]]);
                     });
+                    // ChatConsole.out(context, ['valid', result.isValid]);
+                    // ChatConsole.out(context, ['room', result.roomJid]);
+                    // ChatConsole.out(context, ['destination', result.destinationUrl]);
                 });
                 break;
             default:

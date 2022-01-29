@@ -18,7 +18,7 @@ import { Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
-import { VpiResolver } from './VpiResolver';
+import { VpiMappingResult, VpiResolver } from './VpiResolver';
 import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
@@ -663,7 +663,9 @@ export class ContentApp
             if (Utils.logChannel('urlMapping', false)) { log.info('Page changed', this.pageUrl, ' => ', pageUrl); }
             this.pageUrl = pageUrl;
 
-            const newRoomJid = await this.vpiMap(pageUrl);
+            const mappingResult = await this.vpiMap(pageUrl);
+            const newRoomJid = mappingResult.roomJid;
+            const newDestinationUrl = mappingResult.destinationUrl;
 
             if (newRoomJid == this.roomJid) {
                 this.room.setPageUrl(pageUrl);
@@ -677,7 +679,7 @@ export class ContentApp
             if (Utils.logChannel('urlMapping', false)) { log.info('Mapped', pageUrl, ' => ', this.roomJid); }
 
             if (this.roomJid != '') {
-                this.enterRoom(this.roomJid, pageUrl, pageUrl);
+                this.enterRoom(this.roomJid, pageUrl, newDestinationUrl);
                 if (Config.get('points.enabled', false)) {
                     /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1);
                 }
@@ -694,11 +696,9 @@ export class ContentApp
         return parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
     }
 
-    async vpiMap(url: string): Promise<string>
+    async vpiMap(url: string): Promise<VpiMappingResult>
     {
-        const locationUrl = await this.vpi.map(url);
-        const roomJid = ContentApp.getRoomJidFromLocationUrl(locationUrl);
-        return roomJid;
+        return await this.vpi.map(url);
     }
 
     private checkPageUrlSec: number = as.Float(Config.get('room.checkPageUrlSec'), 5);

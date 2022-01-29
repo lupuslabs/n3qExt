@@ -6,6 +6,15 @@ import { Config } from '../lib/Config';
 import { BackgroundMessage, FetchUrlResponse } from '../lib/BackgroundMessage';
 import { Utils } from '../lib/Utils';
 
+export class VpiMappingResult
+{
+    constructor(
+        public isValid: boolean,
+        public roomJid: string,
+        public destinationUrl: string    
+    ) {}        
+}
+
 export enum VpiResolverEvaluateResultType
 {
     Error, Delegate, Location, Ignore
@@ -17,7 +26,8 @@ export class VpiResolverEvaluateResult
         public status: VpiResolverEvaluateResultType,
         public error: any,
         public delegate: string,
-        public location: string
+        public location: string,
+        public destination: string
     ) { }
 }
 
@@ -48,9 +58,10 @@ export class VpiResolver
     {
     }
 
-    async map(documentUrl: string): Promise<string>
+    async map(documentUrl: string): Promise<VpiMappingResult>
     {
         let locationUrl = '';
+        let destinationUrl = '';
         let vpiUrl = this.config.get('vp.vpiRoot', 'https://lms.virtual-presence.org/v7/root.xml');
         let iterationCounter = this.config.get('vp.vpiMaxIterations', 10);
         this.trace('Root', vpiUrl);
@@ -81,6 +92,7 @@ export class VpiResolver
                             log.debug('VpiResolver', result.status, result.location);
                         }
                         locationUrl = result.location;
+                        destinationUrl = result.destination;
                     } break;
 
                     case VpiResolverEvaluateResultType.Ignore: {
@@ -88,14 +100,17 @@ export class VpiResolver
                         if (Utils.logChannel('urlMapping', false)) {
                             log.debug('VpiResolver', result.status);
                         }
-                        return '';
+                        return new VpiMappingResult(false, '', '');
                     } break;
 
                 }
             }
         } while (locationUrl == '' && iterationCounter > 0);
 
-        return locationUrl;
+        const url = new URL(locationUrl);
+        const roomJid = url.pathname;
+
+        return new VpiMappingResult(true, roomJid, destinationUrl);
     }
 
     evaluate(documentUrl: string, dataSrc: string, data: string, language: string = ''): VpiResolverEvaluateResult
@@ -104,6 +119,7 @@ export class VpiResolver
             let resultType = VpiResolverEvaluateResultType.Error;
             let delegate = '';
             let location = '';
+            let destination = '';
             let xml = $.parseXML(data);
             let logData = {};
             for (let vpiChildIndex = 0; vpiChildIndex < xml.documentElement.children.length; vpiChildIndex++) {
@@ -152,7 +168,7 @@ export class VpiResolver
                             switch (locationChild.tagName.toLowerCase()) {
                                 case 'ignore':
                                     {
-                                        return new VpiResolverEvaluateResult(VpiResolverEvaluateResultType.Ignore, '', '', '');
+                                        return new VpiResolverEvaluateResult(VpiResolverEvaluateResultType.Ignore, '', '', '', '');
                                     } break;
 
                                 case 'service': // <service>jabber:muc4.virtual-presence.org</service>
@@ -163,7 +179,7 @@ export class VpiResolver
                                         this.trace('server', server);
                                     } break;
 
-                                case 'name': // The same: '<name hash="true">\5</name>' | '<name hash="SHA1">\5</name>' BUT: '<name>\5</name>' does not hash
+                                    case 'name': // The same: '<name hash="true">\5</name>' | '<name hash="SHA1">\5</name>' BUT: '<name>\5</name>' does not hash
                                     {
                                         let hash = locationChild.attributes.hash ? as.String(locationChild.attributes.hash.value, 'SHA1') : '';
                                         if (hash == 'true') { hash = 'SHA1'; }
@@ -186,6 +202,13 @@ export class VpiResolver
                                             this.trace('hashed', name);
                                         }
                                         room = prefix + name;
+                                    } break;
+
+                                    case 'destination': // <destination>\2</destination>
+                                    {
+                                        let destinationExpr = locationChild.textContent;
+                                        destination = this.replaceMatch(destinationExpr, matchResult);
+                                        this.trace('destination', destination);
                                     } break;
 
                                 case 'select': // see https://lms.virtual-presence.org/v7/name/f/a/facebook.xml
@@ -234,9 +257,9 @@ export class VpiResolver
                 }
             }
 
-            return new VpiResolverEvaluateResult(resultType, '', delegate, location);
+            return new VpiResolverEvaluateResult(resultType, '', delegate, location, destination);
         } catch (error) {
-            return new VpiResolverEvaluateResult(VpiResolverEvaluateResultType.Error, error, '', '');
+            return new VpiResolverEvaluateResult(VpiResolverEvaluateResultType.Error, error, '', '', '');
         }
     }
 

@@ -687,7 +687,8 @@ export class Room
     {
         const url = this.normalizeClaimUrl(props[Pid.ClaimUrl]);
 
-        const mappedRoom = await this.app.vpiMap(url);
+        const mappingResult = await this.app.vpiMap(url);
+        const mappedRoom = mappingResult.roomJid;
         const mappedRoomJid = jid(mappedRoom);
         const mappedRoomName = mappedRoomJid.local;
 
