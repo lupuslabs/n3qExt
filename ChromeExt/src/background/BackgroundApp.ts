@@ -3,7 +3,8 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import {
+import
+{
     BackgroundErrorResponse,
     BackgroundItemExceptionResponse,
     BackgroundMessage,
@@ -282,7 +283,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.pingBackground.name: {
-                sendResponse(this.handle_pingBackground());
+                sendResponse(this.handle_pingBackground(sender));
                 return false;
             } break;
 
@@ -366,7 +367,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.backpackTransferComplete.name: {
-                return this.handle_backpackTransferComplete(message.provider, 
+                return this.handle_backpackTransferComplete(message.provider,
                     message.senderInventoryId, message.senderItemId, message.transferToken, sendResponse);
             } break;
 
@@ -822,16 +823,18 @@ export class BackgroundApp
     }
 
     handle_backpackTransferComplete(
-        provider: string, senderInventoryId: string, senderItemId: string, transferToken: string, 
+        provider: string, senderInventoryId: string, senderItemId: string, transferToken: string,
         sendResponse: (response?: any) => void,
-    ): boolean {
+    ): boolean
+    {
         if (!this.backpack) {
             const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
             sendResponse(new BackgroundItemExceptionResponse(error));
             return false;
         }
         this.backpack.transferComplete(provider, senderInventoryId, senderItemId, transferToken)
-            .then(itemId => {
+            .then(itemId =>
+            {
                 const itemProps = this.backpack.getItem(itemId).getProperties();
                 sendResponse(new BackpackTransferCompleteResponse(itemProps));
             }).catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
@@ -1548,12 +1551,12 @@ export class BackgroundApp
     // Keep connection alive
 
     private lastPingTime: number = 0;
-    handle_pingBackground(): BackgroundResponse
+    handle_pingBackground(sender: any): BackgroundResponse
     {
-        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground'); }
+        let now = Date.now();
+        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.lastPingTime / 1000, url: sender?.tab?.url }); }
         try {
-            let now = Date.now();
-            if (now - this.lastPingTime > 10000) {
+            if (now - this.lastPingTime > 30000) {
                 this.lastPingTime = now;
                 this.sendPresence();
             }
