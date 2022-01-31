@@ -675,15 +675,15 @@ export class ContentApp
 
             this.leavePage();
 
-            this.roomJid = newRoomJid;
-            if (Utils.logChannel('urlMapping', false)) { log.info('Mapped', pageUrl, ' => ', this.roomJid); }
-
-            if (this.roomJid != '') {
-                this.enterRoom(this.roomJid, pageUrl, newDestinationUrl);
+            if (newRoomJid != '') {
+                this.enterRoom(newRoomJid, pageUrl, newDestinationUrl);
                 if (Config.get('points.enabled', false)) {
                     /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1);
                 }
             }
+
+            this.roomJid = newRoomJid;
+            if (Utils.logChannel('urlMapping', false)) { log.info('Mapped', pageUrl, ' => ', this.roomJid); }
 
         } catch (error) {
             log.info(error);
