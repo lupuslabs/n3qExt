@@ -9,7 +9,7 @@ export enum Pid
     Id = 'Id',
     InventoryId = 'InventoryId',
     Name = 'Name',
-    Version = 'Version',
+    Digest = 'Digest',
     Label = 'Label',
     Description = 'Description',
     Template = 'Template',

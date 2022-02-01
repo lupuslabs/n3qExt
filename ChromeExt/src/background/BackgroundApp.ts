@@ -1282,6 +1282,16 @@ export class BackgroundApp
             }
         }
 
+        if (xmlStanza.name == 'presence' && !isConnectionPresence) {
+            const vpDependents = xmlStanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
+            if (vpDependents.children.length == 1) {
+                const vpDependent = vpDependents.children[0];
+                const vpPropsNode = vpDependent.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+                const vpProps = vpPropsNode.attrs;
+                log.debug('### recvStanza         ', { vpDigest: vpProps.Digest });
+            }
+        }
+
         if (this.backpack) {
             xmlStanza = await this.backpack.stanzaInFilter(xmlStanza);
             if (xmlStanza == null) { return; }
@@ -1550,14 +1560,14 @@ export class BackgroundApp
 
     // Keep connection alive
 
-    private lastPingTime: number = 0;
+    private presencePingTime: number = 0;
     handle_pingBackground(sender: any): BackgroundResponse
     {
         let now = Date.now();
-        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.lastPingTime / 1000 }); }
+        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.presencePingTime / 1000 }); }
         try {
-            if (now - this.lastPingTime > 30000) {
-                this.lastPingTime = now;
+            if (now - this.presencePingTime > 30000) {
+                this.presencePingTime = now;
                 this.sendPresence();
             }
             return new BackgroundSuccessResponse();

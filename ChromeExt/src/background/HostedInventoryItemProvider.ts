@@ -703,7 +703,7 @@ export namespace HostedInventoryItemProvider
                 [Pid.Provider]: this.id,
                 [Pid.Id]: itemId,
                 [Pid.InventoryId]: as.String(props[Pid.InventoryId], ''),
-                [Pid.Version]: as.String(props[Pid.Version], ''),
+                [Pid.Digest]: as.String(props[Pid.Digest], ''),
             };
 
             // const rezzedX = as.Int(props[Pid.RezzedX], -1);
@@ -769,7 +769,8 @@ export namespace HostedInventoryItemProvider
             if (vpProps) {
                 dependentPresence.attrs._incomplete = true;
 
-                const vpVersion = as.Int(vpProps.attrs[Pid.Version], -1);
+                const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
+                const vpDigest = as.String(vpProps.attrs[Pid.Digest], '');
                 if (this.itemCache.has(itemId)) {
                     const cacheEntry = this.itemCache.get(itemId);
 
@@ -780,13 +781,16 @@ export namespace HostedInventoryItemProvider
                             '(age=' + (now - this.itemCache.get(itemId).accessTime) / 1000 + ')',
                             itemId, cacheEntry.roomJid, cacheEntry.participantNick);
                     }
-                    const cachedProps = cacheEntry.getProperties();
 
-                    const cachedVersion = as.Int(cachedProps[Pid.Version], -1);
+                    const cachedProps = cacheEntry.getProperties();
+                    const cachedDigest = as.String(cachedProps[Pid.Digest], '');
 
                     let cacheIsGood = true;
-                    if (vpVersion >= 0 && cachedVersion >= 0) {
-                        if (vpVersion > cachedVersion) { cacheIsGood = false; }
+                    if (vpDigest !== '' && cachedDigest !== '') {
+                        if (vpDigest !== cachedDigest) {
+                            log.debug('### onDependentPresence', { vpDigest: vpDigest, cachedDigest: cachedDigest });
+                            cacheIsGood = false;
+                        }
                     }
 
                     delete dependentPresence.attrs._incomplete;
@@ -795,17 +799,11 @@ export namespace HostedInventoryItemProvider
                     }
 
                     if (!cacheIsGood) {
-                        const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
-                        if (inventoryId !== '') {
-                            this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
-                        }
+                        this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                     }
 
                 } else {
-                    const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
-                    if (inventoryId !== '') {
-                        this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
-                    }
+                    this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                 }
             }
 
@@ -816,7 +814,8 @@ export namespace HostedInventoryItemProvider
 
         async requestItemPropertiesForDependentPresence(itemId: string, inventoryId: string, roomJid: string, participantNick: string): Promise<void>
         {
-            if (this.itemRequests.has(itemId)) return;
+            if (inventoryId === '') { return; }
+            if (this.itemRequests.has(itemId)) { return; }
 
             this.itemRequests.add(itemId);
 
@@ -847,10 +846,11 @@ export namespace HostedInventoryItemProvider
 
                                 this.itemCache.set(id, new ItemCacheEntry(props, deferredRequest.roomJid, deferredRequest.participantNick));
 
+                                log.debug('### GetItemProperties  ', { Digest: props.Digest });
+
                                 if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                                     const cacheEntry = this.itemCache.get(id);
-                                    log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set',
-                                        id, cacheEntry.roomJid, cacheEntry.participantNick);
+                                    log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set', id, cacheEntry.roomJid, cacheEntry.participantNick);
                                 }
 
                                 await this.forwardCachedProperties(id);
