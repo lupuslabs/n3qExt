@@ -1554,7 +1554,7 @@ export class BackgroundApp
     handle_pingBackground(sender: any): BackgroundResponse
     {
         let now = Date.now();
-        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.lastPingTime / 1000, url: sender?.tab?.url }); }
+        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.lastPingTime / 1000 }); }
         try {
             if (now - this.lastPingTime > 30000) {
                 this.lastPingTime = now;

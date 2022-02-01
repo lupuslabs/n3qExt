@@ -461,6 +461,7 @@ export namespace HostedInventoryItemProvider
             let deletedIds = [];
             let changedIds = [];
             let result = {};
+            let multiItemProperties = {};
             try {
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
@@ -471,41 +472,42 @@ export namespace HostedInventoryItemProvider
                     args,
                     involvedIds
                 );
+                request.responseMode = 'items';
                 const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
 
                 createdIds = response.created;
                 deletedIds = response.deleted;
                 changedIds = response.changed;
                 result = response.result;
+                multiItemProperties = response.multiItemProperties;
 
             } catch (ex) {
                 this.handleException(ex);
             }
 
-            let changedOrCreated = [];
-            for (let i = 0; i < changedIds.length; i++) {
-                const id = changedIds[i];
-                if (!changedOrCreated.includes(id)) {
-                    changedOrCreated.push(id);
-                }
-            }
-            for (let i = 0; i < createdIds.length; i++) {
-                const id = createdIds[i];
-                if (!changedOrCreated.includes(id)) {
-                    changedOrCreated.push(id);
-                }
-            }
+            // let changedOrCreated = [];
+            // for (let i = 0; i < changedIds.length; i++) {
+            //     const id = changedIds[i];
+            //     if (!changedOrCreated.includes(id)) {
+            //         changedOrCreated.push(id);
+            //     }
+            // }
+            // for (let i = 0; i < createdIds.length; i++) {
+            //     const id = createdIds[i];
+            //     if (!changedOrCreated.includes(id)) {
+            //         changedOrCreated.push(id);
+            //     }
+            // }
 
-            let multiItemProperties = {};
-            if (changedOrCreated.length > 0) {
-                try {
-                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, changedOrCreated);
-                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
-                    multiItemProperties = response.multiItemProperties;
-                } catch (ex) {
-                    this.handleException(ex);
-                }
-            }
+            // if (changedOrCreated.length > 0) {
+            //     try {
+            //         const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, changedOrCreated);
+            //         const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
+            //         multiItemProperties = response.multiItemProperties;
+            //     } catch (ex) {
+            //         this.handleException(ex);
+            //     }
+            // }
 
             let changedRooms = new Set<string>();
 
@@ -856,7 +858,7 @@ export namespace HostedInventoryItemProvider
                         })
                         .catch(error =>
                         {
-                            console.info('HostedInventoryItemProvider.onDependentPresence', error);
+                            console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
                         });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
                 let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);

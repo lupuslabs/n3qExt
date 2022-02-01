@@ -119,6 +119,7 @@ export namespace RpcProtocol
     export class UserItemActionRequest extends UserItemApiRequest
     {
         public readonly method = 'User.ItemAction';
+        responseMode: 'ids'|'items' = 'ids';
         constructor(
             user: string,
             token: string,
@@ -135,6 +136,7 @@ export namespace RpcProtocol
         changed: string[];
         deleted: string[];
         result: ItemProperties;
+        multiItemProperties: { [id: string]: ItemProperties; };
     }
 
 }
