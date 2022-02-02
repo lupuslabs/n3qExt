@@ -769,9 +769,13 @@ export namespace HostedInventoryItemProvider
             if (vpProps) {
                 dependentPresence.attrs._incomplete = true;
 
-                const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
-                const vpDigest = as.String(vpProps.attrs[Pid.Digest], '');
-                if (this.itemCache.has(itemId)) {
+                if (this.backpack.isItem(itemId)) {
+                    const backpackProps = this.backpack.getItem(itemId).getProperties();
+                    this.completeDependentPresence(backpackProps, dependentPresence, vpProps);
+
+                } else if (this.itemCache.has(itemId)) {
+                    const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
+                    const vpDigest = as.String(vpProps.attrs[Pid.Digest], '');
                     const cacheEntry = this.itemCache.get(itemId);
 
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
@@ -788,26 +792,31 @@ export namespace HostedInventoryItemProvider
                     let cacheIsGood = true;
                     if (vpDigest !== '' && cachedDigest !== '') {
                         if (vpDigest !== cachedDigest) {
-                            log.debug('### onDependentPresence', { vpDigest: vpDigest, cachedDigest: cachedDigest });
                             cacheIsGood = false;
                         }
                     }
 
-                    delete dependentPresence.attrs._incomplete;
-                    for (let key in cachedProps) {
-                        vpProps.attrs[key] = cachedProps[key];
-                    }
+                    this.completeDependentPresence(cachedProps, dependentPresence, vpProps);
 
                     if (!cacheIsGood) {
                         this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                     }
 
                 } else {
+                    const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
                     this.requestItemPropertiesForDependentPresence(itemId, inventoryId, roomJid, participantNick);
                 }
             }
 
             this.checkMaintainItemCache();
+        }
+
+        completeDependentPresence(props: ItemProperties, dependentPresence: xml, vpProps: any): void
+        {
+            delete dependentPresence.attrs._incomplete;
+            for (let key in props) {
+                vpProps.attrs[key] = props[key];
+            }
         }
 
         private deferredItemPropertiesRequests = new Map<string, DeferredItemPropertiesRequest>();
@@ -845,8 +854,6 @@ export namespace HostedInventoryItemProvider
                                 const props = response.multiItemProperties[id];
 
                                 this.itemCache.set(id, new ItemCacheEntry(props, deferredRequest.roomJid, deferredRequest.participantNick));
-
-                                log.debug('### GetItemProperties  ', { Digest: props.Digest });
 
                                 if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                                     const cacheEntry = this.itemCache.get(id);
