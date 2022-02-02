@@ -69,8 +69,6 @@ export class BackgroundApp
     private readonly fullJid2TimerDeferredUnavailable: Map<string, number> = new Map<string, number>();
     private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml, availableStanza?: xml }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
     private readonly iqStanzaTabId: Map<string, number> = new Map<string, number>();
-    private readonly httpCacheData: Map<string, string> = new Map<string, string>();
-    private readonly httpCacheTime: Map<string, number> = new Map<string, number>();
 
     async start(): Promise<void>
     {
@@ -383,6 +381,10 @@ export class BackgroundApp
         }
     }
 
+    private readonly httpCacheData = {};
+    private readonly httpCacheTime = {};
+    private readonly httpCacheRequests: Map<string, Array<(response?: any) => void>> = new Map<string, Array<(response?: any) => void>>();
+
     checkMaintainHttpCache(): void
     {
         let now = Date.now();
@@ -441,51 +443,73 @@ export class BackgroundApp
 
         if (isCached) {
             sendResponse({ 'ok': true, 'data': this.httpCacheData[key] });
-        } else {
-            try {
-                fetch(url, { cache: 'reload' })
-                    .then(httpResponse =>
-                    {
-                        // log.debug('BackgroundApp.handle_fetchUrl', 'httpResponse', url, httpResponse);
-                        if (httpResponse.ok) {
-                            return httpResponse.text();
-                        } else {
-                            throw { 'ok': false, 'status': httpResponse.status, 'statusText': httpResponse.statusText };
-                        }
-                    })
-                    .then(text =>
-                    {
-                        if (version == '_nocache') {
-                            //dont cache
-                        } else if (text == '') {
-                            this.httpCacheData[key] = text;
-                            this.httpCacheTime[key] = 0;
-                        } else {
-                            this.httpCacheData[key] = text;
-                            this.httpCacheTime[key] = Date.now();
-                        }
-                        let response = { 'ok': true, 'data': text };
-                        if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
-                        sendResponse(response);
-                    })
-                    .catch(ex =>
-                    {
-                        log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
-                        let status = ex.status;
-                        if (!status) { status = ex.name; }
-                        if (!status) { status = 'Error'; }
-                        let statusText = ex.statusText;
-                        if (!statusText) { statusText = ex.message + ' ' + url; }
-                        if (!statusText) { if (ex.toString) { statusText = ex.toString() + ' ' + url; } }
-                        sendResponse({ 'ok': false, 'status': status, 'statusText': statusText });
-                    });
-                return true;
-            } catch (error) {
-                log.debug('BackgroundApp.handle_fetchUrl', 'exception', url, error);
-                sendResponse({ 'ok': false, 'status': error.status, 'statusText': error.statusText });
-            }
+            return false;
         }
-        return false;
+
+        try {
+
+            if (String(url).indexOf('/InlineData') >= 0) {
+                const x = 1;
+            }
+            let requests = this.httpCacheRequests.get(key) ?? [];
+            requests.push(sendResponse);
+            this.httpCacheRequests.set(key, requests);
+            if (requests.length > 1) {
+                return true;
+            }
+
+            fetch(url, { cache: 'reload' })
+                .then(httpResponse =>
+                {
+                    // log.debug('BackgroundApp.handle_fetchUrl', 'httpResponse', url, httpResponse);
+                    if (httpResponse.ok) {
+                        return httpResponse.text();
+                    } else {
+                        throw { 'ok': false, 'status': httpResponse.status, 'statusText': httpResponse.statusText };
+                    }
+                })
+                .then(text =>
+                {
+                    if (version == '_nocache') {
+                        //dont cache
+                    } else if (text == '') {
+                        this.httpCacheData[key] = text;
+                        this.httpCacheTime[key] = 0;
+                    } else {
+                        this.httpCacheData[key] = text;
+                        this.httpCacheTime[key] = Date.now();
+                    }
+                    let response = { 'ok': true, 'data': text };
+                    if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
+
+                    for (let sr of requests) {
+                        sr(response);
+                    }
+                    this.httpCacheRequests.delete(key);
+                })
+                .catch(ex =>
+                {
+                    log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
+                    let status = ex.status;
+                    if (!status) { status = ex.name; }
+                    if (!status) { status = 'Error'; }
+                    let statusText = ex.statusText;
+                    if (!statusText) { statusText = ex.message + ' ' + url; }
+                    if (!statusText) { if (ex.toString) { statusText = ex.toString() + ' ' + url; } }
+                    let response = { 'ok': false, 'status': status, 'statusText': statusText };
+
+                    for (let sr of requests) {
+                        sr(response);
+                    }
+                    this.httpCacheRequests.delete(key);
+                });
+            return true;
+
+        } catch (error) {
+            log.debug('BackgroundApp.handle_fetchUrl', 'exception', url, error);
+            sendResponse({ 'ok': false, 'status': error.status, 'statusText': error.statusText });
+            return false;
+        }
     }
 
     handle_jsonRpc(url: string, postBody: any, sendResponse: (response?: any) => void): boolean
@@ -1279,16 +1303,6 @@ export class BackgroundApp
                 //         }
                 //     }
                 // }
-            }
-        }
-
-        if (xmlStanza.name == 'presence' && !isConnectionPresence) {
-            const vpDependents = xmlStanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
-            if (vpDependents.children.length == 1) {
-                const vpDependent = vpDependents.children[0];
-                const vpPropsNode = vpDependent.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
-                const vpProps = vpPropsNode.attrs;
-                log.debug('### recvStanza         ', { vpDigest: vpProps.Digest });
             }
         }
 
