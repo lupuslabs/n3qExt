@@ -36,21 +36,21 @@ export class TestVpiResolver
     {
         let vpi = new VpiResolver(new TestDataProvider(), new TestConfigInstance());
         let mapped = await vpi.map('https://www.weblin.com/home.php?room=de2');
-        expect(mapped).to.equal('xmpp:zweitgeistde2@muc4.virtual-presence.org');
+        expect(mapped.roomJid).to.equal('zweitgeistde2@muc4.virtual-presence.org');
     }
 
     async VpiResolver_map_weblin_ex_bugfix_had_an_undefined()
     {
         let vpi = new VpiResolver(new TestDataProvider(), new TestConfigInstance());
         let mapped = await vpi.map('https://www.weblin.com/ex/');
-        expect(mapped).to.equal('xmpp:zweitgeist@muc4.virtual-presence.org');
+        expect(mapped.roomJid).to.equal('zweitgeist@muc4.virtual-presence.org');
     }
 
     async VpiResolver_map_galdev()
     {
         let vpi = new VpiResolver(new TestDataProvider(), new TestConfigInstance());
         let mapped = await vpi.map('https://www.galactic-developments.de/');
-        expect(mapped).to.equal('xmpp:d954c536629c2d729c65630963af57c119e24836@muc4.virtual-presence.org');
+        expect(mapped.roomJid).to.equal('d954c536629c2d729c65630963af57c119e24836@muc4.virtual-presence.org');
     }
 
     async VpiResolver_map_facebook_de()
@@ -58,7 +58,7 @@ export class TestVpiResolver
         let vpi = new VpiResolver(new TestDataProvider(), new TestConfigInstance());
         vpi.language = 'de';
         let mapped = await vpi.map('https://www.facebook.com/');
-        expect(mapped).to.equal('xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-de01@muc4.virtual-presence.org');
+        expect(mapped.roomJid).to.equal('b7c70898d90f5bb3a32353817e451b646b40299a-de01@muc4.virtual-presence.org');
     }
 
     async VpiResolver_map_facebook_international()
@@ -67,12 +67,12 @@ export class TestVpiResolver
         vpi.language = 'xx';
         let mapped = await vpi.map('https://www.facebook.com/');
         expect([
-            'xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-01@muc4.virtual-presence.org',
-            'xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-02@muc4.virtual-presence.org',
-            'xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-03@muc4.virtual-presence.org',
-            'xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-04@muc4.virtual-presence.org',
-            'xmpp:b7c70898d90f5bb3a32353817e451b646b40299a-05@muc4.virtual-presence.org',
-        ]).to.include(mapped)
+            'b7c70898d90f5bb3a32353817e451b646b40299a-01@muc4.virtual-presence.org',
+            'b7c70898d90f5bb3a32353817e451b646b40299a-02@muc4.virtual-presence.org',
+            'b7c70898d90f5bb3a32353817e451b646b40299a-03@muc4.virtual-presence.org',
+            'b7c70898d90f5bb3a32353817e451b646b40299a-04@muc4.virtual-presence.org',
+            'b7c70898d90f5bb3a32353817e451b646b40299a-05@muc4.virtual-presence.org',
+        ]).to.include(mapped.roomJid)
     }
 }
 
