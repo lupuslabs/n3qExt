@@ -70,7 +70,6 @@ export enum Pid
     PointsChannelEmote = 'PointsChannelEmote',
     PointsChannelGreet = 'PointsChannelGreet',
     PointsChannelNavigation = 'PointsChannelNavigation',
-    PointsChannelItemRez = 'PointsChannelItemRez',
     PointsChannelItemApply = 'PointsChannelItemApply',
     PointsChannelPageOwned = 'PointsChannelPageOwned',
     PointsTotal = 'PointsTotal',

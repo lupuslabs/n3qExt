@@ -641,6 +641,7 @@ export namespace HostedInventoryItemProvider
         }
 
         nicknameKnownByServer = '';
+        avatarKnownByServer = '';
         stanzaOutFilter(stanza: xml): xml
         {
             if (stanza.name == 'presence') {
@@ -650,16 +651,33 @@ export namespace HostedInventoryItemProvider
                     if (vpPropsNode) {
                         const attrs = vpPropsNode.attrs;
                         if (attrs) {
-                            const vpNickname = as.String(attrs.Nickname);
-
-                            if (vpNickname != '' && vpNickname != this.nicknameKnownByServer) {
-                                try {
+                            {
+                                const vpNickname = as.String(attrs.Nickname);
+                                if (vpNickname != '' && vpNickname != this.nicknameKnownByServer) {
+                                    try {
                                     /* (intentionally async) */ this.sendNicknameToServer(vpNickname);
-                                    this.nicknameKnownByServer = vpNickname;
-                                } catch (error) {
-                                    log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
+                                        this.nicknameKnownByServer = vpNickname;
+                                    } catch (error) {
+                                        log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
+                                    }
                                 }
                             }
+
+                            {
+                                let vpAvatar = as.String(attrs.AvatarUrl);
+                                if (vpAvatar === '') {
+                                    vpAvatar = as.String(attrs.AvatarId);
+                                }
+                                if (vpAvatar != '' && vpAvatar != this.avatarKnownByServer) {
+                                    try {
+                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar);
+                                        this.avatarKnownByServer = vpAvatar;
+                                    } catch (error) {
+                                        log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set avatar=', vpAvatar, ' at server failed', error);
+                                    }
+                                }
+                            }
+
                         }
                     }
 
@@ -686,7 +704,28 @@ export namespace HostedInventoryItemProvider
 
                 return result;
             } catch (ex) {
-                log.info('HostedInventoryItemProvider.sendNicknameToServer', 'set name at server failed', ex);
+                log.info('HostedInventoryItemProvider.sendNicknameToServer', 'set nickname at server failed', ex);
+            }
+        }
+
+        async sendAvatarToServer(avatar: string)
+        {
+            const itemId = this.getGenericItemId();
+
+            try {
+                const result = await this.itemAction(
+                    itemId,
+                    'N3q.SetAvatar',
+                    {
+                        Avatar: avatar,
+                    },
+                    [itemId],
+                    true
+                );
+
+                return result;
+            } catch (ex) {
+                log.info('HostedInventoryItemProvider.sendAvatarToServer', 'set avatar at server failed', ex);
             }
         }
 
