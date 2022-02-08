@@ -828,7 +828,11 @@ export class Participant extends Entity
         super.onMouseClickAvatar(ev);
 
         if (this.isSelf) {
-            this.toggleChatin();
+            if (ev.ctrlKey) {
+                this.showBackpackWindow();
+            } else {
+                this.toggleChatin();
+            }
         } else {
             this.toggleChatout();
         }
