@@ -78,7 +78,7 @@ export class Room
         }
         return null;
     }
-    
+
     getParticipantIds(): Array<string>
     {
         const ids = [];
@@ -632,15 +632,12 @@ export class Room
 
     // Item interaction
 
-    applyItemToItem(activeItem: RoomItem, passiveItem: RoomItem)
+    async applyItemToItem(activeItem: RoomItem, passiveItem: RoomItem): Promise<ItemProperties>
     {
-        activeItem.applyItem(passiveItem);
+        return await activeItem.applyItem(passiveItem);
     }
 
-    applyBackpackItemToParticipant(
-        participant: Participant,
-        backpackItem: BackpackItem,
-    ): void
+    applyBackpackItemToParticipant(participant: Participant, backpackItem: BackpackItem,): void
     {
         participant.applyBackpackItem(backpackItem);
     }

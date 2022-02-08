@@ -254,7 +254,7 @@ export class LocalStorageItemProvider implements IItemProvider
         return knownIds;
     }
 
-    async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+    async applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -266,7 +266,7 @@ export class LocalStorageItemProvider implements IItemProvider
                     [activeId, passiveId],
                     false
                 );
-                resolve();
+                resolve(result);
             } catch (error) {
                 reject(error);
             }

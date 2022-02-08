@@ -442,9 +442,14 @@ export class RoomItem extends Entity
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on RoomItem.
                 droppedItem.getAvatar()?.ignoreDrag();
-                await this.room.applyItemToItem(this, droppedItem);
+                const result = await this.room.applyItemToItem(this, droppedItem);
+                const effect = as.String(result[Pid.ShowEffect]);
+                if (effect !== '') {
+                    this.showEffect(effect);
+                }
             } else if (droppedItem instanceof BackpackItem) {
                 // BackpackItem on RoomItem.
+                // Not yet
             }
         })().catch(error =>
         {
@@ -478,7 +483,7 @@ export class RoomItem extends Entity
         }
     }
 
-    public async applyItem(passiveItem: RoomItem): Promise<void>
+    public async applyItem(passiveItem: RoomItem): Promise<ItemProperties>
     {
         const itemId = this.getItemId();
         const passiveItemId = passiveItem.getItemId();
@@ -493,23 +498,31 @@ export class RoomItem extends Entity
             const reason = ItemException.reason2String(ItemException.Reason.NotYourItem);
             const detail = passiveItemId;
             new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', fact, reason, detail).show();
-            return;
-        }
+        } else {
 
-        if (this.myItem) {
-            try {
-                await BackgroundMessage.applyItemToBackpackItem(itemId, passiveItemId);
-                if (Config.get('points.enabled', false)) {
-                    /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1);
+            if (!this.myItem) {
+                const fact = ItemException.fact2String(ItemException.Fact.NotApplied);
+                const reason = ItemException.reason2String(ItemException.Reason.NotYourItem);
+                const detail = passiveItemId;
+                new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', fact, reason, detail).show();
+            } else {
+                try {
+                    const result = await BackgroundMessage.applyItemToBackpackItem(itemId, passiveItemId);
+                    if (Config.get('points.enabled', false)) {
+                        /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1);
+                    }
+                    return result;
+                } catch (ex) {
+                    // new SimpleErrorToast(this.app, 'Warning-' + error.fact + '-' + error.reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', error.fact, error.reason, error.detail).show();
+                    const fact = ItemException.factFrom(ex.fact);
+                    const reason = ItemException.reasonFrom(ex.reason);
+                    const detail = ex.detail;
+                    new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', ItemException.fact2String(fact), ItemException.reason2String(reason), detail).show();
                 }
-            } catch (ex) {
-                // new SimpleErrorToast(this.app, 'Warning-' + error.fact + '-' + error.reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', error.fact, error.reason, error.detail).show();
-                const fact = ItemException.factFrom(ex.fact);
-                const reason = ItemException.reasonFrom(ex.reason);
-                const detail = ex.detail;
-                new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', ItemException.fact2String(fact), ItemException.reason2String(reason), detail).show();
             }
         }
+
+        return new ItemProperties();
     }
 
     private isDerezzing: boolean = false;

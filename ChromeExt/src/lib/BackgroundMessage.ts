@@ -77,7 +77,7 @@ export class BackpackTransferCompleteResponse extends BackgroundSuccessResponse
 
 export class ApplyItemToBackpackItemResponse extends BackgroundResponse
 {
-    constructor() { super(true); }
+    constructor(public result: ItemProperties) { super(true); }
 }
 
 export class CreateBackpackItemResponse extends BackgroundResponse
@@ -282,13 +282,13 @@ export class BackgroundMessage
         });
     }
 
-    static applyItemToBackpackItem(activeId: string, passiveId: string): Promise<void>
+    static applyItemToBackpackItem(activeId: string, passiveId: string): Promise<ItemProperties>
     {
         return new Promise(async (resolve, reject) =>
         {
             try {
                 let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.applyItemToBackpackItem.name, 'activeId': activeId, 'passiveId': passiveId });
-                resolve();
+                resolve((<ApplyItemToBackpackItemResponse>response).result);
             } catch (error) {
                 reject(error);
             }

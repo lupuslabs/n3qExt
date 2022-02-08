@@ -322,16 +322,17 @@ export namespace HostedInventoryItemProvider
             return clientItemIds[0];
         }
 
-        async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+        async applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>
         {
             try {
-                await this.itemAction(
+                const result = await this.itemAction(
                     activeId,
                     'Applier.Apply',
                     { 'passive': passiveId },
                     [activeId, passiveId],
                     false
                 );
+                return result;
             } catch (ex) {
                 this.handleException(ex);
             }

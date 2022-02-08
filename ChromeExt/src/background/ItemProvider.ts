@@ -15,7 +15,7 @@ export interface IItemProvider
     rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>;
     derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>;
     loadWeb3Items(): Promise<void>;
-    applyItemToItem(activeId: string, passiveId: string): Promise<void>;
+    applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>;
     createItem(auth: string, method: string, args: ItemProperties): Promise<ItemProperties>;
     transferAuthorize(itemId: string, duration: number): Promise<string>;
     transferUnauthorize(itemId: string): Promise<void>;

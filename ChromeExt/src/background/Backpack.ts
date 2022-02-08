@@ -152,9 +152,9 @@ export class Backpack
         return await this.getProviderFromName('n3q').loadWeb3Items();
     }
 
-    async applyItemToItem(activeId: string, passiveId: string): Promise<void>
+    async applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>
     {
-        await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
+        return await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
     }
 
     async transferAuthorize(itemId: string, duration: number): Promise<string>

@@ -799,9 +799,6 @@ export class BackgroundApp
                     return true;
                 }
             }
-            // If no backpack, then silently ignore points activity so that the content script does not have to know that points are implemented thru backpack            
-            // } else {
-            //     sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         sendResponse(new BackgroundSuccessResponse());
         return false;
@@ -811,7 +808,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             this.backpack.applyItemToItem(activeId, passiveId)
-                .then(itemId => { sendResponse(new ApplyItemToBackpackItemResponse()); })
+                .then(result => { sendResponse(new ApplyItemToBackpackItemResponse(result)); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {

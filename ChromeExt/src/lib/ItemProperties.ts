@@ -94,6 +94,7 @@ export enum Pid
     NftTokenUri = 'NftTokenUri',
     ShopImageUrl = 'ShopImageUrl',
     LargeImageUrl = 'LargeImageUrl',
+    ShowEffect = 'ShowEffect',
 }
 
 export class ItemProperties
