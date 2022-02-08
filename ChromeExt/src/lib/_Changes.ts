@@ -8,13 +8,15 @@ export class _Changes
     static data: IHistory = [
         ['1.2.0', 'ServerItems', [
             ['Add', 'Server based items'],
-            ['Add', 'CTRL+click drops/pickups item'],
+            ['Add', 'CTRL-item-click drops/pickups item'],
+            ['Add', 'CTRL-self-click toggles backpack window'],
             ['Add', 'Confirmation on item transfer'],
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
             ['Add', 'Unique chat line id to be able to store a chat history later'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
+            ['Change', 'Avatar shadow only for items, not user'],
         ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],
