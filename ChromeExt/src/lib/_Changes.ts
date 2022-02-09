@@ -14,9 +14,10 @@ export class _Changes
             ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
             ['Add', 'Support page effects'],
             ['Add', 'Unique chat line id to be able to store a chat history later'],
+            ['Add', 'Claim and auto-claim activity points'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
-            ['Change', 'Avatar shadow only for items, not user'],
+            ['Change', 'Shadow only for items, not avatars'],
         ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],

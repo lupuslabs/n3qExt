@@ -31,6 +31,7 @@ import { Backpack } from './Backpack';
 import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
+import { WeblinClientApi } from '../lib/WeblinClientApi';
 
 interface ILocationMapperResponse
 {
@@ -1647,7 +1648,18 @@ export class BackgroundApp
                     let itemId = as.String(points.getProperties()[Pid.Id], '');
                     if (itemId != '') {
                         try {
-                            this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true)
+                            const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
+                            const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
+                            if (true||autoClaimed) {
+                                this.showToastInAllTabs(
+                                    'You Got Activity Points', 
+                                    'Your activity points have been claimed automatically',
+                                    'PointsAutoClaimed',
+                                    'notice',
+                                    '',
+                                    [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
+                                    );
+                            }
                         } catch (error) {
                             log.info('BackgroundApp.submitPoints', error);
                         }
@@ -1655,6 +1667,18 @@ export class BackgroundApp
                 }
             }
         }
+    }
+
+    showToastInAllTabs(title: string, text: string, type: string, iconType: string, detail: string, links: any): void
+    {
+        let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
+        data.title = title;
+        data.text = text;
+        data.type = type;
+        data.iconType = iconType;
+        data.detail = detail;
+        data.links = links;
+        this.sendToAllTabs(ContentMessage.type_clientNotification, data);
     }
 
     handle_test(): any

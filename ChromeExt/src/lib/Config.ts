@@ -472,7 +472,9 @@ export class Config
                     'Toast.NotExecuted': 'Not executed',
                     'Toast.NoBlueprint': 'No blueprint',
                     'Toast.TooManyBlueprints': 'Too many blueprints',
-                    'Toast.PointsClaimed': 'Activity points claimed',
+                    'Toast.Open backpack': 'Open backpack',
+                    'Toast.You Got Activity Points': 'You Got Activity Points',
+                    'Toast.Your activity points have been claimed automatically': 'Your activity points have been claimed automatically. To maximize your yield, it is beneficial to claim them every day. Drag your Points-item to a web page, click it and claim.',
 
                     'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
@@ -722,7 +724,10 @@ export class Config
                     'Toast.NotExecuted': 'Nicht ausgeführt',
                     'Toast.NoBlueprint': 'Kein Bauplan',
                     'Toast.TooManyBlueprints': 'Mehr als ein Bauplan',
-
+                    'Toast.Open backpack': 'Rucksack öffnen',
+                    'Toast.You Got Activity Points': 'Du hast Aktivitätspunkte bekommen',
+                    'Toast.Your activity points have been claimed automatically': 'Deine Aktivitätspunkte wurden nach einiger Zeit automatisch zugeteilt. Um die Ausbeute zu steigern, ist es besser die Punkte selbst zu beanspruchen. Dafür trägt man den Punkte-Gegenstand auf eine Seite, klickt darauf und holt die Punkte. Am besten jeden Tag.',
+                    
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',

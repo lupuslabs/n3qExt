@@ -4,6 +4,7 @@ import { Utils } from './Utils';
 import { is } from './is';
 const NodeRSA = require('node-rsa');
 
+
 export enum Pid
 {
     Id = 'Id',
@@ -95,6 +96,7 @@ export enum Pid
     ShopImageUrl = 'ShopImageUrl',
     LargeImageUrl = 'LargeImageUrl',
     ShowEffect = 'ShowEffect',
+    AutoClaimed = 'AutoClaimed',
 }
 
 export class ItemProperties
