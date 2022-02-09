@@ -17,7 +17,7 @@ export namespace WeblinClientApi
         title: string;
         text: string;
 
-        target?: 'currentTab'|'notCurrentTab'|'activeTab'|'allTabs';
+        target?: 'currentTab' | 'notCurrentTab' | 'activeTab' | 'allTabs';
         static defaultTarget = 'currentTab';
 
         static iconType_warning = 'warning';
@@ -34,7 +34,7 @@ export namespace WeblinClientApi
     {
         static type = 'Client.ItemException';
 
-        target?: 'currentTab'|'notCurrentTab'|'activeTab'|'allTabs';
+        target?: 'currentTab' | 'notCurrentTab' | 'activeTab' | 'allTabs';
         static defaultTarget = 'currentTab';
 
         durationSec: number;
@@ -52,4 +52,21 @@ export namespace WeblinClientApi
         dx: number;
         args: ItemProperties;
     }
+
+    export class ClientGetApiRequest extends Request
+    {
+        static type = 'Client.GetApi';
+        mode: 'page' | 'iframe';
+    }
+    export class ClientGetApiResponse extends WeblinClientApi.ContentResponse
+    {
+        constructor(public version: string, public api: string[]) { super('Client.GetApi.Response'); }
+    }
+
+    export class ItemFindRequest extends Request
+    {
+        static type = 'Item.Find';
+        filter: ItemProperties;
+    }
+    export class ItemFindResponse extends WeblinClientApi.ContentResponse { constructor(public items: string[]) { super('Item.Find.Response'); } }
 }

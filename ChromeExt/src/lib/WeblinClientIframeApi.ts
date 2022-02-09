@@ -10,7 +10,7 @@ export namespace WeblinClientIframeApi
 
     export class Request extends WeblinClientApi.Request
     {
-        constructor(type: string, id: string, public item: string)
+        constructor(type: string, id: string, public item?: string)
         {
             super(type, id);
         }
@@ -125,14 +125,6 @@ export namespace WeblinClientIframeApi
         visible: boolean;
         range: any;
     }
-
-    export class ItemFindRequest extends Request
-    {
-        static type = 'Item.Find';
-        filter: ItemProperties;
-    }
-    export class ItemFindResponse extends WeblinClientApi.ContentResponse { constructor(public items: string[]) { super('Item.Find.Response'); } }
-
     export class ItemActionRequest extends Request
     {
         static type = 'Item.Action';

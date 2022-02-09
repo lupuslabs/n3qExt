@@ -15,6 +15,7 @@ export class _Changes
             ['Add', 'Support page effects'],
             ['Add', 'Unique chat line id to be able to store a chat history later'],
             ['Add', 'Claim and auto-claim activity points'],
+            ['Add', 'Iframe API Client.GetApi for extension detection'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
         ]],
