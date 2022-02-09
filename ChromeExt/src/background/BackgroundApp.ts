@@ -1650,7 +1650,7 @@ export class BackgroundApp
                         try {
                             const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
                             const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
-                            if (true||autoClaimed) {
+                            if (autoClaimed) {
                                 this.showToastInAllTabs(
                                     'You Got Activity Points', 
                                     'Your activity points have been claimed automatically',
