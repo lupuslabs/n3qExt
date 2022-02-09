@@ -17,7 +17,6 @@ export class _Changes
             ['Add', 'Claim and auto-claim activity points'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
-            ['Change', 'Shadow only for items, not avatars'],
         ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],
