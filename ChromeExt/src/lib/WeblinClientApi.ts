@@ -27,7 +27,7 @@ export namespace WeblinClientApi
         static defaultIcon = 'notice';
 
         links?: Array<any>;
-        detail?: any;
+        data?: any;
     }
 
     export class ClientItemExceptionRequest extends Request

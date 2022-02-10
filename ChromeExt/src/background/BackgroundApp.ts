@@ -1656,7 +1656,6 @@ export class BackgroundApp
                                     'Your activity points have been claimed automatically',
                                     'PointsAutoClaimed',
                                     'notice',
-                                    '',
                                     [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
                                     );
                             }
@@ -1669,14 +1668,13 @@ export class BackgroundApp
         }
     }
 
-    showToastInAllTabs(title: string, text: string, type: string, iconType: string, detail: string, links: any): void
+    showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
     {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
         data.title = title;
         data.text = text;
         data.type = type;
         data.iconType = iconType;
-        data.detail = detail;
         data.links = links;
         this.sendToAllTabs(ContentMessage.type_clientNotification, data);
     }

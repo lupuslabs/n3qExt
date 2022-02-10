@@ -467,7 +467,6 @@ export class Backpack
                         this.app.translateText('Backpack.Page items disabled.'),
                         'DependentPresenceLimit',
                         WeblinClientApi.ClientNotificationRequest.iconType_warning,
-                        'Limit=' + Config.get('backpack.dependentPresenceItemsLimit', 25)
                     );
                 }
                 return result;
@@ -480,7 +479,6 @@ export class Backpack
                         this.app.translateText('Backpack.You are close to the limit of items on a page.'),
                         'DependentPresenceWarning',
                         WeblinClientApi.ClientNotificationRequest.iconType_notice,
-                        'Current=' + ids.length + ' Limit=' + Config.get('backpack.dependentPresenceItemsLimit', 25)
                     );
                 }
             }
@@ -495,14 +493,13 @@ export class Backpack
         return result;
     }
 
-    private showToast(roomJid: string, title: string, text: string, type: string, iconType: string, detail: string): void
+    private showToast(roomJid: string, title: string, text: string, type: string, iconType: string): void
     {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
         data.title = title;
         data.text = text;
         data.type = type;
         data.iconType = iconType;
-        data.detail = detail;
         this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_clientNotification, 'data': data });
     }
 
