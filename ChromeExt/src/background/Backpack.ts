@@ -100,19 +100,21 @@ export class Backpack
         let providerConfigs = Config.get('itemProviders', {});
         for (let providerId in providerConfigs) {
             const providerConfig = providerConfigs[providerId];
-            let provider: IItemProvider = null;
-            switch (as.String(providerConfig.type, 'unknown')) {
-                case LocalStorageItemProvider.type:
-                    provider = new LocalStorageItemProvider(this, providerId, providerConfig);
-                    break;
-                case HostedInventoryItemProvider.Provider.type:
-                    provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
-                    break;
-                default:
-                    break;
-            }
-            if (provider != null) {
-                this.providers.set(providerId, provider);
+            if (providerConfig != null) {
+                let provider: IItemProvider = null;
+                switch (as.String(providerConfig.type, 'unknown')) {
+                    case LocalStorageItemProvider.type:
+                        provider = new LocalStorageItemProvider(this, providerId, providerConfig);
+                        break;
+                    case HostedInventoryItemProvider.Provider.type:
+                        provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
+                        break;
+                    default:
+                        break;
+                }
+                if (provider != null) {
+                    this.providers.set(providerId, provider);
+                }
             }
         }
 
