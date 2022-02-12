@@ -18,7 +18,7 @@ export interface ItemFrameWindowOptions extends WindowOptions
 export class ItemFrameWindow extends Window
 {
     protected iframeElem: HTMLIFrameElement;
-    protected refElem: HTMLElement;
+    private options: ItemFrameWindowOptions;
     private url: string;
     private title: string;
     private width = 400;
@@ -37,11 +37,11 @@ export class ItemFrameWindow extends Window
             const url: string = options.url;
             if (!url) { throw 'No url' }
 
-            this.refElem = options.elem;
-
             const json = as.String(options.item.getProperties()[Pid.IframeOptions], '{}');
             const iframeOptions = JSON.parse(json);
             options.closeIsHide = as.Bool(iframeOptions.closeIsHide, false);
+
+            this.options = options;
 
             if (Utils.logChannel('iframeApi', true)) { log.info('ItemFrameWindow.show', url); }
             super.show(options);
@@ -77,7 +77,7 @@ export class ItemFrameWindow extends Window
 
     position(width: number, height: number, left: number, bottom: number): void
     {
-        const offset = this.refElem.getBoundingClientRect();
+        const offset = this.options.elem.getBoundingClientRect();
         const absLeft = offset.left + left;
         const absBottom = bottom;
         $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' });

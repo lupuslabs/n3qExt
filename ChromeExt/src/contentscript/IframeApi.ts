@@ -589,14 +589,14 @@ export class IframeApi
     handle_RoomGetInfoRequest(request: WeblinClientIframeApi.RoomGetInfoRequest): WeblinClientApi.Response
     {
         try {
-            let data = new WeblinClientIframeApi.RoomInfo();
+            let info = new WeblinClientIframeApi.RoomInfo();
             let room = this.app.getRoom();
 
-            data.destination = room.getDestination();
-            data.jid = room.getJid();
-            data.url = room.getPageUrl();
+            info.destination = room.getDestination();
+            info.jid = room.getJid();
+            info.url = room.getPageUrl();
 
-            return new WeblinClientIframeApi.RoomGetInfoResponse(data);
+            return new WeblinClientIframeApi.RoomGetInfoResponse(info);
         } catch (ex) {
             log.info('IframeApi.handle_RoomGetParticipantsRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);

@@ -46,7 +46,8 @@ export class Popup
 
             this.windowElem = windowElem;
 
-            $(options.elem).append(windowElem);
+            // $(options.elem).append(windowElem);
+            $(this.app.getDisplay()).append(windowElem);
 
             $(windowElem).click(ev =>
             {

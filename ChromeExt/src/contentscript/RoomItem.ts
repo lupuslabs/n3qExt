@@ -426,15 +426,6 @@ export class RoomItem extends Entity
         }
     }
 
-    public onQuickSlideReached(newX: number): void
-    {
-        super.onQuickSlideReached(newX);
-
-        if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
-            this.checkIframeAutoRange();
-        }
-    }
-
     public onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
     {
         (async (): Promise<void> =>
@@ -478,8 +469,24 @@ export class RoomItem extends Entity
             }
         }
 
+        this.onMoved(newX);
+    }
+
+    public onQuickSlideReached(newX: number): void
+    {
+        super.onQuickSlideReached(newX);
+
+        this.onMoved(newX);
+    }
+
+    public onMoved(newX: number): void
+    {
         if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
             this.checkIframeAutoRange();
+        }
+
+        if (this.framePopup) {
+            this.framePopup.move();
         }
     }
 
@@ -680,38 +687,38 @@ export class RoomItem extends Entity
         }
     }
 
-    protected openIframeAsPopup(clickedElem: HTMLElement, iframeUrl: string, frameOptions: any): void
+    protected openIframeAsPopup(anchorElem: HTMLElement, iframeUrl: string, popupOptions: any): void
     {
         if (this.framePopup == null) {
             this.framePopup = new ItemFramePopup(this.app);
 
             const options: ItemFrameWindowOptions = {
                 item: this,
-                elem: clickedElem,
+                elem: anchorElem,
                 url: iframeUrl,
 
                 onClose: () => { this.framePopup = null; },
-                width: as.Int(frameOptions.width, 100),
-                height: as.Int(frameOptions.height, 100),
-                left: as.Int(frameOptions.left, -frameOptions.width / 2),
-                bottom: as.Int(frameOptions.bottom, 50),
-                resizable: as.Bool(frameOptions.rezizable, true),
-                transparent: as.Bool(frameOptions.transparent),
-                hidden: as.Bool(frameOptions.hidden),
+                width: as.Int(popupOptions.width, 100),
+                height: as.Int(popupOptions.height, 100),
+                left: as.Int(popupOptions.left, -popupOptions.width / 2),
+                bottom: as.Int(popupOptions.bottom, 50),
+                resizable: as.Bool(popupOptions.rezizable, true),
+                transparent: as.Bool(popupOptions.transparent),
+                hidden: as.Bool(popupOptions.hidden),
             };
 
             this.framePopup.show(options);
         }
     }
 
-    protected openIframeAsWindow(clickedElem: HTMLElement, iframeUrl: string, windowOptions: any): void
+    protected openIframeAsWindow(anchorElem: HTMLElement, iframeUrl: string, windowOptions: any): void
     {
         if (this.frameWindow == null) {
             this.frameWindow = new ItemFrameWindow(this.app);
 
             const options: ItemFrameWindowOptions = {
                 item: this,
-                elem: clickedElem,
+                elem: anchorElem,
                 url: iframeUrl,
                 onClose: () => { this.frameWindow = null; },
                 width: as.Int(windowOptions.width, 100),
