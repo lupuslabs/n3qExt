@@ -865,6 +865,7 @@ export class ContentApp
     public static LayerWindowContent = 51;
     public static LayerDrag = 99;
     public static LayerEffect = 100;
+    public static LayerMenu = 110;
     private static layerSize = 10 * 1000 * 1000;
     private frontIndex: { [layer: number]: number; } = {};
     toFront(elem: HTMLElement, layer: number | string)

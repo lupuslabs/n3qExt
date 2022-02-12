@@ -724,9 +724,10 @@ export class Participant extends Entity
 
         // new only
         if (delayMSec <= 100) {
-            this.avatarDisplay?.setAction('chat');
             if (this.isChatCommand(text)) {
                 return this.onChatCommand(text);
+            } else {
+                this.avatarDisplay?.setAction('chat');
             }
 
             if (this.room) {
