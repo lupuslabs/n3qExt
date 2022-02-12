@@ -98,22 +98,28 @@ export class Backpack
     async init(): Promise<void>
     {
         let providerConfigs = Config.get('itemProviders', {});
+        let enabledProviders = Config.getArray('items.enabledProviders', []);
         for (let providerId in providerConfigs) {
-            const providerConfig = providerConfigs[providerId];
-            if (providerConfig != null) {
-                let provider: IItemProvider = null;
-                switch (as.String(providerConfig.type, 'unknown')) {
-                    case LocalStorageItemProvider.type:
-                        provider = new LocalStorageItemProvider(this, providerId, providerConfig);
-                        break;
-                    case HostedInventoryItemProvider.Provider.type:
-                        provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
-                        break;
-                    default:
-                        break;
-                }
-                if (provider != null) {
-                    this.providers.set(providerId, provider);
+            if (!enabledProviders.includes(providerId)) {
+                log.info('Backpack.init', 'provider disabled', providerId);
+            } else {
+                log.info('Backpack.init', 'provider initializing', providerId);
+                const providerConfig = providerConfigs[providerId];
+                if (providerConfig != null) {
+                    let provider: IItemProvider = null;
+                    switch (as.String(providerConfig.type, 'unknown')) {
+                        case LocalStorageItemProvider.type:
+                            provider = new LocalStorageItemProvider(this, providerId, providerConfig);
+                            break;
+                        case HostedInventoryItemProvider.Provider.type:
+                            provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
+                            break;
+                        default:
+                            break;
+                    }
+                    if (provider != null) {
+                        this.providers.set(providerId, provider);
+                    }
                 }
             }
         }
@@ -128,7 +134,7 @@ export class Backpack
                 }
             }
             for (let providerId of failedProviderIds) {
-                log.info('HostedInventoryItemProvider.init', 'provider.init() failed, removing', providerId);
+                log.info('Backpack.init', 'provider.init() failed, removing', providerId);
                 this.providers.delete(providerId);
             }
         }
@@ -143,7 +149,7 @@ export class Backpack
                 }
             }
             for (let providerId of failedProviderIds) {
-                log.info('HostedInventoryItemProvider.init', 'provider.loadItems() failed, removing', providerId);
+                log.info('Backpack.init', 'provider.loadItems() failed, removing', providerId);
                 this.providers.delete(providerId);
             }
         }

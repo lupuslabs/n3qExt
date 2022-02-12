@@ -234,6 +234,9 @@ export class Config
                 PointsChannelPageOwned: { weight: 1, x0: 0, css: { backgroundColor: '#ff8080' } },
             }
         },
+        items: {
+            'enabledProviders': ['n3q']
+        },
         itemProviders: {
             'nine3q':
             {
@@ -859,6 +862,11 @@ export class Config
             result = defaultValue;
         }
         return result;
+    }
+
+    static getArray(key: string, defaultValue: Array<any> = []): Array<any>
+    {
+        return <Array<any>>this.get(key, defaultValue);
     }
 
     static getDev(key: string): unknown { return Config.getFromTree(this.devConfig, key); }
