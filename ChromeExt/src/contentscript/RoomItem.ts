@@ -35,6 +35,7 @@ export class RoomItem extends Entity
     protected screenUnderlay: ItemFrameUnderlay;
     protected myItem: boolean = false;
     protected state = '';
+    protected ownerName = 'unknown';
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
@@ -60,6 +61,7 @@ export class RoomItem extends Entity
     public getDefaultAvatar(): string { return imgDefaultItem; }
     public getItemId(): string { return this.getProperties()[Pid.Id]; }
     public getDisplayName(): string { return as.String(this.getProperties()[Pid.Label], this.getItemId()); }
+    public getOwnerName(): string { return this.ownerName; }
 
     public getProperties(pids: Array<string> = null): ItemProperties
     {
@@ -114,6 +116,14 @@ export class RoomItem extends Entity
         let stanzaProperties: ItemProperties = {};
 
         // Collect info
+
+        const parent = as.String(stanza.attrs.parent);
+        if (parent !== '') {
+            const sender = this.room.getParticipant(parent);
+            if (sender) {
+                this.ownerName = sender.getDisplayName();
+            }
+        }
 
         {
             const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');

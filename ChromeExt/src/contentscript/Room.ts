@@ -341,9 +341,7 @@ export class Room
             if (isSelf && !this.isEntered) {
                 this.myNick = resource;
                 this.isEntered = true;
-
                 this.keepAlive();
-
                 this.app.reshowVidconfWindow();
             }
         }
@@ -360,6 +358,7 @@ export class Room
                         const incomplete = as.Bool(dependentPresence.attrs._incomplete, false);
                         if (!incomplete) {
                             dependentPresence.attrs['to'] = to.toString();
+                            dependentPresence.attrs['parent'] = resource;
                             const dependentFrom = jid(dependentPresence.attrs.from);
                             const dependentResource = dependentFrom.getResource();
                             currentDependents.push(dependentResource);

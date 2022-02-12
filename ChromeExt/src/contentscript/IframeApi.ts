@@ -55,7 +55,7 @@ export class IframeApi
         let request = <WeblinClientApi.Request>ev.data;
 
         if (request[Config.get('iframeApi.messageMagicW2WMigration', 'hbv67u5rf_w2wMigrate')]) {
-            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
             let cid = (<any>request).cid;
             if (cid) {
                 let nickname = as.String((<any>request).nickname, cid);
@@ -65,7 +65,7 @@ export class IframeApi
         }
 
         if (request[Config.get('iframeApi.messageMagicCreateCryptoWallet', 'tr67rftghg_CreateCryptoWallet')]) {
-            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
             let address = (<any>request).address;
             let network = (<any>request).network;
             let auth = (<any>request).auth;
@@ -76,12 +76,12 @@ export class IframeApi
         }
 
         if (request[Config.get('iframeApi.messageMagic', 'a67igu67puz_iframeApi')]) {
-            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
             await this.handle_IframeApi(<WeblinClientIframeApi.Request>request);
         }
 
         if (request[Config.get('iframeApi.messageMagicPage', 'x7ft76zst7g_pageApi')]) {
-            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', ev); }
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
             await this.handle_PageApi(<WeblinClientPageApi.Request>request);
         }
     }
@@ -275,6 +275,7 @@ export class IframeApi
             if (response == null) { response = new WeblinClientApi.SuccessResponse(); }
             response.id = request.id;
             response[Config.get('iframeApi.messageMagic2Page', 'df7d86ozgh76_2pageApi')] = true;
+            if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.handle_PageApi response', response); }
             window.postMessage(response, '*');
         }
     }
@@ -335,6 +336,7 @@ export class IframeApi
             if (roomItem) {
                 if (response == null) { response = new WeblinClientApi.SuccessResponse(); }
                 response.id = request.id;
+                if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.handle_IframeApi response', response); }
                 roomItem.sendMessageToScriptFrame(response);
             }
         }

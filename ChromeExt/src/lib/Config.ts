@@ -574,6 +574,8 @@ export class Config
                     'ItemValue.false': 'No',
                     'ItemValue.nine3q': 'Local',
                     'ItemValue.n3q': 'Server',
+                    'ItemValue.You': 'You',
+                    'ItemValue.unknown': 'unknown',
 
                     'ItemLabel.Dot1': '1 Point',
                 },
@@ -826,6 +828,8 @@ export class Config
                     'ItemValue.false': 'Nein',
                     'ItemValue.nine3q': 'Lokal',
                     'ItemValue.n3q': 'Server',
+                    'ItemValue.You': 'Du',
+                    'ItemValue.unknown': 'unbekannt',
 
                     'ItemLabel.Points': 'Punkte',
                     'ItemLabel.Dot1': '1 Punkt',

@@ -861,8 +861,8 @@ export class ContentApp
     public static LayerAboveEntities = 45;
     public static LayerPageOverlay = 46;
     public static LayerWindow = 50;
+    public static LayerPopup = 50;
     public static LayerWindowContent = 51;
-    public static LayerPopup = 60;
     public static LayerDrag = 99;
     public static LayerEffect = 100;
     private static layerSize = 10 * 1000 * 1000;
