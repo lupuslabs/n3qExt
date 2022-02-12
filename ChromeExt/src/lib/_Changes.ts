@@ -16,8 +16,11 @@ export class _Changes
             ['Add', 'Unique chat line id to be able to store a chat history later'],
             ['Add', 'Claim and auto-claim activity points'],
             ['Add', 'Iframe API Client.GetApi for extension detection'],
+            ['Add', 'Wave animation feedback to greet and bye'],
+            ['Add', 'Show item owner name on hover'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
+            ['Change', 'Item popup to overlap Windows'],
         ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],
