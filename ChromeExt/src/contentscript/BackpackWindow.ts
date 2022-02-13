@@ -86,37 +86,37 @@ export class BackpackWindow extends Window
             }
         });
 
-        if (Environment.isDevelopment()) {
-            const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
-            $(inElem).hide();
-            $(contentElem).append(inElem);
+        // if (Environment.isDevelopment()) {
+        //     const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
+        //     $(inElem).hide();
+        //     $(contentElem).append(inElem);
 
-            const toggleElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-toggle">Input</div>').get(0);
-            $(contentElem).append(toggleElem);
-            $(toggleElem).on('click', () =>
-            {
-                if ($(inElem).is(':hidden')) {
-                    $(inElem).show();
-                    this.app.toFront(inElem, ContentApp.LayerWindowContent);
-                } else {
-                    $(inElem).hide();
-                }
-            });
+        //     const toggleElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-toggle">Input</div>').get(0);
+        //     $(contentElem).append(toggleElem);
+        //     $(toggleElem).on('click', () =>
+        //     {
+        //         if ($(inElem).is(':hidden')) {
+        //             $(inElem).show();
+        //             this.app.toFront(inElem, ContentApp.LayerWindowContent);
+        //         } else {
+        //             $(inElem).hide();
+        //         }
+        //     });
 
-            const addElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-add">Add</div>').get(0);
-            $(contentElem).append(addElem);
-            $(addElem).on('click', () =>
-            {
-                let text = as.String($(inElem).val());
-                text = text.replace(/'/g, '"');
-                if (text !== '') {
-                    const json = JSON.parse(text);
-                    const itemId = Utils.randomString(30);
-                    json.Id = itemId;
-                    this.createItem(itemId, json, {});
-                }
-            });
-        }
+        //     const addElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-add">Add</div>').get(0);
+        //     $(contentElem).append(addElem);
+        //     $(addElem).on('click', () =>
+        //     {
+        //         let text = as.String($(inElem).val());
+        //         text = text.replace(/'/g, '"');
+        //         if (text !== '') {
+        //             const json = JSON.parse(text);
+        //             const itemId = Utils.randomString(30);
+        //             json.Id = itemId;
+        //             this.createItem(itemId, json, {});
+        //         }
+        //     });
+        // }
 
         this.app.translateElem(windowElem);
 
@@ -146,8 +146,8 @@ export class BackpackWindow extends Window
                     if (droppedId) {
                         const roomItem = this.app.getRoom().getItem(droppedId);
                         if (roomItem) {
-                            const x = Math.round(ui.offset.left - $(paneElem).offset().left + ui.draggable.width() / 2);
-                            const y = Math.round(ui.offset.top - $(paneElem).offset().top + ui.draggable.height() / 2);
+                            const x = Math.round(ui.offset.left - $(paneElem).offset().left + paneElem.scrollLeft + ui.draggable.width() / 2);
+                            const y = Math.round(ui.offset.top - $(paneElem).offset().top + paneElem.scrollTop + ui.draggable.height() / 2);
                             const itemId = roomItem.getProperties()[Pid.Id];
                             this.app.derezItem(itemId, x, y);
                         }
