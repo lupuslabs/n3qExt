@@ -18,6 +18,7 @@ export class _Changes
             ['Add', 'Iframe API Client.GetApi for extension detection'],
             ['Add', 'Wave animation feedback to greet and bye'],
             ['Add', 'Show item owner name on hover'],
+            ['Add', 'Backpack scrollable'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
             ['Change', 'Item popup to overlap Windows'],

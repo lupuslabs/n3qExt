@@ -152,7 +152,15 @@ export class BackpackItem
 
         this.x = x;
         this.y = y;
+
         $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });
+    }
+
+    getScrolledPos(x: number, y: number): { x: number, y: number }
+    {
+        const scrollX = this.backpackWindow.getPane().scrollLeft;
+        const scrollY = this.backpackWindow.getPane().scrollTop;
+        return { x: x + scrollX, y: y + scrollY };
     }
 
     setVisibility(state: boolean)
@@ -256,8 +264,9 @@ export class BackpackItem
             const pos = this.getPositionRelativeToPane(ev, ui);
             if (pos.x !== this.x || pos.y !== this.y) {
                 if (!this.isPositionInShredder(ev, ui)) {
-                    this.setPosition(pos.x, pos.y);
-                    this.sendSetItemCoordinates(pos.x, pos.y);
+                    const scrolledPos = this.getScrolledPos(pos.x, pos.y);
+                    this.setPosition(scrolledPos.x, scrolledPos.y);
+                    this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
                 }
             }
         } else if (this.isPositionInDropzone(ev, ui)) {
@@ -356,7 +365,7 @@ export class BackpackItem
             }
         })().catch(error =>
         {
-            this.app.onError(ErrorWithData.ofError(error, undefined, {this: this}));
+            this.app.onError(ErrorWithData.ofError(error, undefined, { this: this }));
         });
     }
 
