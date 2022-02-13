@@ -156,11 +156,18 @@ export class BackpackItem
         $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });
     }
 
-    getScrolledPos(x: number, y: number): { x: number, y: number }
+    getScrolledItemPos(x: number, y: number): { x: number, y: number }
     {
         const scrollX = this.backpackWindow.getPane().scrollLeft;
         const scrollY = this.backpackWindow.getPane().scrollTop;
         return { x: x + scrollX, y: y + scrollY };
+    }
+
+    getScrolledCompensatedItemPos(x: number, y: number): { x: number, y: number }
+    {
+        const scrollX = this.backpackWindow.getPane().scrollLeft;
+        const scrollY = this.backpackWindow.getPane().scrollTop;
+        return { x: x - scrollX, y: y - scrollY };
     }
 
     setVisibility(state: boolean)
@@ -199,7 +206,14 @@ export class BackpackItem
             if (!infoOpen) {
                 const onClose = () => { this.info = null; };
                 this.info = new BackpackItemInfo(this.app, this, onClose);
-                this.info.show(ev.offsetX, ev.offsetY);
+
+                const itemRelativeToPane = this.itemPositionRelativeToPane();
+                const scrolledItemPos = this.getScrolledCompensatedItemPos(itemRelativeToPane.x, itemRelativeToPane.y);
+                const paneRect = this.scrolledElemRect(this.backpackWindow.getPane());
+                const x = ev.offsetX + scrolledItemPos.x + paneRect.left;
+                const y = ev.offsetY + scrolledItemPos.y + paneRect.top;
+                this.info.show(x, y);
+                // this.info.show(ev.offsetX, ev.offsetY);
                 this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
             }
         } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
@@ -234,13 +248,13 @@ export class BackpackItem
     private onDrag(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         if (!this.dragIsRezable) {
-            if (!this.isPositionInBackpack(ev, ui)) {
+            if (!this.isDraggablePositionInBackpack(ev, ui)) {
                 return false;
             }
         }
 
         if (!this.dragIsRezzed) {
-            if (this.isPositionInDropzone(ev, ui)) {
+            if (this.isDraggablePositionInDropzone(ev, ui)) {
                 this.app.hiliteDropzone(true);
             } else {
                 this.app.hiliteDropzone(false);
@@ -260,16 +274,16 @@ export class BackpackItem
             this.ignoreNextDropFlag = false;
             return;
         }
-        if (this.isPositionInBackpack(ev, ui)) {
-            const pos = this.getPositionRelativeToPane(ev, ui);
+        if (this.isDraggablePositionInBackpack(ev, ui)) {
+            const pos = this.draggablePositionRelativeToPane(ev, ui);
             if (pos.x !== this.x || pos.y !== this.y) {
-                if (!this.isPositionInShredder(ev, ui)) {
-                    const scrolledPos = this.getScrolledPos(pos.x, pos.y);
+                if (!this.isDraggablePositionInShredder(ev, ui)) {
+                    const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
                     this.setPosition(scrolledPos.x, scrolledPos.y);
                     this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
                 }
             }
-        } else if (this.isPositionInDropzone(ev, ui)) {
+        } else if (this.isDraggablePositionInDropzone(ev, ui)) {
             const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
             this.rezItem(dropX);
         }
@@ -300,28 +314,33 @@ export class BackpackItem
         return { left: left, top: top, width: width, height: height };
     }
 
-    private isPositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private isDraggablePositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         const pos = this.draggedItemCenter(ev, ui);
         const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
         return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
     }
 
-    private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private isDraggablePositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         const pos = this.draggedItemCenter(ev, ui);
         const rect = this.scrolledElemRect(this.backpackWindow.getPane());
         return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
     }
 
-    private getPositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
+    private draggablePositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
     {
         const pos = this.draggedItemCenter(ev, ui);
         const rect = this.scrolledElemRect(this.backpackWindow.getPane());
         return { 'x': pos.x - rect.left, 'y': pos.y - rect.top };
     }
 
-    private isPositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private itemPositionRelativeToPane(): { x: number, y: number }
+    {
+        return { 'x': this.elem.offsetLeft, 'y': this.elem.offsetTop };
+    }
+
+    private isDraggablePositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         const displayElem = this.app.getDisplay();
         const dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
@@ -437,6 +456,7 @@ export class BackpackItem
 
     destroy()
     {
+        this.info?.close();
         $(this.elem).remove();
     }
 

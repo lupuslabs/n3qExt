@@ -3,6 +3,7 @@ import { as } from '../lib/as';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { Utils } from '../lib/Utils';
 import { BackpackItem } from './BackpackItem';
 import { ContentApp } from './ContentApp';
 
@@ -39,7 +40,8 @@ export class BackpackItemInfo
 
     setup(): void
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops n3q-backpackiteminfo n3q-shadow-small" data-translate="children" />').get(0);
+        let windowId = Utils.randomString(15);
+        this.elem = <HTMLDivElement>$('<div id=' + windowId + ' class="n3q-base n3q-itemprops n3q-backpackiteminfo n3q-shadow-small" data-translate="children" />').get(0);
 
         // Fix (jquery?) bug: 
         // Uncaught TypeError: Cannot read property 'ownerDocument' of undefined
@@ -58,7 +60,8 @@ export class BackpackItemInfo
             }
         });
 
-        $(this.backpackItem.getElem()).append(this.elem);
+        // $(this.backpackItem.getElem()).append(this.elem);
+        $(this.app.getDisplay()).append(this.elem);
     }
 
     update(): void
@@ -176,7 +179,7 @@ export class BackpackItemInfo
                 $(this.elem).append(rezElem);
             }
         }
-        
+
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Delete item</div>').get(0);
             $(delBtn).on('click', (ev) =>

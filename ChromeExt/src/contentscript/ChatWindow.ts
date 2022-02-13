@@ -231,15 +231,12 @@ export class ChatWindow extends Window
                     return false;
                 }
                 return true;
-            break;
             case 'Escape':
                 this.close();
                 ev.stopPropagation();
                 return false;
-            break;
             default:
                 return true;
-            break;
         }
     }
 

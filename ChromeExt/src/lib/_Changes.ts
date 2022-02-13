@@ -21,7 +21,8 @@ export class _Changes
             ['Add', 'Backpack scrollable'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
-            ['Change', 'Item popup to overlap Windows'],
+            ['Change', 'Item popup above windows'],
+            ['Change', 'Overlapping backpack item popup'],
         ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],
