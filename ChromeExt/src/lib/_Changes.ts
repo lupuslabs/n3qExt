@@ -19,6 +19,7 @@ export class _Changes
             ['Add', 'Wave animation feedback to greet and bye'],
             ['Add', 'Show item owner name on hover'],
             ['Add', 'Backpack scrollable'],
+            ['Add', 'Windows resize in all directions'],
             ['Change', 'Style of dropped items in backpack'],
             ['Change', 'Warn of duplicate NFT avatar'],
             ['Change', 'Item popup above windows'],

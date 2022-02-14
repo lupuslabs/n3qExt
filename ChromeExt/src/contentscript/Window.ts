@@ -60,8 +60,11 @@ export class Window
 
             $(windowElem).append(contentElem);
 
-            const resizeElem = resizable ? <HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0) : null;
-            $(windowElem).append(resizeElem);
+            // if (resizable) {
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0));
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-s"/>').get(0));
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-n"/>').get(0));
+            // }
 
             this.contentElem = contentElem;
             this.windowElem = windowElem;
@@ -74,10 +77,13 @@ export class Window
             if (resizable) {
                 $(windowElem).resizable({
                     minWidth: 180,
-                    minHeight: 30,
-                    handles: {
-                        'se': '#n3q #' + windowId + ' .n3q-window-resize-se',
-                    },
+                    minHeight: 100,
+                    handles: 'n, e, s, w, se, ne, nw, sw',
+                    // handles: {
+                    //     se: '#n3q #' + windowId + ' .n3q-window-resize-se',
+                    //     s: '#n3q #' + windowId + ' .n3q-window-resize-s',
+                    //     n: '#n3q #' + windowId + ' .n3q-window-resize-n',
+                    // },
                     start: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
                     {
                         $(windowElem).append('<div id="' + maskId + '" style="background-color: #ffffff; opacity: 0.001; position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>');
