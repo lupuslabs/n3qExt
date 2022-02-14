@@ -634,13 +634,17 @@ export class RoomItem extends Entity
             }
 
             const contextToken = await Payload.getContextToken(userId, itemId, 600, { 'room': roomJid }, tokenOptions);
-            const participantDisplayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
 
             iframeUrl = iframeUrl
                 .replace('{context}', encodeURIComponent(contextToken))
                 .replace('{room}', encodeURIComponent(roomJid))
-                .replace('{name}', encodeURIComponent(participantDisplayName))
                 ;
+
+            const participant = this.room.getParticipant(this.room.getMyNick());
+            if (participant) {
+                const participantDisplayName = participant.getDisplayName();
+                iframeUrl = iframeUrl.replace('{name}', encodeURIComponent(participantDisplayName));
+            }
 
             iframeUrl = iframeUrl.replace(/"/g, '%22');
 
