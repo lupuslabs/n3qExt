@@ -12,7 +12,7 @@ import { Window, WindowOptions } from './Window';
 import { BackpackItem as BackpackItem } from './BackpackItem';
 import { Environment } from '../lib/Environment';
 import { ItemException } from '../lib/ItemException';
-import { ItemExceptionToast } from './Toast';
+import { ItemExceptionToast, SimpleToast } from './Toast';
 import { Avatar } from './Avatar';
 import { FreeSpace } from './FreeSpace';
 
@@ -146,10 +146,14 @@ export class BackpackWindow extends Window
                     if (droppedId) {
                         const roomItem = this.app.getRoom().getItem(droppedId);
                         if (roomItem) {
-                            const x = Math.round(ui.offset.left - $(paneElem).offset().left + paneElem.scrollLeft + ui.draggable.width() / 2);
-                            const y = Math.round(ui.offset.top - $(paneElem).offset().top + paneElem.scrollTop + ui.draggable.height() / 2);
-                            const itemId = roomItem.getProperties()[Pid.Id];
-                            this.app.derezItem(itemId, x, y);
+                            if (!roomItem.isMyItem()) {
+                                let toast = new SimpleToast(this.app, 'backpack-DerezNotMyItem', Config.get('room.errorToastDurationSec', 8), 'warning', 'NotDerezzed', 'NotYourItem').show();
+                            } else {
+                                const x = Math.round(ui.offset.left - $(paneElem).offset().left + paneElem.scrollLeft + ui.draggable.width() / 2);
+                                const y = Math.round(ui.offset.top - $(paneElem).offset().top + paneElem.scrollTop + ui.draggable.height() / 2);
+                                const itemId = roomItem.getProperties()[Pid.Id];
+                                this.app.derezItem(itemId, x, y);
+                            }
                         }
                     }
                 }
@@ -265,7 +269,7 @@ export class BackpackWindow extends Window
             }
 
         } catch (ex) {
-            this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', {itemId: itemId}));
+            this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', { itemId: itemId }));
         }
     }
 

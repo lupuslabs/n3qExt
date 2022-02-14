@@ -478,6 +478,8 @@ export class Config
                     'Toast.Open backpack': 'Open backpack',
                     'Toast.You Got Activity Points': 'You Got Activity Points',
                     'Toast.Your activity points have been claimed automatically': 'Your activity points have been claimed automatically. To maximize your yield, it is beneficial to claim them every day. Drag your Points-item to a web page, click it and claim.',
+                    'Toast.NotDerezzed': 'Failed to Pick Up Item',
+                    'Toast.NotYourItem': 'This is not your item.',
 
                     'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
@@ -528,6 +530,7 @@ export class Config
                     'ErrorReason.NetworkProblem': 'Netzwork problem',
                     'ErrorReason.CantDropOnSelf': 'The item can\'t be applied to yourself.',
                     'ErrorReason.NotDeletable': 'The item can\'t be deleted.',
+                    'ErrorReason.ItemIsNotRezzed': 'The item is not on a page.',
 
                     'ErrorDetail.Applier.Apply': 'Applying an item to another',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -732,7 +735,9 @@ export class Config
                     'Toast.Open backpack': 'Rucksack öffnen',
                     'Toast.You Got Activity Points': 'Du hast Aktivitätspunkte bekommen',
                     'Toast.Your activity points have been claimed automatically': 'Deine Aktivitätspunkte wurden nach einiger Zeit automatisch zugeteilt. Um die Ausbeute zu steigern, ist es besser die Punkte selbst zu beanspruchen. Dafür trägt man den Punkte-Gegenstand auf eine Seite, klickt darauf und holt die Punkte. Am besten jeden Tag.',
-                    
+                    'Toast.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
+                    'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
+
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
@@ -782,6 +787,7 @@ export class Config
                     'ErrorReason.NetworkProblem': 'Netzwerkproblem',
                     'ErrorReason.CantDropOnSelf': 'Der Gegenstand kann nicht auf dich selbst angewandt werden.',
                     'ErrorReason.NotDeletable': 'Der Gegenstand kann nicht gelöscht werden.',
+                    'ErrorReason.ItemIsNotRezzed': 'Der Gegenstand kann nicht auf einer Seite.',
 
                     'ErrorDetail.Applier.Apply': 'Beim Anwenden eines Gegenstands auf einen anderen.',
                     'ErrorDetail.Pid.Id': 'Id',
