@@ -1,10 +1,9 @@
 import * as $ from 'jquery';
-import log = require('loglevel');
 import { as } from '../lib/as';
-import { Config } from '../lib/Config';
 import { ItemException } from '../lib/ItemException';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
+import { is } from '../lib/is';
 
 export class Toast
 {
@@ -21,25 +20,25 @@ export class Toast
     {
         this.onClose = onClose;
 
-        let skip = await this.app.isDontShowNoticeType(this.messageType);
+        const skip = await this.app.isDontShowNoticeType(this.messageType);
         if (skip) {
             this.close();
             return;
         }
 
-        var checkboxId = Utils.randomString(10);
+        const checkboxId = Utils.randomString(10);
 
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-toast n3q-shadow-small" data-translate="children" />').get(0);
         this.setVisibility(false);
 
-        let iconElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-icon n3q-toast-icon-' + this.iconType + '" />').get(0);
+        const iconElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-icon n3q-toast-icon-' + this.iconType + '" />').get(0);
         $(this.elem).append(iconElem);
 
-        let bodyContainerElem = <HTMLDivElement>$('<div class="n3q-base toast-body-container" data-translate="children" />').get(0);
+        const bodyContainerElem = <HTMLDivElement>$('<div class="n3q-base toast-body-container" data-translate="children" />').get(0);
         $(bodyContainerElem).append(this.bodyElem);
         $(this.elem).append(bodyContainerElem);
 
-        let closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Close" data-translate="attr:title:Common"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
+        const closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Close" data-translate="attr:title:Common"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
         $(closeElem).click(ev =>
         {
             $(this.elem).stop(true);
@@ -47,14 +46,14 @@ export class Toast
         });
         $(this.elem).append(closeElem);
 
-        let footerElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-footer" data-translate="children" />').get(0);
+        const footerElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-footer" data-translate="children" />').get(0);
 
         if (this.dontShow) {
-            let dontShowElem = <HTMLElement>$('<input class="n3q-base" type="checkbox" name="checkbox" id="' + checkboxId + '" />').get(0);
-            let dontShowLabelElem = <HTMLElement>$('<label class="n3q-base" for="' + checkboxId + '" data-translate="text:Toast">Do not show this message again</label>').get(0);
+            const dontShowElem = <HTMLElement>$('<input class="n3q-base" type="checkbox" name="checkbox" id="' + checkboxId + '" />').get(0);
+            const dontShowLabelElem = <HTMLElement>$('<label class="n3q-base" for="' + checkboxId + '" data-translate="text:Toast">Do not show this message again</label>').get(0);
             $(dontShowElem).on('change', (ev) =>
             {
-                var checkbox: HTMLInputElement = <HTMLInputElement>ev.target;
+                const checkbox: HTMLInputElement = <HTMLInputElement>ev.target;
                 this.app.setDontShowNoticeType(this.messageType, checkbox.checked);
             });
             $(footerElem).append(dontShowElem);
@@ -93,11 +92,14 @@ export class Toast
 
     close(): void
     {
-        if (this.elem != null) {
-            if (this.onClose) { this.onClose(); }
-            $(this.elem).stop();
-            this.app.getDisplay().removeChild(this.elem);
+        const elem = this.elem;
+        if (!is.nil(elem)) {
             this.elem = null;
+            if (this.onClose) {
+                this.onClose();
+            }
+            $(elem).stop();
+            this.app.getDisplay().removeChild(elem);
         }
     }
 
@@ -136,7 +138,7 @@ export class SimpleToast extends Toast
     {
         this.buttonTexts.push(text);
 
-        let buttonElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">' + as.Html(text) + '</div>').get(0);
+        const buttonElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">' + as.Html(text) + '</div>').get(0);
         $(this.bodyElem).append(buttonElem);
         this.app.translateElem(buttonElem);
         $(buttonElem).on('click', () =>
@@ -149,12 +151,12 @@ export class SimpleToast extends Toast
     {
         super.show(onClose);
 
-        let chatlogName = this.app.translateText('Chatwindow.Toast.' + this.iconType, this.iconType);
+        const chatlogName = this.app.translateText('Chatwindow.Toast.' + this.iconType, this.iconType);
         let chatlogText = this.title + ': ' + this.text;
         this.buttonTexts.forEach(buttonText => {
             chatlogText += ' [' + buttonText + ']';
         });
-        this.app.getRoom()?.showChatMessage(chatlogName, chatlogText);
+        this.app.getRoom()?.showChatMessage(Utils.randomString(10), chatlogName, chatlogText);
     }
 }
 
@@ -162,12 +164,12 @@ export class SimpleErrorToast extends Toast
 {
     constructor(app: ContentApp, type: string, durationSec: number, iconType: string, fact: string, reason: string, detail: string)
     {
-        var bodyElem = $(''
+        const bodyElem = $(''
             + '<div class="n3q-base n3q-toast-body" data-translate="children">'
             + '<div class="n3q-base n3q-title" data-translate="text:ErrorFact">' + as.Html(fact) + '</div>'
             + '<div class="n3q-base n3q-text" data-translate="children">'
-            + (reason != null && reason != '' ? '<span class="n3q-base" data-translate="text:ErrorReason">' + as.Html(reason) + '</span> ' : '')
-            + (detail != null && detail != '' ? '<span class="n3q-base" data-translate="text:ErrorDetail">' + as.Html(detail) + '</span> ' : '')
+            + (reason != null && reason !== '' ? '<span class="n3q-base" data-translate="text:ErrorReason">' + as.Html(reason) + '</span> ' : '')
+            + (detail != null && detail !== '' ? '<span class="n3q-base" data-translate="text:ErrorDetail">' + as.Html(detail) + '</span> ' : '')
             + '</div>'
             + '</div>'
         )[0];
@@ -180,11 +182,11 @@ export class ItemExceptionToast extends SimpleErrorToast
 {
     constructor(app: ContentApp, durationSec: number, ex: ItemException)
     {
-        let fact = ItemException.fact2String(ex.fact);
-        let reason = ItemException.reason2String(ex.reason);
-        let type = 'Warning-' + fact + '-' + reason;
-        let detail = ex.detail;
-        let iconType = 'warning';
+        const fact = ItemException.fact2String(ex.fact);
+        const reason = ItemException.reason2String(ex.reason);
+        const type = 'Warning-' + fact + '-' + reason;
+        const detail = ex.detail;
+        const iconType = 'warning';
 
         super(app, type, durationSec, iconType, fact, reason, detail);
     }

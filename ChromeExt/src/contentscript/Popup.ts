@@ -6,19 +6,21 @@ import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 
-type PopupOptions = any;
+export type PopupOptions = any;
 
 export class Popup
 {
     onClose: { (): void };
 
     protected windowElem: HTMLElement;
+    protected closeIsHide = false;
 
     constructor(protected app: ContentApp) { }
 
     show(options: PopupOptions)
     {
         this.onClose = options.onClose;
+        this.closeIsHide = options.closeIsHide;
 
         if (!this.windowElem) {
             let windowId = Utils.randomString(15);
@@ -33,15 +35,19 @@ export class Popup
                 this.isClosing = false;
                 $(closeElem).click(ev =>
                 {
-                    this.close();
-                    ev.stopPropagation();
+                    if (this.closeIsHide) {
+                        this.setVisibility(false);
+                    } else {
+                        this.close();
+                    }
                 });
                 $(windowElem).append(closeElem);
             }
 
             this.windowElem = windowElem;
 
-            $(options.elem).append(windowElem);
+            // $(options.elem).append(windowElem);
+            $(this.app.getDisplay()).append(windowElem);
 
             $(windowElem).click(ev =>
             {
@@ -49,6 +55,8 @@ export class Popup
             });
         }
     }
+
+    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
 
     isOpen(): boolean
     {

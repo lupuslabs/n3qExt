@@ -4,14 +4,12 @@ import { SimpleRpc } from '../contentscript/SimpleRpc';
 
 export class Payload
 {
-    static async getContextToken(api: string, user: string, item: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
+    static async getContextToken(user: string, itemId: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
     {
-        let expires = 10000000000 + ttlSec;
         var payload = {
             'user': user,
-            'item': item,
+            'item': itemId,
             'entropy': Utils.randomString(20),
-            'expires': expires
         };
         
         for (let key in payloadOptions) {
@@ -34,16 +32,4 @@ export class Payload
         let tokenBase64Encoded = Utils.base64Encode(tokenString);
         return tokenBase64Encoded;
     }
-
-    static async getPayloadHash(api: string, payload: any): Promise<string>
-    {
-        let response = await new SimpleRpc('getPayloadHash')
-            .param('payload', payload)
-            .send(api);
-        if (response.ok) {
-            return response.get('result', null);
-        }
-        throw response.message;
-    }
-
 }

@@ -77,6 +77,13 @@ export class RoomItemStats
         //     display[Pid.RezzedDestination] = props[Pid.RezzedDestination];
         // }
 
+        if (this.roomItem.isMyItem()) {
+            display[Pid.OwnerName] = 'You';
+        } else {
+            display[Pid.OwnerName] = this.roomItem.getOwnerName();
+
+        }
+
         let listElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-list" data-translate="children" />').get(0);
         let hasStats = false;
         for (let pid in display) {

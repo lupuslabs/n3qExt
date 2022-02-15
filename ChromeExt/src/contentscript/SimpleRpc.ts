@@ -6,10 +6,8 @@ import { as } from '../lib/as';
 
 export class SimpleRpcResponse
 {
-    constructor(public ok: boolean, public data: any, public message: string = null)
-    {
-    }
-
+    constructor(public ok: boolean, public data: any, public message: string = null) { }
+    
     get(key: string, defaultValue: any): any
     {
         if (this.data[key]) {
@@ -21,9 +19,7 @@ export class SimpleRpcResponse
 
 export class SimpleRpc
 {
-    constructor(public rpcMethod: string, public params: any = {})
-    {
-    }
+    constructor(public rpcMethod: string, public params: any = {})    { }
 
     method(method: string): SimpleRpc { this.rpcMethod = method; return this; }
     param(key: string, value: any): SimpleRpc { this.params[key] = value; return this; }

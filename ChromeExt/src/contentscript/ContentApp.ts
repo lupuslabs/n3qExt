@@ -1,8 +1,10 @@
 import log = require('loglevel');
 import * as $ from 'jquery';
-import { xml, jid } from '@xmpp/client';
+import * as jid from '@xmpp/jid';
+import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
+import { is } from '../lib/is';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
@@ -12,20 +14,22 @@ import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
 import { ContentMessage } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
-import { HelloWorld } from './HelloWorld';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
-import { VpiResolver } from './VpiResolver';
+import { VpiMappingResult, VpiResolver } from './VpiResolver';
 import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
-import { TestWindow } from './TestWindow';
 import { BackpackWindow } from './BackpackWindow';
-import { SimpleToast } from './Toast';
+import { ItemExceptionToast, SimpleToast } from './Toast';
 import { IframeApi } from './IframeApi';
 import { RandomNames } from '../lib/RandomNames';
+import { Participant } from './Participant';
+import { SimpleItemTransferController } from './SimpleItemTransferController';
+import { ItemException } from '../lib/ItemException';
+import { prepareValueForLog } from '../lib/debugUtils';
 
 interface ILocationMapperResponse
 {
@@ -42,7 +46,7 @@ export class ContentAppNotification
 }
 
 interface ContentAppNotificationCallback { (msg: any): void }
-interface StanzaResponseHandler { (stanza: xml): void }
+interface StanzaResponseHandler { (stanza: XmlElement): void }
 
 export class ContentApp
 {
@@ -56,6 +60,7 @@ export class ContentApp
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
     private backpackWindow: BackpackWindow;
+    private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
     private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
@@ -73,10 +78,85 @@ export class ContentApp
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
     getRoom(): Room { return this.room; }
+
+    getMyParticipant(): undefined | Participant
+    {
+        return this.room?.getParticipant(this.room.getMyNick()) ?? null;
+    }
+
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
+
+    /**
+     * null before in a room and receiving first presence for local participant.
+     */
+    getSimpleItemTransferController(): undefined | SimpleItemTransferController
+    {
+        if (is.nil(this.simpleItemTransferController)
+            && !is.nil(this.getMyParticipant())) {
+            this.simpleItemTransferController
+                = new SimpleItemTransferController(this);
+        }
+        return this.simpleItemTransferController;
+    }
 
     constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
     {
+    }
+
+    activateBackgroundPageProbeDelaySec = 0;
+    getActivateBackgroundPageProbeDelay()
+    {
+        if (this.activateBackgroundPageProbeDelaySec <= 0) {
+            this.activateBackgroundPageProbeDelaySec = Config.get('system.activateBackgroundPageProbeDelayMinSec', 0.1);
+        } else {
+            this.activateBackgroundPageProbeDelaySec *= Config.get('system.activateBackgroundPageProbeDelayFactor', 2);
+            const max = Config.get('system.activateBackgroundPageProbeDelayMaxSec', 10);
+            if (this.activateBackgroundPageProbeDelaySec > max) {
+                this.activateBackgroundPageProbeDelaySec = max;
+            }
+        }
+        return this.activateBackgroundPageProbeDelaySec;
+    }
+    async activateBackgroundPage(): Promise<void>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            const probeStartTime = Date.now() / 1000;
+            let awake = false;
+            while (!awake) {
+                if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'probing'); }
+                try {
+                    awake = await BackgroundMessage.wakeup();
+                } catch (error) {
+                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'unreachable'); }
+                }
+                if (!awake) {
+                    const now = Date.now() / 1000;
+                    const since = now - probeStartTime;
+                    if (since > Config.get('system.activateBackgroundPageProbeTotalSec', 60)) {
+                        break;
+                    } else {
+
+                        const delay = this.getActivateBackgroundPageProbeDelay();
+                        if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'sleeping', delay); }
+                        await Utils.sleep(delay * 1000);
+                    }
+                } else {
+                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'available'); }
+                }
+            }
+            if (awake) {
+                resolve();
+            } else {
+                reject({ message: 'BackgroundApp seems unreachable, giving up' });
+            }
+        });
+
+        // WFT: chrome.runtime.getBackgroundPage is not a function
+        // return new Promise(resolve =>
+        // {
+        //     chrome.runtime.getBackgroundPage(resolve);
+        // });
     }
 
     async start(params: any)
@@ -87,6 +167,7 @@ export class ContentApp
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
 
         try {
+            // await this.activateBackgroundPage();
             await BackgroundMessage.waitReady();
         } catch (error) {
             log.debug(error.message);
@@ -101,7 +182,7 @@ export class ContentApp
         }
 
         try {
-            let config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
+            const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
             Config.setOnlineTree(config);
         } catch (error) {
             log.debug(error.message);
@@ -110,23 +191,29 @@ export class ContentApp
         if (Panic.isOn) { return; }
 
         try {
-            let config = await BackgroundMessage.getConfigTree(Config.devConfigName);
+            const config = await BackgroundMessage.getConfigTree(Config.devConfigName);
             Config.setDevTree(config);
         } catch (error) {
             log.debug(error.message);
         }
 
+        if (Utils.logChannel('contentStart', false)) {
+            log.debug('ContentApp.start', 'static', Config.getStaticTree());
+            log.debug('ContentApp.start', 'online', Config.getOnlineTree());
+            log.debug('ContentApp.start', 'dev', Config.getDevTree());
+        }
+
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
         {
-            let pageUrl = Browser.getCurrentPageUrl();
-            let parsedUrl = new URL(pageUrl);
+            const pageUrl = Browser.getCurrentPageUrl();
+            const parsedUrl = new URL(pageUrl);
             if (parsedUrl.hash.search('#n3qdisable') >= 0) {
                 return;
             }
-            let ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
-            for (let i = 0; i < ignoredDomains.length; i++) {
-                if (parsedUrl.host.endsWith(ignoredDomains[i])) {
+            const ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
+            for (const ignoredDomain of ignoredDomains) {
+                if (parsedUrl.host.endsWith(ignoredDomain)) {
                     return;
                 }
             }
@@ -134,11 +221,11 @@ export class ContentApp
 
         await Utils.sleep(as.Float(Config.get('vp.deferPageEnterSec', 1)) * 1000);
 
-        let navLang = Config.get('i18n.overrideBrowserLanguage', '');
-        if (navLang == '') {
+        let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
+        if (navLang === '') {
             navLang = navigator.language;
         }
-        let language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        const language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
         this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
 
         this.vpi = new VpiResolver(BackgroundMessage, Config);
@@ -154,7 +241,7 @@ export class ContentApp
         if (Panic.isOn) { return; }
 
         $('div#n3q').remove();
-        let page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
+        const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
         this.display = $('<div class="n3q-base n3q-display" />').get(0);
         $(page).append(this.display);
         this.appendToMe.append(page);
@@ -214,7 +301,7 @@ export class ContentApp
         try {
             chrome.runtime?.onMessage.removeListener(this.onRuntimeMessageClosure);
         } catch (error) {
-            //            
+            //
         }
 
         // Remove our own top element
@@ -225,21 +312,14 @@ export class ContentApp
 
     test(): void
     {
-        this.room.getParticipant(this.room.getMyNick()).showEffect('pulse');
-
-        //this.room.getParticipant(this.room.getMyNick()).setRange(-250, 50);
-        //this.sndChat.play();
-        //new SimpleToast(this, 'test', 4, 'warning', 'Heiner (dev)', 'greets').show();
-        //this.showBackpackWindow(null);
+        // let frame = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
+        // this.display.append(frame);
+        this.getMyParticipant()?.showEffect('pulse');
     }
 
     navigate(url: string, target: string = '_top')
     {
-        if (target == '' || target == '_top') {
-            window.location.href = url;
-        } else {
-            window.location.href = url;
-        }
+        window.location.href = url;
     }
 
     playSound(fluteSound: any)
@@ -248,13 +328,7 @@ export class ContentApp
 
     getMyParticipantELem(): HTMLElement
     {
-        if (this.room) {
-            let participant = this.room.getParticipant(this.room.getMyNick());
-            if (participant) {
-                return participant.getElem();
-            }
-        }
-        return null;
+        return this.getMyParticipant()?.getElem();
     }
 
     reshowBackpackWindow(): void
@@ -282,13 +356,11 @@ export class ContentApp
     }
     showVidconfWindow(aboveElem?: HTMLElement): void
     {
-        aboveElem = aboveElem ?? this.getMyParticipantELem();
-        if (this.room) {
-            let participant = this.room.getParticipant(this.room.getMyNick());
-            if (participant) {
-                let displayName = participant.getDisplayName();
-                this.room.showVideoConference(aboveElem, displayName);
-            }
+        const aboveElemM = aboveElem ?? this.getMyParticipantELem();
+        const participant: Participant = this.getMyParticipant();
+        if (participant) {
+            const displayName = participant.getDisplayName();
+            this.room.showVideoConference(aboveElemM, displayName);
         }
     }
 
@@ -395,7 +467,7 @@ export class ContentApp
 
     evaluateStayOnTabChange(): void
     {
-        let stay = this.backpackIsOpen
+        const stay = this.backpackIsOpen
             || this.vidconfIsOpen
             || this.chatIsOpen
             // || this.stayHereIsChecked
@@ -409,15 +481,15 @@ export class ContentApp
         }
     }
 
-    // Backgound pages dont allow timers 
+    // Backgound pages dont allow timers
     // and alerts were unreliable on first test.
     // So, let the content script call the background
-    private pingBackgroundToKeepConnectionAliveSec: number = Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec', 180);
+    private pingBackgroundToKeepConnectionAliveSec: number = as.Float(Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec'), 180);
     private pingBackgroundToKeepConnectionAliveTimer: number = undefined;
     private pingBackgroundToKeepConnectionAlive()
     {
-        if (this.pingBackgroundToKeepConnectionAliveTimer == undefined) {
-            this.pingBackgroundToKeepConnectionAliveTimer = <number><unknown>setTimeout(async () =>
+        if (this.pingBackgroundToKeepConnectionAliveTimer === undefined) {
+            this.pingBackgroundToKeepConnectionAliveTimer = window.setTimeout(async () =>
             {
                 try {
                     await BackgroundMessage.pingBackground();
@@ -433,7 +505,7 @@ export class ContentApp
 
     private stop_pingBackgroundToKeepConnectionAlive()
     {
-        if (this.pingBackgroundToKeepConnectionAliveTimer != undefined) {
+        if (this.pingBackgroundToKeepConnectionAliveTimer !== undefined) {
             clearTimeout(this.pingBackgroundToKeepConnectionAliveTimer);
             this.pingBackgroundToKeepConnectionAliveTimer = undefined;
         }
@@ -451,7 +523,7 @@ export class ContentApp
         this.onSimpleRuntimeMessage(message);
     }
 
-    private onSimpleRuntimeMessage(message): any
+    private onSimpleRuntimeMessage(message): boolean
     {
         switch (message.type) {
             case ContentMessage.type_recvStanza: {
@@ -491,15 +563,15 @@ export class ContentApp
         return true;
     }
 
-    handle_recvStanza(jsStanza: any): any
+    handle_recvStanza(jsStanza: unknown): void
     {
-        let stanza: xml = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: XmlElement = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
-            log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
+            log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
 
         if (this.xmppWindow) {
-            let stanzaText = stanza.toString();
+            const stanzaText = stanza.toString();
             this.xmppWindow.showLine('_IN_', stanzaText);
         }
 
@@ -508,8 +580,6 @@ export class ContentApp
             case 'message': this.onMessage(stanza); break;
             case 'iq': this.onIq(stanza); break;
         }
-
-        // return true;
     }
 
     handle_userSettingsChanged(): any
@@ -522,20 +592,25 @@ export class ContentApp
 
     handle_clientNotification(request: WeblinClientApi.ClientNotificationRequest): any
     {
-        let title = as.String(request.title, '');
-        let text = as.String(request.text, '');
-        let iconType = as.String(request.iconType, WeblinClientApi.ClientNotificationRequest.defaultIcon);
-        let links = request.links;
-        let what = '';
-        let detail = request.detail;
-        if (detail) {
-            what = as.String(detail.what, '');
-        }
-        let toast = new SimpleToast(this, 'itemframe-' + iconType + what, Config.get('client.notificationToastDurationSec', 30), iconType, title, text);
+        const title = as.String(request.title);
+        const text = as.String(request.text);
+        const iconType = as.String(request.iconType, WeblinClientApi.ClientNotificationRequest.defaultIcon);
+        const links = request.links;
+        const toast = new SimpleToast(this, request.type, as.Float(Config.get('client.notificationToastDurationSec'), 30), iconType, title, text);
         if (links) {
             links.forEach(link =>
             {
-                toast.actionButton(link.text, () => { document.location.href = link.href; });
+                toast.actionButton(link.text, () =>
+                {
+                    if (link.href.startsWith('client:')) {
+                        const cmd = link.href.substring('client:'.length);
+                        if (cmd === 'toggleBackpack') {
+                            this.showBackpackWindow();
+                        }
+                    } else {
+                        document.location.href = link.href;
+                    }
+                });
             });
         }
         toast.show(() => { });
@@ -552,9 +627,7 @@ export class ContentApp
 
     handle_sendPresence(): void
     {
-        if (this.room) {
-            this.room.sendPresence();
-        }
+        this.room?.sendPresence();
     }
 
     leavePage()
@@ -567,8 +640,8 @@ export class ContentApp
         try {
             let pageUrl = this.presetPageUrl ?? Browser.getCurrentPageUrl();
 
-            let strippedUrlPrefixes = Config.get('vp.strippedUrlPrefixes', []);
-            let notStrippedUrlPrefixes = Config.get('vp.notStrippedUrlPrefixes', []);
+            const strippedUrlPrefixes = Config.get('vp.strippedUrlPrefixes', []);
+            const notStrippedUrlPrefixes = Config.get('vp.notStrippedUrlPrefixes', []);
             for (let i = 0; i < strippedUrlPrefixes.length; i++) {
                 if (pageUrl.startsWith(strippedUrlPrefixes[i]) && !Utils.startsWith(pageUrl, notStrippedUrlPrefixes)) {
                     pageUrl = pageUrl.substring(strippedUrlPrefixes[i].length);
@@ -578,14 +651,16 @@ export class ContentApp
                 }
             }
 
-            let newSignificatParts = pageUrl ? this.getSignificantUrlParts(pageUrl) : '';
-            let oldSignificatParts = this.pageUrl ? this.getSignificantUrlParts(this.pageUrl) : '';
-            if (newSignificatParts == oldSignificatParts) { return }
+            const newSignificatParts = pageUrl ? this.getSignificantUrlParts(pageUrl) : '';
+            const oldSignificatParts = this.pageUrl ? this.getSignificantUrlParts(this.pageUrl) : '';
+            if (newSignificatParts === oldSignificatParts) { return }
 
             if (Utils.logChannel('urlMapping', false)) { log.info('Page changed', this.pageUrl, ' => ', pageUrl); }
             this.pageUrl = pageUrl;
 
-            let newRoomJid = await this.vpiMap(pageUrl);
+            const mappingResult = await this.vpiMap(pageUrl);
+            const newRoomJid = mappingResult.roomJid;
+            const newDestinationUrl = mappingResult.destinationUrl;
 
             if (newRoomJid == this.roomJid) {
                 this.room.setPageUrl(pageUrl);
@@ -595,35 +670,33 @@ export class ContentApp
 
             this.leavePage();
 
-            this.roomJid = newRoomJid;
-            if (Utils.logChannel('urlMapping', false)) { log.info('Mapped', pageUrl, ' => ', this.roomJid); }
-
-            if (this.roomJid != '') {
-                this.enterRoom(this.roomJid, pageUrl, pageUrl);
+            if (newRoomJid != '') {
+                this.enterRoom(newRoomJid, pageUrl, newDestinationUrl);
                 if (Config.get('points.enabled', false)) {
                     /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1);
                 }
             }
+
+            this.roomJid = newRoomJid;
+            if (Utils.logChannel('urlMapping', false)) { log.info('Mapped', pageUrl, ' => ', this.roomJid); }
 
         } catch (error) {
             log.info(error);
         }
     }
 
-    getSignificantUrlParts(url: string)
+    getSignificantUrlParts(url: string): string
     {
-        let parsedUrl = new URL(url)
+        const parsedUrl = new URL(url);
         return parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
     }
 
-    async vpiMap(url: string): Promise<string>
+    async vpiMap(url: string): Promise<VpiMappingResult>
     {
-        let locationUrl = await this.vpi.map(url);
-        let roomJid = ContentApp.getRoomJidFromLocationUrl(locationUrl);
-        return roomJid;
+        return await this.vpi.map(url);
     }
 
-    private checkPageUrlSec: number = Config.get('room.checkPageUrlSec', 5);
+    private checkPageUrlSec: number = as.Float(Config.get('room.checkPageUrlSec'), 5);
     private checkPageUrlTimer: number;
     private startCheckPageUrl()
     {
@@ -648,7 +721,7 @@ export class ContentApp
     {
         try {
             if (locationUrl != '') {
-                let url = new URL(locationUrl);
+                const url = new URL(locationUrl);
                 return url.pathname;
             }
         } catch (error) {
@@ -660,13 +733,13 @@ export class ContentApp
     // async enterRoomByPageUrl(pageUrl: string): Promise<void>
     // {
     //     try {
-    //         let vpi = new VpiResolver(BackgroundMessage, Config);
+    //         const vpi = new VpiResolver(BackgroundMessage, Config);
     //         vpi.language = Translator.getShortLanguageCode(this.babelfish.getLanguage());
 
     //         this.locationUrl = await vpi.map(pageUrl);
     //         log.debug('Mapped', pageUrl, ' => ', this.locationUrl);
 
-    //         let roomJid = ContentApp.getRoomJidFromLocationUrl(this.locationUrl);
+    //         const roomJid = ContentApp.getRoomJidFromLocationUrl(this.locationUrl);
     //         this.enterRoom(roomJid, pageUrl);
 
     //     } catch (error) {
@@ -694,16 +767,16 @@ export class ContentApp
         }
     }
 
-    onPresence(stanza: xml): void
+    onPresence(stanza: XmlElement): void
     {
         let isHandled = false;
 
-        let from = jid(stanza.attrs.from);
-        let roomOrUser = from.bare();
+        const from = jid(stanza.attrs.from);
+        const roomOrUser = from.bare().toString();
 
         if (!isHandled) {
             if (this.room) {
-                if (roomOrUser == this.room.getJid()) {
+                if (roomOrUser === this.room.getJid()) {
                     this.room.onPresence(stanza);
                     isHandled = true;
                 }
@@ -711,51 +784,72 @@ export class ContentApp
         }
     }
 
-    onMessage(stanza: xml): void
+    onMessage(stanza: XmlElement): void
     {
-        let from = jid(stanza.attrs.from);
-        let roomOrUser = from.bare();
+        const from = jid(stanza.attrs.from);
+        const roomOrUser = from.bare().toString();
 
-        if (this.room) {
-            if (roomOrUser == this.room.getJid()) {
-                this.room.onMessage(stanza);
+        if (roomOrUser === this.room?.getJid()) {
+            this.room?.onMessage(stanza);
+        }
+    }
+
+    onIq(stanza: XmlElement): void
+    {
+        const id = stanza.attrs.id;
+        if (id) {
+            if (this.stanzasResponses[id]) {
+                this.stanzasResponses[id](stanza);
+                delete this.stanzasResponses[id];
             }
         }
     }
 
-    onIq(stanza: xml): void
-    {
-        if (stanza.attrs) {
-            let id = stanza.attrs.id;
-            if (id) {
-                if (this.stanzasResponses[id]) {
-                    this.stanzasResponses[id](stanza);
-                    delete this.stanzasResponses[id];
-                }
-            }
-        }
-    }
-
-    async sendStanza(stanza: xml, stanzaId: string = null, responseHandler: StanzaResponseHandler = null): Promise<void>
+    sendStanza(
+        stanza: XmlElement,
+        stanzaId: string = null,
+        responseHandler: StanzaResponseHandler = null,
+    ): void
     {
         if (Utils.logChannel('contentTraffic', false)) {
-            log.debug('ContentApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to);
+            const stanzaAttrsText = as.String(
+                stanza.attrs.type,
+                stanza.name === 'presence' ? 'available' : 'normal');
+            log.debug('ContentApp.sendStanza',
+                stanza, stanzaAttrsText, 'to=', stanza.attrs.to);
         }
-        try {
+        (async () =>
+        {
             if (this.xmppWindow) {
-                let stanzaText = stanza.toString();
+                const stanzaText = stanza.toString();
                 this.xmppWindow.showLine('OUT', stanzaText);
             }
-
             if (stanzaId && responseHandler) {
                 this.stanzasResponses[stanzaId] = responseHandler;
             }
-
             await BackgroundMessage.sendStanza(stanza);
-        } catch (error) {
-            log.info(error);
-            Panic.now();
+        })().catch(error =>
+        {
+            this.onCriticalError(ErrorWithData.ofError(
+                error, 'BackgroundMessage.sendStanza failed!', { stanza: stanza }));
+        });
+    }
+
+    // Error handling
+
+    public onError(error: Error): void
+    {
+        log.info({ error: prepareValueForLog(error) }); // Log to info channel only so it doesn't appear on extensions page.
+        if (ItemException.isInstance(error)) {
+            const duration = as.Float(Config.get('room.errorToastDurationSec'));
+            new ItemExceptionToast(this, duration, error).show();
         }
+    }
+
+    public onCriticalError(error: Error): void
+    {
+        this.onError(error);
+        Panic.now();
     }
 
     // Window management
@@ -764,17 +858,26 @@ export class ContentApp
     public static LayerEntity = 30;
     public static LayerEntityContent = 31;
     public static LayerEntityTooltip = 32;
-    public static LayerPopup = 40;
     public static LayerAboveEntities = 45;
+    public static LayerPageOverlay = 46;
     public static LayerWindow = 50;
     public static LayerWindowContent = 51;
+    public static LayerPopup = 60;
     public static LayerDrag = 99;
+    public static LayerEffect = 100;
+    public static LayerMenu = 110;
     private static layerSize = 10 * 1000 * 1000;
     private frontIndex: { [layer: number]: number; } = {};
-    toFront(elem: HTMLElement, layer: number)
+    toFront(elem: HTMLElement, layer: number | string)
     {
-        this.incrementFrontIndex(layer);
-        let absoluteIndex = this.getFrontIndex(layer);
+        let layerInt: number;
+        if (is.string(layer)) {
+            layerInt = as.Int(ContentApp[layer], ContentApp.LayerBelowEntities);
+        } else {
+            layerInt = as.Int(layer, ContentApp.LayerBelowEntities);
+        }
+        this.incrementFrontIndex(layerInt);
+        const absoluteIndex = this.getFrontIndex(layerInt);
         elem.style.zIndex = '' + absoluteIndex;
         //log.debug('ContentApp.toFront', absoluteIndex, elem.className);
     }
@@ -792,7 +895,7 @@ export class ContentApp
     }
     isFront(elem: HTMLElement, layer: number)
     {
-        return (as.Int(elem.style.zIndex, 0) == this.getFrontIndex(layer));
+        return (as.Int(elem.style.zIndex) == this.getFrontIndex(layer));
     }
 
     private dropzoneELem: HTMLElement = null;
@@ -855,7 +958,7 @@ export class ContentApp
     async assertActive()
     {
         try {
-            let active = await Memory.getLocal(Utils.localStorageKey_Active(), '');
+            const active = await Memory.getLocal(Utils.localStorageKey_Active(), '');
             if (active == '') {
                 await Memory.setLocal(Utils.localStorageKey_Active(), 'true');
             }
@@ -868,8 +971,8 @@ export class ContentApp
     async getActive(): Promise<boolean>
     {
         try {
-            let active = await Memory.getLocal(Utils.localStorageKey_Active(), 'true');
-            return as.Bool(active, false);
+            const active = await Memory.getLocal(Utils.localStorageKey_Active(), 'true');
+            return as.Bool(active);
         } catch (error) {
             log.info(error);
             return false;
@@ -935,7 +1038,7 @@ export class ContentApp
         try {
             let x = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), -1), -1);
             if (x < 0) {
-                x = Utils.randomInt(as.Int(Config.get('room.randomEnterPosXMin', 400)), as.Int(Config.get('room.randomEnterPosXMax', 700)))
+                x = Utils.randomInt(as.Int(Config.get('room.randomEnterPosXMin', 400)), as.Int(Config.get('room.randomEnterPosXMax', 700)));
                 await this.savePosition(x);
             }
         } catch (error) {
@@ -971,7 +1074,7 @@ export class ContentApp
 
     getDefaultPosition(key: string = null): number
     {
-        let pos: number = 300;
+        let pos: number;
         let width = this.display.offsetWidth;
         if (!width) { width = 500; }
         if (key) {
@@ -981,4 +1084,147 @@ export class ContentApp
         }
         return pos;
     }
+
+    // Item helpers
+
+    /**
+     * Triggers the derezzing of the item with
+     * or without setting a new backpack position.
+     */
+    public derezItem(
+        itemId: string,
+        xNew?: undefined | number,
+        yNew?: undefined | number,
+    ): void
+    {
+        const roomItem = this.room.getItemByItemId(itemId);
+        if (!is.nil(roomItem)) {
+            roomItem.beginDerez();
+        }
+        this.derezItemAsync(itemId, xNew, yNew
+        ).catch(error =>
+        {
+            this.onError(ErrorWithData.ofError(
+                error, 'ContentApp.derezItemAsync failed!', { itemId: itemId, xNew: xNew, yNew: yNew }));
+        }).finally(() =>
+        {
+            const roomItem = this.room.getItemByItemId(itemId);
+            if (!is.nil(roomItem)) {
+                roomItem.endDerez();
+            }
+        });
+    }
+
+    /**
+     * Derezzes the item with or without setting a new backpack position.
+     *
+     * Async version allowing direct reaction to errors.
+     */
+    public async derezItemAsync(
+        itemId: string,
+        xNew?: undefined | number,
+        yNew?: undefined | number,
+    ): Promise<void>
+    {
+        const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+        const roomJid = props[Pid.RezzedLocation];
+        const [x, y] = [xNew ?? -1, yNew ?? -1];
+        const propsDel = [Pid.AutorezIsActive];
+        if (Utils.logChannel('items')) {
+            log.info('ContentApp.derezItemAsync', 'itemId', itemId, 'roomJid', roomJid);
+        }
+        await BackgroundMessage.derezBackpackItem(
+            itemId, roomJid, x, y, {}, propsDel, {}
+        );
+    }
+
+    /**
+     * Triggers the moving of a rezzed item on the same page.
+     */
+    public moveRezzedItem(itemId: string, xNew: number): void
+    {
+        this.moveRezzedItemAsync(itemId, xNew
+        ).catch(error =>
+        {
+            this.onError(ErrorWithData.ofError(
+                error, 'ContentApp.moveRezzedItemAsync failed!', { itemId: itemId, xNew: xNew }));
+        });
+    }
+
+    /**
+     * Moves a rezzed item on the same page.
+     *
+     * Async version allowing direct reaction to errors.
+     */
+    public async moveRezzedItemAsync(itemId: string, xNew: number): Promise<void>
+    {
+        if (Utils.logChannel('items')) {
+            log.info('ContentApp.moveRezzedItemAsync', 'itemId', itemId, 'xNew', xNew);
+        }
+        await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.RezzedX]: as.String(xNew) }, [], {});
+    }
+
+    public deleteItemAsk(
+        itemId: string,
+        onDeleted?: (itemId: string) => void,
+        onCanceled?: (itemId: string) => void,
+        onFailed?: (itemId: string) => void, // For cleanups. Defaults to onCanceled.
+    ): void
+    {
+        (async () =>
+        {
+            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+            const itemName = props[Pid.Label] ?? props[Pid.Template];
+            const duration = Config.get('backpack.deleteToastDurationSec', 1000);
+            const text = this.translateText('ItemLabel.' + itemName) + '\n' + itemId;
+            const toast = new SimpleToast(
+                this, 'backpack-reallyDelete', duration, 'question', 'Really delete?', text);
+            let inOnAnswer = false;
+            const onYes = () =>
+            {
+                if (!inOnAnswer) {
+                    inOnAnswer = true;
+                    toast.close();
+                    this.deleteItem(itemId, onDeleted, onFailed ?? onCanceled);
+                }
+            };
+            const onNo = () =>
+            {
+                if (!inOnAnswer) {
+                    inOnAnswer = true;
+                    toast.close();
+                    onCanceled?.(itemId);
+                }
+            };
+            toast.actionButton('Yes, delete item', onYes);
+            toast.actionButton('No, keep it', onNo);
+            toast.setDontShow(false);
+            toast.show(onNo);
+        })().catch(error =>
+        {
+            this.onError(ErrorWithData.ofError(error, 'Toast preparation failed!', { itemId: itemId }));
+        });
+    }
+
+    public deleteItem(
+        itemId: string,
+        onDeleted?: (itemId: string) => void,
+        onFailed?: (itemId: string) => void, // For cleanups.
+    ): void
+    {
+        if (Utils.logChannel('items')) {
+            log.info('ContentApp.deleteItem', itemId);
+        }
+        (async () =>
+        {
+            await BackgroundMessage.deleteBackpackItem(itemId, {});
+            // this.room?.sendPresence();
+            onDeleted?.(itemId);
+        })().catch(error =>
+        {
+            this.onError(ErrorWithData.ofError(error, 'Error caught!', { itemId: itemId }));
+            onFailed?.(itemId);
+        });
+    }
+
 }

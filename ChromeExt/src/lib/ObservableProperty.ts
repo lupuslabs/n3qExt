@@ -1,4 +1,4 @@
-﻿﻿export interface IObserver
+﻿export interface IObserver
 {
     updateObservableProperty(name: string, value: string): void;
 }

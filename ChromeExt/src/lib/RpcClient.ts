@@ -5,7 +5,7 @@ import { Utils } from './Utils';
 
 export class RpcClient
 {
-    call(url: string, request: RpcProtocol.BackpackRequest): Promise<RpcProtocol.Response>
+    call(url: string, request: RpcProtocol.Request): Promise<RpcProtocol.Response>
     {
         // log.debug('RpcClient.call', url, request);
         return new Promise((resolve, reject) =>
@@ -20,9 +20,9 @@ export class RpcClient
                 })
                     .then(httpResponse =>
                     {
-                        if (Utils.logChannel('rpcClient', false)) {
-                            log.debug('RpcClient.call', 'httpResponse', url, request, httpResponse);
-                        }
+                        // if (Utils.logChannel('rpcClient', false)) {
+                        //     log.debug('RpcClient.call', 'httpResponse', url, request, httpResponse);
+                        // }
                         if (httpResponse.ok) {
                             return httpResponse.text();
                         } else {
@@ -32,7 +32,9 @@ export class RpcClient
                     .then(text =>
                     {
                         let response = JSON.parse(text);
-                        // log.debug('RpcClient.call', 'response', url, response);
+                        if (Utils.logChannel('rpcClient', false)) {
+                            log.debug('RpcClient.call', 'response', url, request, response);
+                        }
                         if (response.status == RpcProtocol.Response.status_ok) {
                             resolve(response);
                         } else {

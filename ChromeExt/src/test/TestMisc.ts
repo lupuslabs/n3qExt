@@ -3,6 +3,7 @@ import { SimpleRpc } from '../contentscript/SimpleRpc';
 // import markdown = require('markdown');
 const NodeRSA = require('node-rsa');
 import * as crypto from 'crypto';
+import { ItemException } from '../lib/ItemException';
 
 export class TestMisc
 {
@@ -52,8 +53,11 @@ export class TestMisc
 
     Map_delete()
     {
-        let m: Map<string, number> = new Map<string, number>();
-        m['a'] = 'b';
+        const m: Map<string, string> = new Map<string, string>();
+        m.set('a', 'b');
+        expect(m.size).to.equal(1);
+        m['x'] = 'y'; // Doesn't increment m.size.
+        expect(m.size).to.equal(1);
         m.delete('a');
         expect(m.size).to.equal(0);
     }
@@ -70,6 +74,20 @@ export class TestMisc
         expect('www.weblin.com'.replace(/(https?:\/\/[^\s]+|www\.[^. ]+\.[^ ]+)/g, url => 'url')).to.equal('url');
         expect('weblin.com'.replace(/(https?:\/\/[^\s]+|www\.[^. ]+\.[^ ]+|[^. ]+\.(com|org|net|[a-z]{2}))/g, url => 'url')).to.equal('url');
         expect('x www.heise.de y'.replace(/(https?:\/\/[^\s]+|www\.[^. ]+\.[^ ]+|[^. ]+\.(com|org|net|[a-z]{2}))/g, url => 'url')).to.equal('x url y');
+    }
+
+    ItemException_isInstance()
+    {
+        expect(ItemException.isInstance(new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.UnknownReason))).to.equal(true);
+        expect(ItemException.isInstance({ fact: ItemException.Fact.UnknownError, reason: ItemException.Reason.UnknownReason })).to.equal(true);
+        expect(ItemException.isInstance({ fact: 1, reason: 2 })).to.equal(true);
+        expect(ItemException.isInstance({ fact: '1', reason: '2' })).to.equal(true);
+        expect(ItemException.isInstance({ a: ItemException.Fact.UnknownError, b: ItemException.Reason.UnknownReason })).to.equal(false);
+        expect(ItemException.isInstance({ })).to.equal(false);
+        expect(ItemException.isInstance(undefined)).to.equal(false);
+        expect(ItemException.isInstance(null)).to.equal(false);
+        expect(ItemException.isInstance('42')).to.equal(false);
+        expect(ItemException.isInstance(42)).to.equal(false);
     }
 
     // async SimpleRpc_echo()

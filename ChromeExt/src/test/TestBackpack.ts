@@ -4,18 +4,31 @@ import { BackgroundApp } from '../background/BackgroundApp';
 import { Backpack } from '../background/Backpack';
 import { as } from '../lib/as';
 import { Pid } from '../lib/ItemProperties';
-import { ItemChangeOptions } from '../lib/ItemChangeOptions';
+import { Config } from '../lib/Config';
 
 export class TestBackpack
 {
     async Backpack_stanzaOutFilter()
     {
+        Config.setDevTree({
+            itemProviders: {
+                'nine3q': {
+                    name: 'weblin.io Items (client storage)',
+                    type: 'LocalStorageItemProvider',
+                    description: 'Things on web pages managed by the client in a distributed fashion',
+                    config: {
+                        backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
+                    },
+                }
+            }
+        });
         let ba = new BackgroundApp();
         let rep = new Backpack(ba);
+        await rep.init();
 
-        await rep.addItem('item1', { 'Test1': 'Value1', 'Test2': '41' , 'Test3': 'x' , 'Test4': 'y' }, { skipPersistentStorage: true });
-        await rep.addItem('item2', { 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
-        await rep.addItem('item3', { 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
+        await rep.addItem('item1', { 'Provider': 'nine3q', 'Test1': 'Value1', 'Test2': '41', 'Test3': 'x', 'Test4': 'y' }, { skipPersistentStorage: true });
+        await rep.addItem('item2', { 'Provider': 'nine3q', 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
+        await rep.addItem('item3', { 'Provider': 'nine3q', 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
 
         await rep.rezItem('item1', 'room1@server', 41, 'Destination1', { skipPersistentStorage: true });
         await rep.rezItem('item2', 'room1@server', 42, 'Destination2', { skipPersistentStorage: true });
@@ -48,7 +61,7 @@ export class TestBackpack
         let pres1 = dependentPresences[0].getChildren('x')[0];
         expect(pres1.attrs['xmlns']).to.equal('vp:props');
         expect(pres1.attrs['type']).to.equal('item');
-        expect(pres1.attrs['provider']).to.equal('nine3q');
+        expect(pres1.attrs['Provider']).to.equal('nine3q');
         expect(pres1.attrs['Test1']).to.equal('Value1');
         expect(pres1.attrs['Test2']).to.equal('41');
         expect(pres1.attrs['Test3']).to.equal(undefined);
@@ -57,7 +70,7 @@ export class TestBackpack
         let pres2 = dependentPresences[1].getChildren('x')[0];
         expect(pres2.attrs['xmlns']).to.equal('vp:props');
         expect(pres2.attrs['type']).to.equal('item');
-        expect(pres2.attrs['provider']).to.equal('nine3q');
+        expect(pres2.attrs['Provider']).to.equal('nine3q');
         expect(pres2.attrs['Test1']).to.equal('Value2');
         expect(pres2.attrs['Test2']).to.equal('42');
     }

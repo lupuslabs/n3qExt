@@ -58,4 +58,8 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.js'],
     },
+    performance: {
+        hints: false,
+    },
+    stats: 'errors-warnings',
 };

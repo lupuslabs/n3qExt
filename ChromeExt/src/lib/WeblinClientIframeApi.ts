@@ -10,9 +10,17 @@ export namespace WeblinClientIframeApi
 
     export class Request extends WeblinClientApi.Request
     {
-        constructor(type: string, id: string, public item: string)
+        constructor(type: string, id: string, public item?: string)
         {
             super(type, id);
+        }
+    }
+
+    export class Response extends WeblinClientApi.Response
+    {
+        constructor(type: string)
+        {
+            super(type, true);
         }
     }
 
@@ -43,6 +51,13 @@ export namespace WeblinClientIframeApi
         visible: boolean;
     }
 
+    export class WindowSetStyleRequest extends Request
+    {
+        static type = 'Window.SetStyle';
+        item: string;
+        style: any;
+    }
+
     export class WindowPositionRequest extends Request
     {
         static type = 'Window.Position';
@@ -58,6 +73,7 @@ export namespace WeblinClientIframeApi
     {
         static type = 'Window.ToFront';
         item: string;
+        layer?: number;
     }
 
     export class BackpackSetVisibilityRequest extends Request
@@ -109,14 +125,6 @@ export namespace WeblinClientIframeApi
         visible: boolean;
         range: any;
     }
-
-    export class ItemFindRequest extends Request
-    {
-        static type = 'Item.Find';
-        filter: ItemProperties;
-    }
-    export class ItemFindResponse extends WeblinClientApi.ContentResponse { constructor(public items: string[]) { super('Item.Find.Response'); } }
-
     export class ItemActionRequest extends Request
     {
         static type = 'Item.Action';
@@ -126,13 +134,13 @@ export namespace WeblinClientIframeApi
         action: string;
         args: any;
         items: string[];
+        ignoreError: boolean;
     }
-
-    export class ItemActionResponse extends Response
+    export class ItemActionResponse extends WeblinClientApi.ContentResponse
     {
-        created: { [id: string]: { [pid: string]: string } };
-        changed: { [id: string]: { [pid: string]: string } };
-        deleted: string[];
+        constructor(
+            public result: ItemProperties,
+        ) { super('Item.Action.Response'); }
     }
 
     export class RoomGetItemsRequest extends Request
@@ -228,6 +236,8 @@ export namespace WeblinClientIframeApi
     export class ClientCreateNftRequest extends Request
     {
         static type = 'Client.CreateNft';
+        provider: string;
+        auth: string;
         contractNetwork: string;
         contractAddress: string;
         tokenId: string;

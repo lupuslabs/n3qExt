@@ -1,25 +1,20 @@
 import log = require('loglevel');
-import { Environment } from './Environment';
-import { Pid } from './ItemProperties';
-import { Utils } from './Utils';
-
-interface ConfigGetCallback { (value: any): void }
-interface ConfigSetCallback { (): void }
+import { is } from './is';
 
 // tslint:disable: quotemark
 
 export class Config
 {
     public static devConfigName = 'dev';
-    private static devConfig: any = {};
+    private static devConfig: {[p: string]: unknown} = {};
 
     public static onlineConfigName = 'online';
-    private static onlineConfig: any = {};
+    private static onlineConfig: {[p: string]: unknown} = {};
 
     public static staticConfigName = 'static';
-    public static staticConfig: any = {
+    private static staticConfig: {[p: string]: unknown} = {
         environment: {
-            // NODE_ENV: 'production',
+            // NODE_ENV: 'production', // 'development'
             reloadPageOnPanic: false,
         },
         extension: {
@@ -33,12 +28,19 @@ export class Config
         },
         config: {
             serviceUrl: 'https://webex.vulcan.weblin.com/Config',
+            apiUrl: 'https://webit.vulcan.weblin.com/rpc',
             updateIntervalSec: 83567,
             checkUpdateIntervalSec: 123,
             clusterName: 'prod',
         },
         test: {
             itemServiceRpcUrl: 'http://localhost:5000/rpc',
+        },
+        system: {
+            activateBackgroundPageProbeDelayMinSec: 0.1,
+            activateBackgroundPageProbeDelayMaxSec: 8,
+            activateBackgroundPageProbeDelayFactor: 2,
+            activateBackgroundPageProbeTotalSec: 120,
         },
         log: {
             all: false,
@@ -50,6 +52,7 @@ export class Config
             rpcClient: false,
             backgroundFetchUrl: false,
             backgroundFetchUrlCache: false,
+            HostedInventoryItemProviderItemCache: false,
             backgroundJsonRpc: false,
             pingBackground: false,
             contentStart: false,
@@ -57,6 +60,8 @@ export class Config
             urlMapping: false,
             web3: false,
             iframeApi: false,
+            items: false,
+            SimpleItemTransfer: false,
         },
         client: {
             name: 'weblin.io',
@@ -71,13 +76,19 @@ export class Config
             deferPageEnterSec: 0.3,
             vpiRoot: 'https://webex.vulcan.weblin.com/vpi/v7/root.xml',
             vpiMaxIterations: 15,
-            ignoredDomainSuffixes: ['vulcan.weblin.com'],
+            ignoredDomainSuffixes: ['vulcan.weblin.com', 'meet.jit.si'],
             strippedUrlPrefixes: ['https://cdn.weblin.io/?', 'https://cdn.weblin.io/'],
             notStrippedUrlPrefixes: ['https://cdn.weblin.io/v1/', 'https://cdn.weblin.io/sso/'],
         },
         httpCache: {
             maxAgeSec: 3600,
             maintenanceIntervalSec: 60,
+        },
+        itemCache: {
+            deferReplayPresenceSec: 0.3,
+            clusterItemFetchSec: 0.1,
+            maxAgeSec: 600,
+            maintenanceIntervalSec: 30,
         },
         room: {
             fadeInSec: 0.3,
@@ -105,10 +116,10 @@ export class Config
             defaultAnimationSize: 100,
             vCardAvatarFallback: false,
             vCardAvatarFallbackOnHover: true,
-            vidconfUrl: 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"',
+            vidconfUrl: 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}"',
             vidconfBottom: 200,
-            vidconfWidth: 600,
-            vidconfHeight: 400,
+            vidconfWidth: 630,
+            vidconfHeight: 530,
             vidconfPopout: true,
             pokeToastDurationSec: 10,
             pokeToastDurationSec_bye: 60,
@@ -121,6 +132,7 @@ export class Config
             itemStatsTooltipDelay: 500,
             itemStatsTooltipOffset: { x: 3, y: 3 },
             showPrivateChatInfoButton: false,
+            autoOpenVidConfDomains: [],
         },
         xmpp: {
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',
@@ -139,8 +151,8 @@ export class Config
             animationsProxyUrlTemplate: 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}',
             dataUrlProxyUrlTemplate: 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}',
 
-            animationsUrlTemplate: 'https://webex.vulcan.weblin.com/avatars/{id}/config.xml',
             // animationsUrlTemplate: 'https://webex.vulcan.weblin.com/avatars/gif/{id}/config.xml',
+            animationsUrlTemplate: 'https://webex.vulcan.weblin.com/avatars/{id}/config.xml',
 
             // list: ['gif/002/sportive03_m', 'gif/002/business03_m', 'gif/002/child02_m', 'gif/002/sportive01_m', 'gif/002/business06_m', 'gif/002/casual04_f', 'gif/002/business01_f', 'gif/002/casual30_m', 'gif/002/sportive03_f', 'gif/002/casual16_m', 'gif/002/casual10_f', 'gif/002/business03_f', 'gif/002/casual03_m', 'gif/002/sportive07_m', 'gif/002/casual13_f', 'gif/002/casual09_m', 'gif/002/casual16_f', 'gif/002/child02_f', 'gif/002/sportive08_m', 'gif/002/casual15_m', 'gif/002/casual15_f', 'gif/002/casual01_f', 'gif/002/casual11_f', 'gif/002/sportive09_m', 'gif/002/casual20_f', 'gif/002/sportive02_f', 'gif/002/business05_m', 'gif/002/casual06_m', 'gif/002/casual10_m', 'gif/002/casual02_f',],
             // randomList: ['gif/002/sportive03_m', 'gif/002/business03_m', 'gif/002/child02_m', 'gif/002/sportive01_m', 'gif/002/business06_m', 'gif/002/casual04_f', 'gif/002/business01_f', 'gif/002/casual30_m', 'gif/002/sportive03_f', 'gif/002/casual16_m', 'gif/002/casual10_f', 'gif/002/business03_f', 'gif/002/casual03_m', 'gif/002/sportive07_m', 'gif/002/casual13_f', 'gif/002/casual09_m', 'gif/002/casual16_f', 'gif/002/child02_f', 'gif/002/sportive08_m', 'gif/002/casual15_m', 'gif/002/casual15_f', 'gif/002/casual01_f', 'gif/002/casual11_f', 'gif/002/sportive09_m', 'gif/002/casual20_f', 'gif/002/sportive02_f', 'gif/002/business05_m', 'gif/002/casual06_m', 'gif/002/casual10_m', 'gif/002/casual02_f',],
@@ -159,6 +171,7 @@ export class Config
             chatlogItemAppeared: false,
             chatlogItemIsPresent: false,
             chatlogItemDisappeared: false,
+            maxPageEffectDurationSec: 100.0,
         },
         iframeApi: {
             messageMagic: 'a67igu67puz_iframeApi',
@@ -169,6 +182,9 @@ export class Config
             messageMagicW2WMigration: 'hbv67u5rf_w2wMigrate',
             messageMagicCreateCryptoWallet: 'tr67rftghg_CreateCryptoWallet',
             allowedDomQueryPrefixes: [ 'https://opensea.io/', 'https://testnets.opensea.io/' ],
+            w2WMigrationProvider: 'n3q',
+            w2WMigrationAuth: 'JVxIJIdR9ueq7sJwwPmM',
+            createCryptoWalletProvider: 'n3q',
         },
         backpack: {
             enabled: true,
@@ -182,7 +198,6 @@ export class Config
             itemInfoExtended: false,
             itemInfoDelay: 300,
             deleteToastDurationSec: 100,
-            receiveToastDurationSec: 10,
             dependentPresenceItemsLimit: 25,
             dependentPresenceItemsWarning: 20,
             dependentPresenceItemsWarningIntervalSec: 30,
@@ -191,6 +206,16 @@ export class Config
                 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL8cd14UE+Fy2QV6rtvbBA3UGo8TllmX\n' +
                 'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
                 '-----END PUBLIC KEY-----\n',
+        },
+        SimpleItemTransfer: {
+            enabled: true,
+            errorToastDurationSec: 8,
+            senderConfirmToastDurationSec: 60,
+            recipientAcceptToastDurationSec: 60,
+            senderOfferWaitToastExtraDurationSec: 3,
+            recipientConfirmMsgTimeoutSec: 30,
+            senderSentCompleteToastDurationSec: 8,
+            recipientRetrieveCompleteToastDurationSec: 8,
         },
         points: {
             enabled: true,
@@ -206,21 +231,31 @@ export class Config
                 PointsChannelNavigation: { weight: 1, x0: 0, css: { backgroundColor: '#ff00ff' } },
                 PointsChannelPowerup: { weight: 1, x0: 0, css: { backgroundColor: '#ff00ff' } },
                 PointsChannelItemApply: { weight: 1, x0: 0, css: { backgroundColor: '#00ffff' } },
+                PointsChannelPageOwned: { weight: 1, x0: 0, css: { backgroundColor: '#ff8080' } },
             }
+        },
+        items: {
+            'enabledProviders': ['n3q']
         },
         itemProviders: {
             'nine3q':
             {
-                name: 'weblin.io Items',
-                description: 'Things on web pages',
-                configUrl: 'https://webit.vulcan.weblin.com/Config?id={id}&client={client}',
+                name: 'weblin.io Items (client storage)',
+                type: 'LocalStorageItemProvider',
+                description: 'Things on web pages managed by the client in a distributed fashion',
                 config: {
-                    apiUrl: 'https://webit.vulcan.weblin.com/rpc',
                     backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
-                    itemPropertyUrlFilter: {
-                        '{image.item.nine3q}': 'https://webit.vulcan.weblin.com/images/Items/',
-                        '{iframe.item.nine3q}': 'https://webit.vulcan.weblin.com/ItemFrame/',
-                    },
+                },
+            },
+            'n3q':
+            {
+                name: 'weblin.io Items',
+                type: 'HostedInventoryItemProvider',
+                description: 'Things on web pages',
+                configUrl: 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}',
+                config: {
+                    itemApiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
+                    createItemWiCryptoClaimAuth: 'YrQGnYAfnqAJwfU8Im6C',
                 },
             }
         },
@@ -371,10 +406,50 @@ export class Config
                     'Backpack.Go to item': 'Go there',
                     'Backpack.Derez item': 'Pick up',
                     'Backpack.Rez item': 'Drop',
-                    'Backpack.Enabled': 'Enabled',
+                    'Backpack.Delete item': 'Delete',
+                    'Backpack.Active': 'Active',
                     'Backpack.Too many items': 'Too many items',
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
+
+                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send Item',
+                    'SimpleItemTransfer.senderConfirmQuestionText': 'Do you want to send {item} to {recipient}?',
+                    'SimpleItemTransfer.senderConfirmQuestionYes': 'Yes, offer item',
+                    'SimpleItemTransfer.senderConfirmQuestionNo': 'No, keep it',
+                    'SimpleItemTransfer.senderOfferWaitTitle': 'Send Item',
+                    'SimpleItemTransfer.senderOfferWaitText': 'Offering {item} to {recipient}...',
+                    'SimpleItemTransfer.senderOfferWaitCancel': 'Cancel and keep item',
+                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Receive Item',
+                    'SimpleItemTransfer.recipientAcceptQuestionText':
+                        '{sender} wants to send you an item.\n' +
+                        'Item: {item}\n' +
+                        'Do you accept the item?',
+                    'SimpleItemTransfer.recipientAcceptQuestionYes': 'Yes, accept item',
+                    'SimpleItemTransfer.recipientAcceptQuestionNo': 'No, reject it',
+                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Item Not Sent',
+                    'SimpleItemTransfer.senderSenderTimeoutText':
+                        '{recipient} did not accept the item in time.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Item Not Sent',
+                    'SimpleItemTransfer.senderSenderCanceledText':
+                        'You revoked the offer to {recipient}.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Item Not Sent',
+                    'SimpleItemTransfer.senderRecipientTimeoutText':
+                        '{recipient} did not accept the item in time.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Item Not Sent',
+                    'SimpleItemTransfer.senderRecipientRejectedText':
+                        '{recipient} rejected the item.\n' +
+                        'You keep {item}.',
+                    'SimpleItemTransfer.senderSentCompleteTitle': 'Item Sent',
+                    'SimpleItemTransfer.senderSentCompleteText': 'You sent {item} to {recipient}.',
+                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Item Not Received',
+                    'SimpleItemTransfer.recipientConfirmTimeoutText': '{item} from {sender} did not arrive in time.',
+                    'SimpleItemTransfer.recipientCanceledTitle': 'Item Not Received',
+                    'SimpleItemTransfer.recipientCanceledText': '{sender} revoked the offer of {item}.',
+                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Item Received',
+                    'SimpleItemTransfer.recipientRetrieveCompleteText': 'Received {item} from {sender}.',
 
                     'Toast.Do not show this message again': 'Do not show this message again',
                     'Toast.greets': '...greeted you',
@@ -400,27 +475,38 @@ export class Config
                     'Toast.NotExecuted': 'Not executed',
                     'Toast.NoBlueprint': 'No blueprint',
                     'Toast.TooManyBlueprints': 'Too many blueprints',
+                    'Toast.Open backpack': 'Open backpack',
+                    'Toast.You Got Activity Points': 'You Got Activity Points',
+                    'Toast.Your activity points have been claimed automatically': 'Your activity points have been claimed automatically. To maximize your yield, it is beneficial to claim them every day. Drag your Points-item to a web page, click it and claim.',
+                    'Toast.NotDerezzed': 'Failed to Pick Up Item',
+                    'Toast.NotYourItem': 'This is not your item.',
 
+                    'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Greet',
                     'Activity.PointsChannelNavigation': 'Navigate',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Apply item',
+                    'Activity.PointsChannelItemApply': 'Item activity',
+                    'Activity.PointsChannelPageOwned': 'Page ownership',
 
-                    'ErrorFact.UnknownError': 'UnknownError',
-                    'ErrorFact.NotRezzed': 'Item not dropped',
-                    'ErrorFact.NotDerezzed': 'Failed to pick up item',
-                    'ErrorFact.NotAdded': 'Item not added',
-                    'ErrorFact.NotChanged': 'Item not changed',
-                    'ErrorFact.NoItemsReceived': 'No items recevied',
-                    'ErrorFact.NotExecuted': 'Not executed',
-                    'ErrorFact.NotCreated': 'No item created',
-                    'ErrorFact.NotApplied': 'Item not applied',
-                    'ErrorFact.ClaimFailed': 'Failed to claim the page',
-                    'ErrorFact.NotTransferred': 'Item not transferred',
+                    'ErrorFact.UnknownError': 'Unknown Error',
+                    'ErrorFact.NotRezzed': 'Item Not Dropped',
+                    'ErrorFact.NotDerezzed': 'Failed to Pick Up Item',
+                    'ErrorFact.NotAdded': 'Item Not Added',
+                    'ErrorFact.NotChanged': 'Item Not Changed',
+                    'ErrorFact.NoItemsReceived': 'No Items Received',
+                    'ErrorFact.NotExecuted': 'Not Executed',
+                    'ErrorFact.NotCreated': 'No Item Created',
+                    'ErrorFact.NotDeleted': 'Item Not Deleted',
+                    'ErrorFact.NotApplied': 'Item Not Applied',
+                    'ErrorFact.NotSent': 'Not Sent',
+                    'ErrorFact.NotProcessed': 'Not Processed',
+                    'ErrorFact.ClaimFailed': 'Failed to Claim the Pge',
+                    'ErrorFact.NotTransferred': 'Item Not Transferred',
+                    'ErrorFact.NotDropped': 'Item Not Applied',
 
-                    'ErrorReason.UnknownReason': 'Unknown reason :-(',
+                    'ErrorReason.UnknownReason': 'Unknown reason',
                     'ErrorReason.ItemAlreadyRezzed': 'Item already on a page.',
                     'ErrorReason.ItemNotRezzedHere': 'Item is not on this page',
                     'ErrorReason.ItemsNotAvailable': 'Items not available. The feature may be disabled.',
@@ -433,7 +519,7 @@ export class Config
                     'ErrorReason.NotYourItem': 'This is not your item.',
                     'ErrorReason.ItemMustBeStronger': 'Your item is not stronger than the other.',
                     'ErrorReason.ItemIsNotTransferable': 'Item not transferable.',
-                    'ErrorReason.NoMatch': 'Item do not match.',
+                    'ErrorReason.NoMatch': 'Items do not match.',
                     'ErrorReason.NoSuchAspect': 'The item is missing a feature.',
                     'ErrorReason.NoSuchItem': 'Missing item',
                     'ErrorReason.Ambiguous': 'Ambiguous',
@@ -442,6 +528,9 @@ export class Config
                     'ErrorReason.MissingResource': 'Missing resource',
                     'ErrorReason.InvalidCommandArgument': 'Invalid command argument',
                     'ErrorReason.NetworkProblem': 'Netzwork problem',
+                    'ErrorReason.CantDropOnSelf': 'The item can\'t be applied to yourself.',
+                    'ErrorReason.NotDeletable': 'The item can\'t be deleted.',
+                    'ErrorReason.ItemIsNotRezzed': 'The item is not on a page.',
 
                     'ErrorDetail.Applier.Apply': 'Applying an item to another',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -450,8 +539,10 @@ export class Config
 
                     'ItemPid.Label': 'Label',
                     'ItemPid.Description': 'Description',
+                    'ItemPid.Provider': 'Source',
                     'ItemPid.ClaimStrength': 'Strength',
-                    'ItemPid.ClaimUrl': 'For',
+                    'ItemPid.ClaimUrl': 'Domain',
+                    'ItemPid.ClaimAccumulatedDuration': 'Accumulated',
                     'ItemPid.CommodityConversionFactor': 'Efficiency',
                     'ItemPid.OwnerName': 'Owner',
                     'ItemPid.DispenserAvailable': 'Remaining',
@@ -459,8 +550,9 @@ export class Config
                     'ItemPid.NicknameText': 'Name',
                     'ItemPid.PointsTotal': 'Collected',
                     'ItemPid.PointsCurrent': 'Available',
+                    'ItemPid.PointsUnclaimed': 'Unclaimed',
                     'ItemPid.RezzedDestination': 'Page',
-                    'ItemPid.IsRezzed': 'On page',
+                    'ItemPid.IsRezzed': 'Dropped',
                     'ItemPid.CoinCurrency': 'Currency',
                     'ItemPid.CoinAmount': 'Amount',
                     'ItemPid.IframeUrl': 'URL',
@@ -482,9 +574,14 @@ export class Config
                     'ItemPid.MinerEfficiency': 'Efficiency',
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Network',
+                    'ItemPid.PageEffectRemaining': 'Usages left',
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
+                    'ItemValue.nine3q': 'Local',
+                    'ItemValue.n3q': 'Server',
+                    'ItemValue.You': 'You',
+                    'ItemValue.unknown': 'unknown',
 
                     'ItemLabel.Dot1': '1 Point',
                 },
@@ -564,10 +661,52 @@ export class Config
                     'Backpack.Go to item': 'Dort hingehen',
                     'Backpack.Derez item': 'Einsammeln',
                     'Backpack.Rez item': 'Ablegen',
-                    'Backpack.Enabled': 'Aktiv',
+                    'Backpack.Delete item': 'Löschen',
+                    'Backpack.Active': 'Aktiv',
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+
+                    'SimpleItemTransfer.senderConfirmQuestionTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderConfirmQuestionText':
+                        'Willst du {item} an {recipient} übergeben?',
+                    'SimpleItemTransfer.senderConfirmQuestionYes': 'Ja, Gegenstand übergeben',
+                    'SimpleItemTransfer.senderConfirmQuestionNo': 'Nein, behalten',
+                    'SimpleItemTransfer.senderOfferWaitTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderOfferWaitText': 'Biete {item} {recipient} an...',
+                    'SimpleItemTransfer.senderOfferWaitCancel': 'Abbrechen und Gegenstand behalten',
+                    'SimpleItemTransfer.recipientAcceptQuestionTitle': 'Gegenstand erhalten',
+                    'SimpleItemTransfer.recipientAcceptQuestionText':
+                        '{sender} will Dir einen Gegenstand geben.\n' +
+                        'Gegenstand: {item}\n' +
+                        'Nimmst du den Gegenstand an?',
+                    'SimpleItemTransfer.recipientAcceptQuestionYes': 'Ja, Gegenstand annehmen',
+                    'SimpleItemTransfer.recipientAcceptQuestionNo': 'Nein, ablehnen',
+                    'SimpleItemTransfer.senderSenderTimeoutTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderSenderTimeoutText':
+                        '{recipient} hat den Gegenstand nicht rechtzeitig angenommen.\n' +
+                        'Du behälst {item}.',
+                    'SimpleItemTransfer.senderSenderCanceledTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderSenderCanceledText':
+                        'Du hast das Angebot an {recipient} zurückgezogen.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderRecipientTimeoutTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderRecipientTimeoutText':
+                        '{recipient} hat den Gegenstand nicht rechtzeitig angenommen.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderRecipientRejectedTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderRecipientRejectedText':
+                        '{recipient} hat den Gegenstand abgelehnt.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderSentCompleteTitle': 'Gegenstand übergeben',
+                    'SimpleItemTransfer.senderSentCompleteText': 'Du hast {item} an {recipient} übergeben.',
+                    'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Gegenstand nicht erhalten',
+                    'SimpleItemTransfer.recipientConfirmTimeoutText': '{item} von {sender} ist nicht rechtzeitig angekommen.',
+                    'SimpleItemTransfer.recipientCanceledTitle': 'Gegenstand nicht erhalten',
+                    'SimpleItemTransfer.recipientCanceledText':
+                        '{sender} hat das Angebot zurückgezogen und behält {item}.',
+                    'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Gegenstand erhalten',
+                    'SimpleItemTransfer.recipientRetrieveCompleteText': '{item} von {sender} erhalten.',
 
                     'Toast.Do not show this message again': 'Diese Nachricht nicht mehr anzeigen',
                     'Toast.greets': '...hat dich gegrüßt',
@@ -593,13 +732,20 @@ export class Config
                     'Toast.NotExecuted': 'Nicht ausgeführt',
                     'Toast.NoBlueprint': 'Kein Bauplan',
                     'Toast.TooManyBlueprints': 'Mehr als ein Bauplan',
+                    'Toast.Open backpack': 'Rucksack öffnen',
+                    'Toast.You Got Activity Points': 'Du hast Aktivitätspunkte bekommen',
+                    'Toast.Your activity points have been claimed automatically': 'Deine Aktivitätspunkte wurden nach einiger Zeit automatisch zugeteilt. Um die Ausbeute zu steigern, ist es besser die Punkte selbst zu beanspruchen. Dafür trägt man den Punkte-Gegenstand auf eine Seite, klickt darauf und holt die Punkte. Am besten jeden Tag.',
+                    'Toast.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
+                    'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
 
+                    'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Grüßen',
                     'Activity.PointsChannelNavigation': 'Navigation',
                     'Activity.PointsChannelPowerup': 'Powerup',
-                    'Activity.PointsChannelItemApply': 'Gegenstand anwenden',
+                    'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
+                    'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
@@ -609,11 +755,15 @@ export class Config
                     'ErrorFact.NoItemsReceived': 'Keine Gegenstände bekommen',
                     'ErrorFact.NotExecuted': 'Nicht ausgeführt',
                     'ErrorFact.NotCreated': 'Kein Gegenstand erstellt',
+                    'ErrorFact.NotDeleted': 'Gegenstand nicht gelöscht',
                     'ErrorFact.NotApplied': 'Gegenstand nicht angewendet',
+                    'ErrorFact.NotSent': 'Not Sent',
+                    'ErrorFact.NotProcessed': 'Not verarbeitet',
                     'ErrorFact.ClaimFailed': 'Anspruch nicht durchgesetzt',
                     'ErrorFact.NotTransferred': 'Gegenstand nicht übertragen',
+                    'ErrorFact.NotDropped': 'Gegenstand nicht angewendet',
 
-                    'ErrorReason.UnknownReason': 'Grund unbekannt :-(',
+                    'ErrorReason.UnknownReason': 'Grund unbekannt',
                     'ErrorReason.ItemAlreadyRezzed': 'Gegenstand ist schon auf einer Seite.',
                     'ErrorReason.ItemNotRezzedHere': 'Gegenstand ist nicht auf dieser Seite',
                     'ErrorReason.ItemsNotAvailable': 'Keine Gegenstände verfügbar. Die Funktion ist vielleicht nicht eingeschaltet.',
@@ -635,6 +785,9 @@ export class Config
                     'ErrorReason.MissingResource': 'Zutat fehlt',
                     'ErrorReason.InvalidCommandArgument': 'Falsches Befehlsargument',
                     'ErrorReason.NetworkProblem': 'Netzwerkproblem',
+                    'ErrorReason.CantDropOnSelf': 'Der Gegenstand kann nicht auf dich selbst angewandt werden.',
+                    'ErrorReason.NotDeletable': 'Der Gegenstand kann nicht gelöscht werden.',
+                    'ErrorReason.ItemIsNotRezzed': 'Der Gegenstand kann nicht auf einer Seite.',
 
                     'ErrorDetail.Applier.Apply': 'Beim Anwenden eines Gegenstands auf einen anderen.',
                     'ErrorDetail.Pid.Id': 'Id',
@@ -643,8 +796,10 @@ export class Config
 
                     'ItemPid.Label': 'Bezeichnung',
                     'ItemPid.Description': 'Beschreibung',
+                    'ItemPid.Provider': 'Quelle',
                     'ItemPid.ClaimStrength': 'Stärke',
-                    'ItemPid.ClaimUrl': 'Für',
+                    'ItemPid.ClaimUrl': 'Domain',
+                    'ItemPid.ClaimAccumulatedDuration': 'Angesammelt',
                     'ItemPid.CommodityConversionFactor': 'Effzienz',
                     'ItemPid.OwnerName': 'Besitzer',
                     'ItemPid.DispenserAvailable': 'Übrig',
@@ -652,6 +807,7 @@ export class Config
                     'ItemPid.NicknameText': 'Name',
                     'ItemPid.PointsTotal': 'Gesammelt',
                     'ItemPid.PointsCurrent': 'Verfügbar',
+                    'ItemPid.PointsUnclaimed': 'Unbeansprucht',
                     'ItemPid.RezzedDestination': 'Webseite',
                     'ItemPid.IsRezzed': 'Auf Webseite',
                     'ItemPid.CoinCurrency': 'Währung',
@@ -675,9 +831,14 @@ export class Config
                     'ItemPid.MinerEfficiency': 'Effizienz',
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Netzwerk',
+                    'ItemPid.PageEffectRemaining': 'Nutzbar noch',
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',
+                    'ItemValue.nine3q': 'Lokal',
+                    'ItemValue.n3q': 'Server',
+                    'ItemValue.You': 'Du',
+                    'ItemValue.unknown': 'unbekannt',
 
                     'ItemLabel.Points': 'Punkte',
                     'ItemLabel.Dot1': '1 Punkt',
@@ -688,90 +849,94 @@ export class Config
         },
 
         _last: 0
-    }
+    };
 
-    static get(key: string, defaultValue: any): any
+    static get(key: string, defaultValue: unknown = undefined): any // @Todo: Actual type is unknown.
     {
+        // If chain instead of coalesque chain for easier debugging of generated JavaScript:
         let result = null;
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getDev(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getOnline(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = Config.getStatic(key);
         }
-        if (result == undefined || result == null) {
+        if (is.nil(result)) {
             result = defaultValue;
         }
         return result;
     }
 
-    static getDev(key: string): any { return Config.getFromTree(this.devConfig, key); }
-    static getOnline(key: string): any { return Config.getFromTree(this.onlineConfig, key); }
-    static getStatic(key: string): any { return Config.getFromTree(this.staticConfig, key); }
-
-    private static getFromTree(tree: any, key: string): any
+    static getArray(key: string, defaultValue: Array<any> = []): Array<any>
     {
-        let parts = key.split('.');
-        let current = tree;
-        parts.forEach(part =>
-        {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
-        });
-        return current;
+        return <Array<any>>this.get(key, defaultValue);
     }
 
-    private static setInTree(tree: any, key: string, value: any)
+    static getDev(key: string): unknown { return Config.getFromTree(this.devConfig, key); }
+    static getOnline(key: string): unknown { return Config.getFromTree(this.onlineConfig, key); }
+    static getStatic(key: string): unknown { return Config.getFromTree(this.staticConfig, key); }
+
+    private static getFromTree(tree: {[p: string]: unknown}, key: string): unknown
     {
-        let parts = key.split('.');
-        if (parts.length == 0) { return; }
-        let lastPart = parts[parts.length - 1];
-        parts.splice(parts.length - 1, 1);
-        let current = tree;
+        const parts = key.split('.');
+        let current: unknown = tree;
         parts.forEach(part =>
         {
-            if (current != undefined && current != null && current[part] != undefined) {
-                current = current[part];
-            } else {
-                current = null;
-            }
+            current = current?.[part];
         });
-        if (current) {
-            current[lastPart] = value;
+        return current ?? null;
+    }
+
+    private static setInTree(tree: {[p: string]: unknown}, key: string, value: unknown)
+    {
+        const parts = key.split('.');
+        if (parts.length === 0) {
+            return;
         }
+        const lastPart = parts.pop();
+        let current = tree;
+        parts.forEach(part =>
+        {
+            const node = current?.[part];
+            current = is.object(node) ? node : {};
+        });
+        current[lastPart] = value;
     }
 
-    static getDevTree(): any { return this.devConfig; }
-    static getOnlineTree(): any { return this.onlineConfig; }
-    static getStaticTree(): any { return this.staticConfig; }
+    static getDevTree(): {[p: string]: unknown} { return this.devConfig; }
+    static getOnlineTree(): {[p: string]: unknown} { return this.onlineConfig; }
+    static getStaticTree(): {[p: string]: unknown} { return this.staticConfig; }
 
-    static setOnline(key: string, value: any)
+    static setOnline(key: string, value: unknown)
     {
         log.debug('Config.setOnline', key);
         return Config.setInTree(this.onlineConfig, key, value);
     }
 
-    static setDevTree(tree: any)
+    static setDevTree(tree: {[p: string]: unknown})
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setDevTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setDevTree');
+        }
         this.devConfig = tree;
     }
 
-    static setOnlineTree(tree: any): void
+    static setOnlineTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setOnlineTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setOnlineTree');
+        }
         this.onlineConfig = tree;
     }
 
-    static setStaticTree(tree: any): void
+    static setStaticTree(tree: {[p: string]: unknown}): void
     {
-        if (Config.get('log.all', false) || Config.get('log.startup', true)) { log.info('Config.setStaticTree'); }
+        if (Config.get('log.all', false) || Config.get('log.startup', true)) {
+            log.info('Config.setStaticTree');
+        }
         this.staticConfig = tree;
     }
 

@@ -3,7 +3,9 @@ import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 import log = require('loglevel');
 import * as $ from 'jquery';
 import 'jqueryui';
+import { is } from '../lib/is';
 import { as } from '../lib/as';
+import { Element as XmlElement } from 'ltx';
 import { Config } from '../lib/Config';
 import { Room } from './Room';
 import { Avatar } from './Avatar';
@@ -28,6 +30,7 @@ export class Entity
     }
 
     getRoom(): Room { return this.room; }
+    getRoomNick(): string { return this.roomNick; }
     getElem(): HTMLElement { return this.elem; }
     getDefaultAvatar(): string { return imgDefaultAvatar; }
     getAvatar(): Avatar { return this.avatarDisplay; }
@@ -35,7 +38,7 @@ export class Entity
 
     show(visible: boolean, durationSec: number = 0.0): void
     {
-        if (visible != this.visible) {
+        if (visible !== this.visible) {
             if (visible) {
                 if (durationSec > 0) {
                     $(this.elem).fadeIn(durationSec * 1000);
@@ -56,9 +59,9 @@ export class Entity
         delete this.elem;
     }
 
-    showEffect(effect: any): void
+    showEffect(effect: string): void
     {
-        let pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
+        const pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
         $(this.elem).append(pulseElem);
         window.setTimeout(() => { $(pulseElem).remove(); }, 1000);
     }
@@ -80,7 +83,7 @@ export class Entity
     setPosition(x: number): void
     {
         this.positionX = x;
-        if (this.elem != undefined) {
+        if (!is.nil(this.elem)) {
             this.elem.style.left = x + 'px';
         }
     }
@@ -93,9 +96,9 @@ export class Entity
 
         this.setPosition(this.getPosition());
 
-        var oldX = this.getPosition();
-        var diffX = newX - oldX;
-        var absDiffX = diffX < 0 ? -diffX : diffX;
+        const oldX = this.getPosition();
+        const diffX = newX - oldX;
+        const absDiffX = diffX < 0 ? -diffX : diffX;
 
         if (this.avatarDisplay) {
             if (diffX < 0) {
@@ -112,8 +115,8 @@ export class Entity
             }
         }
 
-        let speedPixelPerSec = as.Float(this.avatarDisplay.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
-        var durationSec = absDiffX / speedPixelPerSec;
+        const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
+        const durationSec = absDiffX / speedPixelPerSec;
 
         $(this.getElem())
             .stop(true)
@@ -149,7 +152,7 @@ export class Entity
             .animate(
                 { left: newX + 'px' },
                 {
-                    duration: Config.get('room.quickSlideSec', 0.1) * 1000,
+                    duration: as.Float(Config.get('room.quickSlideSec'), 0.1) * 1000,
                     step: (x) => { this.positionX = x; },
                     easing: 'linear',
                     complete: () => this.onQuickSlideReached(newX)
@@ -164,7 +167,7 @@ export class Entity
 
     // Xmpp
 
-    onPresenceAvailable(stanza: any)
+    onPresenceAvailable(stanza: XmlElement)
     {
         log.error('Entity.onPresenceAvailable', 'not implemented', 'you should not be here');
     }
@@ -210,12 +213,25 @@ export class Entity
 
     onDragAvatarStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
     {
-        let dX = ui.position.left - this.dragStartPosition.left;
-        let newX = this.getPosition() + dX;
+        const dX = ui.position.left - this.dragStartPosition.left;
+        const newX = this.getPosition() + dX;
         this.onDraggedTo(newX);
     }
 
     onDraggedTo(newX: number): void
     {
     }
+
+    // Dropped stuff handling
+
+    /**
+     * Reacts to an item that has been drag-and-dropped on this.
+     *
+     * @todo: Interface to be implemented by RoomItem and BackpackItem,
+     *        so the type can be properly defined in the signature.
+     *
+     * @param droppedItem RoomItem|BackpackItem
+     */
+    onGotItemDroppedOn(droppedItem: unknown): void {}
+
 }

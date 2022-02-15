@@ -1,11 +1,30 @@
 interface IChange extends Array<string> { }
 interface IChanges extends Array<IChange> { }
-interface IRelease extends Array<string | string | IChanges> { 0: string; 1: string; 2: IChanges }
+interface IRelease extends Array<string | IChanges> { 0: string; 1: string; 2: IChanges }
 interface IHistory extends Array<IRelease> { }
 
 export class _Changes
 {
     static data: IHistory = [
+        ['1.2.0', 'ServerItems', [
+            ['Add', 'Server based items'],
+            ['Add', 'CTRL-item-click drops/pickups item'],
+            ['Add', 'CTRL-self-click toggles backpack window'],
+            ['Add', 'Confirmation on item transfer'],
+            ['Add', 'Create NFT avatar failure toast with toggle backpack link'],
+            ['Add', 'Support page effects'],
+            ['Add', 'Unique chat line id to be able to store a chat history later'],
+            ['Add', 'Claim and auto-claim activity points'],
+            ['Add', 'Iframe API Client.GetApi for extension detection'],
+            ['Add', 'Wave animation feedback to greet and bye'],
+            ['Add', 'Show item owner name on hover'],
+            ['Add', 'Backpack scrollable'],
+            ['Add', 'Windows resize in all directions'],
+            ['Change', 'Style of dropped items in backpack'],
+            ['Change', 'Warn of duplicate NFT avatar'],
+            ['Change', 'Item popup above windows'],
+            ['Change', 'Overlapping backpack item popup'],
+        ]],
         ['1.1.4', 'VideoUrlFix', [
             ['Fix', 'Invalid vidconfUrl after extension start'],
         ]],

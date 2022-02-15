@@ -1,14 +1,3 @@
-import * as $ from 'jquery';
-import { as } from '../lib/as';
-import { IObserver, IObservable } from '../lib/ObservableProperty';
-import { ContentApp } from './ContentApp';
-import { Participant } from './Participant';
-import { Config } from '../lib/Config';
-import { Utils } from '../lib/Utils';
-import { Environment } from '../lib/Environment';
-import { Menu, MenuColumn, MenuItem, MenuHasIcon, MenuOnClickClose, MenuHasCheckbox } from './Menu';
-import { listenerCount } from 'process';
-
 export class PointsGenerator
 {
     constructor(private base: number, private fullLevels: number, private fractionalLevels: number) { }

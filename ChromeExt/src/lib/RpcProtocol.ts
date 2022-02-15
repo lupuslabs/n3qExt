@@ -16,7 +16,6 @@ export namespace RpcProtocol
         status: string;
         static status_ok = 'ok';
         static status_error = 'error';
-        result: string;
         message: string;
     }
 
@@ -44,6 +43,7 @@ export namespace RpcProtocol
         created: { [id: string]: ItemProperties };
         changed: { [id: string]: ItemProperties };
         deleted: string[];
+        result: ItemProperties;
     }
 
     export class BackpackCreateRequest extends BackpackRequest
@@ -68,4 +68,75 @@ export namespace RpcProtocol
     {
         properties: ItemProperties;
     }
+
+    // --------------------------------------
+
+    export class ItemApiRequest extends Request
+    {
+    }
+
+    export class ItemApiResponse extends Response
+    {
+    }
+
+    export class UserItemApiRequest extends ItemApiRequest
+    {
+        constructor(
+            public user: string,
+            public token: string,
+        ) { super(); }
+    }
+
+    export class UserGetItemIdsRequest extends UserItemApiRequest
+    {
+        public readonly method = 'User.GetItemIds';
+        constructor(
+            user: string,
+            token: string,
+            public inventory: string,
+        ) { super(user, token); }
+    }
+    export class UserGetItemIdsResponse extends ItemApiResponse
+    {
+        items: string[];
+    }
+
+    export class UserGetItemPropertiesRequest extends UserItemApiRequest
+    {
+        public readonly method = 'User.GetItemProperties';
+        constructor(
+            user: string,
+            token: string,
+            public inventory: string,
+            public items: string[],
+            ) { super(user, token); }
+        }
+    export class UserGetItemPropertiesResponse extends ItemApiResponse
+    {
+        multiItemProperties: { [id: string]: ItemProperties; };
+    }
+
+    export class UserItemActionRequest extends UserItemApiRequest
+    {
+        public readonly method = 'User.ItemAction';
+        responseMode: 'ids'|'items' = 'ids';
+        constructor(
+            user: string,
+            token: string,
+            public item: string,
+            public inventory: string,
+            public action: string,
+            public args: any,
+            public involvedItems: string[],
+            ) { super(user, token); }
+    }
+    export class UserItemActionResponse extends ItemApiResponse
+    {
+        created: string[];
+        changed: string[];
+        deleted: string[];
+        result: ItemProperties;
+        multiItemProperties: { [id: string]: ItemProperties; };
+    }
+
 }

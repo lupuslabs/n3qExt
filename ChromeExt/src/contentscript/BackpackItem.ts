@@ -1,10 +1,9 @@
 import imgDefaultItem from '../assets/DefaultItem.png';
 
 import * as $ from 'jquery';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { Utils, Point2D } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
@@ -13,12 +12,10 @@ import { BackpackItemInfo } from './BackpackItemInfo';
 
 export class BackpackItem
 {
-    private isFirstPresence: boolean = true;
     private elem: HTMLDivElement;
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
     private coverElem: HTMLDivElement;
-    private iconElem: HTMLImageElement;
     private x: number = 100;
     private y: number = 100;
     private imageWidth: number = 64;
@@ -28,20 +25,19 @@ export class BackpackItem
     private mousedownX: number;
     private mousedownY: number;
 
+    private ignoreNextDropFlag: boolean = false;
+
     getElem(): HTMLElement { return this.elem; }
     getProperties(): ItemProperties { return this.properties; }
     getItemId(): string { return this.properties[Pid.Id]; }
 
     constructor(protected app: ContentApp, private backpackWindow: BackpackWindow, private itemId: string, private properties: ItemProperties)
     {
-        let paneElem = this.backpackWindow.getPane();
-        let padding: number = Config.get('backpack.borderPadding', 4);
+        const paneElem = this.backpackWindow.getPane();
 
-        let size = Config.get('inventory.itemSize', 64);
-
-        let pos = this.backpackWindow.getFreeCoordinate();
-        let x = pos.x;
-        let y = pos.y;
+        const pos = this.backpackWindow.getFreeCoordinate();
+        const x = pos.x;
+        const y = pos.y;
 
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item" data-id="' + this.itemId + '" />').get(0);
         this.imageElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-image" />').get(0);
@@ -58,26 +54,8 @@ export class BackpackItem
         $(paneElem).append(this.elem);
 
         $(this.elem).on({
-            mousedown: (ev) =>
-            {
-                this.mousedownX = ev.clientX;
-                this.mousedownY = ev.clientY;
-            },
-            click: (ev) => 
-            {
-                if (Math.abs(this.mousedownX - ev.clientX) > 2 || Math.abs(this.mousedownY - ev.clientY) > 2) {
-                    return;
-                }
-
-                this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
-                if (this.info) {
-                    this.info?.close();
-                } else {
-                    this.info = new BackpackItemInfo(this.app, this, () => { this.info = null; });
-                    this.info.show(ev.offsetX, ev.offsetY);
-                    this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
-                }
-            }
+            mousedown: this.onMouseDown.bind(this),
+            click: this.onMouseClick.bind(this),
         });
 
         $(this.elem).draggable({
@@ -94,8 +72,8 @@ export class BackpackItem
                 }
 
                 if (this.info) { this.info.close(); }
-                let dragElem = $('<div class="n3q-base n3q-backpack-drag" />').get(0);
-                let itemElem = $(this.elem).clone().get(0);
+                const dragElem = $('<div class="n3q-base n3q-backpack-drag" />').get(0);
+                const itemElem = $(this.elem).clone().get(0);
                 $(itemElem).css({ 'left': '0', 'top': '0', 'width': this.getWidth() + 'px', 'height': this.getHeight() + 'px' });
                 $(dragElem).append(itemElem);
                 $(app.getDisplay()).append(dragElem);
@@ -117,7 +95,7 @@ export class BackpackItem
             stop: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
             {
                 $(this.elem).show(0);
-                var itemUnchanged = this.onDragStop(ev, ui);
+                this.onDragStop(ev, ui);
                 return true;
             }
         });
@@ -131,7 +109,7 @@ export class BackpackItem
     {
         if (this.properties[pid]) {
             if (value) {
-                return as.String(this.properties[pid], null) == as.String(value, null);
+                return as.String(this.properties[pid]) === as.String(value);
             }
         }
         return false;
@@ -161,7 +139,7 @@ export class BackpackItem
     setPosition(x: number, y: number)
     {
         // fix position
-        // let bounds = {
+        // const bounds = {
         //     left: this.getWidth() / 2, 
         //     top: this.getHeight() / 2, 
         //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
@@ -174,7 +152,22 @@ export class BackpackItem
 
         this.x = x;
         this.y = y;
+
         $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });
+    }
+
+    getScrolledItemPos(x: number, y: number): { x: number, y: number }
+    {
+        const scrollX = this.backpackWindow.getPane().scrollLeft;
+        const scrollY = this.backpackWindow.getPane().scrollTop;
+        return { x: x + scrollX, y: y + scrollY };
+    }
+
+    getScrolledCompensatedItemPos(x: number, y: number): { x: number, y: number }
+    {
+        const scrollX = this.backpackWindow.getPane().scrollLeft;
+        const scrollY = this.backpackWindow.getPane().scrollTop;
+        return { x: x - scrollX, y: y - scrollY };
     }
 
     setVisibility(state: boolean)
@@ -186,9 +179,52 @@ export class BackpackItem
         }
     }
 
-    onMouseClick(ev: JQuery.Event): void
+    public ignoreNextDrop(): void
     {
-        this.app.toFront(this.elem, ContentApp.LayerWindowContent);
+        this.ignoreNextDropFlag = true;
+    }
+
+    private onMouseDown(ev: JQuery.MouseDownEvent): void
+    {
+        this.mousedownX = ev.clientX;
+        this.mousedownY = ev.clientY;
+    }
+
+    private onMouseClick(ev: JQuery.ClickEvent): void
+    {
+        if (Math.abs(this.mousedownX - ev.clientX) > 2
+            || Math.abs(this.mousedownY - ev.clientY) > 2) {
+            return;
+        }
+        this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
+        const infoOpen = this.info;
+        if (infoOpen) {
+            this.info?.close();
+        }
+        if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // Just a click.
+            if (!infoOpen) {
+                const onClose = () => { this.info = null; };
+                this.info = new BackpackItemInfo(this.app, this, onClose);
+
+                const itemRelativeToPane = this.itemPositionRelativeToPane();
+                const scrolledItemPos = this.getScrolledCompensatedItemPos(itemRelativeToPane.x, itemRelativeToPane.y);
+                const paneRect = this.scrolledElemRect(this.backpackWindow.getPane());
+                const x = ev.offsetX + scrolledItemPos.x + paneRect.left;
+                const y = ev.offsetY + scrolledItemPos.y + paneRect.top;
+                this.info.show(x, y);
+                // this.info.show(ev.offsetX, ev.offsetY);
+                this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
+            }
+        } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+            // CTRL + click.
+            if (as.Bool(this.properties[Pid.IsRezzed], false)) {
+                this.app.derezItem(this.getItemId());
+            } else {
+                const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
+                this.rezItem(as.Int(rezzedX, ev.clientX));
+            }
+        }
     }
 
     private dragIsRezable: boolean = false;
@@ -196,7 +232,7 @@ export class BackpackItem
     private onDragStart(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
-        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed], false);
+        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
 
         if (this.dragIsRezable && !this.dragIsRezzed) {
             this.app.showDropzone();
@@ -212,13 +248,13 @@ export class BackpackItem
     private onDrag(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
         if (!this.dragIsRezable) {
-            if (!this.isPositionInBackpack(ev, ui)) {
+            if (!this.isDraggablePositionInBackpack(ev, ui)) {
                 return false;
             }
         }
 
         if (!this.dragIsRezzed) {
-            if (this.isPositionInDropzone(ev, ui)) {
+            if (this.isDraggablePositionInDropzone(ev, ui)) {
                 this.app.hiliteDropzone(true);
             } else {
                 this.app.hiliteDropzone(false);
@@ -228,98 +264,128 @@ export class BackpackItem
         return true;
     }
 
-    private async onDragStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): Promise<boolean>
+    private onDragStop(
+        ev: JQueryMouseEventObject,
+        ui: JQueryUI.DraggableEventUIParams,
+    ): void
     {
         this.app.hideDropzone();
-        if (this.isPositionInBackpack(ev, ui)) {
-            let pos = this.getPositionRelativeToPane(ev, ui);
-            if (pos.x != this.x || pos.y != this.y) {
-                this.setPosition(pos.x, pos.y);
-                await this.sendSetItemCoordinates(pos.x, pos.y);
-            }
-        } else if (this.isPositionInDropzone(ev, ui)) {
-            let dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
-            this.rezItem(dropX);
-            return false;
+        if (this.ignoreNextDropFlag) {
+            this.ignoreNextDropFlag = false;
+            return;
         }
-        return true;
+        if (this.isDraggablePositionInBackpack(ev, ui)) {
+            const pos = this.draggablePositionRelativeToPane(ev, ui);
+            if (pos.x !== this.x || pos.y !== this.y) {
+                if (!this.isDraggablePositionInShredder(ev, ui)) {
+                    const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
+                    this.setPosition(scrolledPos.x, scrolledPos.y);
+                    this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
+                }
+            }
+        } else if (this.isDraggablePositionInDropzone(ev, ui)) {
+            const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
+            this.rezItem(dropX);
+        }
     }
 
-    private isPositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private draggedItemCenter(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
     {
-        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const position = $(ui.helper).position();
+        const itemElem = $(ui.helper).children().get(0);
+        const width = $(itemElem).width();
+        const height = $(itemElem).height();
+        const x = position.left + width / 2;
+        const y = position.top + height / 2;
 
-        let position = $(ui.helper).position();
-        let itemElem = $(ui.helper).children().get(0);
-        let width = $(itemElem).width();
-        let height = $(itemElem).height();
-        let x = position.left + width / 2;
-        let y = position.top + height / 2;
-
-        let paneElem = this.backpackWindow.getPane();
-        let panePosition = $(paneElem).offset();
-        panePosition.left -= scrollLeft;
-        panePosition.top -= scrollTop;
-        let paneWidth = $(paneElem).width();
-        let paneHeight = $(paneElem).height();
-
-        return x > panePosition.left && x < panePosition.left + paneWidth && y < panePosition.top + paneHeight && y > panePosition.top;
+        return { x: x, y: y };
     }
 
-    private getPositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
+    private scrolledElemRect(elem: HTMLElement): { left: number, top: number, width: number, height: number }
     {
-        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const panePosition = $(elem).offset();
+        const left = panePosition.left -= scrollLeft;
+        const top = panePosition.top -= scrollTop;
+        const width = $(elem).width();
+        const height = $(elem).height();
 
-        let position = $(ui.helper).position();
-        let itemElem = $(ui.helper).children().get(0);
-        let width = $(itemElem).width();
-        let height = $(itemElem).height();
-        let x = position.left + width / 2;
-        let y = position.top + height / 2;
-
-        let paneElem = this.backpackWindow.getPane();
-        let panePosition = $(paneElem).offset();
-        panePosition.left -= scrollLeft;
-        panePosition.top -= scrollTop;
-
-        return { 'x': x - panePosition.left, 'y': y - panePosition.top };
+        return { left: left, top: top, width: width, height: height };
     }
 
-    private isPositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private isDraggablePositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {
-        let displayElem = this.app.getDisplay();
-        let dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
-        let dragHelperElem = ui.helper.get(0);
-        let dragItemElem = dragHelperElem.children[0];
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
+        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
+    }
 
-        let draggedLeft = $(dragHelperElem).position().left;
-        let draggedTop = $(dragHelperElem).position().top;
-        let draggedWidth = $(dragItemElem).width();
-        let draggedHeight = $(dragItemElem).height();
-        let dropzoneBottom = $(displayElem).height();
-        let dropzoneTop = dropzoneBottom - dropZoneHeight;
-        let itemBottomX = draggedLeft + draggedWidth / 2;
-        let itemBottomY = draggedTop + draggedHeight;
+    private isDraggablePositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    {
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
+        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
+    }
 
-        let mouseX = ev.clientX;
-        let mouseY = ev.clientY;
+    private draggablePositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
+    {
+        const pos = this.draggedItemCenter(ev, ui);
+        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
+        return { 'x': pos.x - rect.left, 'y': pos.y - rect.top };
+    }
 
-        let itemBottomInDropzone = itemBottomX > 0 && itemBottomY > dropzoneTop && itemBottomY < dropzoneBottom;
-        let mouseInDropzone = mouseX > 0 && mouseY > dropzoneTop && mouseY < dropzoneBottom;
+    private itemPositionRelativeToPane(): { x: number, y: number }
+    {
+        return { 'x': this.elem.offsetLeft, 'y': this.elem.offsetTop };
+    }
 
-        let inDropzone = itemBottomInDropzone || mouseInDropzone;
+    private isDraggablePositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    {
+        const displayElem = this.app.getDisplay();
+        const dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
+        const dragHelperElem = ui.helper.get(0);
+        const dragItemElem = dragHelperElem.children[0];
+
+        const draggedLeft = $(dragHelperElem).position().left;
+        const draggedTop = $(dragHelperElem).position().top;
+        const draggedWidth = $(dragItemElem).width();
+        const draggedHeight = $(dragItemElem).height();
+        const dropzoneBottom = $(displayElem).height();
+        const dropzoneTop = dropzoneBottom - dropZoneHeight;
+        const itemBottomX = draggedLeft + draggedWidth / 2;
+        const itemBottomY = draggedTop + draggedHeight;
+
+        const mouseX = ev.clientX;
+        const mouseY = ev.clientY;
+
+        const itemBottomInDropzone = itemBottomX > 0 && itemBottomY > dropzoneTop && itemBottomY < dropzoneBottom;
+        const mouseInDropzone = mouseX > 0 && mouseY > dropzoneTop && mouseY < dropzoneBottom;
+
+        const inDropzone = itemBottomInDropzone || mouseInDropzone;
         return inDropzone;
     }
 
-    async sendSetItemCoordinates(x: number, y: number)
+    sendSetItemCoordinates(x: number, y: number): void
     {
-        if (await BackgroundMessage.isBackpackItem(this.itemId)) {
-            this.properties[Pid.InventoryX] = '' + Math.round(x);
-            this.properties[Pid.InventoryY] = '' + Math.round(y);
-            this.backpackWindow.setItemProperties(this.itemId, this.properties, { skipPresenceUpdate: true });
-        }
+        (async () =>
+        {
+            const itemId = this.itemId;
+            if (await BackgroundMessage.isBackpackItem(itemId)) {
+                await BackgroundMessage.modifyBackpackItemProperties(
+                    itemId,
+                    {
+                        [Pid.InventoryX]: Math.round(x).toString(),
+                        [Pid.InventoryY]: Math.round(y).toString()
+                    },
+                    [],
+                    { skipPresenceUpdate: true }
+                );
+            }
+        })().catch(error =>
+        {
+            this.app.onError(ErrorWithData.ofError(error, undefined, { this: this }));
+        });
     }
 
     rezItem(x: number)
@@ -327,15 +393,10 @@ export class BackpackItem
         this.backpackWindow.rezItemSync(this.itemId, this.app.getRoom().getJid(), Math.round(x), this.app.getRoom().getDestination());
     }
 
-    derezItem()
-    {
-        this.backpackWindow.derezItem(this.itemId, this.properties[Pid.RezzedLocation], -1, -1);
-    }
-
     getPseudoRandomCoordinate(space: number, size: number, padding: number, id: string, mod: number): number
     {
-        let min = size / 2 + padding;
-        let max = space - min;
+        const min = size / 2 + padding;
+        const max = space - min;
         return Utils.pseudoRandomInt(min, max, id, '', mod);
     }
 
@@ -352,38 +413,38 @@ export class BackpackItem
             this.setImage(properties[Pid.ImageUrl]);
         }
 
-        let text = as.String(properties[Pid.Label], '');
-        let description = as.String(properties[Pid.Description], '');
-        if (description != '') {
-            text += (text != '' ? ': ' : '') + description;
+        let text = as.String(properties[Pid.Label]);
+        const description = as.String(properties[Pid.Description]);
+        if (description !== '') {
+            text += (text !== '' ? ': ' : '') + description;
         }
         this.setText(text);
 
         if (properties[Pid.Width] && properties[Pid.Height]) {
-            var imageWidth = as.Int(properties[Pid.Width], -1);
-            var imageHeight = as.Int(properties[Pid.Height], -1);
-            if (imageWidth > 0 && imageHeight > 0 && (imageWidth != this.imageWidth || imageHeight != this.imageHeight)) {
+            const imageWidth = as.Int(properties[Pid.Width], -1);
+            const imageHeight = as.Int(properties[Pid.Height], -1);
+            if (imageWidth > 0 && imageHeight > 0 && (imageWidth !== this.imageWidth || imageHeight !== this.imageHeight)) {
                 this.setSize(imageWidth, imageHeight);
             }
         }
 
-        if (as.Bool(properties[Pid.IsRezzed], false)) {
+        if (as.Bool(properties[Pid.IsRezzed])) {
             $(this.elem).addClass('n3q-backpack-item-rezzed');
         } else {
             $(this.elem).removeClass('n3q-backpack-item-rezzed');
         }
 
         if (properties[Pid.InventoryX] && properties[Pid.InventoryY]) {
-            var x = as.Int(properties[Pid.InventoryX], -1);
-            var y = as.Int(properties[Pid.InventoryY], -1);
+            let x = as.Int(properties[Pid.InventoryX], -1);
+            let y = as.Int(properties[Pid.InventoryY], -1);
 
             if (x < 0 || y < 0) {
-                let pos = this.backpackWindow.getFreeCoordinate();
+                const pos = this.backpackWindow.getFreeCoordinate();
                 x = pos.x;
                 y = pos.y;
             }
 
-            if (x != this.x || y != this.y) {
+            if (x !== this.x || y !== this.y) {
                 this.setPosition(x, y);
             }
         }
@@ -395,6 +456,7 @@ export class BackpackItem
 
     destroy()
     {
+        this.info?.close();
         $(this.elem).remove();
     }
 

@@ -1,90 +1,102 @@
 import log = require('loglevel');
 import { as } from './as';
 import { Utils } from './Utils';
+import { is } from './is';
 const NodeRSA = require('node-rsa');
 
-export class Pid
-{
-    static readonly Id = 'Id';
-    static readonly Name = 'Name';
-    static readonly Label = 'Label';
-    static readonly Description = 'Description';
-    static readonly Reference = 'Reference';
-    static readonly Template = 'Template';
-    static readonly OwnerId = 'OwnerId';
-    static readonly OwnerName = 'OwnerName';
-    static readonly IsRezable = 'IsRezable';
-    static readonly IsTakeable = 'IsTakeable';
-    static readonly IsTransferable = 'IsTransferable';
-    static readonly IsUnrezzedAction = 'IsUnrezzedAction';
-    static readonly IsRezzed = 'IsRezzed';
-    static readonly RezzedX = 'RezzedX';
-    static readonly RezzedLocation = 'RezzedLocation';_
-    static readonly RezzedDestination = 'RezzedDestination';
-    static readonly InventoryX = 'InventoryX';
-    static readonly InventoryY = 'InventoryY';
-    static readonly State = 'State';
-    static readonly Provider = 'Provider';
-    static readonly Stats = 'Stats';
-    static readonly Display = 'Display';
-    static readonly IframeAspect = 'IframeAspect';
-    static readonly IframeOptions = 'IframeOptions';
-    static readonly IframeUrl = 'IframeUrl';
-    static readonly DocumentOptions = 'DocumentOptions';
-    static readonly DocumentUrl = 'DocumentUrl';
-    static readonly DocumentText = 'DocumentText';
-    static readonly DocumentTitle = 'DocumentTitle';
-    static readonly MigrationAspect = 'MigrationAspect';
-    static readonly MigrationCid = 'MigrationCid';
-    static readonly AutorezAspect = 'AutorezAspect';
-    static readonly AutorezIsActive = 'AutorezIsActive';
-    static readonly IframeAuto = 'IframeAuto';
-    static readonly IframeAutoRange = 'IframeAutoRange';
-    static readonly IframeLive = 'IframeLive';
-    static readonly TransferState = 'TransferState';
-    static readonly ImageUrl = 'ImageUrl';
-    static readonly AnimationsUrl = 'AnimationsUrl';
-    static readonly Width = 'Width';
-    static readonly Height = 'Height';
-    static readonly ActivatableAspect = 'ActivatableAspect';
-    static readonly ApplierAspect = 'ApplierAspect';
-    static readonly ClaimAspect = 'ClaimAspect';
-    static readonly ClaimStrength = 'ClaimStrength';
-    static readonly ClaimUrl = 'ClaimUrl';
-    static readonly PointsAspect = 'PointsAspect';
-    static readonly SettingsAspect = 'SettingsAspect';
-    static readonly AvatarAspect = 'AvatarAspect';
-    static readonly NicknameAspect = 'NicknameAspect';
-    static readonly NicknameText = 'NicknameText';
-    // static readonly AvatarImageUrl = 'AvatarImageUrl';
-    static readonly AvatarAvatarId = 'AvatarAvatarId';
-    static readonly AvatarAnimationsUrl = 'AvatarAnimationsUrl';
-    static readonly PointsChannelEntered = 'PointsChannelEntered';
-    static readonly PointsChannelChat = 'PointsChannelChat';
-    static readonly PointsChannelEmote = 'PointsChannelEmote';
-    static readonly PointsChannelGreet = 'PointsChannelGreet';
-    static readonly PointsChannelNavigation = 'PointsChannelNavigation';
-    static readonly PointsChannelItemRez = 'PointsChannelItemRez';
-    static readonly PointsChannelItemApply = 'PointsChannelItemApply';
-    static readonly PointsTotal = 'PointsTotal';
-    static readonly ScreenAspect = 'ScreenAspect';
-    static readonly ScreenOptions = 'ScreenOptions';
-    static readonly ScreenUrl = 'ScreenUrl';
-    static readonly ActivatableIsActive = 'ActivatableIsActive';
-    static readonly Signed = 'Signed';
-    static readonly SignatureRsa = 'SignatureRsa';
-    static readonly Web3BasedAspect = 'Web3BasedAspect';
-    static readonly Web3BasedOwner = 'Web3BasedOwner';
-    static readonly Web3WalletAspect = 'Web3WalletAspect';
-    static readonly Web3WalletAddress = 'Web3WalletAddress';
-    static readonly Web3WalletNetwork = 'Web3WalletNetwork';
-    static readonly Web3ContractAspect = 'Web3ContractAspect';
-    static readonly Web3ContractAddress = 'Web3ContractAddress';
-    static readonly Web3ContractNetwork = 'Web3ContractNetwork';
-    static readonly ShopImageUrl = 'ShopImageUrl';
 
-    static readonly TransferState_Source = 'Source';
-    static readonly TransferState_Destination = 'Destination';
+export enum Pid
+{
+    Id = 'Id',
+    InventoryId = 'InventoryId',
+    Name = 'Name',
+    Digest = 'Digest',
+    Label = 'Label',
+    Description = 'Description',
+    Template = 'Template',
+    OwnerId = 'OwnerId',
+    OwnerName = 'OwnerName',
+    IsRezable = 'IsRezable',
+    IsTransferable = 'IsTransferable',
+    IsUnrezzedAction = 'IsUnrezzedAction',
+    DeletableAspect = 'DeletableAspect',
+    IsRezzed = 'IsRezzed',
+    IsInvisible = 'IsInvisible',
+    RezzedX = 'RezzedX',
+    RezzedLocation = 'RezzedLocation',
+    RezzedDestination = 'RezzedDestination',
+    InventoryX = 'InventoryX',
+    InventoryY = 'InventoryY',
+    State = 'State',
+    Provider = 'Provider',
+    Stats = 'Stats',
+    Display = 'Display',
+    IframeAspect = 'IframeAspect',
+    IframeOptions = 'IframeOptions',
+    IframeUrl = 'IframeUrl',
+    DocumentOptions = 'DocumentOptions',
+    DocumentUrl = 'DocumentUrl',
+    DocumentText = 'DocumentText',
+    DocumentTitle = 'DocumentTitle',
+    MigrationAspect = 'MigrationAspect',
+    MigrationCid = 'MigrationCid',
+    AutorezAspect = 'AutorezAspect',
+    AutorezIsActive = 'AutorezIsActive',
+    IframeAuto = 'IframeAuto',
+    IframeAutoRange = 'IframeAutoRange',
+    IframeLive = 'IframeLive',
+    ImageUrl = 'ImageUrl',
+    AnimationsUrl = 'AnimationsUrl',
+    Width = 'Width',
+    Height = 'Height',
+    ActivatableAspect = 'ActivatableAspect',
+    ApplierAspect = 'ApplierAspect',
+    ClaimAspect = 'ClaimAspect',
+    ClaimStrength = 'ClaimStrength',
+    ClaimUrl = 'ClaimUrl',
+    ClaimAccumulatedDuration = 'ClaimAccumulatedDuration',
+    N3qAspect = 'N3qAspect',
+    PageEffectAspect = 'PageEffectAspect',
+    PointsAspect = 'PointsAspect',
+    SettingsAspect = 'SettingsAspect',
+    AvatarAspect = 'AvatarAspect',
+    NicknameAspect = 'NicknameAspect',
+    NicknameText = 'NicknameText',
+    // AvatarImageUrl = 'AvatarImageUrl',
+    AvatarAvatarId = 'AvatarAvatarId',
+    AvatarAnimationsUrl = 'AvatarAnimationsUrl',
+    PageEffectDuration = 'PageEffectDuration',
+    PageEffectName = 'PageEffectName',
+    PointsChannelChat = 'PointsChannelChat',
+    PointsChannelEmote = 'PointsChannelEmote',
+    PointsChannelGreet = 'PointsChannelGreet',
+    PointsChannelNavigation = 'PointsChannelNavigation',
+    PointsChannelItemApply = 'PointsChannelItemApply',
+    PointsChannelPageOwned = 'PointsChannelPageOwned',
+    PointsTotal = 'PointsTotal',
+    ScreenAspect = 'ScreenAspect',
+    ScreenOptions = 'ScreenOptions',
+    ScreenUrl = 'ScreenUrl',
+    ActivatableIsActive = 'ActivatableIsActive',
+    Signed = 'Signed',
+    SignatureRsa = 'SignatureRsa',
+    Web3WalletAspect = 'Web3WalletAspect',
+    Web3WalletAddress = 'Web3WalletAddress',
+    Web3WalletNetwork = 'Web3WalletNetwork',
+    Web3ContractAspect = 'Web3ContractAspect',
+    Web3ContractAddress = 'Web3ContractAddress',
+    Web3ContractNetwork = 'Web3ContractNetwork',
+    NftAspect = 'NftAspect',
+    NftSync = 'NftSync',
+    NftOwner = 'NftOwner',
+    NftNetwork = 'NftNetwork',
+    NftContract = 'NftContract',
+    NftTokenId = 'NftTokenId',
+    NftTokenUri = 'NftTokenUri',
+    ShopImageUrl = 'ShopImageUrl',
+    LargeImageUrl = 'LargeImageUrl',
+    ShowEffect = 'ShowEffect',
+    AutoClaimed = 'AutoClaimed',
 }
 
 export class ItemProperties
@@ -95,19 +107,24 @@ export class ItemProperties
     {
         let display: ItemProperties = {};
 
-        let displayJson = as.String(props[Pid.Display], null);
-        if (as.String(displayJson, '') != '') {
+        const displayJson = as.String(props[Pid.Display]);
+        if (as.String(displayJson) !== '') {
             display = JSON.parse(displayJson);
         } else {
-            let stats = as.String(props[Pid.Stats], null);
-            let statsPids = stats.split(' ');
+            const stats = as.String(props[Pid.Stats]);
+            const statsPids = stats.split(' ');
             for (let i = 0; i < statsPids.length; i++) {
-                let pid = statsPids[i];
-                let value = props[pid];
+                const pid = statsPids[i];
+                const value = props[pid];
                 if (value) {
                     display[pid] = value;
                 }
             }
+        }
+
+        const provider = as.String(props[Pid.Provider]);
+        if (provider) {
+            display[Pid.Provider] = provider;
         }
 
         return display;
@@ -115,11 +132,11 @@ export class ItemProperties
 
     static verifySignature(props: ItemProperties, publicKey: string): boolean
     {
-        if (publicKey && publicKey != '') {
-            let message = ItemProperties.getSignatureData(props);
-            let signature = as.String(props[Pid.SignatureRsa], '');
+        if (publicKey) {
+            const message = ItemProperties.getSignatureData(props);
+            const signature = as.String(props[Pid.SignatureRsa]);
             try {
-                let verifier = new NodeRSA(publicKey);
+                const verifier = new NodeRSA(publicKey);
                 if (verifier.verify(message, signature, 'utf8', 'base64')) {
                     return true;
                 }
@@ -132,14 +149,14 @@ export class ItemProperties
 
     static getSignatureData(props: ItemProperties): string
     {
-        let signed = as.String(props[Pid.Signed], '');
-        if (signed != '') {
-            let pids = signed.split(' ');
+        const signed = as.String(props[Pid.Signed]);
+        if (signed !== '') {
+            const pids = signed.split(' ');
             let message = '';
             for (let i = 0; i < pids.length; i++) {
-                let pid = pids[i];
-                let value = as.String(props[pid], '');
-                message += (message != '' ? ' | ' : '') + pid + '=' + value;
+                const pid = pids[i];
+                const value = as.String(props[pid]);
+                message += (message !== '' ? ' | ' : '') + pid + '=' + value;
             }
             return message;
         }
@@ -148,10 +165,42 @@ export class ItemProperties
 
     static areEqual(left: ItemProperties, right: ItemProperties)
     {
-        let leftSorted = Utils.sortObjectByKey(left);
-        let rightSorted = Utils.sortObjectByKey(right);
-        return JSON.stringify(leftSorted) == JSON.stringify(rightSorted);
+        const leftSorted = Utils.sortObjectByKey(left);
+        const rightSorted = Utils.sortObjectByKey(right);
+        return JSON.stringify(leftSorted) === JSON.stringify(rightSorted);
     }
+
+    /**
+     * Returns selected properties as generic object.
+     *
+     * - Discards non-string values.
+     * - Discards properties with non-Pid name.
+     */
+    static getStrings(
+        item: undefined|ItemProperties|{[pid: string]: unknown},
+        pids?: undefined|Array<Pid>,
+    ): {[pid: string]: string} {
+        const vals: {[pid: string]: string} = {};
+        if (is.nil(pids)) {
+            // Keep all string properties:
+            for (const pid in <{[prop: string]: unknown}>item) {
+                const val = item[pid];
+                if (is.string(val)) {
+                    vals[pid] = val;
+                }
+            }
+        } else {
+            // Keep selected string properties only:
+            for (const pid of pids) {
+                const val = item[pid];
+                if (is.string(val)) {
+                    vals[pid] = val;
+                }
+            }
+        }
+        return vals;
+    }
+
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }
@@ -176,13 +225,16 @@ export class Property
         [Pid.Width]: { inPresence: true },
         [Pid.Height]: { inPresence: true },
         [Pid.RezzedX]: { inPresence: true },
+        [Pid.IsInvisible]: { inPresence: true },
         [Pid.ClaimAspect]: { inPresence: true },
         [Pid.ClaimStrength]: { inPresence: true },
         [Pid.ClaimUrl]: { inPresence: true },
+        [Pid.ClaimAccumulatedDuration]: { inPresence: true },
         [Pid.IframeAspect]: { inPresence: true },
         [Pid.IframeOptions]: { inPresence: true },
         [Pid.IframeUrl]: { inPresence: true },
         [Pid.IframeAuto]: { inPresence: true },
+        [Pid.IframeLive]: { inPresence: true },
         [Pid.IframeAutoRange]: { inPresence: true },
         [Pid.DocumentOptions]: { inPresence: true },
         [Pid.DocumentUrl]: { inPresence: true },
@@ -196,6 +248,7 @@ export class Property
         [Pid.SignatureRsa]: { inPresence: true },
         [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
+        [Pid.PageEffectName]: { inPresence: true },
 
         // For unit test
         ['Test1']: { inPresence: true },

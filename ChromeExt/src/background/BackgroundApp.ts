@@ -3,7 +3,24 @@ import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BackgroundErrorResponse, BackgroundItemExceptionResponse, BackgroundMessage, BackgroundResponse, BackgroundSuccessResponse, CreateBackpackItemFromTemplateResponse, CreateBackpackItemFromNftResponse, FindBackpackItemPropertiesResponse, GetBackpackItemPropertiesResponse, GetBackpackStateResponse, IsBackpackItemResponse } from '../lib/BackgroundMessage';
+import
+{
+    BackgroundErrorResponse,
+    BackgroundItemExceptionResponse,
+    BackgroundMessage,
+    BackgroundResponse,
+    BackgroundSuccessResponse,
+    FindBackpackItemPropertiesResponse,
+    GetBackpackItemPropertiesResponse,
+    GetBackpackStateResponse,
+    IsBackpackItemResponse,
+    ExecuteBackpackItemActionResponse,
+    CreateBackpackItemResponse,
+    ApplyItemToBackpackItemResponse,
+    BackpackTransferCompleteResponse,
+    BackpackTransferUnauthorizeResponse,
+    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse
+} from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
@@ -14,6 +31,7 @@ import { Backpack } from './Backpack';
 import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
+import { WeblinClientApi } from '../lib/WeblinClientApi';
 
 interface ILocationMapperResponse
 {
@@ -52,8 +70,6 @@ export class BackgroundApp
     private readonly fullJid2TimerDeferredUnavailable: Map<string, number> = new Map<string, number>();
     private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml, availableStanza?: xml }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
     private readonly iqStanzaTabId: Map<string, number> = new Map<string, number>();
-    private readonly httpCacheData: Map<string, string> = new Map<string, string>();
-    private readonly httpCacheTime: Map<string, number> = new Map<string, number>();
 
     async start(): Promise<void>
     {
@@ -81,6 +97,7 @@ export class BackgroundApp
 
         await this.migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal();
         await this.assertThatThereIsAUserId();
+        await this.assertThatThereIsAUserToken();
 
         let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
         this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
@@ -106,12 +123,35 @@ export class BackgroundApp
         await this.configUpdater.startUpdateTimer(() => this.onConfigUpdated());
     }
 
+    async getUserId(): Promise<string>
+    {
+        let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserId); }
+        return userId;
+    }
+
+    async getUserToken(): Promise<string>
+    {
+        let userId = await Memory.getLocal(Utils.localStorageKey_Token(), '');
+        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserToken); }
+        return userId;
+    }
+
     async assertThatThereIsAUserId()
     {
         let uniqueId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
         if (uniqueId == '') {
             uniqueId = 'mid' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
+        }
+    }
+
+    async assertThatThereIsAUserToken()
+    {
+        let token = await Memory.getLocal(Utils.localStorageKey_Token(), '');
+        if (token == '') {
+            token = 'mto' + Utils.randomString(30).toLowerCase();
+            await Memory.setLocal(Utils.localStorageKey_Token(), token);
         }
     }
 
@@ -214,6 +254,11 @@ export class BackgroundApp
                 return false;
             } break;
 
+            case BackgroundMessage.wakeup.name: {
+                sendResponse(this.handle_wakeup());
+                return false;
+            } break;
+
             case BackgroundMessage.fetchUrl.name: {
                 return this.handle_fetchUrl(message.url, message.version, sendResponse);
             } break;
@@ -237,7 +282,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.pingBackground.name: {
-                sendResponse(this.handle_pingBackground());
+                sendResponse(this.handle_pingBackground(sender));
                 return false;
             } break;
 
@@ -260,12 +305,12 @@ export class BackgroundApp
                 return this.handle_getBackpackState(sendResponse);
             } break;
 
-            case BackgroundMessage.addBackpackItem.name: {
-                return this.handle_addBackpackItem(message.itemId, message.properties, message.options, sendResponse);
+            case BackgroundMessage.backpackIsItemStillInRepo.name: {
+                return this.handle_backpackIsItemStillInRepo(message.itemId, sendResponse);
             } break;
 
-            case BackgroundMessage.setBackpackItemProperties.name: {
-                return this.handle_setBackpackItemProperties(message.itemId, message.properties, message.options, sendResponse);
+            case BackgroundMessage.addBackpackItem.name: {
+                return this.handle_addBackpackItem(message.itemId, message.properties, message.options, sendResponse);
             } break;
 
             case BackgroundMessage.modifyBackpackItemProperties.name: {
@@ -308,12 +353,25 @@ export class BackgroundApp
                 return this.handle_pointsActivity(message.channel, message.n, sendResponse);
             } break;
 
-            case BackgroundMessage.createBackpackItemFromTemplate.name: {
-                return this.handle_createBackpackItemFromTemplate(message.template, message.args, sendResponse);
+            case BackgroundMessage.applyItemToBackpackItem.name: {
+                return this.handle_applyItemToBackpackItem(message.activeId, message.passiveId, sendResponse);
             } break;
 
-            case BackgroundMessage.createBackpackItemFromNft.name: {
-                return this.handle_createBackpackItemFromNft(message.contractNetwork, message.contractAddress, message.tokenId, message.tokenUri, sendResponse);
+            case BackgroundMessage.backpackTransferAuthorize.name: {
+                return this.handle_backpackTransferAuthorize(message.itemId, message.duration, sendResponse);
+            } break;
+
+            case BackgroundMessage.backpackTransferUnauthorize.name: {
+                return this.handle_backpackTransferUnauthorize(message.itemId, sendResponse);
+            } break;
+
+            case BackgroundMessage.backpackTransferComplete.name: {
+                return this.handle_backpackTransferComplete(message.provider,
+                    message.senderInventoryId, message.senderItemId, message.transferToken, sendResponse);
+            } break;
+
+            case BackgroundMessage.createBackpackItem.name: {
+                return this.handle_createBackpackItem(message.provider, message.auth, message.method, message.args, sendResponse);
             } break;
 
             default: {
@@ -321,6 +379,20 @@ export class BackgroundApp
                 sendResponse(new BackgroundErrorResponse('error', 'unhandled message type=' + message.type));
                 return false;
             } break;
+        }
+    }
+
+    private readonly httpCacheData = {};
+    private readonly httpCacheTime = {};
+    private readonly httpCacheRequests: Map<string, Array<(response?: any) => void>> = new Map<string, Array<(response?: any) => void>>();
+
+    checkMaintainHttpCache(): void
+    {
+        let now = Date.now();
+        let maintenanceIntervalSec = Config.get('httpCache.maintenanceIntervalSec', 60);
+        if (now - this.lastCacheMaintenanceTime > maintenanceIntervalSec * 1000) {
+            this.maintainHttpCache();
+            this.lastCacheMaintenanceTime = now;
         }
     }
 
@@ -359,12 +431,7 @@ export class BackgroundApp
     lastCacheMaintenanceTime: number = 0;
     handle_fetchUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
     {
-        let now = Date.now();
-        let maintenanceIntervalSec = Config.get('httpCache.maintenanceIntervalSec', 60);
-        if (now - this.lastCacheMaintenanceTime > maintenanceIntervalSec * 1000) {
-            this.maintainHttpCache();
-            this.lastCacheMaintenanceTime = now;
-        }
+        this.checkMaintainHttpCache();
 
         let key = version + url;
         let isCached = version != '_nocache' && this.httpCacheData[key] != undefined;
@@ -377,51 +444,73 @@ export class BackgroundApp
 
         if (isCached) {
             sendResponse({ 'ok': true, 'data': this.httpCacheData[key] });
-        } else {
-            try {
-                fetch(url, { cache: 'reload' })
-                    .then(httpResponse =>
-                    {
-                        // log.debug('BackgroundApp.handle_fetchUrl', 'httpResponse', url, httpResponse);
-                        if (httpResponse.ok) {
-                            return httpResponse.text();
-                        } else {
-                            throw { 'ok': false, 'status': httpResponse.status, 'statusText': httpResponse.statusText };
-                        }
-                    })
-                    .then(text =>
-                    {
-                        if (version == '_nocache') {
-                            //dont cache
-                        } else if (text == '') {
-                            this.httpCacheData[key] = text;
-                            this.httpCacheTime[key] = 0;
-                        } else {
-                            this.httpCacheData[key] = text;
-                            this.httpCacheTime[key] = now;
-                        }
-                        let response = { 'ok': true, 'data': text };
-                        if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
-                        sendResponse(response);
-                    })
-                    .catch(ex =>
-                    {
-                        log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
-                        let status = ex.status;
-                        if (!status) { status = ex.name; }
-                        if (!status) { status = 'Error'; }
-                        let statusText = ex.statusText;
-                        if (!statusText) { statusText = ex.message + ' ' + url; }
-                        if (!statusText) { if (ex.toString) { statusText = ex.toString() + ' ' + url; } }
-                        sendResponse({ 'ok': false, 'status': status, 'statusText': statusText });
-                    });
-                return true;
-            } catch (error) {
-                log.debug('BackgroundApp.handle_fetchUrl', 'exception', url, error);
-                sendResponse({ 'ok': false, 'status': error.status, 'statusText': error.statusText });
-            }
+            return false;
         }
-        return false;
+
+        try {
+
+            if (String(url).indexOf('/InlineData') >= 0) {
+                const x = 1;
+            }
+            let requests = this.httpCacheRequests.get(key) ?? [];
+            requests.push(sendResponse);
+            this.httpCacheRequests.set(key, requests);
+            if (requests.length > 1) {
+                return true;
+            }
+
+            fetch(url, { cache: 'reload' })
+                .then(httpResponse =>
+                {
+                    // log.debug('BackgroundApp.handle_fetchUrl', 'httpResponse', url, httpResponse);
+                    if (httpResponse.ok) {
+                        return httpResponse.text();
+                    } else {
+                        throw { 'ok': false, 'status': httpResponse.status, 'statusText': httpResponse.statusText };
+                    }
+                })
+                .then(text =>
+                {
+                    if (version == '_nocache') {
+                        //dont cache
+                    } else if (text == '') {
+                        this.httpCacheData[key] = text;
+                        this.httpCacheTime[key] = 0;
+                    } else {
+                        this.httpCacheData[key] = text;
+                        this.httpCacheTime[key] = Date.now();
+                    }
+                    let response = { 'ok': true, 'data': text };
+                    if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
+
+                    for (let sr of requests) {
+                        sr(response);
+                    }
+                    this.httpCacheRequests.delete(key);
+                })
+                .catch(ex =>
+                {
+                    log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
+                    let status = ex.status;
+                    if (!status) { status = ex.name; }
+                    if (!status) { status = 'Error'; }
+                    let statusText = ex.statusText;
+                    if (!statusText) { statusText = ex.message + ' ' + url; }
+                    if (!statusText) { if (ex.toString) { statusText = ex.toString() + ' ' + url; } }
+                    let response = { 'ok': false, 'status': status, 'statusText': statusText };
+
+                    for (let sr of requests) {
+                        sr(response);
+                    }
+                    this.httpCacheRequests.delete(key);
+                });
+            return true;
+
+        } catch (error) {
+            log.debug('BackgroundApp.handle_fetchUrl', 'exception', url, error);
+            sendResponse({ 'ok': false, 'status': error.status, 'statusText': error.statusText });
+            return false;
+        }
     }
 
     handle_jsonRpc(url: string, postBody: any, sendResponse: (response?: any) => void): boolean
@@ -539,6 +628,19 @@ export class BackgroundApp
         return false;
     }
 
+    handle_backpackIsItemStillInRepo(itemId: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.isItemStillInRepo(itemId)
+            .then(result => sendResponse(new BackpackIsItemStillInRepoResponse(result)))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
     handle_addBackpackItem(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
@@ -548,19 +650,6 @@ export class BackgroundApp
             return true;
         } else {
             sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotAdded, ItemException.Reason.ItemsNotAvailable)));
-        }
-        return false;
-    }
-
-    handle_setBackpackItemProperties(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
-    {
-        if (this.backpack) {
-            this.backpack.setItemProperties(itemId, properties, options)
-                .then(() => { sendResponse(new BackgroundSuccessResponse()); })
-                .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
-            return true;
-        } else {
-            sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         return false;
     }
@@ -645,7 +734,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             try {
-                let props = this.backpack.getItemProperties(itemId);
+                let props = this.backpack.getRepositoryItemProperties(itemId);
                 sendResponse(new GetBackpackItemPropertiesResponse(props));
             } catch (iex) {
                 sendResponse(new BackgroundItemExceptionResponse(iex));
@@ -684,7 +773,7 @@ export class BackgroundApp
     {
         if (this.backpack) {
             this.backpack.executeItemAction(itemId, action, args, involvedIds, false)
-                .then(() => { sendResponse(new BackgroundSuccessResponse()); })
+                .then(result => { sendResponse(new ExecuteBackpackItemActionResponse(result)); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {
@@ -711,19 +800,16 @@ export class BackgroundApp
                     return true;
                 }
             }
-            // If no backpack, then silently ignore points activity so that the content script does not have to know that points are implemented thru backpack            
-            // } else {
-            //     sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         sendResponse(new BackgroundSuccessResponse());
         return false;
     }
 
-    handle_createBackpackItemFromTemplate(template: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
+    handle_applyItemToBackpackItem(activeId: string, passiveId: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByTemplate(template, args)
-                .then(item => { sendResponse(new CreateBackpackItemFromTemplateResponse(item.getProperties())); })
+            this.backpack.applyItemToItem(activeId, passiveId)
+                .then(result => { sendResponse(new ApplyItemToBackpackItemResponse(result)); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {
@@ -732,12 +818,56 @@ export class BackgroundApp
         return false;
     }
 
-    // manage stanza from 2 tabId mappings
-    handle_createBackpackItemFromNft(contractNetwork: string, contractAddress: string, tokenId: string, tokenUri: string, sendResponse: (response?: any) => void): boolean
+    handle_backpackTransferAuthorize(itemId: string, duration: number, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferAuthorize(itemId, duration)
+            .then(transferToken => sendResponse(new BackpackTransferAuthorizeResponse(transferToken)))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
+    handle_backpackTransferUnauthorize(itemId: string, sendResponse: (response?: any) => void): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferUnauthorize(itemId)
+            .then(() => sendResponse(new BackpackTransferUnauthorizeResponse()))
+            .catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
+    handle_backpackTransferComplete(
+        provider: string, senderInventoryId: string, senderItemId: string, transferToken: string,
+        sendResponse: (response?: any) => void,
+    ): boolean
+    {
+        if (!this.backpack) {
+            const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
+            sendResponse(new BackgroundItemExceptionResponse(error));
+            return false;
+        }
+        this.backpack.transferComplete(provider, senderInventoryId, senderItemId, transferToken)
+            .then(itemId =>
+            {
+                const itemProps = this.backpack.getItem(itemId).getProperties();
+                sendResponse(new BackpackTransferCompleteResponse(itemProps));
+            }).catch(ex => sendResponse(new BackgroundItemExceptionResponse(ex)));
+        return true;
+    }
+
+    handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
-            this.backpack.createItemByNft(contractNetwork, contractAddress, tokenId, tokenUri, )
-                .then(item => { sendResponse(new CreateBackpackItemFromNftResponse(item.getProperties())); })
+            this.backpack.createItem(provider, auth, method, args)
+                .then(props => { sendResponse(new CreateBackpackItemResponse(props)); })
                 .catch(ex => { sendResponse(new BackgroundItemExceptionResponse(ex)); });
             return true;
         } else {
@@ -745,7 +875,6 @@ export class BackgroundApp
         }
         return false;
     }
-
 
     addRoomJid2TabId(room: string, tabId: number): void
     {
@@ -813,13 +942,13 @@ export class BackgroundApp
 
     // keep room state
 
-    private readonly fullJid2PresenceList: Map<string, Map<string, any>> = new Map<string, Map<string, any>>();
+    private readonly fullJid2PresenceList = new Map<string, Map<string, xml>>();
 
-    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: any): void
+    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: xml): void
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) { } else {
-            roomPresences = new Map<string, any>();
+            roomPresences = new Map<string, xml>();
             this.fullJid2PresenceList.set(roomJid, roomPresences);
         }
         roomPresences.set(participantNick, stanza);
@@ -839,6 +968,17 @@ export class BackgroundApp
         }
     }
 
+    presenceStateGetPresence(roomJid: string, participantNick: string): xml
+    {
+        let roomPresences = this.fullJid2PresenceList.get(roomJid);
+        if (roomPresences) {
+            if (roomPresences.has(participantNick)) {
+                return roomPresences.get(participantNick);
+            }
+        }
+        return null;
+    }
+
     presenceStateRemoveRoom(roomJid: string): void
     {
         if (this.fullJid2PresenceList.has(roomJid)) {
@@ -846,13 +986,13 @@ export class BackgroundApp
         }
     }
 
-    getPresenceStateOfRoom(roomJid: string): Map<string, any>
+    getPresenceStateOfRoom(roomJid: string): Map<string, xml>
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) {
             return roomPresences;
         }
-        return new Map<string, any>();
+        return new Map<string, xml>();
     }
 
     // send/recv stanza
@@ -956,13 +1096,40 @@ export class BackgroundApp
     replayPresenceToTab(roomJid: string, tabId: number)
     {
         let roomPresences = this.getPresenceStateOfRoom(roomJid);
-        roomPresences.forEach((stanza, key) =>
-        {
+        for (let [nick, stanza] of roomPresences) {
             window.setTimeout(() =>
             {
                 ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
             }, 1);
-        });
+        }
+    }
+
+    //private deferredReplayPresenceToAvoidManyConsecutivePresencesTimer = new Map<string, number>();
+
+    async replayPresence(roomJid: string, participantNick: string)
+    {
+        let stanza = this.presenceStateGetPresence(roomJid, participantNick);
+        if (stanza !== null) {
+            stanza.attrs._replay = true;
+            await this.recvStanza(stanza);
+        }
+
+        // const timerKey = roomJid + '/' + participantNick;
+        // if (!this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.has(timerKey)) {
+
+        //     const timer = window.setTimeout(async () =>
+        //     {
+        //         this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.delete(timerKey);
+
+        //         let stanza = this.presenceStateGetPresence(roomJid, participantNick);
+        //         if (stanza !== null) {
+        //             stanza.attrs._replay = true;
+        //             await this.recvStanza(stanza);
+        //         }
+        //     }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
+
+        //     this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.set(timerKey, timer);
+        // }
     }
 
     simulateUnavailableToTab(from: string, unavailableTabId: number)
@@ -1108,17 +1275,20 @@ export class BackgroundApp
         // this.sendStanza(xml('presence').append(xml('x', { xmlns: 'http://jabber.org/protocol/muc' })));
     }
 
-    private async recvStanza(stanza: xml)
+    private async recvStanza(xmlStanza: xml)
     {
         this.stanzasInCount++;
 
         let isConnectionPresence = false;
         {
-            if (stanza.name == 'presence') {
-                isConnectionPresence = stanza.attrs.from && (jid(stanza.attrs.from).getResource() == this.resource);
+            if (xmlStanza.name == 'presence') {
+                isConnectionPresence = xmlStanza.attrs.from && (jid(xmlStanza.attrs.from).getResource() == this.resource);
             }
             if (!isConnectionPresence) {
-                if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from); }
+                const isReplay = as.Bool(xmlStanza.attrs._replay, false);
+                if (!isReplay) {
+                    if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', xmlStanza, as.String(xmlStanza.attrs.type, xmlStanza.name == 'presence' ? 'available' : 'normal'), 'to=', xmlStanza.attrs.to, 'from=', xmlStanza.attrs.from); }
+                }
 
                 // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
                 //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
@@ -1134,53 +1304,58 @@ export class BackgroundApp
             }
         }
 
-        if (stanza.name == 'iq') {
-            if (stanza.attrs) {
-                let stanzaType = stanza.attrs.type;
-                let stanzaId = stanza.attrs.id;
+        if (this.backpack) {
+            xmlStanza = await this.backpack.stanzaInFilter(xmlStanza);
+            if (xmlStanza == null) { return; }
+        }
+
+        if (xmlStanza.name == 'iq') {
+            if (xmlStanza.attrs) {
+                let stanzaType = xmlStanza.attrs.type;
+                let stanzaId = xmlStanza.attrs.id;
                 if (stanzaType == 'result' && stanzaId) {
                     let tabId = this.iqStanzaTabId[stanzaId];
                     if (tabId) {
                         delete this.iqStanzaTabId[stanzaId];
-                        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                     }
                 }
 
                 if (stanzaType == 'get' && stanzaId) {
-                    await this.onIqGet(stanza);
+                    await this.onIqGet(xmlStanza);
                 }
             }
         }
 
-        if (stanza.name == 'message') {
-            let from = jid(stanza.attrs.from);
+        if (xmlStanza.name == 'message') {
+            let from = jid(xmlStanza.attrs.from);
             let room = from.bare().toString();
 
             let tabIds = this.getRoomJid2TabIds(room);
             if (tabIds) {
                 for (let i = 0; i < tabIds.length; i++) {
                     let tabId = tabIds[i];
-                    ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                    ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                 }
             }
         }
 
-        if (stanza.name == 'presence') {
-            let from = jid(stanza.attrs.from);
+        if (xmlStanza.name == 'presence') {
+            let from = jid(xmlStanza.attrs.from);
             let room = from.bare().toString();
             let nick = from.getResource();
 
             if (nick != '') {
-                if (as.String(stanza.attrs['type'], 'available') == 'available') {
+                if (as.String(xmlStanza.attrs['type'], 'available') == 'available') {
                     if (!isConnectionPresence) {
-                        this.presenceStateAddPresence(room, nick, stanza);
+                        this.presenceStateAddPresence(room, nick, xmlStanza);
                     }
                 } else {
                     this.presenceStateRemovePresence(room, nick);
                 }
 
                 let unavailableTabId: number = -1;
-                if (stanza.attrs && stanza.attrs['type'] == 'unavailable') {
+                if (xmlStanza.attrs && xmlStanza.attrs['type'] == 'unavailable') {
                     unavailableTabId = this.fullJid2TabWhichSentUnavailable[from];
                     if (unavailableTabId) {
                         delete this.fullJid2TabWhichSentUnavailable[from];
@@ -1188,7 +1363,7 @@ export class BackgroundApp
                 }
 
                 if (unavailableTabId >= 0) {
-                    ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                    ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                     this.removeRoomJid2TabId(room, unavailableTabId);
                     if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.recvStanza', 'removing room2tab mapping', room, '=>', unavailableTabId, 'now:', this.roomJid2tabId); }
                 } else {
@@ -1196,7 +1371,7 @@ export class BackgroundApp
                     if (tabIds) {
                         for (let i = 0; i < tabIds.length; i++) {
                             let tabId = tabIds[i];
-                            ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
+                            ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                         }
                     }
                 }
@@ -1397,14 +1572,14 @@ export class BackgroundApp
 
     // Keep connection alive
 
-    private lastPingTime: number = 0;
-    handle_pingBackground(): BackgroundResponse
+    private presencePingTime: number = 0;
+    handle_pingBackground(sender: any): BackgroundResponse
     {
-        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground'); }
+        let now = Date.now();
+        if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.presencePingTime / 1000 }); }
         try {
-            let now = Date.now();
-            if (now - this.lastPingTime > 10000) {
-                this.lastPingTime = now;
+            if (now - this.presencePingTime > 30000) {
+                this.presencePingTime = now;
                 this.sendPresence();
             }
             return new BackgroundSuccessResponse();
@@ -1414,6 +1589,11 @@ export class BackgroundApp
     }
 
     // 
+
+    handle_wakeup(): boolean
+    {
+        return true;
+    }
 
     handle_log(pieces: any): BackgroundResponse
     {
@@ -1454,6 +1634,11 @@ export class BackgroundApp
             }
         }
 
+        let args: { [pid: string]: string } = {};
+        for (let key in consolidated) {
+            args[key] = as.String(consolidated[key], '');
+        }
+
         this.pointsActivities = [];
 
         if (this.backpack) {
@@ -1462,15 +1647,39 @@ export class BackgroundApp
                 if (points) {
                     let itemId = as.String(points.getProperties()[Pid.Id], '');
                     if (itemId != '') {
-                        this.backpack.executeItemAction(itemId, 'Points.ChannelValues', consolidated, [itemId], true)
+                        try {
+                            const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
+                            const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
+                            if (autoClaimed) {
+                                this.showToastInAllTabs(
+                                    'You Got Activity Points', 
+                                    'Your activity points have been claimed automatically',
+                                    'PointsAutoClaimed',
+                                    'notice',
+                                    [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
+                                    );
+                            }
+                        } catch (error) {
+                            log.info('BackgroundApp.submitPoints', error);
+                        }
                     }
                 }
             }
         }
     }
 
+    showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
+    {
+        let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
+        data.title = title;
+        data.text = text;
+        data.type = type;
+        data.iconType = iconType;
+        data.links = links;
+        this.sendToAllTabs(ContentMessage.type_clientNotification, data);
+    }
+
     handle_test(): any
     {
     }
-
 }

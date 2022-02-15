@@ -1,14 +1,11 @@
 import * as $ from 'jquery';
 import 'webpack-jquery-ui';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
-import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { Memory } from '../lib/Memory';
-import { runInThisContext } from 'vm';
 
-type WindowOptions = any;
+export type WindowOptions = {[prop: string]: any};
 
 export class Window
 {
@@ -32,28 +29,28 @@ export class Window
         this.closeIsHide = options.closeIsHide;
 
         if (!this.windowElem) {
-            let windowId = Utils.randomString(15);
-            let resizable = as.Bool(options.resizable, false);
-            let undockable = as.Bool(options.undockable, false);
+            const windowId = Utils.randomString(15);
+            const resizable = as.Bool(options.resizable, false);
+            const undockable = as.Bool(options.undockable, false);
 
-            let windowElem = <HTMLElement>$('<div id="' + windowId + '" class="n3q-base n3q-window n3q-shadow-medium" data-translate="children" />').get(0);
-            let titleBarElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-bar" data-translate="children" />').get(0);
-            let titleElem = <HTMLElement>$('<div class="n3q-base n3q-window-title" data-translate="children" />').get(0);
-            let titleTextElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-text">' + (options.titleText ? options.titleText : '') + '</div>').get(0);
+            const windowElem = <HTMLElement>$('<div id="' + windowId + '" class="n3q-base n3q-window n3q-shadow-medium" data-translate="children" />').get(0);
+            const titleBarElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-bar" data-translate="children" />').get(0);
+            const titleElem = <HTMLElement>$('<div class="n3q-base n3q-window-title" data-translate="children" />').get(0);
+            const titleTextElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-text">' + (options.titleText ? options.titleText : '') + '</div>').get(0);
 
-            let undockElem = undockable ? <HTMLElement>$(
+            const undockElem = undockable ? <HTMLElement>$(
                 `<div class="n3q-base n3q-window-button n3q-window-button-2" title="Undock" data-translate="attr:title:Common">
                     <div class="n3q-base n3q-button-symbol n3q-button-undock" />
                 </div>`
             ).get(0) : null;
 
-            let closeElem = <HTMLElement>$(
+            const closeElem = <HTMLElement>$(
                 `<div class="n3q-base n3q-window-button" title="Close" data-translate="attr:title:Common">
                     <div class="n3q-base n3q-button-symbol n3q-button-close" />
                 </div>`
             ).get(0);
 
-            let contentElem = <HTMLElement>$('<div class="n3q-base n3q-window-content" data-translate="children" />').get(0);
+            const contentElem = <HTMLElement>$('<div class="n3q-base n3q-window-content" data-translate="children" />').get(0);
 
             $(titleElem).append(titleTextElem);
             $(titleBarElem).append(titleElem);
@@ -63,8 +60,11 @@ export class Window
 
             $(windowElem).append(contentElem);
 
-            let resizeElem = resizable ? <HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0) : null;
-            $(windowElem).append(resizeElem);
+            // if (resizable) {
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0));
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-s"/>').get(0));
+            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-n"/>').get(0));
+            // }
 
             this.contentElem = contentElem;
             this.windowElem = windowElem;
@@ -72,15 +72,18 @@ export class Window
             $(this.app.getDisplay()).append(windowElem);
             this.app.toFront(windowElem, ContentApp.LayerWindow);
 
-            let maskId = Utils.randomString(15);
+            const maskId = Utils.randomString(15);
 
             if (resizable) {
                 $(windowElem).resizable({
                     minWidth: 180,
-                    minHeight: 30,
-                    handles: {
-                        'se': '#n3q #' + windowId + ' .n3q-window-resize-se',
-                    },
+                    minHeight: 100,
+                    handles: 'n, e, s, w, se, ne, nw, sw',
+                    // handles: {
+                    //     se: '#n3q #' + windowId + ' .n3q-window-resize-se',
+                    //     s: '#n3q #' + windowId + ' .n3q-window-resize-s',
+                    //     n: '#n3q #' + windowId + ' .n3q-window-resize-n',
+                    // },
                     start: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
                     {
                         $(windowElem).append('<div id="' + maskId + '" style="background-color: #ffffff; opacity: 0.001; position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>');
@@ -143,20 +146,22 @@ export class Window
         }
     }
 
-    async getSavedOptions(name: string, presetOptions: any): Promise<any>
+    async getSavedOptions(name: string, presetOptions: WindowOptions): Promise<WindowOptions>
     {
-        let savedOptions = await Memory.getLocal('window.' + name, null);
-        let options = presetOptions;
-        for (let key in savedOptions) {
+        const savedOptions = await Memory.getLocal('window.' + name, {});
+        const options = presetOptions ?? {};
+        for (const key in savedOptions) {
             options[key] = savedOptions[key];
         }
         return options;
     }
 
-    async saveOptions(name: string, value: any): Promise<void>
+    async saveOptions(name: string, value: WindowOptions): Promise<void>
     {
         await Memory.setLocal('window.' + name, value);
     }
+
+    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
 
     isOpen(): boolean
     {
@@ -165,12 +170,12 @@ export class Window
 
     undock(): void
     {
-        let params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=600,height=300,left=100,top=100`;
-        let undocked = window.open('about:blank', Utils.randomString(10), params);
+        const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=600,height=300,left=100,top=100`;
+        const undocked = window.open('about:blank', Utils.randomString(10), params);
         undocked.focus();
-        undocked.onload = function ()
+        undocked.onload = () =>
         {
-            let html = `<div style="font-size:30px">Undocked, but not really. Override Window.undock()</div>`;
+            const html = `<div style="font-size:30px">Undocked, but not really. Override Window.undock()</div>`;
             undocked.document.body.insertAdjacentHTML('afterbegin', html);
         };
     }
@@ -193,7 +198,7 @@ export class Window
     }
     setVisibility(visible: boolean): void
     {
-        if (visible != this.getVisibility()) {
+        if (as.Bool(visible) !== this.getVisibility()) {
             if (visible) {
                 $(this.windowElem).removeClass('n3q-hidden');
             } else {

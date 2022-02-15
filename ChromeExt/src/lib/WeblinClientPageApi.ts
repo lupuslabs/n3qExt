@@ -10,11 +10,4 @@ export namespace WeblinClientPageApi
             super(type, id);
         }
     }
-
-    export class ItemFindRequest extends Request
-    {
-        static type = 'Item.Find';
-        filter: ItemProperties;
-    }
-    export class ItemFindResponse extends WeblinClientApi.ContentResponse { constructor(public items: string[]) { super('Item.Find.Response'); } }
 }

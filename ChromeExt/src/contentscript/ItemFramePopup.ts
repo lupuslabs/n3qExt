@@ -2,14 +2,9 @@ import * as $ from 'jquery';
 import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Point2D, Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Popup } from './Popup';
+import { Popup, PopupOptions } from './Popup';
 import { Pid } from '../lib/ItemProperties';
-import { Config } from '../lib/Config';
-import { threadId } from 'worker_threads';
-
-type PopupOptions = any;
 
 interface ItemFramePopupOptions extends PopupOptions
 {
@@ -21,6 +16,7 @@ interface ItemFramePopupOptions extends PopupOptions
 export class ItemFramePopup extends Popup
 {
     private iframeElem: HTMLIFrameElement;
+    private options: ItemFramePopupOptions;
 
     constructor(app: ContentApp)
     {
@@ -44,6 +40,8 @@ export class ItemFramePopup extends Popup
             options.closeButton = as.Bool(iframeOptions.closeButton, true);
             options.transparent = as.Bool(iframeOptions.transparent, false);
             options.closeIsHide = as.Bool(iframeOptions.closeIsHide, false);
+
+            this.options = options;
 
             log.debug('ItemFramePopup', url);
             super.show(options);
@@ -74,16 +72,26 @@ export class ItemFramePopup extends Popup
 
     position(width: number, height: number, left: number, bottom: number, options: any = null): void
     {
+        const offset = this.options.elem.getBoundingClientRect();
+        const absLeft = offset.left + left;
+        const absBottom = bottom;
         if (options != null && as.Bool(options.animate, false)) {
-            $(this.windowElem).animate({ width: width + 'px', height: height + 'px', left: left + 'px', bottom: bottom + 'px' }, as.Int(options.duration, 200));
+            $(this.windowElem).animate({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' }, as.Int(options.duration, 200));
         } else {
-            $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: left + 'px', bottom: bottom + 'px' });
+            $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' });
         }
     }
 
-    toFront(): void
+    move(): void
     {
-        this.app.toFront(this.windowElem, ContentApp.LayerPopup);
+        const offset = this.options.elem.getBoundingClientRect();
+        const absLeft = offset.left + this.options.left;
+        $(this.windowElem).css({ left: absLeft + 'px' });
+    }
+
+    toFront(layer?: undefined | number | string): void
+    {
+        this.app.toFront(this.windowElem, layer ?? ContentApp.LayerPopup);
     }
 
     update(): void
