@@ -7,7 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.1', '??', [
-            ['Fix', 'x'],
+            ['Fix', 'Backpack item infos not closing when backpack window closes'],
         ]],
         ['1.2.0', 'ServerItems', [
             ['Add', 'Server based items'],
