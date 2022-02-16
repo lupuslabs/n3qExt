@@ -45,6 +45,7 @@ export class BackpackWindow extends Window
         const bottom = as.Int(options.bottom, 200);
         const width = as.Int(options.width, 600);
         let height = as.Int(options.height, 400);
+        const onClose = options.onClose;
 
         const windowElem = this.windowElem;
         const contentElem = this.contentElem;
@@ -135,6 +136,22 @@ export class BackpackWindow extends Window
             const left = ui.position.left;
             const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
             this.saveCoordinates(left, bottom, size.width, size.height);
+        };
+
+        this.onClose = () =>
+        {
+            const ids = [];
+            for (let id in this.items) {
+                ids.push(id);
+            }
+            for (let i = 0; i < ids.length; i++) {
+                const id = ids[i];
+                let backpackItem = this.items[id];
+                backpackItem.destroy();
+                delete this.items[id];
+            }
+
+            if (onClose) { onClose(); }
         };
 
         $(paneElem).droppable({

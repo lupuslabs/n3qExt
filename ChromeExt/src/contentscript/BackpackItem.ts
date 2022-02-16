@@ -103,7 +103,7 @@ export class BackpackItem
 
     getX(): number { return this.x; }
     getY(): number { return this.y; }
-    geSize(): number { return this.imageWidth; }
+    getSize(): number { return this.imageWidth; }
 
     match(pid: string, value: any)
     {
@@ -459,5 +459,4 @@ export class BackpackItem
         this.info?.close();
         $(this.elem).remove();
     }
-
 }
