@@ -73,7 +73,9 @@ export enum Pid
     PointsChannelNavigation = 'PointsChannelNavigation',
     PointsChannelItemApply = 'PointsChannelItemApply',
     PointsChannelPageOwned = 'PointsChannelPageOwned',
+    PointsChannelSocial = 'PointsChannelSocial',
     PointsTotal = 'PointsTotal',
+    PointsCurrent = 'PointsCurrent',
     ScreenAspect = 'ScreenAspect',
     ScreenOptions = 'ScreenOptions',
     ScreenUrl = 'ScreenUrl',
@@ -123,7 +125,7 @@ export class ItemProperties
         }
 
         const provider = as.String(props[Pid.Provider]);
-        if (provider) {
+        if (provider && provider !== 'n3q') {
             display[Pid.Provider] = provider;
         }
 
@@ -177,13 +179,14 @@ export class ItemProperties
      * - Discards properties with non-Pid name.
      */
     static getStrings(
-        item: undefined|ItemProperties|{[pid: string]: unknown},
-        pids?: undefined|Array<Pid>,
-    ): {[pid: string]: string} {
-        const vals: {[pid: string]: string} = {};
+        item: undefined | ItemProperties | { [pid: string]: unknown },
+        pids?: undefined | Array<Pid>,
+    ): { [pid: string]: string }
+    {
+        const vals: { [pid: string]: string } = {};
         if (is.nil(pids)) {
             // Keep all string properties:
-            for (const pid in <{[prop: string]: unknown}>item) {
+            for (const pid in <{ [prop: string]: unknown }>item) {
                 const val = item[pid];
                 if (is.string(val)) {
                     vals[pid] = val;

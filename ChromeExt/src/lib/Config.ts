@@ -232,6 +232,7 @@ export class Config
                 PointsChannelPowerup: { weight: 1, x0: 0, css: { backgroundColor: '#ff00ff' } },
                 PointsChannelItemApply: { weight: 1, x0: 0, css: { backgroundColor: '#00ffff' } },
                 PointsChannelPageOwned: { weight: 1, x0: 0, css: { backgroundColor: '#ff8080' } },
+                PointsChannelSocial: { weight: 1, x0: 0, css: { backgroundColor: '#8080ff' } },
             }
         },
         items: {
@@ -489,6 +490,7 @@ export class Config
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Item activity',
                     'Activity.PointsChannelPageOwned': 'Page ownership',
+                    'Activity.PointsChannelSocial': 'Social activity',
 
                     'ErrorFact.UnknownError': 'Unknown Error',
                     'ErrorFact.NotRezzed': 'Item Not Dropped',
@@ -746,6 +748,7 @@ export class Config
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
                     'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
+                    'Activity.PointsChannelSocial': 'Activität in Soizalen Netzen',
 
                     'ErrorFact.UnknownError': 'Unbekannter Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
