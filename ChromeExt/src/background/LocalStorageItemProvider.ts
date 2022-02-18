@@ -18,8 +18,9 @@ const Web3Eth = require('web3-eth');
 export class LocalStorageItemProvider implements IItemProvider
 {
     static type = 'LocalStorageItemProvider';
-    private static BackpackIdsKey = 'BackpackIds';
-    private static BackpackPropsPrefix = 'BackpackItem-';
+    static BackpackIdsKey = 'BackpackIds';
+    static BackpackPropsPrefix = 'BackpackItem-';
+    
     private rpcClient: RpcClient = new RpcClient();
 
     constructor(private backpack: Backpack, private id, private providerDescription: any)

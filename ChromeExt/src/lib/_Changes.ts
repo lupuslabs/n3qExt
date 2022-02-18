@@ -6,7 +6,9 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.1', '??', [
+        ['1.2.1', 'ServerItems1', [
+            ['Add', 'Support for points migration to server based items'],
+            ['Change', 'Remove Source: Server notice'],
             ['Fix', 'Backpack item infos not closing when backpack window closes'],
         ]],
         ['1.2.0', 'ServerItems', [

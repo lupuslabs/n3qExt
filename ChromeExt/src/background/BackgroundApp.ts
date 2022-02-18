@@ -32,6 +32,7 @@ import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
+import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 
 interface ILocationMapperResponse
 {
@@ -1416,6 +1417,9 @@ export class BackgroundApp
                         let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
                         let itemCount = this.backpack != null ? this.backpack.getItemCount() : -1;
                         let rezzedItemCount = this.backpack != null ? this.backpack.getRezzedItemCount() : -1;
+                        let points = -1
+                        let pointsItems = this.backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false));
+                        if (pointsItems.length > 0) { points = as.Int(pointsItems[0].getProperties()[Pid.PointsTotal], -1); }
 
                         queryResponse.append(xml('Variant', {}, Client.getVariant()))
                         queryResponse.append(xml('Language', {}, navigator.language))
@@ -1431,7 +1435,8 @@ export class BackgroundApp
                         queryResponse.append(xml('StanzasIn', {}, this.stanzasInCount));
                         queryResponse.append(xml('ItemCount', {}, itemCount));
                         queryResponse.append(xml('RezzedItemCount', {}, rezzedItemCount));
-                        // queryResponse.append(xml('LastActivity', {}, 'xx'));
+                        queryResponse.append(xml('Points', {}, points));
+                        queryResponse.append(xml('OldPoints', {}, JSON.stringify(await this.getOldPoints())));
                     }
 
                     if (Config.get('xmpp.versionQueryShareOs', false)) {
@@ -1444,6 +1449,25 @@ export class BackgroundApp
 
             }
         }
+    }
+
+    // xmpp
+
+    private async getOldPoints(): Promise<any>
+    {
+        const itemIds = await Memory.getLocal(LocalStorageItemProvider.BackpackIdsKey, []);
+        if (itemIds != null && Array.isArray(itemIds)) {
+            for (let i = 0; i < itemIds.length; i++) {
+                const itemId = itemIds[i];
+                const props = await Memory.getLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId, null);
+                if (props != null || typeof props == 'object') {
+                    if (as.Bool(props[Pid.PointsAspect], false)) {
+                        return { PointsTotal: as.Int(props[Pid.PointsTotal], -1), PointsCurrent: as.Int(props[Pid.PointsCurrent], -1) };
+                    }
+                }
+            }
+        }
+        return {};
     }
 
     // xmpp
@@ -1652,12 +1676,12 @@ export class BackgroundApp
                             const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
                             if (autoClaimed) {
                                 this.showToastInAllTabs(
-                                    'You Got Activity Points', 
+                                    'You Got Activity Points',
                                     'Your activity points have been claimed automatically',
                                     'PointsAutoClaimed',
                                     'notice',
                                     [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
-                                    );
+                                );
                             }
                         } catch (error) {
                             log.info('BackgroundApp.submitPoints', error);
