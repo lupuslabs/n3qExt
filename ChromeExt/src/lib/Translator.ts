@@ -130,7 +130,7 @@ export class Translator
                 }
 
                 if (applier != null) {
-                    if (this.translations[key]) {
+                    if (this.translations[key] || this.translations[key] === '') { 
                         this.translationAvailable[key] = true;
                         this.applyTranslation(applier, this.translations[key], true);
                     } else {

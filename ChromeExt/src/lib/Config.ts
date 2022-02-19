@@ -492,7 +492,7 @@ export class Config
                     'Activity.PointsChannelPageOwned': 'Page ownership',
                     'Activity.PointsChannelSocial': 'Social activity',
 
-                    'ErrorFact.UnknownError': 'Unknown Error',
+                    'ErrorFact.UnknownError': 'Error',
                     'ErrorFact.NotRezzed': 'Item Not Dropped',
                     'ErrorFact.NotDerezzed': 'Failed to Pick Up Item',
                     'ErrorFact.NotAdded': 'Item Not Added',
@@ -508,7 +508,7 @@ export class Config
                     'ErrorFact.NotTransferred': 'Item Not Transferred',
                     'ErrorFact.NotDropped': 'Item Not Applied',
 
-                    'ErrorReason.UnknownReason': 'Unknown reason',
+                    'ErrorReason.UnknownReason': '',
                     'ErrorReason.ItemAlreadyRezzed': 'Item already on a page.',
                     'ErrorReason.ItemNotRezzedHere': 'Item is not on this page',
                     'ErrorReason.ItemsNotAvailable': 'Items not available. The feature may be disabled.',
@@ -750,7 +750,7 @@ export class Config
                     'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
                     'Activity.PointsChannelSocial': 'Activität in Soizalen Netzen',
 
-                    'ErrorFact.UnknownError': 'Unbekannter Fehler',
+                    'ErrorFact.UnknownError': 'Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
                     'ErrorFact.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
                     'ErrorFact.NotAdded': 'Gegenstand nicht hinzugefügt',
@@ -766,7 +766,7 @@ export class Config
                     'ErrorFact.NotTransferred': 'Gegenstand nicht übertragen',
                     'ErrorFact.NotDropped': 'Gegenstand nicht angewendet',
 
-                    'ErrorReason.UnknownReason': 'Grund unbekannt',
+                    'ErrorReason.UnknownReason': '',
                     'ErrorReason.ItemAlreadyRezzed': 'Gegenstand ist schon auf einer Seite.',
                     'ErrorReason.ItemNotRezzedHere': 'Gegenstand ist nicht auf dieser Seite',
                     'ErrorReason.ItemsNotAvailable': 'Keine Gegenstände verfügbar. Die Funktion ist vielleicht nicht eingeschaltet.',
