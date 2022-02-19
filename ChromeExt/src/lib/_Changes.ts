@@ -8,8 +8,10 @@ export class _Changes
     static data: IHistory = [
         ['1.2.1', 'ServerItems1', [
             ['Add', 'Support for points migration to server based items'],
+            ['Add', 'Prepare for social network points channel'],
             ['Change', 'Remove Source: Server notice'],
             ['Fix', 'Backpack item infos not closing when backpack window closes'],
+            ['Fix', 'Don\'t show unknown reason error message'],
         ]],
         ['1.2.0', 'ServerItems', [
             ['Add', 'Server based items'],
