@@ -572,7 +572,7 @@ export class RoomItem extends Entity
             } else {
                 tokenOptions['properties'] = this.properties;
             }
-            const contextToken = await Payload.getContextToken(userId, this.getItemId(), 600, { 'room': room.getJid() }, tokenOptions);
+            const contextToken = await Payload.getContextToken(userId, this.getItemId(), this.app.getLanguage(), 600, { 'room': room.getJid() }, tokenOptions);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -633,7 +633,7 @@ export class RoomItem extends Entity
                 tokenOptions['properties'] = this.properties;
             }
 
-            const contextToken = await Payload.getContextToken(userId, itemId, 600, { 'room': roomJid }, tokenOptions);
+            const contextToken = await Payload.getContextToken(userId, itemId, this.app.getLanguage(), 600, { 'room': roomJid }, tokenOptions);
 
             iframeUrl = iframeUrl
                 .replace('{context}', encodeURIComponent(contextToken))

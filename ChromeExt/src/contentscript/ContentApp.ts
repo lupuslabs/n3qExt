@@ -56,6 +56,7 @@ export class ContentApp
     private roomJid: string;
     private room: Room;
     private propertyStorage: PropertyStorage = new PropertyStorage();
+    private language = 'en-US';
     private babelfish: Translator;
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
@@ -78,6 +79,7 @@ export class ContentApp
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
     getRoom(): Room { return this.room; }
+    getLanguage(): string { return this.language; }
 
     getMyParticipant(): undefined | Participant
     {
@@ -225,11 +227,11 @@ export class ContentApp
         if (navLang === '') {
             navLang = navigator.language;
         }
-        const language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
-        this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
+        this.language = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        this.babelfish = new Translator(Config.get('i18n.translations', {})[this.language], this.language, Config.get('i18n.serviceUrl', ''));
 
         this.vpi = new VpiResolver(BackgroundMessage, Config);
-        this.vpi.language = Translator.getShortLanguageCode(this.babelfish.getLanguage());
+        this.vpi.language = Translator.getShortLanguageCode(this.language);
 
         await this.assertActive();
         if (Panic.isOn) { return; }
