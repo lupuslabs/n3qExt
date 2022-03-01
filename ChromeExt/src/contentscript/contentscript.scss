@@ -122,7 +122,8 @@
     }
 
     div.n3q-hidden {
-        display: none!important;
+        // display: none!important;
+        visibility: hidden;
     }
 
     div.n3q-ghost {
