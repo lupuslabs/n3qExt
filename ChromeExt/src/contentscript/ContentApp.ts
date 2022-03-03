@@ -865,6 +865,7 @@ export class ContentApp
     public static LayerWindow = 50;
     public static LayerWindowContent = 51;
     public static LayerPopup = 60;
+    public static LayerToast = 70;
     public static LayerDrag = 99;
     public static LayerEffect = 100;
     public static LayerMenu = 110;

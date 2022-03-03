@@ -80,7 +80,7 @@ export class Toast
         $(this.app.getDisplay()).append(this.elem);
         this.setVisibility(true);
         this.app.translateElem(this.elem);
-        this.app.toFront(this.elem, ContentApp.LayerAboveEntities);
+        this.app.toFront(this.elem, ContentApp.LayerToast);
 
         $(this.elem)
             .css({ 'opacity': '0.0', 'bottom': '-20px' })
