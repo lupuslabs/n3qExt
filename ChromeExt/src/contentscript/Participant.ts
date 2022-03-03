@@ -841,11 +841,20 @@ export class Participant extends Entity
 
     onMouseDoubleClickAvatar(ev: JQuery.Event): void
     {
-        // super.onMouseClickAvatar(ev)
-        if (this.isSelf) {
-            this.toggleChatWindow();
+        super.onMouseClickAvatar(ev)
+
+        if (ev.ctrlKey) {
+            if (this.isSelf) {
+                this.toggleChatWindow();
+            } else {
+                this.togglePrivateChatWindow();
+            }
         } else {
-            this.togglePrivateChatWindow();
+            if (this.isSelf) {
+                this.room?.showChatInWithText('');
+            } else {
+                this.room?.showChatInWithText('@' + this.getDisplayName() + ' ');
+            }
         }
     }
 
@@ -875,8 +884,10 @@ export class Participant extends Entity
         }
     }
 
-    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {
-        (async (): Promise<void> => {
+    onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
+    {
+        (async (): Promise<void> =>
+        {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on Participant.
                 droppedItem.getAvatar()?.ignoreDrag();
@@ -889,9 +900,10 @@ export class Participant extends Entity
                 // Own BackpackItem on any Participant.
                 await this.room.applyBackpackItemToParticipant(this, droppedItem);
             }
-        })().catch(error => {
+        })().catch(error =>
+        {
             this.app.onError(ErrorWithData.ofError(
-                error, undefined, {this: this, droppedItem: droppedItem}));
+                error, undefined, { this: this, droppedItem: droppedItem }));
         });
     }
 
@@ -981,6 +993,15 @@ export class Participant extends Entity
     sendPoke(type: string): void
     {
         this.room?.sendPoke(this.roomNick, type);
+    }
+
+    showChatInWithText(text: string): void
+    {
+        if (this.chatinDisplay) {
+            this.chatinDisplay.setVisibility(true);
+            this.chatinDisplay.setText(text);
+            this.chatinDisplay.setFocus();
+        }
     }
 
     async openPrivateChat(aboveElem: HTMLElement): Promise<void>

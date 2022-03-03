@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.2', 'ServerItems2', [
             ['Add', 'Language to item iframe context'],
+            ['Add', 'Participant double click for chat-in field with @nickname'],
             ['Change', 'Ignore greet toast per user'],
             ['Fix', 'Toast below item popups'],
         ]],

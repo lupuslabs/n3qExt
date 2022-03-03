@@ -70,6 +70,16 @@ export class Chatin
         }
     }
 
+    setText(text: string): void
+    {
+        $(this.chatinInputElem).val(text);
+    }
+
+    setFocus(): void
+    {
+        $(this.chatinInputElem).focus();
+    }
+
     sendChat(): void
     {
         const text: string = as.String($(this.chatinInputElem).val());

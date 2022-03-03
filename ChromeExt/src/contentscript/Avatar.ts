@@ -103,22 +103,18 @@ export class Avatar implements IObserver
                 return;
             }
 
-            if (ev.ctrlKey) {
-                if (!this.clickDblClickSeparationTimer) {
-                    this.clickDblClickSeparationTimer = <number><unknown>setTimeout(() =>
-                    {
-                        this.clickDblClickSeparationTimer = null;
-                        this.entity.onMouseClickAvatar(ev);
-                    }, as.Float(Config.get('avatarDoubleClickDelaySec', 0.25)) * 1000);
-                } else {
-                    if (this.clickDblClickSeparationTimer) {
-                        clearTimeout(this.clickDblClickSeparationTimer);
-                        this.clickDblClickSeparationTimer = null;
-                        this.entity.onMouseDoubleClickAvatar(ev);
-                    }
-                }
+            if (!this.clickDblClickSeparationTimer) {
+                this.clickDblClickSeparationTimer = <number><unknown>setTimeout(() =>
+                {
+                    this.clickDblClickSeparationTimer = null;
+                    this.entity.onMouseClickAvatar(ev);
+                }, as.Float(Config.get('avatarDoubleClickDelaySec', 0.25)) * 1000);
             } else {
-                this.entity.onMouseClickAvatar(ev);
+                if (this.clickDblClickSeparationTimer) {
+                    clearTimeout(this.clickDblClickSeparationTimer);
+                    this.clickDblClickSeparationTimer = null;
+                    this.entity.onMouseDoubleClickAvatar(ev);
+                }
             }
 
         });
@@ -243,7 +239,8 @@ export class Avatar implements IObserver
             drop: (
                 ev: JQueryEventObject,
                 ui: JQueryUI.DroppableEventUIParam,
-            ): void => {
+            ): void =>
+            {
                 const droppedElem = ui.draggable.get(0);
                 const droppedItem
                     = this.getRoomItemByDomElem(droppedElem)

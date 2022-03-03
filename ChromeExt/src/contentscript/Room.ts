@@ -584,6 +584,14 @@ export class Room
         }
     }
 
+    showChatInWithText(text: string): void
+    {
+        var participant = this.getParticipant(this.getMyNick());
+        if (participant) {
+            participant.showChatInWithText(text);
+        }
+    }
+
     showChatMessage(id: string, name: string, text: string)
     {
         if (is.nil(id)) {
