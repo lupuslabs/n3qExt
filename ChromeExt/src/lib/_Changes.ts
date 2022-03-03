@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.2', 'ServerItems2', [
             ['Add', 'Language to item iframe context'],
+            ['Change', 'Ignore greet toast per user'],
             ['Fix', 'Toast below item popups'],
         ]],
         ['1.2.1', 'ServerItems1', [

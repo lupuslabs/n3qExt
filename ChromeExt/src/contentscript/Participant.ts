@@ -604,7 +604,7 @@ export class Participant extends Entity
             const pokeType = node.attrs.type;
             let iconType = 'greeting';
             if (pokeType == 'bye') { iconType = 'bye'; }
-            const toast = new SimpleToast(this.app, 'poke-' + pokeType, as.Float(Config.get('room.pokeToastDurationSec_' + pokeType) ?? Config.get('room.pokeToastDurationSec'), 10), iconType, this.getDisplayName(), pokeType + 's');
+            const toast = new SimpleToast(this.app, 'poke-' + pokeType + '-' + this.getUserId(), as.Float(Config.get('room.pokeToastDurationSec_' + pokeType) ?? Config.get('room.pokeToastDurationSec'), 10), iconType, this.getDisplayName(), pokeType + 's');
             toast.actionButton(pokeType + ' back', () =>
             {
                 this.sendPoke(pokeType);
