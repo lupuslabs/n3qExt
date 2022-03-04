@@ -10,6 +10,8 @@ export class _Changes
             ['Add', 'Language to item iframe context'],
             ['Add', 'Participant double click for chat-in field with @nickname'],
             ['Change', 'Ignore greet toast per user'],
+            ['Change', 'Delay between points activity recording'],
+            ['Change', 'Emote does not count as chat with respect to points activities'],
             ['Fix', 'Toast below item popups'],
         ]],
         ['1.2.1', 'ServerItems1', [

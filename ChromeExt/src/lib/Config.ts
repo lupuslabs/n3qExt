@@ -6,13 +6,13 @@ import { is } from './is';
 export class Config
 {
     public static devConfigName = 'dev';
-    private static devConfig: {[p: string]: unknown} = {};
+    private static devConfig: { [p: string]: unknown } = {};
 
     public static onlineConfigName = 'online';
-    private static onlineConfig: {[p: string]: unknown} = {};
+    private static onlineConfig: { [p: string]: unknown } = {};
 
     public static staticConfigName = 'static';
-    private static staticConfig: {[p: string]: unknown} = {
+    private static staticConfig: { [p: string]: unknown } = {
         environment: {
             // NODE_ENV: 'production', // 'development'
             reloadPageOnPanic: false,
@@ -181,7 +181,7 @@ export class Config
             messageMagic2Screen: 'uzv65b76t_weblin2screen',
             messageMagicW2WMigration: 'hbv67u5rf_w2wMigrate',
             messageMagicCreateCryptoWallet: 'tr67rftghg_CreateCryptoWallet',
-            allowedDomQueryPrefixes: [ 'https://opensea.io/', 'https://testnets.opensea.io/' ],
+            allowedDomQueryPrefixes: ['https://opensea.io/', 'https://testnets.opensea.io/'],
             w2WMigrationProvider: 'n3q',
             w2WMigrationAuth: 'JVxIJIdR9ueq7sJwwPmM',
             createCryptoWalletProvider: 'n3q',
@@ -224,6 +224,16 @@ export class Config
             fullLevels: 2,
             fractionalLevels: 1,
             activityDisplayEnabled: false,
+            delays: {
+                PointsChannelChat: 5.0,
+                PointsChannelEmote: 5.0,
+                PointsChannelGreet: 5.0,
+                PointsChannelNavigation: 10.0,
+                PointsChannelPowerup: 10.0,
+                PointsChannelItemApply: 2.0,
+                PointsChannelPageOwned: 3.0,
+                PointsChannelSocial: 3.0,
+            },
             activities: {
                 PointsChannelChat: { weight: 1, x0: 0, css: { backgroundColor: '#ff0000' } },
                 PointsChannelEmote: { weight: 1, x0: 0, css: { backgroundColor: '#00ff00' } },
@@ -882,7 +892,7 @@ export class Config
     static getOnline(key: string): unknown { return Config.getFromTree(this.onlineConfig, key); }
     static getStatic(key: string): unknown { return Config.getFromTree(this.staticConfig, key); }
 
-    private static getFromTree(tree: {[p: string]: unknown}, key: string): unknown
+    private static getFromTree(tree: { [p: string]: unknown }, key: string): unknown
     {
         const parts = key.split('.');
         let current: unknown = tree;
@@ -893,7 +903,7 @@ export class Config
         return current ?? null;
     }
 
-    private static setInTree(tree: {[p: string]: unknown}, key: string, value: unknown)
+    private static setInTree(tree: { [p: string]: unknown }, key: string, value: unknown)
     {
         const parts = key.split('.');
         if (parts.length === 0) {
@@ -909,9 +919,9 @@ export class Config
         current[lastPart] = value;
     }
 
-    static getDevTree(): {[p: string]: unknown} { return this.devConfig; }
-    static getOnlineTree(): {[p: string]: unknown} { return this.onlineConfig; }
-    static getStaticTree(): {[p: string]: unknown} { return this.staticConfig; }
+    static getDevTree(): { [p: string]: unknown } { return this.devConfig; }
+    static getOnlineTree(): { [p: string]: unknown } { return this.onlineConfig; }
+    static getStaticTree(): { [p: string]: unknown } { return this.staticConfig; }
 
     static setOnline(key: string, value: unknown)
     {
@@ -919,7 +929,7 @@ export class Config
         return Config.setInTree(this.onlineConfig, key, value);
     }
 
-    static setDevTree(tree: {[p: string]: unknown})
+    static setDevTree(tree: { [p: string]: unknown })
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
             log.info('Config.setDevTree');
@@ -927,7 +937,7 @@ export class Config
         this.devConfig = tree;
     }
 
-    static setOnlineTree(tree: {[p: string]: unknown}): void
+    static setOnlineTree(tree: { [p: string]: unknown }): void
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
             log.info('Config.setOnlineTree');
@@ -935,7 +945,7 @@ export class Config
         this.onlineConfig = tree;
     }
 
-    static setStaticTree(tree: {[p: string]: unknown}): void
+    static setStaticTree(tree: { [p: string]: unknown }): void
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
             log.info('Config.setStaticTree');

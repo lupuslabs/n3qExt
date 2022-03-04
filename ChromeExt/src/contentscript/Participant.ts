@@ -805,6 +805,10 @@ export class Participant extends Entity
         // }
 
         this.room?.sendGroupChat(text);
+        if (Config.get('points.enabled', false)) {
+            BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1)
+                .catch(error => { log.info('Participant.sendGroupChat', error); });
+        }
     }
 
     // Mouse
@@ -956,7 +960,8 @@ export class Participant extends Entity
     {
         this.room?.sendGroupChat('/do ' + what);
         if (Config.get('points.enabled', false)) {
-            /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelEmote, 1);
+            BackgroundMessage.pointsActivity(Pid.PointsChannelEmote, 1)
+                .catch(error => { log.info('Participant.do', error); });
         }
     }
 

@@ -526,7 +526,8 @@ export class RoomItem extends Entity
                 try {
                     const result = await BackgroundMessage.applyItemToBackpackItem(itemId, passiveItemId);
                     if (Config.get('points.enabled', false)) {
-                        /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1);
+                        BackgroundMessage.pointsActivity(Pid.PointsChannelItemApply, 1)
+                            .catch(error => { log.info('Room.applyItem', error); });
                     }
                     return result;
                 } catch (ex) {

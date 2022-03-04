@@ -789,6 +789,12 @@ export class BackgroundApp
     {
         if (this.backpack) {
             if (Config.get('points.enabled', false)) {
+
+                if (this.isPointsActivityIgnoredBecauseNeedsPause(channel)) {
+                    sendResponse(new BackgroundErrorResponse('error', 'Points activity ' + channel + ' needs pause'));
+                    return;
+                }
+
                 this.pointsActivities.push({ channel: channel, n: n });
 
                 let now = Date.now();
@@ -804,6 +810,25 @@ export class BackgroundApp
         }
         sendResponse(new BackgroundSuccessResponse());
         return false;
+    }
+
+    private pointsActivitiesTimes: Map<string, number> = new Map<string, number>();
+    isPointsActivityIgnoredBecauseNeedsPause(channel: string): boolean
+    {
+        let ignore = false;
+
+        let lastTimeThisChannel = 0;
+        if (this.pointsActivitiesTimes.has(channel)) {
+            lastTimeThisChannel = this.pointsActivitiesTimes.get(channel);
+            const delayNeededSec = as.Float(Config.get('points.delays', 5.0), 5.0);
+            const sinceLastTimeSec = (Date.now() - lastTimeThisChannel) / 1000;
+            ignore = sinceLastTimeSec < delayNeededSec;
+        }
+        if (!ignore) {
+            this.pointsActivitiesTimes.set(channel, Date.now());
+        }
+
+        return ignore;
     }
 
     handle_applyItemToBackpackItem(activeId: string, passiveId: string, sendResponse: (response?: any) => void): boolean

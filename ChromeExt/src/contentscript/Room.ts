@@ -515,9 +515,6 @@ export class Room
             .append(xml('body', { id: Utils.randomString(10) }, text))
             ;
         this.app.sendStanza(message);
-        if (Config.get('points.enabled', false)) {
-            /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1);
-        }
     }
 
     sendPrivateChat(text: string, nick: string)
@@ -535,7 +532,8 @@ export class Room
             ;
         this.app.sendStanza(message);
         if (Config.get('points.enabled', false)) {
-            /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelGreet, 1);
+            BackgroundMessage.pointsActivity(Pid.PointsChannelGreet, 1)
+                .catch(error => { log.info('Room.sendPoke', error); });
         }
     }
 

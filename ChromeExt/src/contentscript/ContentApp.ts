@@ -675,7 +675,8 @@ export class ContentApp
             if (newRoomJid != '') {
                 this.enterRoom(newRoomJid, pageUrl, newDestinationUrl);
                 if (Config.get('points.enabled', false)) {
-                    /* await */ BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1);
+                    BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1)
+                        .catch(error => { log.info('ContentApp.checkPageUrlChanged', error); });
                 }
             }
 

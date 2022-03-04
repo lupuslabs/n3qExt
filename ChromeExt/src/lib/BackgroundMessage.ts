@@ -141,7 +141,11 @@ export class BackgroundMessage
                         if (response.ok) {
                             resolve(response);
                         } else {
-                            reject(response.ex);
+                            if (response.ex) {
+                                reject(response.ex);
+                            } else {
+                                reject(response);
+                            }
                         }
                     });
                 }
@@ -317,7 +321,8 @@ export class BackgroundMessage
 
     static async backpackTransferComplete(
         provider: string, senderInventoryId: string, senderItemId: string, transferToken: string
-    ): Promise<ItemProperties> {
+    ): Promise<ItemProperties>
+    {
         const msg = {
             'type': BackgroundMessage.backpackTransferComplete.name,
             'provider': provider,
