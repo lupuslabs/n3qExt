@@ -69,23 +69,23 @@ export class BackpackWindow extends Window
         const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
         $(contentElem).append(paneElem);
 
-        const dumpElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-dump" title="Shredder" data-translate="attr:title:Backpack"/>').get(0);
-        $(contentElem).append(dumpElem);
-        $(dumpElem).droppable({
-            tolerance: 'pointer',
-            drop: (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-            {
-                const droppedElem = ui.draggable.get(0);
-                if (droppedElem) {
-                    const droppedId: string = $(droppedElem).data('id');
-                    if (droppedId) {
-                        this.app.deleteItemAsk(droppedId, undefined, () => this.itemVisibility(droppedId, true));
-                        window.setTimeout(() => this.itemVisibility(droppedId, false), 1);
-                        ev.stopPropagation();
-                    }
-                }
-            }
-        });
+        // const dumpElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-dump" title="Shredder" data-translate="attr:title:Backpack"/>').get(0);
+        // $(contentElem).append(dumpElem);
+        // $(dumpElem).droppable({
+        //     tolerance: 'pointer',
+        //     drop: (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
+        //     {
+        //         const droppedElem = ui.draggable.get(0);
+        //         if (droppedElem) {
+        //             const droppedId: string = $(droppedElem).data('id');
+        //             if (droppedId) {
+        //                 this.app.deleteItemAsk(droppedId, undefined, () => this.itemVisibility(droppedId, true));
+        //                 window.setTimeout(() => this.itemVisibility(droppedId, false), 1);
+        //                 ev.stopPropagation();
+        //             }
+        //         }
+        //     }
+        // });
 
         // if (Environment.isDevelopment()) {
         //     const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);

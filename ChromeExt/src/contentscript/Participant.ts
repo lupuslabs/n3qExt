@@ -765,46 +765,8 @@ export class Participant extends Entity
     private chat_command_apply: string = '/action';
     sendGroupChat(text: string, handler?: (IMessage: any) => any): void
     {
-        //hw later
-        // if (text.substr(0, this.chat_command_apply.length) == this.chat_command_apply) {
-        //     var parts = text.split(' ');
-        //     if (parts.length == 4) {
-        //         var activeName = parts[1];
-        //         var action = parts[2];
-        //         var passiveName = parts[3];
-        //         var activeId: string = '';
-        //         var passiveId: string = '';
-        //         var activeUndecided: boolean = false;
-        //         var passiveUndecided: boolean = false;
-        //         for (var id in this.things) {
-        //             if (this.things[id].isIdentifiedBy(activeName)) {
-        //                 activeUndecided = (activeId != '');
-        //                 if (!activeUndecided) {
-        //                     activeId = id;
-        //                 }
-        //                 break;
-        //             }
-        //         }
-        //         for (var id in this.things) {
-        //             if (this.things[id].isIdentifiedBy(passiveName)) {
-        //                 passiveUndecided = (passiveId != '');
-        //                 if (!passiveUndecided) {
-        //                     passiveId = id;
-        //                 }
-        //                 break;
-        //             }
-        //         }
-        //         if (activeUndecided || passiveUndecided) {
-        //             new SimpleNotice(this, 'ActionAmbiguous', 10, 'glyphicon glyphicon-ban-circle', 'Not Executed', (activeUndecided ? activeName : passiveName) + ' is ambiguous');
-        //         } else {
-        //             if (activeId != '' && passiveId != '') {
-        //                 this.sendItemActionMessage(this.getRoomName(), activeId, action, { Item: passiveId });
-        //             }
-        //         }
-        //     }
-        // }
-
         this.room?.sendGroupChat(text);
+
         if (Config.get('points.enabled', false)) {
             BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1)
                 .catch(error => { log.info('Participant.sendGroupChat', error); });
@@ -956,10 +918,11 @@ export class Participant extends Entity
         }
     }
 
-    do(what: string): void
+    do(what: string, countsAsActivity: boolean = true): void
     {
         this.room?.sendGroupChat('/do ' + what);
-        if (Config.get('points.enabled', false)) {
+
+        if (countsAsActivity && Config.get('points.enabled', false)) {
             BackgroundMessage.pointsActivity(Pid.PointsChannelEmote, 1)
                 .catch(error => { log.info('Participant.do', error); });
         }
@@ -995,9 +958,9 @@ export class Participant extends Entity
         this.app.showBackpackWindow();
     }
 
-    sendPoke(type: string): void
+    sendPoke(type: string, countsAsActivity: boolean = true): void
     {
-        this.room?.sendPoke(this.roomNick, type);
+        this.room?.sendPoke(this.roomNick, type, countsAsActivity);
     }
 
     showChatInWithText(text: string): void

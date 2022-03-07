@@ -11,7 +11,7 @@ export class _Changes
             ['Add', 'Participant double click for chat-in field with @nickname'],
             ['Change', 'Ignore greet toast per user'],
             ['Change', 'Delay between points activity recording'],
-            ['Change', 'Emote does not count as chat with respect to points activities'],
+            ['Change', 'Emote (greet) does not count as chat (emote) with respect to points activities'],
             ['Fix', 'Toast below item popups'],
         ]],
         ['1.2.1', 'ServerItems1', [

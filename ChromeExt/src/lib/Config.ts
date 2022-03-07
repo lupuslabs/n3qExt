@@ -413,7 +413,7 @@ export class Config
                     'Settingswindow.Settings': 'Settings',
                     'BackpackWindow.Inventory': 'Your Backpack',
 
-                    'Backpack.Shredder': 'Shredder',
+                    // 'Backpack.Shredder': 'Shredder',
                     'Backpack.Go to item': 'Go there',
                     'Backpack.Derez item': 'Pick up',
                     'Backpack.Rez item': 'Drop',
@@ -669,7 +669,7 @@ export class Config
                     'Settingswindow.Settings': 'Einstellungen',
                     'BackpackWindow.Inventory': 'Dein Rucksack',
 
-                    'Backpack.Shredder': 'Schredder',
+                    // 'Backpack.Shredder': 'Schredder',
                     'Backpack.Go to item': 'Dort hingehen',
                     'Backpack.Derez item': 'Einsammeln',
                     'Backpack.Rez item': 'Ablegen',

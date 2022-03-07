@@ -525,13 +525,14 @@ export class Room
         this.app.sendStanza(message);
     }
 
-    sendPoke(nick: string, type: string)
+    sendPoke(nick: string, type: string, countsAsActivity: boolean = true)
     {
         const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
             .append(xml('x', { 'xmlns': 'vp:poke', 'type': type }))
             ;
         this.app.sendStanza(message);
-        if (Config.get('points.enabled', false)) {
+        
+        if (countsAsActivity && Config.get('points.enabled', false)) {
             BackgroundMessage.pointsActivity(Pid.PointsChannelGreet, 1)
                 .catch(error => { log.info('Room.sendPoke', error); });
         }

@@ -277,11 +277,9 @@ export class BackpackItem
         if (this.isDraggablePositionInBackpack(ev, ui)) {
             const pos = this.draggablePositionRelativeToPane(ev, ui);
             if (pos.x !== this.x || pos.y !== this.y) {
-                if (!this.isDraggablePositionInShredder(ev, ui)) {
-                    const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
-                    this.setPosition(scrolledPos.x, scrolledPos.y);
-                    this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
-                }
+                const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
+                this.setPosition(scrolledPos.x, scrolledPos.y);
+                this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
             }
         } else if (this.isDraggablePositionInDropzone(ev, ui)) {
             const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
@@ -314,12 +312,12 @@ export class BackpackItem
         return { left: left, top: top, width: width, height: height };
     }
 
-    private isDraggablePositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
-    {
-        const pos = this.draggedItemCenter(ev, ui);
-        const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
-        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
-    }
+    // private isDraggablePositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    // {
+    //     const pos = this.draggedItemCenter(ev, ui);
+    //     const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
+    //     return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
+    // }
 
     private isDraggablePositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
     {

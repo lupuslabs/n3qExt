@@ -75,10 +75,24 @@ export class Nickname implements IObserver
 
         if (!this.isSelf) {
             let column = new MenuColumn(menu, 'interaction');
-            column.addItem('privatevidconf', 'Private Videoconf', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, async ev => { await this.participant?.initiatePrivateVidconf(this.participant.getElem()); });
-            column.addItem('privatechat', 'Private Chat', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { this.participant?.openPrivateChat(this.participant.getElem()); });
-            column.addItem('greet', 'Greet', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { this.participant?.sendPoke('greet'); this.participant?.do('wave'); });
-            column.addItem('bye', 'Bye', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { this.participant?.sendPoke('bye'); this.participant?.do('wave'); });
+            column.addItem('privatevidconf', 'Private Videoconf', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, async ev =>
+            {
+                await this.participant?.initiatePrivateVidconf(this.participant.getElem());
+            });
+            column.addItem('privatechat', 'Private Chat', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev =>
+            {
+                this.participant?.openPrivateChat(this.participant.getElem());
+            });
+            column.addItem('greet', 'Greet', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev =>
+            {
+                this.participant?.sendPoke('greet');
+                this.participant?.do('wave', false);
+            });
+            column.addItem('bye', 'Bye', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev =>
+            {
+                this.participant?.sendPoke('bye');
+                this.participant?.do('wave', false);
+            });
             menu.addColumn(column);
         }
 
