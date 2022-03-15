@@ -54,8 +54,8 @@ export class Room
     {
         return [
             ['url', this.getPageUrl()],
+            ['destination', this.getDestination()],
             ['jid', this.getJid()],
-            ['destination', this.getDestination()]
         ];
     }
 
