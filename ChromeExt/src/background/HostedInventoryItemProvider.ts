@@ -288,7 +288,7 @@ export namespace HostedInventoryItemProvider
                         try {
                             let props = await this.createItem(this.config().createItemWiCryptoClaimAuth, 'ByTemplate', data);
                             let itemId = props[Pid.Id];
-                            knownIds.push();
+                            knownIds.push(itemId);
                             if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId, data); }
                         } catch (error) {
                             log.info(error);
