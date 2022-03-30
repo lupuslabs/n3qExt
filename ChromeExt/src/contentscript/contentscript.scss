@@ -83,6 +83,10 @@
         font: normal 11px/12px Arial, sans-serif;
     }
 
+    input[type="text"]::placeholder {
+        font: normal 11px/12px Arial, sans-serif;
+    }
+    
     textarea::placeholder
     {
         font: normal 11px/12px Arial, sans-serif;
