@@ -161,6 +161,121 @@ export class IframeApi
         }
     }
 
+    async handle_ClientCreateAvatarRequest(request: WeblinClientApi.ClientCreateAvatarRequest): Promise<WeblinClientApi.Response>
+    {
+        try {
+            const provider    = as.String(request.provider);
+            const auth        = as.String(request.auth);
+            const template    = 'Avatar';
+            const label       = as.String(request.label);
+            const imageUrl    = as.String(request.imageUrl);
+            const width       = as.String(request.width);
+            const height      = as.String(request.height);
+            const defUrl      = as.String(request.avatarAnimationsUrl);
+            const useExisting = as.Bool(request.useExisting, true);
+            const activate    = as.Bool(request.activate, true);
+            const rezz        = as.Bool(request.rezz, false);
+            const dx          = as.Int(request.dx, 120);
+
+            let props = null;
+            if (useExisting) {
+                const filter = {};
+                filter[Pid.Template] = template;
+                filter[Pid.AvatarAnimationsUrl] = defUrl;
+                props = Object.values(await BackgroundMessage.findBackpackItemProperties(filter))[0];
+            }
+            let doCreate = is.nil(props);
+            let doActivate = activate && (doCreate || !as.Bool(props[Pid.ActivatableIsActive]));
+
+            if (doCreate || doActivate) {
+                const variantId = (doCreate ? 'Create' : '') + (activate ? 'Activate' : '');
+                const iconId = 'question';
+                const toastType = `iframeApi-avatar${variantId}`;
+                const itemNameRaw = doCreate ? label : props[Pid.Label] ?? props[Pid.Template];
+                const itemName = this.app.translateText(`ItemLabel.${itemNameRaw}`);
+                const titleId = `iframeApi.avatar${variantId}Title`;
+                const title = this.app.translateText(titleId).replace('{item}', itemName);
+                const textId = `iframeApi.avatar${variantId}Text`;
+                const text = this.app.translateText(textId).replace('{item}', itemName);
+                const duration = Config.get('iframeApi.avatarCreateToastDurationSec', 8);
+                const toast = new SimpleToast(this.app, toastType, duration, iconId, title, text);
+                const btns = [];
+                if (doCreate && doActivate) {
+                    btns.push([true, true, 'iframeApi.avatarCreateActivateBtn']);
+                    btns.push([true, false, 'iframeApi.avatarCreateBtn']);
+                    btns.push([false, false, 'iframeApi.avatarCreateActivateCancelBtn']);
+                } else if (doCreate) {
+                    btns.push([true, false, 'iframeApi.avatarCreateBtn']);
+                    btns.push([false, false, 'iframeApi.avatarCreateActivateCancelBtn']);
+                } else {
+                    btns.push([false, true, 'iframeApi.avatarActivateBtn']);
+                    btns.push([false, false, 'iframeApi.avatarCreateActivateCancelBtn']);
+                }
+                let userReponseHandled = false;
+                const makeBtnHandler = (doCreate, doActivate, resolve) => {
+                    return () => {
+                        if (!userReponseHandled) {
+                            userReponseHandled = true;
+                            toast.close();
+                            resolve([doCreate, doActivate]);
+                        }
+                    };
+                };
+                [doCreate, doActivate] = await new Promise((resolve, reject) => {
+                    for (const [doCreate, doActivate, labelId] of btns) {
+                        const label = this.app.translateText(labelId);
+                        toast.actionButton(label, makeBtnHandler(doCreate, doActivate, resolve));
+                    }
+                    toast.show(() => makeBtnHandler(false, false, resolve));
+                });
+                if (!doCreate && !doActivate) {
+                    throw new Error('Canceled by user!');
+                }
+            }
+
+            if (doCreate) {
+                const method = 'ByTemplate';
+                props = {};
+                props[Pid.Template] = template;
+                props[Pid.Label] = label;
+                props[Pid.ImageUrl] = imageUrl;
+                props[Pid.Width] = width;
+                props[Pid.Height] = height;
+                props[Pid.AvatarAnimationsUrl] = defUrl;
+                props = await BackgroundMessage.createBackpackItem(provider, auth, method, props);
+                props = await BackgroundMessage.getBackpackItemProperties(props[Pid.Id]);
+            }
+            const itemId = props[Pid.Id];
+
+            if (doCreate && rezz) {
+                await this.rezzItemAtParticipant(itemId, dx);
+            }
+
+            if (doActivate) {
+                const [action, args, involvedIds] = ['Activatable.SetState', {Value: 'true'}, [itemId]];
+                console.log([itemId, action, args, involvedIds]);
+                await BackgroundMessage.executeBackpackItemAction(itemId, action, args, involvedIds);
+                this.app.getRoom().sendPresence().catch(error => {/* Already handled. */});
+            }
+
+            if (doCreate || doActivate) {
+                const variantId = (doCreate ? 'Created' : '') + (doActivate ? 'Activated' : '');
+                const iconId = 'notice';
+                const toastType = `iframeApi-avatar${variantId}`;
+                const itemName = this.app.translateText(`ItemLabel.${props[Pid.Label] ?? props[Pid.Template]}`);
+                const titleId = `iframeApi.avatar${variantId}Title`;
+                const title = this.app.translateText(titleId);
+                const text = `${itemName}\n${itemId}`;
+                const duration = Config.get('iframeApi.avatarCreatedToastDurationSec', 8);
+                new SimpleToast(this.app, toastType, duration, iconId, title, text).show();
+            }
+
+            return new WeblinClientApi.ClientCreateAvatarResponse(itemId, doCreate, doActivate);
+        } catch (error) {
+            return new WeblinClientApi.ErrorResponse(error);
+        }
+    }
+
     private async rezzItemAtParticipant(itemId: string, dx: number): Promise<void> {
         const room = this.app.getRoom();
         const nick = room.getMyNick();
@@ -274,6 +389,7 @@ export class IframeApi
             switch (request.type) {
 
                 case WeblinClientApi.ClientCreateItemRequest.type: { response = await this.handle_ClientCreateItemRequest(<WeblinClientApi.ClientCreateItemRequest>request); } break;
+                case WeblinClientApi.ClientCreateAvatarRequest.type: { response = await this.handle_ClientCreateAvatarRequest(<WeblinClientApi.ClientCreateAvatarRequest>request); } break;
                 case WeblinClientApi.ClientGetApiRequest.type: { response = await this.handle_ClientGetApiRequest(<WeblinClientApi.ClientGetApiRequest>request); } break;
                 case WeblinClientApi.ItemFindRequest.type: { response = await this.handle_ItemFindRequest(<WeblinClientApi.ItemFindRequest>request); } break;
 
@@ -312,6 +428,7 @@ export class IframeApi
                 case WeblinClientApi.ClientNotificationRequest.type: { response = await this.handle_ClientNotificationRequest(<WeblinClientApi.ClientNotificationRequest>request); } break;
                 case WeblinClientApi.ClientItemExceptionRequest.type: { response = await this.handle_ClientItemExceptionRequest(<WeblinClientApi.ClientItemExceptionRequest>request); } break;
                 case WeblinClientApi.ClientCreateItemRequest.type: { response = await this.handle_ClientCreateItemRequest(<WeblinClientApi.ClientCreateItemRequest>request); } break;
+                case WeblinClientApi.ClientCreateAvatarRequest.type: { response = await this.handle_ClientCreateAvatarRequest(<WeblinClientApi.ClientCreateAvatarRequest>request); } break;
                 case WeblinClientApi.ClientGetApiRequest.type: { response = await this.handle_ClientGetApiRequest(<WeblinClientApi.ClientGetApiRequest>request); } break;
                 case WeblinClientIframeApi.ItemGetPropertiesRequest.type: { response = this.handle_ItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request); } break;
                 case WeblinClientIframeApi.ItemSetPropertyRequest.type: { response = this.handle_ItemSetPropertyRequest(<WeblinClientIframeApi.ItemSetPropertyRequest>request); } break;

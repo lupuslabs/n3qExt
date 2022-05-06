@@ -58,6 +58,27 @@ export namespace WeblinClientApi
         constructor(public itemId: string) { super('Client.CreateItem.Response'); }
     }
 
+    export class ClientCreateAvatarRequest extends Request
+    {
+        static type = 'Client.CreateAvatar';
+        provider: string;
+        auth: string;
+        label: string;
+        imageUrl: string;
+        width: number;
+        height: number;
+        avatarAnimationsUrl: string;
+        useExisting?: boolean;
+        activate?: boolean;
+        rezz?: boolean;
+        dx: number;
+        args: ItemProperties;
+    }
+    export class ClientCreateAvatarResponse extends WeblinClientApi.ContentResponse
+    {
+        constructor(public itemId: string, public created: boolean, public activated: boolean) { super('Client.CreateAvatar.Response'); }
+    }
+
     export class ClientGetApiRequest extends Request
     {
         static type = 'Client.GetApi';
