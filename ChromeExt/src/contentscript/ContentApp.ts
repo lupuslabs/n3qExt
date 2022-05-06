@@ -14,7 +14,7 @@ import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
 import { ContentMessage } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
-import { Pid } from '../lib/ItemProperties';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
@@ -1189,7 +1189,7 @@ export class ContentApp
                 if (!inOnAnswer) {
                     inOnAnswer = true;
                     toast.close();
-                    this.deleteItem(itemId, onDeleted, onFailed ?? onCanceled);
+                    this.deleteItem(props, onDeleted, onFailed ?? onCanceled);
                 }
             };
             const onNo = () =>
@@ -1211,18 +1211,21 @@ export class ContentApp
     }
 
     public deleteItem(
-        itemId: string,
+        props: ItemProperties,
         onDeleted?: (itemId: string) => void,
         onFailed?: (itemId: string) => void, // For cleanups.
     ): void
     {
+        const itemId = props[Pid.Id];
         if (Utils.logChannel('items')) {
             log.info('ContentApp.deleteItem', itemId);
         }
         (async () =>
         {
             await BackgroundMessage.deleteBackpackItem(itemId, {});
-            // this.room?.sendPresence();
+            if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
+                this.getRoom()?.sendPresence().catch(error => {/* already handled */});
+            }
             onDeleted?.(itemId);
         })().catch(error =>
         {
