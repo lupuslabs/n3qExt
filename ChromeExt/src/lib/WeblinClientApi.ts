@@ -49,8 +49,13 @@ export namespace WeblinClientApi
         provider: string;
         auth: string;
         template: string;
+        rezz?: boolean;
         dx: number;
         args: ItemProperties;
+    }
+    export class ClientCreateItemResponse extends WeblinClientApi.ContentResponse
+    {
+        constructor(public itemId: string) { super('Client.CreateItem.Response'); }
     }
 
     export class ClientGetApiRequest extends Request

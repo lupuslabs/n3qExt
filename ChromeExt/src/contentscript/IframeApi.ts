@@ -140,20 +140,33 @@ export class IframeApi
     async handle_ClientCreateItemRequest(request: WeblinClientApi.ClientCreateItemRequest): Promise<WeblinClientApi.Response>
     {
         try {
+            const provider = as.String(request.provider);
+            const auth     = as.String(request.auth);
+            const template = as.String(request.template);
+            const args     = request.args ?? {};
+            const rezz     = as.Bool(request.rezz, true);
+            const dx       = as.Int(request.dx, 120);
 
-            let args = request.args ?? {};
-            args[Pid.Template] = request.template;
-            let props = await BackgroundMessage.createBackpackItem(request.provider, request.auth, 'ByTemplate', args);
-            let itemId = props[Pid.Id];
+            args[Pid.Template] = template;
+            const method = 'ByTemplate';
+            const props = await BackgroundMessage.createBackpackItem(provider, auth, method, args);
+            const itemId = props[Pid.Id];
+            if (rezz) {
+                await this.rezzItemAtParticipant(itemId, dx);
+            }
 
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
-            let x = participant.getPosition() + as.Int(request.dx, 120);
-            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
-
+            return new WeblinClientApi.ClientCreateItemResponse(itemId);
         } catch (error) {
             return new WeblinClientApi.ErrorResponse(error);
         }
+    }
+
+    private async rezzItemAtParticipant(itemId: string, dx: number): Promise<void> {
+        const room = this.app.getRoom();
+        const nick = room.getMyNick();
+        const participant = room.getParticipant(nick);
+        const x = participant.getPosition() + dx;
+        await BackgroundMessage.rezBackpackItem(itemId, room.getJid(), x, room.getDestination(), {});
     }
 
     async handle_ClientGetApiRequest(request: WeblinClientApi.ClientGetApiRequest): Promise<WeblinClientApi.Response>
