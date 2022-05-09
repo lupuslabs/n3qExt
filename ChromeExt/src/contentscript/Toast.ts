@@ -7,8 +7,10 @@ import { is } from '../lib/is';
 
 export class Toast
 {
-    protected elem: HTMLElement = null;
+    protected wrapperElem: HTMLElement = null;
+    protected paneElem: HTMLElement = null;
     protected dontShow = true;
+    protected isModal = false;
     protected onClose: () => void;
 
     constructor(protected app: ContentApp, protected messageType: string, protected durationSec: number, protected iconType: string, protected bodyElem: HTMLElement)
@@ -28,23 +30,29 @@ export class Toast
 
         const checkboxId = Utils.randomString(10);
 
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-toast n3q-shadow-small" data-translate="children" />').get(0);
+        this.wrapperElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast" />').get(0);
         this.setVisibility(false);
+        if (this.isModal) {
+            this.wrapperElem.classList.add('n3q-toast-modal');
+        }
+
+        this.paneElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-pane n3q-shadow-small" data-translate="children" />').get(0);
+        this.wrapperElem.append(this.paneElem);
 
         const iconElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-icon n3q-toast-icon-' + this.iconType + '" />').get(0);
-        $(this.elem).append(iconElem);
+        $(this.paneElem).append(iconElem);
 
         const bodyContainerElem = <HTMLDivElement>$('<div class="n3q-base toast-body-container" data-translate="children" />').get(0);
         $(bodyContainerElem).append(this.bodyElem);
-        $(this.elem).append(bodyContainerElem);
+        $(this.paneElem).append(bodyContainerElem);
 
         const closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Close" data-translate="attr:title:Common"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
         $(closeElem).click(ev =>
         {
-            $(this.elem).stop(true);
+            $(this.paneElem).stop(true);
             this.close();
         });
-        $(this.elem).append(closeElem);
+        $(this.paneElem).append(closeElem);
 
         const footerElem = <HTMLDivElement>$('<div class="n3q-base n3q-toast-footer" data-translate="children" />').get(0);
 
@@ -60,41 +68,49 @@ export class Toast
             $(footerElem).append(dontShowLabelElem);
         }
 
-        $(this.elem).append(footerElem);
+        $(this.paneElem).append(footerElem);
 
         // let resizeElem = <HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0);
         // $(this.elem).append(resizeElem);
 
-        $(this.elem).click(() =>
+        $(this.paneElem).click(() =>
         {
-            $(this.elem)
-                .stop().stop().stop()
-                .draggable({
-                    distance: 4,
-                    containment: 'document',
-                    start: (ev: JQueryMouseEventObject, ui) => { },
-                    stop: (ev: JQueryMouseEventObject, ui) => { }
-                });
+            $(this.wrapperElem).stop().stop().stop();
+            $(this.paneElem).stop().stop().stop().draggable({
+                distance: 4,
+                containment: 'document',
+                start: (ev: JQueryMouseEventObject, ui) => { },
+                stop: (ev: JQueryMouseEventObject, ui) => { }
+            });
         });
 
-        $(this.app.getDisplay()).append(this.elem);
+        $(this.app.getDisplay()).append(this.wrapperElem);
         this.setVisibility(true);
-        this.app.translateElem(this.elem);
-        this.app.toFront(this.elem, ContentApp.LayerToast);
+        this.app.translateElem(this.paneElem);
+        this.app.toFront(this.wrapperElem, ContentApp.LayerToast);
 
-        $(this.elem)
-            .css({ 'opacity': '0.0', 'bottom': '-20px' })
-            .animate({ 'opacity': '1.0', 'bottom': '10px' }, 'fast', 'linear')
-            .delay(this.durationSec * 1000)
-            .animate({ 'opacity': '0.0', 'bottom': '-20px' }, 'slow', () => this.close())
-            ;
+        if (this.isModal) {
+            $(this.paneElem)
+                .css({ 'opacity': '0.0' })
+                .animate({ 'opacity': '1.0' }, 'fast', 'linear')
+                .delay(this.durationSec * 1000)
+                .animate({ 'opacity': '0.0' }, 'slow', () => this.close())
+                ;
+        } else {
+            $(this.wrapperElem)
+                .css({ 'opacity': '0.0', 'bottom': '-20px' })
+                .animate({ 'opacity': '1.0', 'bottom': '10px' }, 'fast', 'linear')
+                .delay(this.durationSec * 1000)
+                .animate({ 'opacity': '0.0', 'bottom': '-20px' }, 'slow', () => this.close())
+                ;
+        }
     }
 
     close(): void
     {
-        const elem = this.elem;
+        const elem = this.wrapperElem;
         if (!is.nil(elem)) {
-            this.elem = null;
+            this.wrapperElem = null;
             if (this.onClose) {
                 this.onClose();
             }
@@ -108,14 +124,19 @@ export class Toast
         this.dontShow = state;
     }
 
+    setIsModal(state: boolean): void
+    {
+        this.isModal = state;
+    }
+
     // Visibility
 
     setVisibility(visible: boolean): void
     {
         if (visible) {
-            $(this.elem).removeClass('n3q-hidden');
+            $(this.wrapperElem).removeClass('n3q-hidden');
         } else {
-            $(this.elem).addClass('n3q-hidden');
+            $(this.wrapperElem).addClass('n3q-hidden');
         }
     }
 }
