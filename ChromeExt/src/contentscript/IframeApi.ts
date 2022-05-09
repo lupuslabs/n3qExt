@@ -199,6 +199,7 @@ export class IframeApi
                 const text = this.app.translateText(textId).replace('{item}', itemName);
                 const duration = Config.get('iframeApi.avatarCreateToastDurationSec', 8);
                 const toast = new SimpleToast(this.app, toastType, duration, iconId, title, text);
+                toast.setDontShow(false);
                 toast.setIsModal(true);
                 const btns = [];
                 if (doCreate && doActivate) {
