@@ -13,6 +13,7 @@ export class _Changes
             ['Change', 'Ignore greet toast per user'],
             ['Change', 'Delay between points activity recording'],
             ['Change', 'Emote (greet) does not count as chat (emote) with respect to points activities'],
+            ['Change', 'Reorder /room output'],
             ['Fix', 'Toast below item popups'],
         ]],
         ['1.2.1', 'ServerItems1', [
