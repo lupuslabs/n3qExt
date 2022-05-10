@@ -6,7 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.2', 'ServerItems2', [
+        ['1.2.2', 'AvatarApi', [
+            ['Add', 'Avatar API'],
             ['Add', 'Language to item iframe context'],
             ['Add', 'Participant double click for chat-in field with @nickname'],
             ['Change', 'Ignore greet toast per user'],
