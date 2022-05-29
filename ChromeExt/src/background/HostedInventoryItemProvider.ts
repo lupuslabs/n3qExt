@@ -21,6 +21,7 @@ export namespace HostedInventoryItemProvider
     {
         itemApiUrl: string;
         createItemWiCryptoClaimAuth: string;
+        addGenericToReceivedPresence: boolean;
     }
 
     export interface Definition
@@ -802,6 +803,80 @@ export namespace HostedInventoryItemProvider
         }
 
         // -----------------------------------------------------
+
+        async stanzaInFilter(stanza: xml): Promise<xml>
+        {
+            if (stanza.name == 'presence') {
+                const fromJid = new jid(stanza.attrs.from);
+                const roomJid = fromJid.bare().toString();
+                const participantNick = fromJid.getResource();
+
+                if (as.String(stanza.attrs['type'], 'available') == 'available') {
+                    let vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
+                    if (vpDependent) {
+                        const dependentPresences = vpDependent.getChildren('presence');
+                        if (dependentPresences.length > 0) {
+                            for (let i = 0; i < dependentPresences.length; i++) {
+                                const dependentPresence = dependentPresences[i];
+                                const dependentFrom = jid(dependentPresence.attrs.from);
+                                const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+                                if (vpProps) {
+                                    const itemId = vpProps.attrs[Pid.Id];
+                                    const providerName = as.String(vpProps.attrs[Pid.Provider], '');
+                                    if (providerName == this.id) {
+                                        await this.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (this.config().addGenericToReceivedPresence) {
+                        if (is.nil(vpDependent)) {
+                            vpDependent = xml('x', { 'xmlns': 'vp:dependent' });
+                            stanza.append(vpDependent);
+                        }
+                        const genericItemId = this.getGenericItemId();
+                        if (!this.stanzaHasDependentPresenceForItemId(vpDependent, genericItemId)) {
+                            let genericItemDependentPresence = this.getDependentPresence(genericItemId, roomJid);
+                            await this.onDependentPresence(genericItemId, roomJid, participantNick, genericItemDependentPresence);
+                            this.addRezzedX(genericItemDependentPresence, 111);
+                            vpDependent.append(genericItemDependentPresence);
+                        }
+                    }
+                }
+            }
+
+            return stanza;
+        }
+
+        stanzaHasDependentPresenceForItemId(stanza: xml, genericItemId: string): boolean
+        {
+            let vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
+            if (vpDependent) {
+                const dependentPresences = vpDependent.getChildren('presence');
+                for (let i = 0; i < dependentPresences.length; i++) {
+                    const dependentPresence = dependentPresences[i];
+                    const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+                    if (vpProps) {
+                        const itemId = vpProps.attrs[Pid.Id];
+                        if (itemId == genericItemId) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        addRezzedX(dependentPresence: xml, x: number)
+        {
+            const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+            if (vpProps) {
+                vpProps.attrs.RezzedX = String(x);
+            }
+        }
 
         async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
         {

@@ -415,31 +415,11 @@ export class Backpack
 
     async stanzaInFilter(stanza: xml): Promise<xml>
     {
-        if (stanza.name == 'presence') {
-            const fromJid = new jid(stanza.attrs.from);
-            const roomJid = fromJid.bare().toString();
-            const participantNick = fromJid.getResource();
-
-            if (as.String(stanza.attrs['type'], 'available') == 'available') {
-                const vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
-                if (vpDependent) {
-                    const dependentPresences = vpDependent.getChildren('presence');
-                    if (dependentPresences.length > 0) {
-                        for (let i = 0; i < dependentPresences.length; i++) {
-                            const dependentPresence = dependentPresences[i];
-                            const dependentFrom = jid(dependentPresence.attrs.from);
-                            const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
-                            if (vpProps) {
-                                const itemId = vpProps.attrs[Pid.Id];
-                                const providerName = as.String(vpProps.attrs[Pid.Provider], '');
-                                if (this.providers.has(providerName)) {
-                                    const provider = this.providers.get(providerName);
-                                    await provider.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
-                                }
-                            }
-                        }
-                    }
-                }
+        for (let [providerId, provider] of this.providers) {
+            try {
+                stanza = provider.stanzaInFilter(stanza);
+            } catch (error) {
+                log.info('Backpack.stanzaInFilter', 'provider.stanzaInFilter failed for provider', providerId);
             }
         }
 

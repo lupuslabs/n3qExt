@@ -608,6 +608,11 @@ export class LocalStorageItemProvider implements IItemProvider
         return stanza;
     }
 
+    stanzaInFilter(stanza: xml): xml
+    {
+        return stanza;
+    }
+    
     getDependentPresence(itemId: string, roomJid: string): xml
     {
         let item = this.backpack.getItem(itemId);
