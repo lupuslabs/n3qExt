@@ -17,6 +17,7 @@ export class _Changes
             ['Change', 'Emote (greet) does not count as chat (emote) with respect to points activities'],
             ['Change', 'Reorder /room output'],
             ['Fix', 'Toast below item popups'],
+            ['Fix', 'Input placeholder style'],
         ]],
         ['1.2.1', 'ServerItems1', [
             ['Add', 'Support for points migration to server based items'],
