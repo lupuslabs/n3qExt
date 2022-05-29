@@ -450,9 +450,6 @@ export class BackgroundApp
 
         try {
 
-            if (String(url).indexOf('/InlineData') >= 0) {
-                const x = 1;
-            }
             let requests = this.httpCacheRequests.get(key) ?? [];
             requests.push(sendResponse);
             this.httpCacheRequests.set(key, requests);
