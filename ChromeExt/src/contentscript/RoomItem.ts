@@ -202,14 +202,16 @@ export class RoomItem extends Entity
         }
 
         if (is.nil(this.avatarDisplay)) {
-            if (!as.Bool(this.getProperties()[Pid.IsInvisible])) { // Todo: Make race-proof or remove.
-                this.avatarDisplay = new Avatar(this.app, this, false);
-                if (Utils.isBackpackEnabled()) {
-                    this.avatarDisplay.addClass('n3q-item-avatar');
-                }
-                if (as.Bool(this.getProperties()[Pid.ApplierAspect])) {
-                    this.avatarDisplay.makeDroppable();
-                }
+            let visible = true;
+            if (as.Bool(this.getProperties()[Pid.IsInvisible]) && !Config.get('room.showInvisibleItems', false)) {
+                visible = false;
+            }
+            this.avatarDisplay = new Avatar(this.app, this, false, visible);
+            if (Utils.isBackpackEnabled()) {
+                this.avatarDisplay.addClass('n3q-item-avatar');
+            }
+            if (as.Bool(this.getProperties()[Pid.ApplierAspect])) {
+                this.avatarDisplay.makeDroppable();
             }
         }
 
@@ -368,12 +370,12 @@ export class RoomItem extends Entity
                         openFrame = true;
                     }
                 }
-                
+
                 const ownerOnly = as.Bool(frameOpts.ownerOnly, false);
                 if (ownerOnly && !this.isMyItem()) {
                     openFrame = false;
                 }
-                
+
                 if (openFrame) {
                     this.openFrame();
                 }

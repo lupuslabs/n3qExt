@@ -133,6 +133,7 @@ export class Config
             itemStatsTooltipOffset: { x: 3, y: 3 },
             showPrivateChatInfoButton: false,
             autoOpenVidConfDomains: [],
+            showInvisibleItems: false,
         },
         xmpp: {
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',
@@ -208,6 +209,7 @@ export class Config
                 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL8cd14UE+Fy2QV6rtvbBA3UGo8TllmX\n' +
                 'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
                 '-----END PUBLIC KEY-----\n',
+            showInvisibleItems: false,
         },
         SimpleItemTransfer: {
             enabled: true,
@@ -269,6 +271,7 @@ export class Config
                 config: {
                     itemApiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
                     createItemWiCryptoClaimAuth: 'YrQGnYAfnqAJwfU8Im6C',
+                    addGenericToReceivedPresence: true,
                 },
             }
         },
@@ -477,7 +480,7 @@ export class Config
                     'iframeApi.avatarCreatedTitle': 'Avatar created',
                     'iframeApi.avatarActivatedTitle': 'Avatar activated',
                     'iframeApi.avatarCreatedActivatedTitle': 'Avatar created and activated',
-                    
+
                     'Toast.Do not show this message again': 'Do not show this message again',
                     'Toast.greets': '...greeted you',
                     'Toast.byes': '...sent a goodbye',

@@ -51,7 +51,7 @@ export class Avatar implements IObserver
     private mousedownX: number;
     private mousedownY: number;
 
-    constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean)
+    constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean, private isVisible: boolean)
     {
         this.imageElem = <HTMLImageElement>$('<img class="n3q-base n3q-avatar-image" />').get(0);
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-avatar" />').get(0);
@@ -121,6 +121,10 @@ export class Avatar implements IObserver
 
         $(this.elem).mouseenter(ev => this.entity.onMouseEnterAvatar(ev));
         $(this.elem).mouseleave(ev => this.entity.onMouseLeaveAvatar(ev));
+
+        if (!this.isVisible) {
+            this.addClass('n3q-hidden');
+        }
 
         $(entity.getElem()).append(this.elem);
 
