@@ -6,6 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.2.3', 'AvatarApi', [
+        ]],
         ['1.2.2', 'AvatarApi', [
             ['Add', 'Avatar API'],
             ['Add', 'Language to item iframe context'],
