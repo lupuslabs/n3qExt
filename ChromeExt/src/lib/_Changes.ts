@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.3', 'AvatarApi', [
+            ['Add', 'Support for IframeOptions.ownerOnly'],
         ]],
         ['1.2.2', 'AvatarApi', [
             ['Add', 'Avatar API'],

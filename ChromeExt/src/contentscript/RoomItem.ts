@@ -368,6 +368,12 @@ export class RoomItem extends Entity
                         openFrame = true;
                     }
                 }
+                
+                const ownerOnly = as.Bool(frameOpts.ownerOnly, false);
+                if (ownerOnly && !this.isMyItem()) {
+                    openFrame = false;
+                }
+                
                 if (openFrame) {
                     this.openFrame();
                 }
