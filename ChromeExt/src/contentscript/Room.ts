@@ -517,6 +517,14 @@ export class Room
         this.app.sendStanza(message);
     }
 
+    sendItemChat(text: string, itemId: string)
+    {
+        const message = xml('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick })
+            .append(xml('body', { id: Utils.randomString(10), 'item': itemId }, text))
+            ;
+        this.app.sendStanza(message);
+    }
+
     sendPrivateChat(text: string, nick: string)
     {
         const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })

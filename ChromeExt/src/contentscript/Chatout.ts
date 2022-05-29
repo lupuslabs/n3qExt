@@ -2,7 +2,7 @@ import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
-import { Participant } from './Participant';
+import { Entity } from './Entity';
 
 export class Chatout
 {
@@ -11,7 +11,7 @@ export class Chatout
     private closeElem: HTMLElement;
     private hasText: boolean;
 
-    constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
+    constructor(protected app: ContentApp, private entity: Entity, private display: HTMLElement)
     {
         this.elem = <HTMLElement>$('<div class="n3q-base n3q-chatout" />').get(0);
         this.setVisibility(false);
@@ -19,7 +19,7 @@ export class Chatout
         $(this.elem).click(() =>
         {
             $(this.elem).stop(true).fadeTo('fast', 1);
-            this.participant?.select();
+            this.entity?.select();
         });
 
         var speechBubble = <HTMLElement>$('<div class="n3q-base n3q-speech n3q-shadow-small" />').get(0);

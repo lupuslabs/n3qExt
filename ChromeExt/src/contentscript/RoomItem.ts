@@ -24,12 +24,14 @@ import { ItemFramePopup } from './ItemFramePopup';
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
 import { Element as XmlElement } from 'ltx';
+import { Chatout } from './Chatout';
 
 export class RoomItem extends Entity
 {
     private properties: { [pid: string]: string } = {};
     private frameWindow: ItemFrameWindow;
     private framePopup: ItemFramePopup;
+    private chatoutDisplay: Chatout;
     private isFirstPresence: boolean = true;
     protected statsDisplay: RoomItemStats;
     protected screenUnderlay: ItemFrameUnderlay;
@@ -799,7 +801,20 @@ export class RoomItem extends Entity
         }
     }
 
-    protected sendItemEventToAllScriptFrames(data: any): void
+    public chat(text: string): void
+    {
+        this.room.sendItemChat(text, this.getItemId());
+    }
+
+    public onChat(text: string): void
+    {
+        if (this.chatoutDisplay == null) {
+            this.chatoutDisplay = new Chatout(this.app, this, this.getElem());
+        }
+        this.chatoutDisplay.setText(text);
+    }
+
+    public sendItemEventToAllScriptFrames(data: any): void
     {
         const itemData = {
             id: this.getItemId(),
