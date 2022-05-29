@@ -696,10 +696,12 @@ export class Participant extends Entity
 
         let text = '';
         let id = null;
+        let relayedForItem = '';
         const bodyNode = stanza.getChild('body');
         if (bodyNode) {
             text = bodyNode.getText();
             id = bodyNode.attrs['id'];
+            relayedForItem = bodyNode.attrs['item'];
         }
 
         if (text == '') { return; }
@@ -709,39 +711,49 @@ export class Participant extends Entity
         }
         const delayMSec = now - timestamp;
 
-        // always
-        this.room?.showChatMessage(id, name, text);
-
-        this.sendParticipantChatToAllScriptFrames(text);
-
-        // recent
-        if (delayMSec * 1000 < as.Float(Config.get('room.maxChatAgeSec', 60))) {
-            if (!this.isChatCommand(text)) {
-                this.chatoutDisplay?.setText(text);
-                this.app.toFront(this.elem, ContentApp.LayerEntity);
+        if (relayedForItem != '') {
+            let itemLabel = relayedForItem;
+            let roomItem = this.room.getItemByItemId(relayedForItem);
+            if (roomItem != null) {
+                roomItem.onChat(text);
+                itemLabel = roomItem.getDisplayName();
+                this.room?.showChatMessage(id, name, text + ' (from ' + itemLabel + ')');
+                roomItem.sendItemEventToAllScriptFrames({ event: 'chat', text: text });
             }
-        }
+        } else {
+            // always
+            this.room?.showChatMessage(id, name, text);
+            this.sendParticipantChatToAllScriptFrames(text);
 
-        // new only
-        if (delayMSec <= 100) {
-            if (this.isChatCommand(text)) {
-                return this.onChatCommand(text);
-            } else {
-                this.avatarDisplay?.setAction('chat');
-            }
-
-            if (this.room) {
-                if (nick !== this.room.getMyNick()) {
-                    const chatWindow = this.room.getChatWindow();
-                    if (chatWindow) {
-                        if (chatWindow.isSoundEnabled()) {
-                            chatWindow.playSound();
-                        }
-                    }
+            // recent
+            if (delayMSec * 1000 < as.Float(Config.get('room.maxChatAgeSec', 60))) {
+                if (!this.isChatCommand(text)) {
+                    this.chatoutDisplay?.setText(text);
+                    this.app.toFront(this.elem, ContentApp.LayerEntity);
                 }
             }
 
-        }
+            // new only
+            if (delayMSec <= 100) {
+                if (this.isChatCommand(text)) {
+                    return this.onChatCommand(text);
+                } else {
+                    this.avatarDisplay?.setAction('chat');
+                }
+
+                if (this.room) {
+                    if (nick !== this.room.getMyNick()) {
+                        const chatWindow = this.room.getChatWindow();
+                        if (chatWindow) {
+                            if (chatWindow.isSoundEnabled()) {
+                                chatWindow.playSound();
+                            }
+                        }
+                    }
+                }
+
+            }
+        } // relayedForItem
     }
 
     isChatCommand(text: string) { return text.substring(0, 1) === '/'; }

@@ -125,6 +125,13 @@ export namespace WeblinClientIframeApi
         visible: boolean;
         range: any;
     }
+
+    export class ItemChatRequest extends Request
+    {
+        static type = 'Item.Chat';
+        text: string;
+    }
+
     export class ItemActionRequest extends Request
     {
         static type = 'Item.Action';

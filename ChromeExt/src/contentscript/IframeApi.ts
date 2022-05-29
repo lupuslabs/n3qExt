@@ -308,6 +308,7 @@ export class IframeApi
                 WeblinClientIframeApi.ItemSetConditionRequest.type,
                 WeblinClientIframeApi.ItemEffectRequest.type,
                 WeblinClientIframeApi.ItemRangeRequest.type,
+                WeblinClientIframeApi.ItemChatRequest.type,
                 WeblinClientIframeApi.ParticipantEffectRequest.type,
                 WeblinClientIframeApi.RoomGetParticipantsRequest.type,
                 WeblinClientIframeApi.RoomGetItemsRequest.type,
@@ -440,6 +441,7 @@ export class IframeApi
                 case WeblinClientIframeApi.ItemSetConditionRequest.type: { response = this.handle_ItemSetConditionRequest(<WeblinClientIframeApi.ItemSetConditionRequest>request); } break;
                 case WeblinClientIframeApi.ItemEffectRequest.type: { response = this.handle_ItemEffectRequest(<WeblinClientIframeApi.ItemEffectRequest>request); } break;
                 case WeblinClientIframeApi.ItemRangeRequest.type: { response = this.handle_ItemRangeRequest(<WeblinClientIframeApi.ItemRangeRequest>request); } break;
+                case WeblinClientIframeApi.ItemChatRequest.type: { response = this.handle_ItemChatRequest(<WeblinClientIframeApi.ItemChatRequest>request); } break;
                 case WeblinClientApi.ItemFindRequest.type: { response = await this.handle_ItemFindRequest(<WeblinClientApi.ItemFindRequest>request); } break;
                 case WeblinClientIframeApi.ParticipantEffectRequest.type: { response = this.handle_ParticipantEffectRequest(<WeblinClientIframeApi.ParticipantEffectRequest>request); } break;
                 case WeblinClientIframeApi.RoomGetParticipantsRequest.type: { response = this.handle_RoomGetParticipantsRequest(<WeblinClientIframeApi.RoomGetParticipantsRequest>request); } break;
@@ -631,6 +633,20 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_ItemRangeRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_ItemChatRequest(request: WeblinClientIframeApi.ItemChatRequest): WeblinClientApi.Response
+    {
+        try {
+            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            if (roomItem) {
+                roomItem.chat(request.text);
+            }
+            return new WeblinClientApi.SuccessResponse();
+        } catch (ex) {
+            log.info('IframeApi.handleItemChatRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }
