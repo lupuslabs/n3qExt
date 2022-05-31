@@ -205,7 +205,7 @@ export class RoomItem extends Entity
 
         if (is.nil(this.avatarDisplay)) {
             let visible = true;
-            if (as.Bool(this.getProperties()[Pid.IsInvisible]) && !Config.get('room.showInvisibleItems', false)) {
+            if ((as.Bool(this.getProperties()[Pid.IsInvisible]) || as.Bool(this.getProperties()[Pid.IsInvisiblePage])) && !Config.get('room.showInvisibleItems', false)) {
                 visible = false;
             }
             this.avatarDisplay = new Avatar(this.app, this, false, visible);
