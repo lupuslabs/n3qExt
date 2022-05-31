@@ -22,6 +22,8 @@ export enum Pid
     DeletableAspect = 'DeletableAspect',
     IsRezzed = 'IsRezzed',
     IsInvisible = 'IsInvisible',
+    IsInvisiblePage = 'IsInvisiblePage',
+    IsInvisibleBackpack = 'IsInvisibleBackpack',
     RezzedX = 'RezzedX',
     RezzedLocation = 'RezzedLocation',
     RezzedDestination = 'RezzedDestination',

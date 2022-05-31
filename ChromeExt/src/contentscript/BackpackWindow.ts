@@ -229,7 +229,7 @@ export class BackpackWindow extends Window
 
     onShowItem(itemId: string, properties: ItemProperties)
     {
-        if (as.Bool(properties[Pid.IsInvisible], false) && !Config.get('backpack.showInvisibleItems', false)) {
+        if ((as.Bool(properties[Pid.IsInvisible], false) || as.Bool(properties[Pid.IsInvisibleBackpack], false)) && !Config.get('backpack.showInvisibleItems', false)) {
             return;
         }
 
