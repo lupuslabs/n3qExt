@@ -269,7 +269,9 @@ export class IframeApi
                 const title = this.app.translateText(titleId);
                 const text = `${itemName}\n${itemId}`;
                 const duration = Config.get('iframeApi.avatarCreatedToastDurationSec', 8);
-                new SimpleToast(this.app, toastType, duration, iconId, title, text).show();
+                const toast = new SimpleToast(this.app, toastType, duration, iconId, title, text);
+                toast.actionButton('Open backpack', () => this.app.showBackpackWindow());
+                toast.show();
             }
 
             return new WeblinClientApi.ClientCreateAvatarResponse(itemId, doCreate, doActivate);
