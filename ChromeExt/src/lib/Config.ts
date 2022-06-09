@@ -538,7 +538,7 @@ export class Config
                     'ErrorReason.ItemAlreadyRezzed': 'Item already on a page.',
                     'ErrorReason.ItemNotRezzedHere': 'Item is not on this page',
                     'ErrorReason.ItemsNotAvailable': 'Items not available. The feature may be disabled.',
-                    'ErrorReason.ItemDoesNotExist': 'This is an not a known item.',
+                    'ErrorReason.ItemDoesNotExist': 'This is not a known item.',
                     'ErrorReason.NoUserId': 'No user id. Maybe not logged in as item user.',
                     'ErrorReason.SeeDetail': '',
                     'ErrorReason.InvalidChecksum': 'Invalid checksum. Not a valid item.',
