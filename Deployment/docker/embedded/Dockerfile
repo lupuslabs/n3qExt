@@ -1,5 +1,5 @@
 # === build js
-FROM ubuntu AS build
+FROM ubuntu:latest AS build
 
 WORKDIR /app
 COPY ./ChromeExt ./
