@@ -1,5 +1,5 @@
 # === build js
-FROM 15.14-stretch AS build
+FROM node:15.14-stretch AS build
 
 WORKDIR /app
 COPY ./ChromeExt ./
