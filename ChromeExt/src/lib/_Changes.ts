@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.3', 'AvatarApi', [
             ['Change', 'Modal toast larger'],
+            ['Change', 'Random name generator blocklist'],
         ]],
         ['1.2.2', 'AvatarApi', [
             ['Add', 'Avatar API'],
