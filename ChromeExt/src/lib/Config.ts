@@ -68,6 +68,10 @@ export class Config
             notificationToastDurationSec: 30,
             showIntroYou: 10,
         },
+        settings: {
+            nameGeneratorBlocklistRetries: 30,
+            nameGeneratorBlocklist: ['black', 'bronze', 'brown', 'chocolate', 'coffee', 'maroon', 'white', 'yellow'],
+        },
         design: {
             name: 'basic',
             version: ''
@@ -116,7 +120,7 @@ export class Config
             defaultAnimationSize: 100,
             vCardAvatarFallback: false,
             vCardAvatarFallbackOnHover: true,
-            vidconfUrl: 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}"',
+            vidconfUrl: 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}',
             vidconfBottom: 200,
             vidconfWidth: 630,
             vidconfHeight: 530,
