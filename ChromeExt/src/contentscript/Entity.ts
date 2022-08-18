@@ -10,6 +10,9 @@ import { Config } from '../lib/Config';
 import { Room } from './Room';
 import { Avatar } from './Avatar';
 import { ContentApp } from './ContentApp';
+import { RoomItem } from './RoomItem';
+import { BackpackItem } from './BackpackItem';
+import { PointerEventData } from '../lib/PointerEventData';
 
 export class Entity
 {
@@ -174,23 +177,24 @@ export class Entity
 
     // Mouse
 
-    onMouseEnterAvatar(ev: JQuery.Event): void
+    onMouseEnterAvatar(ev: PointerEventData): void
     {
         this.avatarDisplay?.hilite(true);
     }
 
-    onMouseLeaveAvatar(ev: JQuery.Event): void
+    onMouseLeaveAvatar(ev: PointerEventData): void
     {
         this.avatarDisplay?.hilite(false);
     }
 
-    onMouseClickAvatar(ev: JQuery.Event): void
+    onMouseClickAvatar(ev: PointerEventData): void
     {
-        this.select()
+        this.select();
     }
 
-    onMouseDoubleClickAvatar(ev: JQuery.Event): void
+    onMouseDoubleClickAvatar(ev: PointerEventData): void
     {
+        this.select();
     }
 
     select(): void
@@ -200,22 +204,10 @@ export class Entity
 
     // Drag
 
-    protected dragStartPosition: { top: number; left: number; };
-    onDragAvatarStart(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
+    onDragAvatarStart(ev: PointerEventData): void
     {
-        this.dragStartPosition = ui.position;
+        this.removeRange();
         this.app.toFront(this.elem, ContentApp.LayerEntity);
-    }
-
-    onDragAvatar(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
-    {
-    }
-
-    onDragAvatarStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
-    {
-        const dX = ui.position.left - this.dragStartPosition.left;
-        const newX = this.getPosition() + dX;
-        this.onDraggedTo(newX);
     }
 
     onDraggedTo(newX: number): void
@@ -223,6 +215,11 @@ export class Entity
     }
 
     // Dropped stuff handling
+
+    isValidDropTargetForItem(draggingItem: RoomItem|BackpackItem): boolean
+    {
+        return false;
+    }
 
     /**
      * Reacts to an item that has been drag-and-dropped on this.
@@ -232,6 +229,6 @@ export class Entity
      *
      * @param droppedItem RoomItem|BackpackItem
      */
-    onGotItemDroppedOn(droppedItem: unknown): void {}
+    onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {}
 
 }

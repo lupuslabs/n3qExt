@@ -24,6 +24,8 @@ import { ItemFramePopup } from './ItemFramePopup';
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
 import { Element as XmlElement } from 'ltx';
+import { DomButtonId } from '../lib/domTools';
+import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 
 export class RoomItem extends Entity
 {
@@ -36,6 +38,7 @@ export class RoomItem extends Entity
     protected myItem: boolean = false;
     protected state = '';
     protected ownerName = 'unknown';
+    private statsDisplayCloseTimeout: number|null = null;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
@@ -43,18 +46,6 @@ export class RoomItem extends Entity
 
         $(this.getElem()).addClass('n3q-item');
         $(this.getElem()).attr('data-nick', roomNick);
-
-        if (Utils.isBackpackEnabled()) {
-            $(this.getElem()).hover(() =>
-            {
-                this.statsDisplay?.close();
-                this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
-                this.statsDisplay.show();
-            }, () =>
-            {
-                this.statsDisplay?.close();
-            });
-        }
     }
 
     public isMyItem(): boolean { return this.myItem; }
@@ -207,9 +198,6 @@ export class RoomItem extends Entity
                 if (Utils.isBackpackEnabled()) {
                     this.avatarDisplay.addClass('n3q-item-avatar');
                 }
-                if (as.Bool(this.getProperties()[Pid.ApplierAspect])) {
-                    this.avatarDisplay.makeDroppable();
-                }
             }
         }
 
@@ -324,84 +312,126 @@ export class RoomItem extends Entity
         this.remove();
     }
 
-    public onMouseClickAvatar(ev: JQuery.Event): void
+    public onMouseEnterAvatar(ev: PointerEventData): void
+    {
+        super.onMouseEnterAvatar(ev);
+
+        if (Utils.isBackpackEnabled()) {
+            if (!is.nil(this.statsDisplayCloseTimeout)) {
+                window.clearTimeout(this.statsDisplayCloseTimeout);
+                this.statsDisplayCloseTimeout = null;
+            }
+            if (is.nil(this.statsDisplay)) {
+                this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
+                this.statsDisplay.show();
+            }
+        }
+    }
+
+    public onMouseLeaveAvatar(ev: PointerEventData): void
+    {
+        super.onMouseLeaveAvatar(ev);
+
+        if (is.nil(this.statsDisplayCloseTimeout)) {
+            // When mouse moves from own avatar to transparent area of an avatar above our avatar,
+            // an onMouseEnterAvatar might follow immediately after handling this event.
+            // So delay actual closing slightly:
+            this.statsDisplayCloseTimeout = window.setTimeout(() => {
+                this.statsDisplay?.close();
+            }, 50);
+        }
+    }
+
+    public onMouseClickAvatar(ev: PointerEventData): void
     {
         super.onMouseClickAvatar(ev);
-
-        if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-            // Click without modifier key.
-            if (as.Bool(this.properties[Pid.IframeAspect], false)) {
-                // Open item dialog:
-                const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
-                const frameOpts = JSON.parse(frameOptsStr);
-                const frame = frameOpts.frame ?? 'Window';
-                let openFrame = false;
-                if (frame === 'Popup') {
-                    if (this.framePopup) {
-                        if (frameOpts.closeIsHide) {
-                            if (this.framePopup.getVisibility()) {
-                                this.framePopup.setVisibility(false);
-                            } else {
-                                this.framePopup.setVisibility(true);
-                            }
-                        } else {
-                            const magicKey = Config.get(
-                                'iframeApi.messageMagicRezactive',
-                                'tr67rftghg_Rezactive');
-                            const msg = { [magicKey]: true, type: 'Window.Close' };
-                            this.getScriptWindow()?.postMessage(msg, '*');
-                            window.setTimeout((): void =>
-                            {
-                                this.framePopup.close();
-                            }, 100);
+        switch (ev.buttons) {
+            case DomButtonId.first: {
+                switch (ev.modifierKeys) {
+                    case DomModifierKeyId.none: {
+                        if (as.Bool(this.properties[Pid.IframeAspect], false)) {
+                            this.handleUnmodifiedClickForIframeAspect();
                         }
-                    } else {
-                        openFrame = true;
-                    }
-                } else {
-                    if (this.frameWindow) {
-                        if (this.frameWindow.isOpen()) {
-                            this.frameWindow.setVisibility(true);
-                            this.frameWindow.toFront();
+                    } break;
+                    case DomModifierKeyId.control: {
+                        if (this.myItem) {
+                            this.app.derezItem(this.properties[Pid.Id]);
                         }
-                    } else {
-                        openFrame = true;
-                    }
+                    } break;
                 }
-                if (openFrame) {
-                    this.openFrame();
-                }
-            }
-        } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-            // CTRL + click.
-            if (this.myItem) {
-                this.app.derezItem(this.properties[Pid.Id]);
-            }
-        } else {
-            // Other clicks.
+            } break;
         }
-
         this.statsDisplay?.close();
     }
 
-    public onMouseDoubleClickAvatar(ev: JQuery.Event): void
+    private handleUnmodifiedClickForIframeAspect(): void
+    {
+        const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
+        const frameOpts = JSON.parse(frameOptsStr);
+        const frame = frameOpts.frame ?? 'Window';
+        let openFrame = false;
+        if (frame === 'Popup') {
+            if (this.framePopup) {
+                if (frameOpts.closeIsHide) {
+                    if (this.framePopup.getVisibility()) {
+                        this.framePopup.setVisibility(false);
+                    } else {
+                        this.framePopup.setVisibility(true);
+                    }
+                } else {
+                    const magicKey = Config.get(
+                        'iframeApi.messageMagicRezactive',
+                        'tr67rftghg_Rezactive');
+                    const msg = { [magicKey]: true, type: 'Window.Close' };
+                    this.getScriptWindow()?.postMessage(msg, '*');
+                    window.setTimeout((): void =>
+                    {
+                        this.framePopup.close();
+                    }, 100);
+                }
+            } else {
+                openFrame = true;
+            }
+        } else {
+            if (this.frameWindow) {
+                if (this.frameWindow.isOpen()) {
+                    this.frameWindow.setVisibility(true);
+                    this.frameWindow.toFront();
+                }
+            } else {
+                openFrame = true;
+            }
+        }
+        if (openFrame) {
+            this.openFrame();
+        }
+    }
+    
+    public onMouseDoubleClickAvatar(ev: PointerEventData): void
     {
         super.onMouseDoubleClickAvatar(ev);
-
-        if (as.Bool(this.properties[Pid.IframeAspect])) {
-            if (this.framePopup) {
-                const visible = this.framePopup.getVisibility();
-                this.framePopup.setVisibility(!visible);
-            } else if (this.frameWindow) {
-                const visible = this.frameWindow.getVisibility();
-                this.frameWindow.setVisibility(!visible);
-            }
+        switch (ev.buttons) {
+            case DomButtonId.first: {
+                switch (ev.modifierKeys) {
+                    case DomModifierKeyId.none: {
+                        if (as.Bool(this.properties[Pid.IframeAspect])) {
+                            if (this.framePopup) {
+                                const visible = this.framePopup.getVisibility();
+                                this.framePopup.setVisibility(!visible);
+                            } else if (this.frameWindow) {
+                                const visible = this.frameWindow.getVisibility();
+                                this.frameWindow.setVisibility(!visible);
+                            }
+                        }
+                    } break;
+                }
+            } break;
         }
     }
 
-    public onDragAvatarStart(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
+    public onDragAvatarStart(ev: PointerEventData): void
     {
-        super.onDragAvatarStart(ev, ui);
+        super.onDragAvatarStart(ev);
         this.statsDisplay?.close();
 
         if (this.framePopup) {
@@ -415,18 +445,9 @@ export class RoomItem extends Entity
         }
     }
 
-    public onDragAvatarStop(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): void
-    {
-        if (!this.isDerezzing) {
-            const dX = ui.position.left - this.dragStartPosition.left;
-            const newX = this.getPosition() + dX;
-            this.onDraggedTo(newX);
-        }
-    }
-
     public onDraggedTo(newX: number): void
     {
-        if (this.getPosition() !== newX) {
+        if (!this.isDerezzing && this.getPosition() !== newX) {
             const itemId = this.getItemId();
             if (this.myItem) {
                 this.app.moveRezzedItem(itemId, newX);
@@ -436,13 +457,39 @@ export class RoomItem extends Entity
         }
     }
 
+    public isValidDropTargetForItem(draggingItem: RoomItem|BackpackItem): boolean
+    {
+        if (!as.Bool(this.getProperties()[Pid.ApplierAspect])) {
+            return false; // This RoomItem doesn't support getting any items dropped on.
+        }
+        if (draggingItem instanceof RoomItem) {
+            // RoomItem on Participant.
+            if (draggingItem === this) {
+                return false; // Not dropable onto itself.
+            }
+            if (!draggingItem.isMyItem() || !this.isMyItem()) {
+                return false; // Actions involving other's RoomItem not supported yet.
+            }
+            return true; // Todo: More specific tests for item intaractability.
+        } else if (draggingItem instanceof BackpackItem) {
+            if (this.isMyItem()) {
+                return false; // Own BackpackItem on own RoomItem not supported yet.
+            } else {
+                return false; // Own BackpackItem on other's RoomItem not supported yet.
+            }
+        }
+        return false;
+    }
+
     public onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
     {
+        if (!this.isValidDropTargetForItem(droppedItem)) {
+            return;
+        }
         (async (): Promise<void> =>
         {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on RoomItem.
-                droppedItem.getAvatar()?.ignoreDrag();
                 const result = await this.room.applyItemToItem(this, droppedItem);
                 const effect = as.String(result[Pid.ShowEffect]);
                 if (effect !== '') {

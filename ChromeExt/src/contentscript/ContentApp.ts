@@ -30,6 +30,8 @@ import { Participant } from './Participant';
 import { SimpleItemTransferController } from './SimpleItemTransferController';
 import { ItemException } from '../lib/ItemException';
 import { prepareValueForLog } from '../lib/debugUtils';
+import { Entity } from './Entity';
+import { Avatar } from './Avatar';
 
 interface ILocationMapperResponse
 {
@@ -331,6 +333,18 @@ export class ContentApp
     getMyParticipantELem(): HTMLElement
     {
         return this.getMyParticipant()?.getElem();
+    }
+
+    getEntityByelem(elem: Element|null): Entity|null
+    {
+        if (!(elem instanceof HTMLElement)) {
+            return null;
+        }
+        const entityId = Avatar.getEntityIdByAvatarElem(elem);
+        if (entityId) {
+            return this.getRoom()?.getParticipant(entityId) ?? this.getRoom()?.getItem(entityId);
+        }
+        return null;
     }
 
     reshowBackpackWindow(): void

@@ -297,11 +297,11 @@ export class SimpleItemTransferController
 
     public senderInitiateItemTransfer(recipient: Participant, item: ItemProperties): void
     {
-        if (!as.Bool(Config.get('SimpleItemTransfer.enabled')) || !isItemWithId(item)) {
+        if (!isItemWithId(item)) {
             return;
         }
         const itemId: string = item[Pid.Id];
-        if (itemId in this.itemsSending || (item[Pid.IsTransferable] ?? '1') !== '1') {
+        if (itemId in this.itemsSending || !ItemProperties.isSimpleTransferable(item)) {
             this.senderShowItemNontransferableToast();
             return;
         }

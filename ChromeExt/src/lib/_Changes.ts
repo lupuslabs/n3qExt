@@ -9,6 +9,13 @@ export class _Changes
         ['1.2.3', 'AvatarApi', [
             ['Change', 'Modal toast larger'],
             ['Change', 'Random name generator blocklist'],
+            ['Fix', 'Dragging now works with touch/pen input'],
+            ['Fix', 'Links behind transparent areas of room items and avatars are now clickable'],
+            ['Fix', 'Room items and avatars behind other room entities are now consistently dragable'],
+            ['Fix', 'Room item and avatar hover glow now corresponds to actual interactivity'],
+            ['Fix', 'Dragged items now never affect more than one drop target'],
+            ['Fix', 'Dragging a room item owned by someone else over own backpack window now doesn\'t move the item'],
+            ['Fix', 'Room item info now always opens in front of other all room items and avatars'],
         ]],
         ['1.2.2', 'AvatarApi', [
             ['Add', 'Avatar API'],

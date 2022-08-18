@@ -1,12 +1,13 @@
 import * as $ from 'jquery';
 import { as } from '../lib/as';
-import { IObserver, IObservable } from '../lib/ObservableProperty';
+import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
 import { Environment } from '../lib/Environment';
-import { Menu, MenuColumn, MenuItem, MenuHasIcon, MenuOnClickClose, MenuHasCheckbox } from './Menu';
+import { Menu, MenuColumn, MenuHasCheckbox, MenuHasIcon, MenuOnClickClose } from './Menu';
+import { getDataFromPointerEvent, PointerEventType } from '../lib/PointerEventData';
 
 export class Nickname implements IObserver
 {
@@ -20,7 +21,16 @@ export class Nickname implements IObserver
     constructor(protected app: ContentApp, private participant: Participant, private isSelf: boolean, private display: HTMLElement)
     {
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-nickname n3q-shadow-small" />').get(0);
-        $(this.elem).click(() => { this.participant?.select(); });
+
+        this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
+            this.participant?.select();
+        });
+        this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
+            this.participant?.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
+        });
+        this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
+            this.participant?.onMouseLeaveAvatar(getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem));
+        });
 
         let menu = new Menu(this.app, Utils.randomString(15));
 

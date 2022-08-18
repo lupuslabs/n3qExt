@@ -2,6 +2,7 @@ import log = require('loglevel');
 import { as } from './as';
 import { Utils } from './Utils';
 import { is } from './is';
+import { Config } from './Config';
 const NodeRSA = require('node-rsa');
 
 
@@ -202,6 +203,12 @@ export class ItemProperties
             }
         }
         return vals;
+    }
+
+    static isSimpleTransferable(itemProps: ItemProperties): boolean
+    {
+        return as.Bool(Config.get('SimpleItemTransfer.enabled'))
+            && as.Bool(itemProps[Pid.IsTransferable] ?? '1');
     }
 
 }

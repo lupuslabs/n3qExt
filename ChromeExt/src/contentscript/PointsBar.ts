@@ -8,6 +8,7 @@ import { PointsGenerator } from './PointsGenerator';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Pid } from '../lib/ItemProperties';
+import { getDataFromPointerEvent, PointerEventType } from '../lib/PointerEventData';
 
 export class PointsBar implements IObserver
 {
@@ -20,8 +21,18 @@ export class PointsBar implements IObserver
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-points" />').get(0);
-        $(this.elem).click(() => { this.participant?.select(); });
-        $(display).append(this.elem);
+
+        this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
+            this.participant?.select();
+        });
+        this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
+            this.participant?.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
+        });
+        this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
+            this.participant?.onMouseLeaveAvatar(getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem));
+        });
+
+        display.appendChild(this.elem);
     }
 
     stop()

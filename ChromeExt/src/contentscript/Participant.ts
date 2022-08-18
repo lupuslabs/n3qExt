@@ -8,7 +8,7 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
-import { Pid } from '../lib/ItemProperties';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemException } from '../lib/ItemException';
 import { ContentApp } from './ContentApp';
@@ -29,6 +29,8 @@ import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
+import { DomButtonId } from '../lib/domTools';
+import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 
 export class Participant extends Entity
 {
@@ -41,6 +43,7 @@ export class Participant extends Entity
     private userId: string;
     private privateChatWindow: PrivateChatWindow;
     private privateVidconfWindow: PrivateVidconfWindow;
+    private hideDecorationsTimeoutHandle: number|null = null;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
@@ -233,7 +236,6 @@ export class Participant extends Entity
             this.avatarDisplay = new Avatar(this.app, this, this.isSelf);
             if (Utils.isBackpackEnabled()) {
                 this.avatarDisplay.addClass('n3q-participant-avatar');
-                this.avatarDisplay.makeDroppable();
             }
 
             this.nicknameDisplay = new Nickname(this.app, this, this.isSelf, this.getElem());
@@ -241,13 +243,6 @@ export class Participant extends Entity
                 if (Config.get('room.nicknameOnHover', true)) {
                     const nicknameElem = this.nicknameDisplay.getElem();
                     nicknameElem.style.display = 'none';
-                    $(this.getElem()).hover(function ()
-                    {
-                        if (nicknameElem) { $(nicknameElem).stop().fadeIn('fast'); }
-                    }, function ()
-                    {
-                        if (nicknameElem) { $(nicknameElem).stop().fadeOut(); }
-                    });
                 }
             }
 
@@ -257,13 +252,6 @@ export class Participant extends Entity
                     if (Config.get('room.pointsOnHover', true)) {
                         const elem = this.pointsDisplay.getElem();
                         elem.style.display = 'none';
-                        $(this.getElem()).hover(function ()
-                        {
-                            if (elem) { $(elem).stop().fadeIn('fast'); }
-                        }, function ()
-                        {
-                            if (elem) { $(elem).stop().fadeOut(); }
-                        });
                     }
                 }
             }
@@ -274,13 +262,6 @@ export class Participant extends Entity
                     if (Config.get('room.pointsOnHover', true)) {
                         const elem = this.activityDisplay.getElem();
                         elem.style.display = 'none';
-                        $(this.getElem()).hover(function ()
-                        {
-                            if (elem) { $(elem).stop().fadeIn('fast'); }
-                        }, function ()
-                        {
-                            if (elem) { $(elem).stop().fadeOut(); }
-                        });
                     }
                 }
             }
@@ -776,7 +757,7 @@ export class Participant extends Entity
     // Mouse
 
     private onMouseEnterAvatarVcardImageFallbackAlreadyTriggered: boolean = false;
-    onMouseEnterAvatar(ev: JQuery.Event): void
+    onMouseEnterAvatar(ev: PointerEventData): void
     {
         super.onMouseEnterAvatar(ev);
 
@@ -788,38 +769,103 @@ export class Participant extends Entity
             this.onMouseEnterAvatarVcardImageFallbackAlreadyTriggered = true;
             this.fetchVcardImage(this.avatarDisplay);
         }
+
+        if (!is.nil(this.hideDecorationsTimeoutHandle)) {
+            window.clearTimeout(this.hideDecorationsTimeoutHandle);
+            this.hideDecorationsTimeoutHandle = null;
+        }
+        if (!this.isSelf) {
+            if (!is.nil(this.nicknameDisplay)) {
+                $(this.nicknameDisplay.getElem()).stop().fadeIn('fast');
+            }
+            if (!is.nil(this.pointsDisplay)) {
+                $(this.pointsDisplay.getElem()).stop().fadeIn('fast');
+            }
+            if (!is.nil(this.activityDisplay)) {
+                $(this.activityDisplay.getElem()).stop().fadeIn('fast');
+            }
+        }
     }
 
-    onMouseClickAvatar(ev: JQuery.Event): void
+    onMouseLeaveAvatar(ev: PointerEventData): void
+    {
+        super.onMouseLeaveAvatar(ev);
+
+        if (!this.isSelf) {
+            if (is.nil(this.hideDecorationsTimeoutHandle)) {
+                this.hideDecorationsTimeoutHandle = window.setTimeout(() => {
+                    if (!is.nil(this.nicknameDisplay)) {
+                        $(this.nicknameDisplay.getElem()).stop().fadeOut();
+                    }
+                    if (!is.nil(this.pointsDisplay)) {
+                        $(this.pointsDisplay.getElem()).stop().fadeOut();
+                    }
+                    if (!is.nil(this.activityDisplay)) {
+                        $(this.activityDisplay.getElem()).stop().fadeOut();
+                    }
+                }, 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3));
+            }
+        }
+    }
+
+    onMouseClickAvatar(ev: PointerEventData): void
     {
         super.onMouseClickAvatar(ev);
 
         if (this.isSelf) {
-            if (ev.ctrlKey) {
-                this.showBackpackWindow();
-            } else {
-                this.toggleChatin();
+            switch (ev.buttons) {
+                case DomButtonId.first: {
+                    switch (ev.modifierKeys) {
+                        case DomModifierKeyId.none: {
+                            this.toggleChatin();
+                        } break;
+                        case DomModifierKeyId.control: {
+                            this.showBackpackWindow();
+                        } break;
+                    }
+                } break;
             }
         } else {
-            this.toggleChatout();
+            switch (ev.buttons) {
+                case DomButtonId.first: {
+                    switch (ev.modifierKeys) {
+                        case DomModifierKeyId.none: {
+                            this.toggleChatout();
+                        } break;
+                    }
+                } break;
+            }
         }
     }
 
-    onMouseDoubleClickAvatar(ev: JQuery.Event): void
+    onMouseDoubleClickAvatar(ev: PointerEventData): void
     {
-        super.onMouseClickAvatar(ev)
-
-        if (ev.ctrlKey) {
-            if (this.isSelf) {
-                this.toggleChatWindow();
-            } else {
-                this.togglePrivateChatWindow();
+        super.onMouseDoubleClickAvatar(ev);
+        if (this.isSelf) {
+            switch (ev.buttons) {
+                case DomButtonId.first: {
+                    switch (ev.modifierKeys) {
+                        case DomModifierKeyId.none: {
+                            this.room?.showChatInWithText('');
+                        } break;
+                        case DomModifierKeyId.control: {
+                            this.toggleChatWindow();
+                        } break;
+                    }
+                } break;
             }
         } else {
-            if (this.isSelf) {
-                this.room?.showChatInWithText('');
-            } else {
-                this.room?.showChatInWithText('@' + this.getDisplayName() + ' ');
+            switch (ev.buttons) {
+                case DomButtonId.first: {
+                    switch (ev.modifierKeys) {
+                        case DomModifierKeyId.none: {
+                            this.room?.showChatInWithText('@' + this.getDisplayName() + ' ');
+                        } break;
+                        case DomModifierKeyId.control: {
+                            this.togglePrivateChatWindow();
+                        } break;
+                    }
+                } break;
             }
         }
     }
@@ -850,13 +896,42 @@ export class Participant extends Entity
         }
     }
 
+    isValidDropTargetForItem(draggingItem: RoomItem|BackpackItem): boolean
+    {
+        if (!Utils.isBackpackEnabled()) {
+            return false;
+        }
+        if (draggingItem instanceof RoomItem) {
+            // RoomItem on Participant.
+            if (!draggingItem.isMyItem()) {
+                return false; // Other's RoomItem on any Participant.
+            }
+            if (this.isSelf) {
+                return true; // Own RoomItem on own Participant.
+            } else if (ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
+                return true; // Own transferable RoomItem on other Participant.
+            }
+        } else if (draggingItem instanceof BackpackItem) {
+            // Own BackpackItem on any Participant.
+            if (this.isSelf) {
+                return false; // Own BackpackItem on own Participant.
+            }
+            if (ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
+                return true; // Own transferable BackpackItem on other Participant.
+            }
+        }
+        return false;
+    }
+
     onGotItemDroppedOn(droppedItem: RoomItem | BackpackItem): void
     {
+        if (!this.isValidDropTargetForItem(droppedItem)) {
+            return;
+        }
         (async (): Promise<void> =>
         {
             if (droppedItem instanceof RoomItem) {
                 // RoomItem on Participant.
-                droppedItem.getAvatar()?.ignoreDrag();
                 const itemId = droppedItem.getItemId();
                 if (await BackgroundMessage.isBackpackItem(itemId)) {
                     // Own RoomItem on any Participant.

@@ -160,7 +160,7 @@
     div.n3q-entity {
         position: absolute;
         bottom: 0;
-        pointer-events: auto;
+        pointer-events: none;
         width: 1px;
 
         div.n3q-range {
@@ -319,26 +319,43 @@
 
     // Entity
 
-    div.n3q-entity {
-        div.n3q-avatar {
-            position: relative;
-            user-select: none;
-        }
+    div.n3q-avatar.dragging,
+    div.n3q-entity div.n3q-avatar {
+        position: relative;
+        user-select: none;
+    }
 
-       img.n3q-avatar-image {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            filter: drop-shadow(1px 1px 2px #707070);
-        }
+    div.n3q-avatar.dragging img.n3q-avatar-image,
+    div.n3q-entity div.n3q-avatar img.n3q-avatar-image {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        filter: drop-shadow(1px 1px 2px #707070);
+        pointer-events: auto;
+        touch-action: none;
+    }
 
-        img.n3q-avatar-hilite {
-            filter: drop-shadow(1px 2px 3px #505050);
+    div.n3q-entity div.n3q-avatar img.n3q-avatar-hilite {
+        filter: drop-shadow(1px 2px 3px #505050);
+    }
+
+    div.n3q-entity div.n3q-avatar.n3q-avatar-drophilite {
+        filter: drop-shadow(0 0 6px #abc115);
+        // box-shadow: inset 0 0 100px rgba(171, 193, 21, 0.4);
+    }
+
+    div.n3q-avatar.dragging {
+        position: absolute;
+        opacity: 0.5;
+        pointer-events: none;
+
+        img.n3q-avatar-image {
+            pointer-events: none;
         }
     }
 
@@ -350,16 +367,6 @@
     //         filter: drop-shadow(0px 0px 3px #505050);
     //     }
     // }
-
-    div.n3q-avatar.ui-draggable-dragging {
-        img.n3q-avatar-image {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-        }
-    }
 
     @keyframes nph-pulse
     {
@@ -394,11 +401,6 @@
     }
     div.n3q-bounce {
         animation: n3q-bounce 6s ease infinite;
-    }
-
-    div.n3q-avatar.n3q-avatar-drophilite {
-        filter: drop-shadow(0 0 6px #abc115);
-        // box-shadow: inset 0 0 100px rgba(171, 193, 21, 0.4);
     }
 
     div.n3q-participant {
@@ -444,6 +446,7 @@
             div.n3q-overlay-button {
                 right: 10px;
                 background-color: #9fc415;
+                pointer-events: auto;
 
                 div.n3q-button-close-small {
                     background: url(../assets/icons/inverse-close-circle-o.svg) no-repeat center center / contain;
@@ -501,6 +504,7 @@
                 background-repeat: no-repeat;
                 background-position: center;
                 background-size: contain;
+                pointer-events: auto;
             }
 
             div.n3q-points-icon-0-1 { background-image: url(../assets/points/0-1.png); }
@@ -548,6 +552,7 @@
             white-space: nowrap;
             z-index: 4;
             user-select: none;
+            pointer-events: auto;
 
             div.n3q-text {
                 display: inline-block;
@@ -689,6 +694,7 @@
         max-width: 140px;
         max-height: 200px;
         z-index: 3;
+        pointer-events: auto;
 
         div.n3q-text {
             display: inline-block;
@@ -702,7 +708,7 @@
     div.n3q-speech {
         position: relative;
         line-break: loose;
-        word-wrap: break-word;
+        overflow-wrap: break-word;
         text-align: center;
         padding: 4px;
         background-color: #fff;
@@ -743,6 +749,7 @@
         white-space: nowrap;
         padding: 0 2px 0 4px;
         z-index: 5;
+        pointer-events: auto;
 
         input[type=text].n3q-text {
             margin: 6px;
@@ -762,6 +769,7 @@
         height: fit-content;
         max-height: 200px;
         pointer-events: auto;
+        touch-action: none;
     }
 
     div.n3q-toast.n3q-toast-modal {
@@ -862,7 +870,7 @@
 
         .n3q-text {
             margin-top: 10px;
-            word-wrap: break-word;
+            overflow-wrap: break-word;
             overflow: auto;
         }
 
@@ -940,6 +948,7 @@
         min-width: 140px;
         max-width: 220px;
         pointer-events: auto;
+        touch-action: none;
 
         div.n3q-title {
             text-align: center;
@@ -980,6 +989,7 @@
         position: absolute;
         background-color: #ffffff;
         pointer-events: auto;
+        touch-action: none;
 
         div.n3q-window-title-bar {
             display: block;
@@ -1289,6 +1299,7 @@
         right: 0;
         bottom: 0;
         overflow: auto;
+        background: #FFFFFF; // Makes it opaque for drag and drop handling.
     }
 
     div.n3q-backpack-item {
@@ -1296,6 +1307,8 @@
         position: absolute;
         box-shadow: 1px 1px 3px #505050;
         background-color: rgba(255, 255, 255, 0.8);
+        pointer-events: auto;
+        touch-action: none;
 
         .n3q-backpack-item-image {
             position: absolute;
@@ -1306,6 +1319,7 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
+            pointer-events: none;
         }
 
         .n3q-backpack-item-label {
@@ -1319,6 +1333,7 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             padding: 2px 2px;
+            pointer-events: none;
         }
 
         .n3q-backpack-item-cover {
@@ -1328,7 +1343,13 @@
             bottom: 0;
             right: 0;
             background-color: rgba(255, 255, 255, 0);
+            pointer-events: none;
         }
+    }
+
+    div.n3q-backpack-item.dragging {
+        opacity: 0.5;
+        pointer-events: none;
     }
 
     /* Rezzed item in backpack: */
@@ -1342,12 +1363,6 @@
     }
     div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-label {
         color: rgb(160, 160, 160);
-    }
-
-    div.n3q-backpack-drag {
-        .n3q-backpack-item {
-            filter: opacity(0.7);
-        }
     }
 
     div.n3q-chatwindow {

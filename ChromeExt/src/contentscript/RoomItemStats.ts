@@ -20,11 +20,14 @@ export class RoomItemStats
             this.setup();
 
             let bottom = 70;
+            let left = 0;
             if (this.roomItem) {
                 let itemHeight = $(this.roomItem.getAvatar().getElem()).height();
                 bottom = itemHeight + Config.get('roomItem.statsPopupOffset', 0);
+                const itemCenterX = this.roomItem.getElem().offsetLeft;
+                left = itemCenterX - 60;
             }
-            $(this.elem).css({ bottom: bottom + 'px' });
+            $(this.elem).css({ bottom: bottom + 'px', left: `${left}px` });
         }
 
         this.app.toFront(this.elem, ContentApp.LayerEntityTooltip);
@@ -45,7 +48,7 @@ export class RoomItemStats
         let hasStats = this.update();
 
         if (hasStats) {
-            $(this.roomItem.getElem()).append(this.elem);
+            $(this.app.getDisplay()).append(this.elem);
         }
     }
 

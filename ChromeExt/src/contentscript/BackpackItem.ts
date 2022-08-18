@@ -9,6 +9,11 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
 import { BackpackWindow } from './BackpackWindow';
 import { BackpackItemInfo } from './BackpackItemInfo';
+import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { is } from '../lib/is';
+import { DomButtonId } from '../lib/domTools';
+import { Participant } from './Participant';
+import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 
 export class BackpackItem
 {
@@ -16,16 +21,15 @@ export class BackpackItem
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
     private coverElem: HTMLDivElement;
+    private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private dragElem: HTMLElement;
+    private dragIsRezable: boolean = false;
+    private dragIsRezzed: boolean = false;
     private x: number = 100;
     private y: number = 100;
     private imageWidth: number = 64;
     private imageHeight: number = 64;
     private info: BackpackItemInfo = null;
-
-    private mousedownX: number;
-    private mousedownY: number;
-
-    private ignoreNextDropFlag: boolean = false;
 
     getElem(): HTMLElement { return this.elem; }
     getProperties(): ItemProperties { return this.properties; }
@@ -41,64 +45,94 @@ export class BackpackItem
 
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item" data-id="' + this.itemId + '" />').get(0);
         this.imageElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-image" />').get(0);
-        $(this.elem).append(this.imageElem);
+        this.elem.append(this.imageElem);
         this.textElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-label" />').get(0);
-        $(this.elem).append(this.textElem);
+        this.elem.append(this.textElem);
         this.coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
-        $(this.elem).append(this.coverElem);
+        this.elem.append(this.coverElem);
 
         this.setImage(imgDefaultItem);
         this.setSize(50, 50);
         this.setPosition(x, y);
 
-        $(paneElem).append(this.elem);
+        paneElem.append(this.elem);
 
-        $(this.elem).on({
-            mousedown: this.onMouseDown.bind(this),
-            click: this.onMouseClick.bind(this),
-        });
+        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.elem);
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone');
 
-        $(this.elem).draggable({
-            scroll: false,
-            stack: '.n3q-item-icon',
-            distance: 4,
-            //opacity: 0.5,
-            helper: (ev: JQueryMouseEventObject) =>
-            {
-                if (ev.target) {
-                    if (!$(ev.target).hasClass('n3q-backpack-item-cover')) {
-                        return null;
-                    }
-                }
-
-                if (this.info) { this.info.close(); }
-                const dragElem = $('<div class="n3q-base n3q-backpack-drag" />').get(0);
-                const itemElem = $(this.elem).clone().get(0);
-                $(itemElem).css({ 'left': '0', 'top': '0', 'width': this.getWidth() + 'px', 'height': this.getHeight() + 'px' });
-                $(dragElem).append(itemElem);
-                $(app.getDisplay()).append(dragElem);
-                // app.toFront(itemElem);
-                return dragElem;
-            },
-            // zIndex: 2000000000,
-            containment: '#n3q',
-            start: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                this.app.toFront(this.elem, ContentApp.LayerWindowContent);
-                $(this.elem).hide();
-                return this.onDragStart(ev, ui);
-            },
-            drag: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                return this.onDrag(ev, ui);
-            },
-            stop: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                $(this.elem).show(0);
-                this.onDragStop(ev, ui);
-                return true;
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
+            const dropTargetElem = eventData.dropTarget;
+            if (this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this) === true) {
+                dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
+            const dropTargetElem = eventData.dropTargetLast;
+            dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, eventData => {
+            this.toFront();
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.click, eventData => {
+            this.onMouseClick(eventData);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.doubleclick, eventData => {
+            this.onMouseDoubleClick(eventData);
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, eventData => {
+            const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
+            dragElem.classList.add('dragging');
+            this.dragElem = dragElem;
+            this.app.getDisplay()?.append(dragElem);
+            this.app.toFront(dragElem, ContentApp.LayerDrag);
+            this.elem.classList.add('n3q-hidden');
+
+            this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
+            this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
+            if (this.dragIsRezable && !this.dragIsRezzed) {
+                this.app.showDropzone();
+            }
+            this.toFront();
+            this.info?.close();
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, eventData => {
+            if (!this.dragIsRezzed) {
+                if (this.isDraggablePositionInDropzone(eventData)) {
+                    this.app.hiliteDropzone(true);
+                } else {
+                    this.app.hiliteDropzone(false);
+                }
+            }
+
+            this.dragElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
+            this.dragElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
+
+            if (eventData.buttons !== DomButtonId.first || eventData.modifierKeys !== DomModifierKeyId.none) {
+                this.pointerEventDispatcher.cancelDrag();
+            }
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
+            // Nothing to do.
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
+            // Nothing to do.
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, eventData => {
+            this.onDragDrop(eventData);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragcancel, eventData => {
+            // Nothing to do.
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
+            this.app.hideDropzone();
+            if (!is.nil(this.dragElem)) {
+                this.app.getDisplay()?.removeChild(this.dragElem);
+            }
+            this.elem.classList.remove('n3q-hidden');
+        });
+
     }
 
     getX(): number { return this.x; }
@@ -163,13 +197,6 @@ export class BackpackItem
         return { x: x + scrollX, y: y + scrollY };
     }
 
-    getScrolledCompensatedItemPos(x: number, y: number): { x: number, y: number }
-    {
-        const scrollX = this.backpackWindow.getPane().scrollLeft;
-        const scrollY = this.backpackWindow.getPane().scrollTop;
-        return { x: x - scrollX, y: y - scrollY };
-    }
-
     setVisibility(state: boolean)
     {
         if (state) {
@@ -179,123 +206,77 @@ export class BackpackItem
         }
     }
 
-    public ignoreNextDrop(): void
+    toFront(): void
     {
-        this.ignoreNextDropFlag = true;
-    }
-
-    private onMouseDown(ev: JQuery.MouseDownEvent): void
-    {
-        this.mousedownX = ev.clientX;
-        this.mousedownY = ev.clientY;
-    }
-
-    private onMouseClick(ev: JQuery.ClickEvent): void
-    {
-        if (Math.abs(this.mousedownX - ev.clientX) > 2
-            || Math.abs(this.mousedownY - ev.clientY) > 2) {
-            return;
-        }
         this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
-        const infoOpen = this.info;
-        if (infoOpen) {
-            this.info?.close();
-        }
-        if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-            // Just a click.
-            if (!infoOpen) {
-                const onClose = () => { this.info = null; };
-                this.info = new BackpackItemInfo(this.app, this, onClose);
-
-                const itemRelativeToPane = this.itemPositionRelativeToPane();
-                const scrolledItemPos = this.getScrolledCompensatedItemPos(itemRelativeToPane.x, itemRelativeToPane.y);
-                const paneRect = this.scrolledElemRect(this.backpackWindow.getPane());
-                const x = ev.offsetX + scrolledItemPos.x + paneRect.left;
-                const y = ev.offsetY + scrolledItemPos.y + paneRect.top;
-                this.info.show(x, y);
-                // this.info.show(ev.offsetX, ev.offsetY);
-                this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
-            }
-        } else if (!ev.shiftKey && ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-            // CTRL + click.
-            if (as.Bool(this.properties[Pid.IsRezzed], false)) {
-                this.app.derezItem(this.getItemId());
-            } else {
-                const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
-                this.rezItem(as.Int(rezzedX, ev.clientX));
-            }
-        }
     }
 
-    private dragIsRezable: boolean = false;
-    private dragIsRezzed: boolean = false;
-    private onDragStart(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private onMouseClick(ev: PointerEventData): void
     {
-        this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
-        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
-
-        if (this.dragIsRezable && !this.dragIsRezzed) {
-            this.app.showDropzone();
-        }
-
-        this.app.toFront(ui.helper.get(0), ContentApp.LayerWindowContent);
-
+        this.toFront();
+        const infoOpen = !is.nil(this.info);
         this.info?.close();
-
-        return true;
+        switch (ev.buttons) {
+            case DomButtonId.first: {
+                switch (ev.modifierKeys) {
+                    case DomModifierKeyId.none: {
+                        if (!infoOpen) {
+                            const onClose = () => { this.info = null; };
+                            this.info = new BackpackItemInfo(this.app, this, onClose);
+                            this.info.show(ev.clientX, ev.clientY);
+                            this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
+                        }
+                    } break;
+                    case DomModifierKeyId.control: {
+                        if (as.Bool(this.properties[Pid.IsRezzed], false)) {
+                            this.app.derezItem(this.getItemId());
+                        } else {
+                            const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
+                            this.rezItem(as.Int(rezzedX, ev.clientX));
+                        }
+                    } break;
+                }
+            } break;
+        }
     }
 
-    private onDrag(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private onMouseDoubleClick(ev: PointerEventData): void
     {
-        if (!this.dragIsRezable) {
-            if (!this.isDraggablePositionInBackpack(ev, ui)) {
-                return false;
-            }
-        }
-
-        if (!this.dragIsRezzed) {
-            if (this.isDraggablePositionInDropzone(ev, ui)) {
-                this.app.hiliteDropzone(true);
-            } else {
-                this.app.hiliteDropzone(false);
-            }
-        }
-
-        return true;
+        this.toFront();
+        this.info?.close();
     }
 
-    private onDragStop(
-        ev: JQueryMouseEventObject,
-        ui: JQueryUI.DraggableEventUIParams,
-    ): void
+    private onDragDrop(ev: PointerEventData): void
     {
-        this.app.hideDropzone();
-        if (this.ignoreNextDropFlag) {
-            this.ignoreNextDropFlag = false;
-            return;
-        }
-        if (this.isDraggablePositionInBackpack(ev, ui)) {
-            const pos = this.draggablePositionRelativeToPane(ev, ui);
+        if (this.isDraggablePositionInBackpack(ev)) {
+            const pos = this.draggablePositionRelativeToPane(ev);
             if (pos.x !== this.x || pos.y !== this.y) {
                 const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
                 this.setPosition(scrolledPos.x, scrolledPos.y);
                 this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
             }
-        } else if (this.isDraggablePositionInDropzone(ev, ui)) {
-            const dropX = ev.pageX - $(this.app.getDisplay()).offset().left;
-            this.rezItem(dropX);
+            return;
         }
+        const dropTargetEntity = this.app.getEntityByelem(ev.dropTarget);
+        if (dropTargetEntity instanceof Participant && dropTargetEntity.isValidDropTargetForItem(this)) {
+            dropTargetEntity.onGotItemDroppedOn(this);
+            return;
+        }
+        if (this.isDraggablePositionInDropzone(ev)) {
+            const dropXLeft = ev.clientX - ev.startDomElementOffsetX;
+            const itemCenterOffset = this.elem.offsetWidth / 2;
+            let dropX = dropXLeft + itemCenterOffset;
+            dropX = Math.max(0, Math.min(document.documentElement.offsetWidth - 1, dropX));
+            this.rezItem(dropX);
+            return;
+        }
+        // No action.
     }
 
-    private draggedItemCenter(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
+    private draggedItemCenter(ev: PointerEventData): { x: number, y: number }
     {
-        const position = $(ui.helper).position();
-        const itemElem = $(ui.helper).children().get(0);
-        const width = $(itemElem).width();
-        const height = $(itemElem).height();
-        const x = position.left + width / 2;
-        const y = position.top + height / 2;
-
+        const x = ev.clientX - ev.startDomElementOffsetX + this.dragElem.offsetWidth / 2;
+        const y = ev.clientY - ev.startDomElementOffsetY + this.dragElem.offsetHeight / 2;
         return { x: x, y: y };
     }
 
@@ -312,56 +293,25 @@ export class BackpackItem
         return { left: left, top: top, width: width, height: height };
     }
 
-    // private isDraggablePositionInShredder(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
-    // {
-    //     const pos = this.draggedItemCenter(ev, ui);
-    //     const rect = this.scrolledElemRect($('#n3q .n3q-backpack-dump').get(0));
-    //     return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
-    // }
-
-    private isDraggablePositionInBackpack(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
+    private isDraggablePositionInBackpack(ev: PointerEventData): boolean
     {
-        const pos = this.draggedItemCenter(ev, ui);
-        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
-        return pos.x > rect.left && pos.x < rect.left + rect.width && pos.y < rect.top + rect.height && pos.y > rect.top;
+        return ev.dropTarget?.classList.contains('n3q-backpack-pane') === true;
     }
 
-    private draggablePositionRelativeToPane(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): { x: number, y: number }
+    private draggablePositionRelativeToPane(ev: PointerEventData): { x: number, y: number }
     {
-        const pos = this.draggedItemCenter(ev, ui);
+        const pos = this.draggedItemCenter(ev);
         const rect = this.scrolledElemRect(this.backpackWindow.getPane());
         return { 'x': pos.x - rect.left, 'y': pos.y - rect.top };
     }
 
-    private itemPositionRelativeToPane(): { x: number, y: number }
+    private isDraggablePositionInDropzone(ev: PointerEventData): boolean
     {
-        return { 'x': this.elem.offsetLeft, 'y': this.elem.offsetTop };
-    }
-
-    private isDraggablePositionInDropzone(ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams): boolean
-    {
-        const displayElem = this.app.getDisplay();
+        const dropzoneBottom = this.app.getDisplay().offsetHeight;
         const dropZoneHeight: number = Config.get('backpack.dropZoneHeight', 100);
-        const dragHelperElem = ui.helper.get(0);
-        const dragItemElem = dragHelperElem.children[0];
-
-        const draggedLeft = $(dragHelperElem).position().left;
-        const draggedTop = $(dragHelperElem).position().top;
-        const draggedWidth = $(dragItemElem).width();
-        const draggedHeight = $(dragItemElem).height();
-        const dropzoneBottom = $(displayElem).height();
         const dropzoneTop = dropzoneBottom - dropZoneHeight;
-        const itemBottomX = draggedLeft + draggedWidth / 2;
-        const itemBottomY = draggedTop + draggedHeight;
-
-        const mouseX = ev.clientX;
-        const mouseY = ev.clientY;
-
-        const itemBottomInDropzone = itemBottomX > 0 && itemBottomY > dropzoneTop && itemBottomY < dropzoneBottom;
-        const mouseInDropzone = mouseX > 0 && mouseY > dropzoneTop && mouseY < dropzoneBottom;
-
-        const inDropzone = itemBottomInDropzone || mouseInDropzone;
-        return inDropzone;
+        const dragElemBottom = ev.clientY - ev.startDomElementOffsetY + (<HTMLElement>ev.domElement).offsetHeight;
+        return dragElemBottom > dropzoneTop;
     }
 
     sendSetItemCoordinates(x: number, y: number): void

@@ -69,24 +69,6 @@ export class BackpackWindow extends Window
         const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
         $(contentElem).append(paneElem);
 
-        // const dumpElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-dump" title="Shredder" data-translate="attr:title:Backpack"/>').get(0);
-        // $(contentElem).append(dumpElem);
-        // $(dumpElem).droppable({
-        //     tolerance: 'pointer',
-        //     drop: (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-        //     {
-        //         const droppedElem = ui.draggable.get(0);
-        //         if (droppedElem) {
-        //             const droppedId: string = $(droppedElem).data('id');
-        //             if (droppedId) {
-        //                 this.app.deleteItemAsk(droppedId, undefined, () => this.itemVisibility(droppedId, true));
-        //                 window.setTimeout(() => this.itemVisibility(droppedId, false), 1);
-        //                 ev.stopPropagation();
-        //             }
-        //         }
-        //     }
-        // });
-
         // if (Environment.isDevelopment()) {
         //     const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
         //     $(inElem).hide();
@@ -153,29 +135,6 @@ export class BackpackWindow extends Window
 
             if (onClose) { onClose(); }
         };
-
-        $(paneElem).droppable({
-            drop: async (ev: JQueryEventObject, ui: JQueryUI.DroppableEventUIParam) =>
-            {
-                const droppedElem = ui.draggable.get(0);
-                if (droppedElem) {
-                    const droppedId = Avatar.getEntityIdByAvatarElem(droppedElem);
-                    if (droppedId) {
-                        const roomItem = this.app.getRoom().getItem(droppedId);
-                        if (roomItem) {
-                            if (!roomItem.isMyItem()) {
-                                let toast = new SimpleToast(this.app, 'backpack-DerezNotMyItem', Config.get('room.errorToastDurationSec', 8), 'warning', 'NotDerezzed', 'NotYourItem').show();
-                            } else {
-                                const x = Math.round(ui.offset.left - $(paneElem).offset().left + paneElem.scrollLeft + ui.draggable.width() / 2);
-                                const y = Math.round(ui.offset.top - $(paneElem).offset().top + paneElem.scrollTop + ui.draggable.height() / 2);
-                                const itemId = roomItem.getProperties()[Pid.Id];
-                                this.app.derezItem(itemId, x, y);
-                            }
-                        }
-                    }
-                }
-            }
-        });
 
         this.paneElem = paneElem;
 

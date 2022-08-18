@@ -10,8 +10,10 @@ import { is } from '../lib/is';
 import { IObserver } from '../lib/ObservableProperty';
 import * as AnimationsXml from './AnimationsXml';
 import { RoomItem } from './RoomItem';
-import { Participant } from './Participant';
-import { BackpackItem } from './BackpackItem';
+import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { SimpleToast } from './Toast';
+import { DomButtonId } from '../lib/domTools';
+import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 
 class AvatarGetAnimationResult
 {
@@ -28,6 +30,8 @@ export class Avatar implements IObserver
 {
     private elem: HTMLDivElement;
     private imageElem: HTMLImageElement;
+    private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private dragElem: HTMLElement;
     private hasAnimation = false;
     private animations: AnimationsXml.AnimationsDefinition;
     private defaultGroup: string;
@@ -37,25 +41,15 @@ export class Avatar implements IObserver
     private currentAction: string = '';
     private isDefault: boolean = true;
     private speedPixelPerSec: number = 0;
-    private defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
-
-    private clickDblClickSeparationTimer: number;
-    private hackSuppressNextClickOtherwiseDraggableClicks: boolean = false;
-
-    private ignoreNextDragFlag: boolean = false;
-    ignoreDrag(): void { this.ignoreNextDragFlag = true; }
 
     isDefaultAvatar(): boolean { return this.isDefault; }
     getElem(): HTMLElement { return this.elem; }
-
-    private mousedownX: number;
-    private mousedownY: number;
 
     constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean)
     {
         this.imageElem = <HTMLImageElement>$('<img class="n3q-base n3q-avatar-image" />').get(0);
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-avatar" />').get(0);
-        $(this.elem).append(this.imageElem);
+        this.elem.append(this.imageElem);
 
         // const url = 'https://www.virtual-presence.org/images/wolf.png';
         // const url = app.getAssetUrl('default-avatar.png');
@@ -65,219 +59,111 @@ export class Avatar implements IObserver
         this.setSize(100, 100);
         this.isDefault = true;
 
-        $(this.imageElem).on('mousedown', (ev: JQueryMouseEventObject) =>
-        {
-            this.mousedownX = ev.clientX;
-            this.mousedownY = ev.clientY;
+        entity.getElem().append(this.elem);
+
+        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.imageElem);
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverenter, eventData => {
+            this.entity.onMouseEnterAvatar(eventData);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverleave, eventData => {
+            this.entity.onMouseLeaveAvatar(eventData);
         });
 
-        $(this.imageElem).on('click', (ev: JQueryMouseEventObject) =>
-        {
-            if (Math.abs(this.mousedownX - ev.clientX) > 2 || Math.abs(this.mousedownY - ev.clientY) > 2) {
+        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, eventData => {
+            this.entity.select();
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.click, eventData => {
+            this.entity.onMouseClickAvatar(eventData);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.doubleclick, eventData => {
+            this.entity.onMouseDoubleClickAvatar(eventData);
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, eventData => {
+            const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
+            dragElem.classList.add('dragging');
+            this.dragElem = dragElem;
+            this.app.getDisplay()?.append(dragElem);
+            this.app.toFront(dragElem, ContentApp.LayerDrag);
+            this.entity.onDragAvatarStart(eventData);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, eventData => {
+            this.dragElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
+            this.dragElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
+            if (eventData.buttons !== DomButtonId.first || eventData.modifierKeys !== DomModifierKeyId.none) {
+                this.pointerEventDispatcher.cancelDrag();
+            }
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
+            const dropTargetElem = eventData.dropTarget;
+            if (this.entity instanceof RoomItem 
+            && this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
+                dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
+            }
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
+            const dropTargetElem = eventData.dropTargetLast;
+            dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, eventData => {
+            if (this.entity instanceof RoomItem && eventData.dropTarget instanceof HTMLElement
+            && eventData.dropTarget.classList.contains('n3q-backpack-pane')) {
+                this.onRoomItemDropOnBackpack(eventData, this.entity, eventData.dropTarget);
                 return;
             }
-
-            const elem = this.elemBelowTransparentImageAtMouse(ev);
-            if (elem) {
-                // let newEv = new jQuery.Event('click');
-                // newEv.clientX = ev.clientY;
-                // newEv.clientY = ev.clientY;
-                // $(elem).trigger('click', newEv);
-                if ($(elem).hasClass('n3q-avatar-image')) {
-                    const belowAvatarElem = elem.parentElement;
-                    if (belowAvatarElem) {
-                        const belowEntityElem = belowAvatarElem.parentElement;
-                        if (belowEntityElem) {
-                            this.app.toFront(belowEntityElem, ContentApp.LayerEntity);
-                        }
-                    }
+            if (this.entity instanceof RoomItem) {
+                const dropTargetEntity = this.app.getEntityByelem(eventData.dropTarget);
+                if (dropTargetEntity?.isValidDropTargetForItem(this.entity)) {
+                    dropTargetEntity.onGotItemDroppedOn(this.entity);
+                    return;
                 }
-                ev.stopPropagation();
+            }
+            let newX = this.entity.getPosition() + eventData.distanceX;
+            newX = Math.max(0, Math.min(document.documentElement.offsetWidth - 1, newX));
+            this.entity.onDraggedTo(newX);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragcancel, eventData => {
+            // Nothing to do.
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
+            if (!is.nil(this.dragElem)) {
+                this.app.getDisplay()?.removeChild(this.dragElem);
             }
         });
 
-        $(this.elem).on('click', ev =>
-        {
-            if (this.hackSuppressNextClickOtherwiseDraggableClicks) {
-                this.hackSuppressNextClickOtherwiseDraggableClicks = false;
-                return;
-            }
-
-            if (!this.clickDblClickSeparationTimer) {
-                this.clickDblClickSeparationTimer = <number><unknown>setTimeout(() =>
-                {
-                    this.clickDblClickSeparationTimer = null;
-                    this.entity.onMouseClickAvatar(ev);
-                }, as.Float(Config.get('avatarDoubleClickDelaySec', 0.25)) * 1000);
-            } else {
-                if (this.clickDblClickSeparationTimer) {
-                    clearTimeout(this.clickDblClickSeparationTimer);
-                    this.clickDblClickSeparationTimer = null;
-                    this.entity.onMouseDoubleClickAvatar(ev);
-                }
-            }
-
-        });
-
-        $(this.elem).mouseenter(ev => this.entity.onMouseEnterAvatar(ev));
-        $(this.elem).mouseleave(ev => this.entity.onMouseLeaveAvatar(ev));
-
-        $(entity.getElem()).append(this.elem);
-
-        $(this.imageElem).draggable({
-            scroll: false,
-            stack: '.n3q-item',
-            opacity: 0.5,
-            distance: 4,
-            // helper: 'clone',
-            helper: () =>
-            {
-                const dragElem = $(this.elem).clone().get(0);
-                const nick = Avatar.getEntityIdByAvatarElem(this.elem);
-                $(dragElem).data('nick', nick);
-                $(dragElem).detach();
-                this.app.getDisplay().append(dragElem);
-                this.app.toFront(dragElem, ContentApp.LayerDrag);
-                return dragElem;
-            },
-            containment: 'document',
-            start: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                const elem = this.elemBelowTransparentImageAtMouse(ev);
-                if (elem) {
-                    return false;
-                }
-
-                this.entity.onDragAvatarStart(ev, ui);
-            },
-            drag: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                if (this.ignoreNextDragFlag) {
-                    this.ignoreNextDragFlag = false;
-                    return false;
-                }
-
-                this.entity.onDragAvatar(ev, ui);
-            },
-            stop: (ev: JQueryMouseEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                if (this.ignoreNextDragFlag) {
-                    this.ignoreNextDragFlag = false;
-                } else {
-                    this.entity.onDragAvatarStop(ev, ui);
-                }
-
-                this.hackSuppressNextClickOtherwiseDraggableClicks = true;
-                setTimeout(() => { this.hackSuppressNextClickOtherwiseDraggableClicks = false; }, 200);
-            }
-        });
     }
 
-    elemBelowTransparentImageAtMouse(ev: JQueryMouseEventObject): Element
+    private onRoomItemDropOnBackpack(eventData: PointerEventData, roomItem: RoomItem, bpPaneElem: HTMLElement): void
     {
-        if (typeof ev.pageX === 'undefined') { return null; }
-
-        let elemBelow: Element = null;
-        const self = this.imageElem;
-        const canvasElem = document.createElement('canvas');
-        const ctx = canvasElem.getContext('2d');
-
-        // Get click coordinates
-        const x = ev.pageX - $(self).offset().left;
-        const y = ev.pageY - $(self).offset().top;
-        const w = $(self).width();
-        const h = $(self).height();
-        ctx.canvas.width = w;
-        ctx.canvas.height = h;
-
-        // Draw image to canvas
-        // and read Alpha channel value
-        ctx.drawImage(self, 0, 0, w, h);
-        const alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
-
-        $(canvasElem).remove();
-
-        // If pixel is transparent, retrieve the element underneath
-        if (alpha === 0) {
-            const imagePointerEvents = self.style.pointerEvents;
-            const parentPointerEvents = self.parentElement.style.pointerEvents;
-            self.style.pointerEvents = 'none';
-            self.parentElement.style.pointerEvents = 'none';
-            elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
-            self.style.pointerEvents = imagePointerEvents;
-            self.parentElement.style.pointerEvents = parentPointerEvents;
+        if (!roomItem.isMyItem()) {
+            const toast = new SimpleToast(
+                this.app, 'backpack-DerezNotMyItem',
+                Config.get('room.errorToastDurationSec', 8),
+                'warning', 'NotDerezzed', 'NotYourItem',
+            );
+            toast.show();
+            return;
         }
+        const itemProps = roomItem.getProperties();
+        const paneElemDims = bpPaneElem.getBoundingClientRect();
 
-        return elemBelow;
+        const drggedElemVpX = eventData.clientX - eventData.startDomElementOffsetX;
+        const drggedElemBackpackX = drggedElemVpX - paneElemDims.x + bpPaneElem.scrollLeft;
+        const x = Math.round(drggedElemBackpackX + as.Float(itemProps?.Width) / 2);
+        const drggedElemVpY = eventData.clientY - eventData.startDomElementOffsetY;
+        const drggedElemBackpackY = drggedElemVpY - paneElemDims.y + bpPaneElem.scrollTop;
+        const LabelHeightHalf = 7;
+        const y = Math.round(drggedElemBackpackY + as.Float(itemProps?.Height) / 2 + LabelHeightHalf);
+
+        this.app.derezItem(roomItem.getItemId(), x, y); // x, y is center of item with label in backpack.
+        this.app.getBackpackWindow()?.getItem(roomItem.getItemId())?.toFront();
     }
 
     addClass(className: string): void
     {
         $(this.imageElem).addClass(className);
-    }
-
-    makeDroppable(): void
-    {
-        $(this.elem).droppable({
-            hoverClass: 'n3q-avatar-drophilite',
-            accept: (draggable) =>
-            {
-                if (draggable[0]) { draggable = draggable[0]; } // wtf
-
-                if ($(draggable).hasClass('n3q-avatar-image')) {
-                    if (Avatar.getEntityIdByAvatarElem(draggable) != Avatar.getEntityIdByAvatarElem(this.getElem())) {
-                        return true;
-                    }
-                }
-
-                if ($(draggable).hasClass('n3q-backpack-item')) {
-                    if (!this.isSelf) {
-                        return true;
-                    }
-                }
-            },
-            drop: (
-                ev: JQueryEventObject,
-                ui: JQueryUI.DroppableEventUIParam,
-            ): void =>
-            {
-                const droppedElem = ui.draggable.get(0);
-                const droppedItem
-                    = this.getRoomItemByDomElem(droppedElem)
-                    ?? this.getBackpackItemByDomElem(droppedElem);
-                if (droppedItem instanceof BackpackItem) {
-                    // Suppress item's default drop handling (prevents rezzing):
-                    droppedItem.ignoreNextDrop();
-                }
-                if (!is.nil(droppedItem)) {
-                    return this.entity.onGotItemDroppedOn(droppedItem);
-                }
-            }
-        });
-    }
-
-    getBackpackItemByDomElem(elem: HTMLElement): BackpackItem
-    {
-        const itemId = $(elem).data('id');
-        if (itemId) {
-            return this.app.getBackpackWindow()?.getItem(itemId);
-        }
-    }
-
-    getRoomItemByDomElem(elem: HTMLElement): RoomItem
-    {
-        const entityId = Avatar.getEntityIdByAvatarElem(elem);
-        if (entityId) {
-            return this.app.getRoom().getItem(entityId);
-        }
-    }
-
-    getParticipantByAvatarElem(elem: HTMLElement): Participant
-    {
-        const entityId = Avatar.getEntityIdByAvatarElem(elem);
-        if (entityId) {
-            return this.app.getRoom().getParticipant(entityId);
-        }
     }
 
     static getEntityIdByAvatarElem(elem: HTMLElement): string
