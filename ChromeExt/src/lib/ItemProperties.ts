@@ -211,6 +211,17 @@ export class ItemProperties
             && as.Bool(itemProps[Pid.IsTransferable] ?? '1');
     }
 
+    static getParsedIframeOptions(itemProps: ItemProperties): {[p: string]: any}
+    {
+        const frameOptsStr = itemProps[Pid.IframeOptions] ?? '{}';
+        try {
+            const frameOpts = JSON.parse(frameOptsStr);
+            return frameOpts;
+        } catch (error) {
+            return {};
+        }
+    }
+
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }
