@@ -6,7 +6,7 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.3', 'AvatarApi', [
+        ['1.2.3', 'ClickThrough', [
             ['Change', 'Modal toast larger'],
             ['Change', 'Random name generator blocklist'],
             ['Fix', 'Dragging now works with touch/pen input'],
