@@ -419,7 +419,7 @@ export class Config
                     'Chatwindow.Toast.warning': '*Warning',
                     'Chatwindow.Toast.notice': '*Notice',
                     'Chatwindow.Toast.question': '*Question',
-                    'Chatwindow.Clear': 'Leeren',
+                    'Chatwindow.Clear': 'Empty',
                     'Chatwindow.Enable Sound': 'Enable sound',
                     'Chatwindow.Sound': 'Sound',
 
