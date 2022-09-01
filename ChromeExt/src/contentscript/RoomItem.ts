@@ -366,8 +366,7 @@ export class RoomItem extends Entity
 
     private handleUnmodifiedClickForIframeAspect(): void
     {
-        const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
-        const frameOpts = JSON.parse(frameOptsStr);
+        const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
         const frame = frameOpts.frame ?? 'Window';
         let openFrame = false;
         if (frame === 'Popup') {
@@ -435,8 +434,7 @@ export class RoomItem extends Entity
         this.statsDisplay?.close();
 
         if (this.framePopup) {
-            const frameOptsStr = this.properties[Pid.IframeOptions] ?? '{}';
-            const frameOpts = JSON.parse(frameOptsStr);
+            const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
             if (frameOpts.closeIsHide) {
                 // Intentionally keep open and visible.
             } else {
@@ -543,7 +541,10 @@ export class RoomItem extends Entity
         }
 
         if (this.framePopup) {
-            this.framePopup.move();
+            const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
+            if (frameOpts.anchor !== 'Base') {
+                this.framePopup.move();
+            }
         }
     }
 
@@ -696,7 +697,7 @@ export class RoomItem extends Entity
 
             iframeUrl = iframeUrl.replace(/"/g, '%22');
 
-            const iframeOptions = JSON.parse(as.String(this.properties[Pid.IframeOptions], '{}'));
+            const iframeOptions = ItemProperties.getParsedIframeOptions(this.properties);
 
             let anchorElem: HTMLElement;
             switch (as.String(iframeOptions.anchor, 'Entity')) {
