@@ -2,7 +2,7 @@
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { is } from '../lib/is';
-import { ChatMessage, ChatType } from '../lib/ChatMessage';
+import { Chat, ChatMessage, ChatType } from '../lib/ChatMessage';
 import { ErrorWithData, Utils } from '../lib/Utils';
 
 // Schema:
@@ -28,34 +28,69 @@ type ChatMessageRecord = {
 export class ChatHistoryStorage {
 
     private app: BackgroundApp;
-    private publicMaxAgeSec: number = Number.MAX_VALUE;
-    private privateMaxAgeSec: number = Number.MAX_VALUE;
+    private roompublicMaxAgeSec: number = Number.MAX_VALUE;
+    private roomprivateMaxAgeSec: number = Number.MAX_VALUE;
     private db: IDBDatabase|null;
 
-    constructor(app: BackgroundApp)
+    //--------------------------------------------------------------------------
+    // Public API
+
+    public constructor(app: BackgroundApp)
     {
         this.app = app;
     }
 
     public onUserConfigUpdate(): void
     {
-        this.publicMaxAgeSec = as.Float(Config.get('chatHistory.publicMaxAgeSec'), Number.MAX_VALUE);
-        this.privateMaxAgeSec = as.Float(Config.get('chatHistory.privateMaxAgeSec'), Number.MAX_VALUE);
+        this.roompublicMaxAgeSec = as.Float(Config.get('chatHistory.roompublicMaxAgeSec'), Number.MAX_VALUE);
+        this.roomprivateMaxAgeSec = as.Float(Config.get('chatHistory.roomprivateMaxAgeSec'), Number.MAX_VALUE);
     }
 
-    public async storeChatRecord(msg: ChatMessage): Promise<void>
+    public async storeChatRecord(chat: Chat, chatMessage: ChatMessage): Promise<void>
     {
         try {
             await this.openDb();
             const [transaction, transactionPromise] = this.getNewDbTransaction();
-            const chat = await this.getOrCreateChatRecord(transaction, msg.type, msg.roomJid, msg.roomNick);
-            await this.createChatMessage(transaction, chat, msg);
+            const chatRecord = await this.getOrCreateChatRecord(transaction, chat.type, chat.roomJid, chat.roomNick);
+            await this.createChatMessage(transaction, chatRecord, chatMessage);
             await transactionPromise;
         } catch (error) {
             const errorMsg = 'ChatHistoryStorage:storeChatRecord: Failed!';
-            throw new ErrorWithData(errorMsg, {originalError: error, chatMessage: msg});
+            throw new ErrorWithData(errorMsg, {originalError: error, chat, chatMessage});
         }
     }
+
+    public async getChatHistoryByChat(chat: Chat): Promise<ChatMessage[]>
+    {
+        try {
+            await this.openDb();
+            const [transaction, transactionPromise] = this.getNewDbTransaction(true);
+            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(
+                transaction, chat.type, chat.roomJid, chat.roomNick);
+            if (is.nil(chatRecord)) {
+                await transactionPromise;
+                return [];
+            }
+            const chatMessageRecords = await this.getChatMessageRecordsByChatId(transaction, chatRecord.id);
+            await transactionPromise;
+            const chatMessages = chatMessageRecords.map(record => ({
+                timestamp: record.timestamp,
+                id:        record.id,
+                nick:      record.nick,
+                text:      record.text,
+            }));
+            chatMessages.sort((a, b) => {
+                return a.timestamp < b.timestamp ? -1 : (a.timestamp > b.timestamp ? 1 : 0);
+            });
+            return chatMessages;
+        } catch (error) {
+            const errorMsg = 'ChatHistoryStorage:getChatHistoryByChat: Failed!';
+            throw new ErrorWithData(errorMsg, {originalError: error, chat});
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // ChatMessageRecord
 
     private async createChatMessage(transaction: IDBTransaction, chat: ChatRecord, msg: ChatMessage): Promise<void> {
         const chatMessageRecord: ChatMessageRecord = {
@@ -68,6 +103,17 @@ export class ChatHistoryStorage {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         await this.awaitDbRequest(chatMessageTable.add(chatMessageRecord));
     }
+
+    private async getChatMessageRecordsByChatId(
+        transaction: IDBTransaction, chatId: number,
+    ): Promise<ChatMessageRecord[]> {
+        const chatMessageTable = transaction.objectStore('ChatMessage');
+        const index = chatMessageTable.index('iChat');
+        return this.awaitDbRequest(index.getAll(chatId));
+    }
+
+    //--------------------------------------------------------------------------
+    // ChatRecord
 
     private async getOrCreateChatRecord(
         transaction: IDBTransaction, type: ChatType, roomJid: string, roomNick: string
@@ -95,11 +141,14 @@ export class ChatHistoryStorage {
 
     private async getChatRecordByTypeRoomJidRoomNick(
         transaction: IDBTransaction, type: ChatType, roomJid: string, roomNick: string
-    ): Promise<ChatRecord> {
+    ): Promise<ChatRecord|null> {
         const chatTable = transaction.objectStore('Chat');
         const index = chatTable.index('iTypeRoomJidNick');
         return this.awaitDbRequest(index.get([type, roomJid, roomNick]));
     }
+
+    //--------------------------------------------------------------------------
+    // IndexedDB helpers
 
     private awaitDbRequest<T>(dbRequest: IDBRequest<T>): Promise<T>
     {
@@ -166,6 +215,9 @@ export class ChatHistoryStorage {
         });
         return resultPromise;
     }
+
+    //--------------------------------------------------------------------------
+    // Schema iniztialization and updates
 
     private dbOnUpgradeNeeded(db: IDBDatabase, ev: IDBVersionChangeEvent): void
     {

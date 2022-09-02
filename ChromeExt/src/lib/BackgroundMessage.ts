@@ -4,7 +4,7 @@ import { ItemException } from './ItemException';
 import { ItemProperties, ItemPropertiesSet } from './ItemProperties';
 import { BackgroundApp } from '../background/BackgroundApp';
 import { Environment } from './Environment';
-import { ChatMessage } from './ChatMessage';
+import { Chat, ChatMessage } from './ChatMessage';
 
 export class BackgroundResponse
 {
@@ -89,6 +89,11 @@ export class CreateBackpackItemResponse extends BackgroundResponse
 export class FindBackpackItemPropertiesResponse extends BackgroundResponse
 {
     constructor(public propertiesSet: ItemPropertiesSet) { super(true); }
+}
+
+export class GetChatHistoryResponse extends BackgroundSuccessResponse
+{
+    constructor(public chatHistory: ChatMessage[]) { super(); }
 }
 
 export class BackgroundMessage
@@ -374,11 +379,19 @@ export class BackgroundMessage
         });
     }
 
-    static handleNewChatMessage(message: ChatMessage): Promise<void>
+    static handleNewChatMessage(chat: Chat, chatMessage: ChatMessage): Promise<void>
     {
         return BackgroundMessage.sendMessageCheckOk({
-            'type': BackgroundMessage.handleNewChatMessage.name,
-            chatMessage: message,
+            'type': BackgroundMessage.handleNewChatMessage.name, chat, chatMessage,
+        });
+    }
+
+    static getChatHistory(chat: Chat): Promise<ChatMessage[]>
+    {
+        return new Promise((resolve, reject) => {
+            BackgroundMessage.sendMessageCheckOk({'type': BackgroundMessage.getChatHistory.name, chat: chat,})
+            .then(response => resolve(response.chatHistory))
+            .catch(error => reject(error));
         });
     }
 

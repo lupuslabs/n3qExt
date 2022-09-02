@@ -6,6 +6,13 @@ import { Environment } from './Environment';
 import { ItemException } from './ItemException';
 import { ErrorWithDataBase } from './debugUtils';
 
+export interface NumberFormatOptions extends Intl.NumberFormatOptions {
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options
+    signDisplay?: 'auto'|'always'|'exceptZero'|'never',
+    unit?:        string,
+    unitDisplay?: 'long'|'short'|'narrow',
+}
+
 export class ErrorWithData extends ErrorWithDataBase
 {
     constructor(msg: string, data?: {[p: string]: unknown}) {
@@ -209,9 +216,10 @@ export class Utils
 
     static utcStringOfDate(date: Date): string
     {
-        return date.toISOString().replace('T', ' ').substr(0, 19);
+        const utcStr = date.toISOString();
+        return utcStr.replace('T', ' ').substr(0, utcStr.length - 1);
     }
-    
+
     static dateOfUtcString(date: string): Date
     {
         // Add UTC timezone identifier if not present:
@@ -220,20 +228,49 @@ export class Utils
         }
         return new Date(date);
     }
-    
+
     static prepareValForMessage(val: unknown, stack: Array<{}> = []): any
     {
         if (is.object(val) && !is.array(val) && !is.fun(val)) {
             const mangled = {};
-            for (const p in val) {
-                const pVal = val[p];
+            for (const prop of Object.getOwnPropertyNames(val)) {
+                const pVal = val[prop];
                 if (!is.array(pVal) && !is.fun(pVal) && !stack.includes(pVal)) {
-                    mangled[p] = Utils.prepareValForMessage(pVal, [...stack, val]);
+                    mangled[prop] = Utils.prepareValForMessage(pVal, [...stack, val]);
                 }
             }
             return mangled;
         }
         return val;
+    }
+
+    static durationUnits: [number,string][] = [
+        // Translatable duration units:
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options:~:text=for%20unit%20formatting.-,unit,-The%20unit%20to
+        [365 * 24 * 3600, 'year'], [30 * 24 * 3600, 'month'], [7 * 24 * 3600, 'week'],
+        [24 * 3600, 'day'], [3600, 'hour'], [60, 'minute'], [1, 'second'], [0.001, 'millisecond'],
+    ];
+
+    static formatApproximateDurationForHuman(
+        seconds: number, locale: string|null, options: NumberFormatOptions
+    ): [string, number, string] {
+        options = {...options};
+        options.maximumFractionDigits = options.maximumFractionDigits ?? 0;
+        let unitFactor: number;
+        let unitCount: number;
+        let unit: string;
+        for ([unitFactor, unit] of this.durationUnits) {
+            unitCount = seconds / unitFactor;
+            if (unitCount >= 1) {
+                break;
+            }
+        }
+        if (unitCount < (1 / Math.pow(10, options.maximumFractionDigits))) {
+            [unitCount, unit] = [0, 'second'];
+        }
+        options = {...options, style: 'unit', unit: unit};
+        const durationText = unitCount.toLocaleString(locale, options);
+        return [durationText, unitCount, unit];
     }
 
 }

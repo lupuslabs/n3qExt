@@ -101,8 +101,8 @@ export class Config
             maintenanceIntervalSec: 30,
         },
         chatHistory: {
-            publicMaxAgeSec: 3 * 24 * 3600,
-            privateMaxAgeSec: 3 * 24 * 3600,
+            roompublicMaxAgeSec: 3 * 24 * 3600,
+            roomprivateMaxAgeSec: 3 * 24 * 3600,
         },
         room: {
             fadeInSec: 0.3,
@@ -426,6 +426,8 @@ export class Config
                     'Chatwindow.Clear': 'Empty',
                     'Chatwindow.Enable Sound': 'Enable sound',
                     'Chatwindow.Sound': 'Sound',
+                    'Chatwindow.RetentionDuration': 'Stored for {duration}',
+                    'Chatwindow.RetentionDurationForever': 'Stored forever',
 
                     'PrivateChat.Private Chat with': 'Private Chat with',
 
@@ -696,6 +698,8 @@ export class Config
                     'Chatwindow.Clear': 'Leeren',
                     'Chatwindow.Enable Sound': 'Ton an',
                     'Chatwindow.Sound': 'Ton',
+                    'Chatwindow.RetentionDuration': 'Gespeichert für {duration}',
+                    'Chatwindow.RetentionDurationForever': 'Gespeichert für immer',
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit',
 

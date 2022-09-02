@@ -7,28 +7,37 @@ export enum ChatType {
     roomprivate = 'roomprivate',
 }
 
+export type Chat = {
+    type:      ChatType;
+    roomJid:   string;
+    roomNick:  string;
+};
+
 export type ChatMessage = {
-    type:      ChatType; // \
-    roomJid:   string;   //  > Same for all messages of a chat window.
-    roomNick:  string;   // /
     timestamp: string;
     id:        string;
     nick:      string;
     text:      string;
 };
 
-export function isChatRecordType(val: unknown): val is ChatType
+export function isChatType(val: unknown): val is ChatType
 {
     return is.string(val) && Object.values<string>(ChatType).includes(val);
+}
+
+export function isChat(val: unknown): val is Chat
+{
+    return !is.nil(val)
+    && isChatType(val['type'])
+    && is.string(val['roomJid'])
+    && is.string(val['roomNick'])
+    && !(val['roomNick'] !== '' && val['type'] === ChatType.roompublic)
+    ;
 }
 
 export function isChatMessage(val: unknown): val is ChatMessage
 {
     return !is.nil(val)
-    && isChatRecordType(val['type'])
-    && is.string(val['roomJid'])
-    && is.string(val['roomNick'])
-    && !(val['roomNick'] !== '' && val['type'] === ChatType.roompublic)
     && is.string(val['timestamp'])
     && is.string(val['id'])
     && is.string(val['nick'])

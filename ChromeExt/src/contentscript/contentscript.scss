@@ -1374,6 +1374,12 @@
         //     width: 40px;
         // }
 
+        div.n3q-window-content .n3q-chatwindow-retentioninfo {
+            display: inline-block;
+            margin-left: 8px;
+            margin-top: 8px;
+        }
+
         div.n3q-window-content div.n3q-chatwindow-clear {
             display: inline-block;
             margin-left: 8px; 
@@ -1384,7 +1390,7 @@
 
         div.n3q-window-content div.n3q-chatwindow-soundcheck {
             display: inline-block;
-            margin-left: 8px; 
+            margin-left: 16px; 
             margin-top: 8px;
         }
 
@@ -1423,6 +1429,9 @@
             font-weight: bold;
             margin: 0 0.4em 0 0;
         }
+    }
+    div.n3q-chatwindow-line.n3q-chat-old > * {
+        color: #404040;
     }
 
     div.n3q-chatwindow-chatin {

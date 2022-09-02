@@ -19,7 +19,7 @@ import
     ApplyItemToBackpackItemResponse,
     BackpackTransferCompleteResponse,
     BackpackTransferUnauthorizeResponse,
-    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse
+    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse, GetChatHistoryResponse
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -33,7 +33,7 @@ import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
-import { isChatMessage } from '../lib/ChatMessage';
+import { isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 
 interface ILocationMapperResponse
@@ -59,7 +59,7 @@ export class BackgroundApp
     private backpack: Backpack = null;
     private xmppStarted = false;
     private babelfish: Translator;
-    private chatHistoryStorage: ChatHistoryStorage|null;
+    private chatHistoryStorage: ChatHistoryStorage;
 
     private startupTime = Date.now();
     private waitReadyCount = 0;
@@ -204,7 +204,7 @@ export class BackgroundApp
             }
         }
 
-        this.chatHistoryStorage?.onUserConfigUpdate();
+        this.chatHistoryStorage.onUserConfigUpdate();
 
         if (!this.xmppStarted) {
             try {
@@ -383,7 +383,11 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.handleNewChatMessage.name: {
-                return this.handle_newChatMessage(message.chatMessage, sendResponse);
+                return this.handle_newChatMessage(message.chat, message.chatMessage, sendResponse);
+            } break;
+
+            case BackgroundMessage.getChatHistory.name: {
+                return this.handle_getChatHistory(message.chat, sendResponse);
             } break;
 
             default: {
@@ -910,15 +914,40 @@ export class BackgroundApp
         return false;
     }
 
-    handle_newChatMessage(message: unknown, sendResponse: (response?: any) => void): boolean
+    handle_newChatMessage(chat: unknown, chatMessage: unknown, sendResponse: (response: any) => void): boolean
     {
-        if (isChatMessage(message)) {
-            this.chatHistoryStorage?.storeChatRecord(message)
+        if (!isChat(chat)) {
+            sendResponse({
+                'ok': false, 
+                'ex': Utils.prepareValForMessage({error: new Error('Not a Chat object!'), chat}),
+            });
+        } else if (!isChatMessage(chatMessage)) {
+            sendResponse({
+                'ok': false, 
+                'ex': Utils.prepareValForMessage({error: new Error('Not a ChatMesage object!'), chatMessage}),
+            });
+        } else {
+            this.chatHistoryStorage.storeChatRecord(chat, chatMessage)
                 .then(() => sendResponse(new BackgroundSuccessResponse()))
                 .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
-        sendResponse({'ok': false, 'ex': {error: new Error('Not a ChatMesage!'), value: message}});
+        return false;
+    }
+
+    handle_getChatHistory(chat: unknown, sendResponse: (response: any) => void): boolean
+    {
+        if (!isChat(chat)) {
+            sendResponse({
+                'ok': false, 
+                'ex': Utils.prepareValForMessage({error: new Error('Not a Chat object!'), chat}),
+            });
+        } else {
+            this.chatHistoryStorage.getChatHistoryByChat(chat)
+                .then(chatMessages => sendResponse(new GetChatHistoryResponse(chatMessages)))
+                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            return true;
+        }
         return false;
     }
 

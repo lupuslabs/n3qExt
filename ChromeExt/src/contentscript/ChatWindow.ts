@@ -11,32 +11,43 @@ import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { ChatConsole } from './ChatConsole';
 import { Entity } from './Entity';
-import { ChatMessage, ChatType, makeChatMessageId } from '../lib/ChatMessage';
+import { Chat, ChatMessage, ChatType, makeChatMessageId } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
+import { Config } from '../lib/Config';
 
 export class ChatWindow extends Window
 {
     protected chatoutElem: HTMLElement;
     protected chatinInputElem: HTMLElement;
-    protected lines: Record<string, ChatMessage> = {};
+    protected chat: Chat;
+    protected chatMessages: Record<string, ChatMessage> = {};
+    protected sessionStartTs: string;
+    protected historyLoading: boolean = false;
+    protected historyLoadRequired: boolean = false;
     protected sndChat: Sound;
     protected soundEnabled = false;
     protected room: Room;
-    protected roomJid: string;
-    protected roomNick: string|null;
 
     constructor(app: ContentApp, roomOrEntity: Room|Entity)
     {
         super(app);
         if (roomOrEntity instanceof Room) {
             this.room = roomOrEntity;
-            this.roomNick = null;
+            this.chat = {
+                type:     ChatType.roompublic,
+                roomJid:  this.room.getJid(),
+                roomNick: '',
+            };
         } else {
             this.room = roomOrEntity.getRoom();
-            this.roomNick = roomOrEntity.getRoomNick();
+            this.chat = {
+                type:     ChatType.roomprivate,
+                roomJid:  this.room.getJid(),
+                roomNick: roomOrEntity.getRoomNick(),
+            };
         }
-        this.roomJid = this.room.getJid();
+        this.sessionStartTs = Utils.utcStringOfDate(new Date());
 
         this.sndChat = new Sound(this.app, KeyboardSound);
 
@@ -46,6 +57,8 @@ export class ChatWindow extends Window
             this.addLine(null, 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
             this.addLine(null, 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
         }
+
+        this.loadHistory();
     }
 
     isSoundEnabled(): boolean { return this.soundEnabled; }
@@ -94,14 +107,29 @@ export class ChatWindow extends Window
             const clearElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>').get(0);
             const soundCheckboxElem = <HTMLElement>$('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />').get(0);
             const soundcheckElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>').get(0);
-
             $(soundcheckElem).append(soundCheckboxElem);
+
+            const retentionInfoElem = <HTMLElement>$(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`).get(0);
+            {
+                const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
+                let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
+                    seconds, this.app.getLanguage(), {maximumFractionDigits: 0, unitDisplay: 'long'},
+                );
+                if (unitCount >= 1000) {
+                    text = this.app.translateText('Chatwindow.RetentionDurationForever', 'forever');
+                } else {
+                    const tpl = this.app.translateText('Chatwindow.RetentionDuration', 'Stored for {duration}'); 
+                    text = tpl.replace('{duration}', text);
+                }
+                retentionInfoElem.innerText = text;
+            }
 
             $(chatinElem).append(chatinTextElem);
             $(chatinElem).append(chatinSendElem);
 
             $(contentElem).append(chatoutElem);
             $(contentElem).append(chatinElem);
+            $(contentElem).append(retentionInfoElem);
             $(contentElem).append(clearElem);
             $(contentElem).append(soundcheckElem);
 
@@ -160,9 +188,7 @@ export class ChatWindow extends Window
                 if (onClose) { onClose(); }
             };
 
-            for (const id in this.lines) {
-                this.showLine(this.lines[id]);
-            }
+            this.drawChatMessages();
 
             $(chatinTextElem).focus();
         }
@@ -188,43 +214,85 @@ export class ChatWindow extends Window
         if (is.nil(id)) {
             id = makeChatMessageId();
         }
-        if (!is.nil(this.lines[id])) {
+        if (!is.nil(this.chatMessages[id])) {
             return;
         }
         const translated = this.app.translateText('Chatwindow.' + text, text);
 
         const time = new Date();
         const message: ChatMessage = {
-            type: is.nil(this.roomNick) ? ChatType.roompublic : ChatType.roomprivate,
-            roomJid: this.roomJid,
-            roomNick: this.roomNick ?? '',
             timestamp: Utils.utcStringOfDate(time),
-            id: id,
-            nick: nick,
-            text: translated,
+            id:        id,
+            nick:      nick,
+            text:      translated,
         };
 
-        this.lines[id] = message;
+        this.chatMessages[id] = message;
         this.showLine(message);
 
-        BackgroundMessage.handleNewChatMessage(message).catch(error => this.app.onError(error));
+        BackgroundMessage.handleNewChatMessage(this.chat, message).catch(error => this.app.onError(error));
+    }
+
+    private loadHistory(): void
+    {
+        (async () => {
+            if (this.historyLoading) {
+                // Already loading - so request another load after that:
+                this.historyLoadRequired = true;
+                return;
+            }
+            this.historyLoading = true;
+            for (this.historyLoadRequired = true; this.historyLoadRequired;) { // Until we really are up to date.
+                this.historyLoadRequired = false;
+
+                // Get recorded history:
+                const history = await BackgroundMessage.getChatHistory(this.chat);
+                const chatMessages = {};
+                history.forEach(message => {chatMessages[message.id] = message;});
+
+                // Add messages that arrived while the request was underway:
+                for (const messageId in this.chatMessages) {
+                    if (is.nil(chatMessages[messageId])) {
+                        chatMessages[messageId] = this.chatMessages[messageId];
+                    }
+                }
+
+                this.chatMessages = chatMessages;
+                this.drawChatMessages();
+            }
+            this.historyLoading = false;
+        })().catch((error) => {
+            this.app.onError(error);
+            this.historyLoading = false;
+        });
+    }
+
+    private drawChatMessages()
+    {
+        if (this.chatoutElem) {
+            $(this.chatoutElem).empty();
+            for (const messageId in this.chatMessages) {
+                this.showLine(this.chatMessages[messageId]);
+            }
+        }
     }
 
     private showLine(message: ChatMessage)
     {
-        const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
-        const lineElem = <HTMLElement>$(
-            '<div class="n3q-base n3q-chatwindow-line">'
-            + (as.String(message.nick) !== '' ? ''
-                + '<span class="n3q-base n3q-text n3q-time">' + as.Html(timeStr) + '</span>'
-                + '<span class="n3q-base n3q-text n3q-nick">' + as.Html(message.nick) + '</span>'
-                + '<span class="n3q-base n3q-text n3q-colon">' + this.app.translateText('Chatwindow.:') + '</span>'
-                : '')
-            + '<span class="n3q-base n3q-text n3q-chat">' + as.HtmlWithClickableLinks(message.text) + '</span>'
-            + '</div>'
-        ).get(0);
-
         if (this.chatoutElem) {
+            const ageClass = message.timestamp >= this.sessionStartTs ? 'n3q-chat-new' : 'n3q-chat-old';
+            const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
+            const lineElem = <HTMLElement>$(
+                `<div class="n3q-base n3q-chatwindow-line ${ageClass}">`
+                + (as.String(message.nick) !== '' ? ''
+                    + '<span class="n3q-base n3q-text n3q-time">' + as.Html(timeStr) + '</span>'
+                    + '<span class="n3q-base n3q-text n3q-nick">' + as.Html(message.nick) + '</span>'
+                    + '<span class="n3q-base n3q-text n3q-colon">' + this.app.translateText('Chatwindow.:') + '</span>'
+                    : '')
+                + '<span class="n3q-base n3q-text n3q-chat">' + as.HtmlWithClickableLinks(message.text) + '</span>'
+                + '</div>'
+            ).get(0);
+
             $(this.chatoutElem).append(lineElem).scrollTop($(this.chatoutElem).get(0).scrollHeight);
         }
     }
