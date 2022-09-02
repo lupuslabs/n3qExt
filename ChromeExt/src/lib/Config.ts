@@ -100,6 +100,10 @@ export class Config
             maxAgeSec: 600,
             maintenanceIntervalSec: 30,
         },
+        chatHistory: {
+            publicMaxAgeSec: 3 * 24 * 3600,
+            privateMaxAgeSec: 3 * 24 * 3600,
+        },
         room: {
             fadeInSec: 0.3,
             quickSlideSec: 0.1,

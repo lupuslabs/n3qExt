@@ -10,33 +10,41 @@ import { ContentApp } from './ContentApp';
 import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { ChatConsole } from './ChatConsole';
-
-class ChatLine
-{
-    constructor(public nick: string, public text: string)
-    {
-    }
-}
+import { Entity } from './Entity';
+import { ChatMessage, ChatType, makeChatMessageId } from '../lib/ChatMessage';
+import { Utils } from '../lib/Utils';
+import { BackgroundMessage } from '../lib/BackgroundMessage';
 
 export class ChatWindow extends Window
 {
     protected chatoutElem: HTMLElement;
     protected chatinInputElem: HTMLElement;
-    protected lines: Record<string, ChatLine> = {};
+    protected lines: Record<string, ChatMessage> = {};
     protected sndChat: Sound;
     protected soundEnabled = false;
+    protected room: Room;
+    protected roomJid: string;
+    protected roomNick: string|null;
 
-    constructor(app: ContentApp, protected room: Room)
+    constructor(app: ContentApp, roomOrEntity: Room|Entity)
     {
         super(app);
+        if (roomOrEntity instanceof Room) {
+            this.room = roomOrEntity;
+            this.roomNick = null;
+        } else {
+            this.room = roomOrEntity.getRoom();
+            this.roomNick = roomOrEntity.getRoomNick();
+        }
+        this.roomJid = this.room.getJid();
 
         this.sndChat = new Sound(this.app, KeyboardSound);
 
         if (Environment.isDevelopment()) {
-            this.addLine('1', 'Nickname', 'Lorem');
-            this.addLine('2', 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
-            this.addLine('3', 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
-            this.addLine('4', 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
+            this.addLine(null, 'Nickname', 'Lorem');
+            this.addLine(null, 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+            this.addLine(null, 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
+            this.addLine(null, 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
         }
     }
 
@@ -153,8 +161,7 @@ export class ChatWindow extends Window
             };
 
             for (const id in this.lines) {
-                const line = this.lines[id];
-                this.showLine(line.nick, line.text);
+                this.showLine(this.lines[id]);
             }
 
             $(chatinTextElem).focus();
@@ -176,32 +183,44 @@ export class ChatWindow extends Window
         return this.windowElem != null;
     }
 
-    addLine(id: string, nick: string, text: string)
+    addLine(id: string|null, nick: string, text: string): void
     {
+        if (is.nil(id)) {
+            id = makeChatMessageId();
+        }
+        if (!is.nil(this.lines[id])) {
+            return;
+        }
         const translated = this.app.translateText('Chatwindow.' + text, text);
 
-        // // Beware: without markdown in showLine: as.Html(text)
-        // let markdowned = markdown.markdown.toHTML(translated);
-        // let line = new ChatLine(nick, markdowned);
+        const time = new Date();
+        const message: ChatMessage = {
+            type: is.nil(this.roomNick) ? ChatType.roompublic : ChatType.roomprivate,
+            roomJid: this.roomJid,
+            roomNick: this.roomNick ?? '',
+            timestamp: Utils.utcStringOfDate(time),
+            id: id,
+            nick: nick,
+            text: translated,
+        };
 
-        const line = new ChatLine(nick, translated);
-        if (is.nil(this.lines[id])) {
-            this.lines[id] = line;
-            this.showLine(line.nick, line.text);
-        }
+        this.lines[id] = message;
+        this.showLine(message);
+
+        BackgroundMessage.handleNewChatMessage(message).catch(error => this.app.onError(error));
     }
 
-    private showLine(nick: string, text: string)
+    private showLine(message: ChatMessage)
     {
-        const time = new Date().toLocaleTimeString();
+        const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
         const lineElem = <HTMLElement>$(
             '<div class="n3q-base n3q-chatwindow-line">'
-            + (as.String(nick) !== '' ? ''
-                + '<span class="n3q-base n3q-text n3q-time">' + as.Html(time) + '</span>'
-                + '<span class="n3q-base n3q-text n3q-nick">' + as.Html(nick) + '</span>'
+            + (as.String(message.nick) !== '' ? ''
+                + '<span class="n3q-base n3q-text n3q-time">' + as.Html(timeStr) + '</span>'
+                + '<span class="n3q-base n3q-text n3q-nick">' + as.Html(message.nick) + '</span>'
                 + '<span class="n3q-base n3q-text n3q-colon">' + this.app.translateText('Chatwindow.:') + '</span>'
                 : '')
-            + '<span class="n3q-base n3q-text n3q-chat">' + as.HtmlWithClickableLinks(text) + '</span>'
+            + '<span class="n3q-base n3q-text n3q-chat">' + as.HtmlWithClickableLinks(message.text) + '</span>'
             + '</div>'
         ).get(0);
 
@@ -253,15 +272,15 @@ export class ChatWindow extends Window
                     out: (data) =>
                     {
                         if (is.string(data)) {
-                            this.showLine('', data);
+                            this.addLine(null, '', data);
                         } else if (Array.isArray(data)) {
                             if (Array.isArray(data[0])) {
                                 data.forEach(line =>
                                 {
-                                    this.showLine(line[0], line[1]);
+                                    this.addLine(null, line[0], line[1]);
                                 });
                             } else {
-                                this.showLine(data[0], data[1]);
+                                this.addLine(null, data[0], data[1]);
                             }
                         }
                     }

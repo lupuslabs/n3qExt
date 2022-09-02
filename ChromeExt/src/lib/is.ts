@@ -5,6 +5,7 @@ export class is {
     private static readonly typeBoolean: string = typeof true;
     private static readonly typeNumber: string = typeof 1;
     private static readonly typeObject: string = typeof {};
+    private static readonly typeFunction: string = typeof (() => {});
 
     static nil(val: unknown): val is null|undefined
     {
@@ -34,6 +35,11 @@ export class is {
     static array<T>(val: unknown): val is Array<T>
     {
         return val instanceof Array;
+    }
+
+    static fun<T>(val: unknown): val is Function
+    {
+        return typeof val === is.typeFunction;
     }
 
 }

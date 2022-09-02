@@ -33,6 +33,8 @@ import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
+import { isChatMessage } from '../lib/ChatMessage';
+import { ChatHistoryStorage } from './ChatHistoryStorage';
 
 interface ILocationMapperResponse
 {
@@ -57,6 +59,7 @@ export class BackgroundApp
     private backpack: Backpack = null;
     private xmppStarted = false;
     private babelfish: Translator;
+    private chatHistoryStorage: ChatHistoryStorage|null;
 
     private startupTime = Date.now();
     private waitReadyCount = 0;
@@ -102,6 +105,8 @@ export class BackgroundApp
 
         let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
         this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
+
+        this.chatHistoryStorage = new ChatHistoryStorage(this);
 
         if (Environment.isExtension() && chrome.runtime.onMessage) {
             chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
@@ -198,6 +203,8 @@ export class BackgroundApp
                 await this.backpack.init();
             }
         }
+
+        this.chatHistoryStorage?.onUserConfigUpdate();
 
         if (!this.xmppStarted) {
             try {
@@ -373,6 +380,10 @@ export class BackgroundApp
 
             case BackgroundMessage.createBackpackItem.name: {
                 return this.handle_createBackpackItem(message.provider, message.auth, message.method, message.args, sendResponse);
+            } break;
+
+            case BackgroundMessage.handleNewChatMessage.name: {
+                return this.handle_newChatMessage(message.chatMessage, sendResponse);
             } break;
 
             default: {
@@ -896,6 +907,18 @@ export class BackgroundApp
         } else {
             sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
+        return false;
+    }
+
+    handle_newChatMessage(message: unknown, sendResponse: (response?: any) => void): boolean
+    {
+        if (isChatMessage(message)) {
+            this.chatHistoryStorage?.storeChatRecord(message)
+                .then(() => sendResponse(new BackgroundSuccessResponse()))
+                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            return true;
+        }
+        sendResponse({'ok': false, 'ex': {error: new Error('Not a ChatMesage!'), value: message}});
         return false;
     }
 
@@ -1650,6 +1673,7 @@ export class BackgroundApp
     handle_userSettingsChanged(): BackgroundResponse
     {
         log.debug('BackgroundApp.handle_userSettingsChanged');
+        this.chatHistoryStorage?.onUserConfigUpdate();
         this.sendToAllTabs(ContentMessage.type_userSettingsChanged, {});
         return new BackgroundSuccessResponse();
     }

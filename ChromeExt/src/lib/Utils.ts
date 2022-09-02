@@ -207,4 +207,33 @@ export class Utils
         return Object.assign(clone, obj);
     }
 
+    static utcStringOfDate(date: Date): string
+    {
+        return date.toISOString().replace('T', ' ').substr(0, 19);
+    }
+    
+    static dateOfUtcString(date: string): Date
+    {
+        // Add UTC timezone identifier if not present:
+        if (!date.endsWith('Z')) {
+            date += 'Z';
+        }
+        return new Date(date);
+    }
+    
+    static prepareValForMessage(val: unknown, stack: Array<{}> = []): any
+    {
+        if (is.object(val) && !is.array(val) && !is.fun(val)) {
+            const mangled = {};
+            for (const p in val) {
+                const pVal = val[p];
+                if (!is.array(pVal) && !is.fun(pVal) && !stack.includes(pVal)) {
+                    mangled[p] = Utils.prepareValForMessage(pVal, [...stack, val]);
+                }
+            }
+            return mangled;
+        }
+        return val;
+    }
+
 }

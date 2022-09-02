@@ -12,7 +12,7 @@ export class PrivateChatWindow extends ChatWindow
 {
     constructor(app: ContentApp, private participant: Participant)
     {
-        super(app, participant.getRoom());
+        super(app, participant);
     }
 
     async show(options: WindowOptions)
@@ -63,7 +63,7 @@ export class PrivateChatWindow extends ChatWindow
         if (name === 'VersionInfo') {
             const json = JSON.parse(value);
             for (const key in json) {
-                this.addLine(Utils.randomString(10), key, json[key]);
+                this.addLine(null, key, json[key]);
             }
         }
     }

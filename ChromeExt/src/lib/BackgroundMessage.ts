@@ -4,6 +4,7 @@ import { ItemException } from './ItemException';
 import { ItemProperties, ItemPropertiesSet } from './ItemProperties';
 import { BackgroundApp } from '../background/BackgroundApp';
 import { Environment } from './Environment';
+import { ChatMessage } from './ChatMessage';
 
 export class BackgroundResponse
 {
@@ -370,6 +371,14 @@ export class BackgroundMessage
             } catch (error) {
                 reject(error);
             }
+        });
+    }
+
+    static handleNewChatMessage(message: ChatMessage): Promise<void>
+    {
+        return BackgroundMessage.sendMessageCheckOk({
+            'type': BackgroundMessage.handleNewChatMessage.name,
+            chatMessage: message,
         });
     }
 
