@@ -18,6 +18,7 @@ import { Config } from '../lib/Config';
 
 export class ChatWindow extends Window
 {
+    protected windowName: string;
     protected chatoutElem: HTMLElement;
     protected chatinInputElem: HTMLElement;
     protected chat: Chat;
@@ -48,6 +49,7 @@ export class ChatWindow extends Window
             };
         }
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
+        this.windowName = `Chat${this.chat.type}`;
 
         this.sndChat = new Sound(this.app, KeyboardSound);
 
@@ -65,7 +67,7 @@ export class ChatWindow extends Window
 
     async show(options: WindowOptions)
     {
-        options = await this.getSavedOptions('Chat', options);
+        options = await this.getSavedOptions(this.windowName, options);
 
         if (options.titleText == null) { options.titleText = this.app.translateText('Chatwindow.Chat History', 'Chat'); }
         options.resizable = true;
@@ -176,9 +178,9 @@ export class ChatWindow extends Window
             $(soundCheckboxElem).on('change', async ev =>
             {
                 this.soundEnabled = $(soundCheckboxElem).is(':checked');
-                const options = await this.getSavedOptions('Chat', {});
+                const options = await this.getSavedOptions(this.windowName, {});
                 options['soundEnabled'] = this.soundEnabled;
-                await this.saveOptions('Chat', options);
+                await this.saveOptions(this.windowName, options);
             });
 
             this.onClose = () =>
@@ -196,12 +198,12 @@ export class ChatWindow extends Window
 
     async saveCoordinates(left: number, bottom: number, width: number, height: number)
     {
-        const options = this.getSavedOptions('Chat', {});
+        const options = this.getSavedOptions(this.windowName, {});
         options['left'] = left;
         options['bottom'] = bottom;
         options['width'] = width;
         options['height'] = height;
-        await this.saveOptions('Chat', options);
+        await this.saveOptions(this.windowName, options);
     }
 
     isOpen(): boolean
