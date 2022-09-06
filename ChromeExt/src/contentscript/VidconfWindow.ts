@@ -5,6 +5,7 @@ import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
+import { is } from '../lib/is';
 
 export class VidconfWindow extends Window
 {
@@ -27,8 +28,8 @@ export class VidconfWindow extends Window
         super.show(options);
 
         const aboveElem: HTMLElement = options.above;
-        const bottom = as.Int(options.bottom ?? Config.get('room.vidconfBottom'), 200);
-        const width = as.Int(options.width ?? Config.get('room.vidconfWidth'), 600);
+        let bottom = as.Int(options.bottom ?? Config.get('room.vidconfBottom'), 200);
+        let width = as.Int(options.width ?? Config.get('room.vidconfWidth'), 600);
         let height = as.Int(options.height ?? Config.get('room.vidconfHeight'), 400);
 
         if (this.windowElem) {
@@ -37,19 +38,13 @@ export class VidconfWindow extends Window
             $(windowElem).addClass('n3q-vidconfwindow');
 
             let left = as.Int(options.left, 50);
-            if (options.left == null) {
+            if (is.nil(options.left)) {
                 if (aboveElem) {
                     left = Math.max(aboveElem.offsetLeft - 250, left);
                 }
             }
-            let top = this.app.getDisplay().offsetHeight - height - bottom;
-            {
-                const minTop = 10;
-                if (top < minTop) {
-                    height -= minTop - top;
-                    top = minTop;
-                }
-            }
+            [left, bottom, width, height] = this.setPosition(left, bottom, width, height);
+            this.saveCoordinates(left, bottom, width, height).catch(error => this.app.onError(error));
 
             this.title = options.titleText; // member for undock
             this.url = options.url; // member for undock
@@ -75,8 +70,6 @@ export class VidconfWindow extends Window
                 const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
                 this.saveCoordinates(left, bottom, size.width, size.height);
             };
-
-            $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });
         }
     }
 

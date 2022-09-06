@@ -15,6 +15,7 @@ import { ItemException } from '../lib/ItemException';
 import { ItemExceptionToast, SimpleToast } from './Toast';
 import { Avatar } from './Avatar';
 import { FreeSpace } from './FreeSpace';
+import { is } from '../lib/is';
 
 export class BackpackWindow extends Window
 {
@@ -42,8 +43,8 @@ export class BackpackWindow extends Window
         super.show(options);
 
         const aboveElem: HTMLElement = options.above;
-        const bottom = as.Int(options.bottom, 200);
-        const width = as.Int(options.width, 600);
+        let bottom = as.Int(options.bottom, 200);
+        let width = as.Int(options.width, 600);
         let height = as.Int(options.height, 400);
         const onClose = options.onClose;
 
@@ -52,19 +53,13 @@ export class BackpackWindow extends Window
         $(windowElem).addClass('n3q-backpackwindow');
 
         let left = as.Int(options.left, 50);
-        if (options.left == null) {
+        if (is.nil(options.left)) {
             if (aboveElem) {
                 left = Math.max(aboveElem.offsetLeft - 120, left);
             }
         }
-        let top = this.app.getDisplay().offsetHeight - height - bottom;
-        {
-            const minTop = 10;
-            if (top < minTop) {
-                height -= minTop - top;
-                top = minTop;
-            }
-        }
+        [left, bottom, width, height] = this.setPosition(left, bottom, width, height);
+        this.saveCoordinates(left, bottom, width, height).catch(error => this.app.onError(error));
 
         const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
         $(contentElem).append(paneElem);
@@ -102,8 +97,6 @@ export class BackpackWindow extends Window
         // }
 
         this.app.translateElem(windowElem);
-
-        $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });
 
         this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
         {

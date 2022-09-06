@@ -146,6 +146,23 @@ export class Window
         }
     }
 
+    protected setPosition(left: number, bottom: number, width: number, height: number) {
+        const displayWidth = this.app.getDisplay().offsetWidth;
+        const displayHeight = this.app.getDisplay().offsetHeight;
+        let top = displayHeight - height - bottom;
+        const [leftFit, topFit, widthFit, heightFit] = Utils.fitDimensions(
+            left, top, width, height, displayWidth, displayHeight,
+            100, 50, 10, 10, 10, 10,
+        );
+        if (this.windowElem) {
+            this.windowElem.style.left   = `${leftFit}px`;
+            this.windowElem.style.top    = `${topFit}px`;
+            this.windowElem.style.width  = `${widthFit}px`;
+            this.windowElem.style.height = `${heightFit}px`;
+        }
+        return [leftFit, displayHeight - heightFit - topFit, widthFit, heightFit];
+    }
+
     async getSavedOptions(name: string, presetOptions: WindowOptions): Promise<WindowOptions>
     {
         const savedOptions = await Memory.getLocal('window.' + name, {});

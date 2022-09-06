@@ -75,8 +75,8 @@ export class ChatWindow extends Window
         super.show(options);
 
         const aboveElem: HTMLElement = options.above;
-        const bottom = as.Int(options.bottom, 200);
-        const width = as.Int(options.width, 400);
+        let bottom = as.Int(options.bottom, 200);
+        let width = as.Int(options.width, 400);
         let height = as.Int(options.height, 300);
         const onClose = options.onClose;
         this.soundEnabled = as.Bool(options.soundEnabled, false);
@@ -87,19 +87,13 @@ export class ChatWindow extends Window
             $(windowElem).addClass('n3q-chatwindow');
 
             let left = as.Int(options.left, 50);
-            if (options.left == null) {
+            if (is.nil(options.left)) {
                 if (aboveElem) {
                     left = Math.max(aboveElem.offsetLeft - 180, left);
                 }
             }
-            let top = this.app.getDisplay().offsetHeight - height - bottom;
-            {
-                const minTop = 10;
-                if (top < minTop) {
-                    height -= minTop - top;
-                    top = minTop;
-                }
-            }
+            [left, bottom, width, height] = this.setPosition(left, bottom, width, height);
+            this.saveCoordinates(left, bottom, width, height).catch(error => this.app.onError(error));
 
             const chatoutElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />').get(0);
             const chatinElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />').get(0);
@@ -139,8 +133,6 @@ export class ChatWindow extends Window
 
             this.chatinInputElem = chatinTextElem;
             this.chatoutElem = chatoutElem;
-
-            $(windowElem).css({ 'width': width + 'px', 'height': height + 'px', 'left': left + 'px', 'top': top + 'px' });
 
             this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
             {
@@ -198,7 +190,7 @@ export class ChatWindow extends Window
 
     async saveCoordinates(left: number, bottom: number, width: number, height: number)
     {
-        const options = this.getSavedOptions(this.windowName, {});
+        const options = await this.getSavedOptions(this.windowName, {});
         options['left'] = left;
         options['bottom'] = bottom;
         options['width'] = width;

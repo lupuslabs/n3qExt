@@ -273,4 +273,16 @@ export class Utils
         return [durationText, unitCount, unit];
     }
 
+    static fitDimensions(
+        left: number, top: number, width: number, height: number,
+        containerWidth: number, containerHeight: number,
+        widthMin: number, heightMin: number, leftMin: number, rightMin: number, topMin: number, bottomMin: number,
+    ): [number, number, number, number] {
+        width = Math.max(widthMin, Math.min(containerWidth - leftMin - rightMin, width));
+        height = Math.max(heightMin, Math.min(containerHeight - topMin - bottomMin, height));
+        left = Math.min(containerWidth - rightMin - width, Math.max(leftMin, left));
+        top = Math.min(containerHeight - bottomMin - height, Math.max(topMin, top));
+        return [left, top, width, height];
+    }
+
 }
