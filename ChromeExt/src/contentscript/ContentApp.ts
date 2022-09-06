@@ -575,6 +575,11 @@ export class ContentApp
                 this.backpackWindow?.onHideItem(message.data.id);
                 return false;
             } break;
+
+            case ContentMessage.type_chatHistoryDeleted: {
+                this.getRoom().onChatHistoryDeleted(message.data.chat, message.data.olderThanTime);
+                return false;
+            } break;
         }
         return true;
     }

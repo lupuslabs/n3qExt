@@ -35,6 +35,7 @@ import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
+import { is } from '../lib/is';
 
 interface ILocationMapperResponse
 {
@@ -388,6 +389,10 @@ export class BackgroundApp
 
             case BackgroundMessage.getChatHistory.name: {
                 return this.handle_getChatHistory(message.chat, sendResponse);
+            } break;
+
+            case BackgroundMessage.deleteChatHistory.name: {
+                return this.handle_deleteChatHistory(message.chat, message.olderThanTime, sendResponse);
             } break;
 
             default: {
@@ -917,15 +922,11 @@ export class BackgroundApp
     handle_newChatMessage(chat: unknown, chatMessage: unknown, sendResponse: (response: any) => void): boolean
     {
         if (!isChat(chat)) {
-            sendResponse({
-                'ok': false, 
-                'ex': Utils.prepareValForMessage({error: new Error('Not a Chat object!'), chat}),
-            });
+            const error = new Error('chat is not a Chat object!');
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, chatMessage})});
         } else if (!isChatMessage(chatMessage)) {
-            sendResponse({
-                'ok': false, 
-                'ex': Utils.prepareValForMessage({error: new Error('Not a ChatMesage object!'), chatMessage}),
-            });
+            const error = new Error('chatMessage is not a ChatMesage object!');
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, chatMessage})});
         } else {
             this.chatHistoryStorage.storeChatRecord(chat, chatMessage)
                 .then(() => sendResponse(new BackgroundSuccessResponse()))
@@ -938,13 +939,31 @@ export class BackgroundApp
     handle_getChatHistory(chat: unknown, sendResponse: (response: any) => void): boolean
     {
         if (!isChat(chat)) {
-            sendResponse({
-                'ok': false, 
-                'ex': Utils.prepareValForMessage({error: new Error('Not a Chat object!'), chat}),
-            });
+            const error = new Error('chat is not a Chat object!');
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat})});
         } else {
             this.chatHistoryStorage.getChatHistoryByChat(chat)
                 .then(chatMessages => sendResponse(new GetChatHistoryResponse(chatMessages)))
+                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            return true;
+        }
+        return false;
+    }
+
+    handle_deleteChatHistory(chat: unknown, olderThanTime: unknown, sendResponse: (response: any) => void): boolean
+    {
+        if (!isChat(chat)) {
+            const error = new Error('chat is not a Chat object!');
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, olderThanTime})});
+        } else if (!is.string(olderThanTime)) {
+            const error = new Error('olderThan is not a UTC datetime string!');
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, olderThanTime})});
+        } else {
+            this.chatHistoryStorage.deleteOldChatHistoryByChatOlderThanTime(chat, olderThanTime)
+                .then(() => {
+                    sendResponse(new BackgroundSuccessResponse());
+                    this.sendToAllTabs(ContentMessage.type_chatHistoryDeleted, {chat, olderThanTime});
+                })
                 .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }

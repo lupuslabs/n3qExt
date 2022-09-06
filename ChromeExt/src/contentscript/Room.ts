@@ -17,6 +17,7 @@ import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and 
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
 import { is } from '../lib/is';
+import { Chat } from '../lib/ChatMessage';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -602,6 +603,14 @@ export class Room
     clearChatWindow()
     {
         this.chatWindow.clear();
+    }
+
+    onChatHistoryDeleted(chat: Chat, olderThanTime: string): void
+    {
+        this.chatWindow?.onChatHistoryDeleted(chat, olderThanTime);
+        for (const prop in this.participants) {
+            this.participants[prop].onChatHistoryDeleted(chat, olderThanTime);
+        }
     }
 
     showVideoConference(aboveElem: HTMLElement, displayName: string): void

@@ -389,9 +389,16 @@ export class BackgroundMessage
     static getChatHistory(chat: Chat): Promise<ChatMessage[]>
     {
         return new Promise((resolve, reject) => {
-            BackgroundMessage.sendMessageCheckOk({'type': BackgroundMessage.getChatHistory.name, chat: chat,})
+            BackgroundMessage.sendMessageCheckOk({'type': BackgroundMessage.getChatHistory.name, chat})
             .then(response => resolve(response.chatHistory))
             .catch(error => reject(error));
+        });
+    }
+
+    static deleteChatHistory(chat: Chat, olderThanTime: string): Promise<void>
+    {
+        return BackgroundMessage.sendMessageCheckOk({
+            'type': BackgroundMessage.deleteChatHistory.name, chat, olderThanTime,
         });
     }
 

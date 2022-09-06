@@ -21,7 +21,7 @@ export class ChatWindow extends Window
     protected chatoutElem: HTMLElement;
     protected chatinInputElem: HTMLElement;
     protected chat: Chat;
-    protected chatMessages: Record<string, ChatMessage> = {};
+    protected chatMessages: {[id: string]: ChatMessage} = {}; // Ordered by ChatMessage.timestamp ascending.
     protected sessionStartTs: string;
     protected historyLoading: boolean = false;
     protected historyLoadRequired: boolean = false;
@@ -52,10 +52,10 @@ export class ChatWindow extends Window
         this.sndChat = new Sound(this.app, KeyboardSound);
 
         if (Environment.isDevelopment()) {
-            this.addLine(null, 'Nickname', 'Lorem');
-            this.addLine(null, 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
-            this.addLine(null, 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
-            this.addLine(null, 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
+            this.addLine(null, 'Nickname', 'Lorem', true);
+            this.addLine(null, 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', true);
+            this.addLine(null, 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum', true);
+            this.addLine(null, 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm', true);
         }
 
         this.loadHistory();
@@ -209,7 +209,7 @@ export class ChatWindow extends Window
         return this.windowElem != null;
     }
 
-    addLine(id: string|null, nick: string, text: string): void
+    addLine(id: string|null, nick: string, text: string, dontPersist: boolean = false): void
     {
         if (is.nil(id)) {
             id = makeChatMessageId();
@@ -230,7 +230,9 @@ export class ChatWindow extends Window
         this.chatMessages[id] = message;
         this.showLine(message);
 
-        BackgroundMessage.handleNewChatMessage(this.chat, message).catch(error => this.app.onError(error));
+        if (!dontPersist) {
+            BackgroundMessage.handleNewChatMessage(this.chat, message).catch(error => this.app.onError(error));
+        }
     }
 
     private loadHistory(): void
@@ -297,10 +299,21 @@ export class ChatWindow extends Window
         }
     }
 
-    clear()
+    public clear()
     {
-        if (this.chatoutElem) {
-            $(this.chatoutElem).empty();
+        BackgroundMessage.deleteChatHistory(this.chat, Utils.utcStringOfDate(new Date()))
+        .catch(error => this.app.onError(error));
+    }
+
+    public onChatHistoryDeleted(chat: Chat, olderThanTime: string): void
+    {
+        if (chat.type === this.chat.type && chat.roomJid === this.chat.roomJid && chat.roomNick === this.chat.roomNick) {
+            for (const id in this.chatMessages) {
+                if (this.chatMessages[id].timestamp < olderThanTime) {
+                    delete this.chatMessages[id];
+                }
+            }
+            this.drawChatMessages();
         }
     }
 

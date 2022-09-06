@@ -89,6 +89,23 @@ export class ChatHistoryStorage {
         }
     }
 
+    public async deleteOldChatHistoryByChatOlderThanTime(chat: Chat, olderThanTime: string): Promise<void>
+    {
+        try {
+            await this.openDb();
+            const [transaction, transactionPromise] = this.getNewDbTransaction();
+            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(
+                transaction, chat.type, chat.roomJid, chat.roomNick);
+            if (!is.nil(chatRecord)) {
+                await this.deleteOldChatMessageRecordsByChatIdOlderThanTime(transaction, chatRecord.id, olderThanTime);
+            }
+            await transactionPromise;
+        } catch (error) {
+            const errorMsg = 'ChatHistoryStorage:deleteOldChatHistoryByChat: Failed!';
+            throw new ErrorWithData(errorMsg, {originalError: error, chat});
+        }
+    }
+
     //--------------------------------------------------------------------------
     // ChatMessageRecord
 
@@ -110,6 +127,23 @@ export class ChatHistoryStorage {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         const index = chatMessageTable.index('iChat');
         return this.awaitDbRequest(index.getAll(chatId));
+    }
+
+    private async deleteOldChatMessageRecordsByChatIdOlderThanTime(
+        transaction: IDBTransaction, chatId: number, olderThanTime: string,
+    ): Promise<void> {
+        const chatMessageTable = transaction.objectStore('ChatMessage');
+        const index = chatMessageTable.index('iChat');
+        const cursorRequest = index.openCursor(chatId);
+        let cursor = await this.awaitDbRequest(cursorRequest);
+        while (!is.nil(cursor)) {
+            const message: ChatMessage = cursor.value;
+            if (message.timestamp < olderThanTime) {
+                await this.awaitDbRequest(cursor.delete());
+            }
+            cursor.continue();
+            cursor = await this.awaitDbRequest(cursorRequest);
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -229,15 +263,12 @@ export class ChatHistoryStorage {
 
     private initDb(db: IDBDatabase): void
     {
-        const metaTable = db.createObjectStore('Meta', {keyPath: 'name'});
+        db.createObjectStore('Meta', {keyPath: 'name'});
         const chatTable = db.createObjectStore('Chat', {keyPath: 'id'});
-        chatTable.createIndex('iRoomJid', 'roomJid', {unique: false});
-        chatTable.createIndex('iRoomNick', 'roomNick', {unique: false});
         chatTable.createIndex('iTypeRoomJidNick', ['type', 'roomJid', 'roomNick'], {unique: true});
         chatTable.createIndex('iLastMaintained', 'lastMaintained', {unique: false});
         const chatmessageTable = db.createObjectStore('ChatMessage', {keyPath: ['chatId', 'id']});
         chatmessageTable.createIndex('iChat', 'chatId', {unique: false});
-        chatmessageTable.createIndex('iChatTime', ['chatId', 'timestamp'], {unique: false});
     }
 
 }
