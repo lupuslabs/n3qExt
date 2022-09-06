@@ -299,16 +299,20 @@ export class ChatWindow extends Window
         .catch(error => this.app.onError(error));
     }
 
-    public onChatHistoryDeleted(chat: Chat, olderThanTime: string): void
+    public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
     {
-        if (chat.type === this.chat.type && chat.roomJid === this.chat.roomJid && chat.roomNick === this.chat.roomNick) {
+        deletions.filter(({chat}) => {
+            return chat.type === this.chat.type
+                && chat.roomJid === this.chat.roomJid
+                && chat.roomNick === this.chat.roomNick;
+        }).forEach(({olderThanTime}) => {
             for (const id in this.chatMessages) {
                 if (this.chatMessages[id].timestamp < olderThanTime) {
                     delete this.chatMessages[id];
                 }
             }
             this.drawChatMessages();
-        }
+        });
     }
 
     public playSound(): void

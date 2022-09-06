@@ -33,7 +33,7 @@ import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
-import { isChat, isChatMessage } from '../lib/ChatMessage';
+import { Chat, isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
 
@@ -928,9 +928,12 @@ export class BackgroundApp
             const error = new Error('chatMessage is not a ChatMesage object!');
             sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, chatMessage})});
         } else {
-            this.chatHistoryStorage.storeChatRecord(chat, chatMessage)
-                .then(() => sendResponse(new BackgroundSuccessResponse()))
-                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            (async () => {
+                const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
+                this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
+                await this.chatHistoryStorage.storeChatRecord(chat, chatMessage);
+                sendResponse(new BackgroundSuccessResponse());
+            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
         return false;
@@ -942,9 +945,12 @@ export class BackgroundApp
             const error = new Error('chat is not a Chat object!');
             sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat})});
         } else {
-            this.chatHistoryStorage.getChatHistoryByChat(chat)
-                .then(chatMessages => sendResponse(new GetChatHistoryResponse(chatMessages)))
-                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            (async () => {
+                const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
+                this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
+                const chatMessages = await this.chatHistoryStorage.getChatHistoryByChat(chat);
+                sendResponse(new GetChatHistoryResponse(chatMessages));
+            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
         return false;
@@ -959,15 +965,28 @@ export class BackgroundApp
             const error = new Error('olderThan is not a UTC datetime string!');
             sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, olderThanTime})});
         } else {
-            this.chatHistoryStorage.deleteOldChatHistoryByChatOlderThanTime(chat, olderThanTime)
-                .then(() => {
-                    sendResponse(new BackgroundSuccessResponse());
-                    this.sendToAllTabs(ContentMessage.type_chatHistoryDeleted, {chat, olderThanTime});
-                })
-                .catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            (async () => {
+                const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
+                await this.chatHistoryStorage.deleteOldChatHistoryByChatOlderThanTime(chat, olderThanTime);
+                const jidEntries = deletionsByRoomJid.get(chat.roomJid) ?? [];
+                jidEntries.push({chat, olderThanTime});
+                deletionsByRoomJid.set(chat.roomJid, jidEntries);
+                this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
+                sendResponse(new BackgroundSuccessResponse());
+            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
         return false;
+    }
+
+    sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
+    {
+        for (const [roomJid, deletions] of deletionsByRoomJid) {
+            const tabIds = this.roomJid2tabId.get(roomJid) ?? [];
+            for (const tabId of tabIds) {
+                this.sendToTab(tabId, ContentMessage.type_chatHistoryDeleted, {deletions});
+            }
+        }
     }
 
     addRoomJid2TabId(room: string, tabId: number): void

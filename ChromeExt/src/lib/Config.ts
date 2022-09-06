@@ -68,6 +68,7 @@ export class Config
             pointerEventHandlingDrag: false, // dragmove omitted when pointerEventHandlingWithMove = false.
             pointerEventHandlingHover: false, // hovermove omitted when pointerEventHandlingWithMove = false.
             pointerEventHandlingWithMove: false, // Includes corresponding move events for drag and hover.
+            chatHistory: true,
         },
         client: {
             name: 'weblin.io',
@@ -103,6 +104,9 @@ export class Config
         chatHistory: {
             roompublicMaxAgeSec: 3 * 24 * 3600,
             roomprivateMaxAgeSec: 3 * 24 * 3600,
+            maintenanceIntervalSec: 3600, // Minimum seconds between history prunings for each history.
+            maintenanceCheckIntervalSec: 10, // Minimum time between searches for chat histories to prune.
+            maintenanceWriteCount: 1000, // Stop after deleting/updating this much messages and chats.
         },
         room: {
             fadeInSec: 0.3,

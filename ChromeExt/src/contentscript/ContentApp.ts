@@ -577,7 +577,7 @@ export class ContentApp
             } break;
 
             case ContentMessage.type_chatHistoryDeleted: {
-                this.getRoom().onChatHistoryDeleted(message.data.chat, message.data.olderThanTime);
+                this.getRoom().onChatHistoryDeleted(message.data.deletions);
                 return false;
             } break;
         }

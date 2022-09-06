@@ -755,9 +755,9 @@ export class Participant extends Entity
         }
     }
 
-    public onChatHistoryDeleted(chat: Chat, olderThanTime: string): void
+    public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
     {
-        this.privateChatWindow?.onChatHistoryDeleted(chat, olderThanTime);
+        this.privateChatWindow?.onChatHistoryDeleted(deletions);
     }
 
     // Mouse

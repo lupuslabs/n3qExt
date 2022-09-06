@@ -605,11 +605,11 @@ export class Room
         this.chatWindow.clear();
     }
 
-    onChatHistoryDeleted(chat: Chat, olderThanTime: string): void
+    onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
     {
-        this.chatWindow?.onChatHistoryDeleted(chat, olderThanTime);
+        this.chatWindow?.onChatHistoryDeleted(deletions);
         for (const prop in this.participants) {
-            this.participants[prop].onChatHistoryDeleted(chat, olderThanTime);
+            this.participants[prop].onChatHistoryDeleted(deletions);
         }
     }
 
