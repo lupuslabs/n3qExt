@@ -90,6 +90,7 @@ export class RoomItem extends Entity
     public remove(): void
     {
         this.avatarDisplay?.stop();
+        this.statsDisplay?.close();
         this.closeFrame();
         super.remove();
     }
