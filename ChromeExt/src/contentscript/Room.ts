@@ -16,8 +16,7 @@ import { RoomItem } from './RoomItem';
 import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and Item otherwise $().resizable does not work
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
-import { is } from '../lib/is';
-import { Chat } from '../lib/ChatMessage';
+import { Chat, ChatMessage } from '../lib/ChatMessage';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -594,15 +593,20 @@ export class Room
 
     showChatMessage(id: string, name: string, text: string)
     {
-        if (is.nil(id)) {
-            id = name + Date.now() + Utils.randomString(4);
-        }
         this.chatWindow.addLine(id, name, text);
     }
 
     clearChatWindow()
     {
         this.chatWindow.clear();
+    }
+
+    onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    {
+        this.chatWindow?.onChatMessagePersisted(chat, chatMessage);
+        for (const prop in this.participants) {
+            this.participants[prop].onChatMessagePersisted(chat, chatMessage);
+        }
     }
 
     onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void

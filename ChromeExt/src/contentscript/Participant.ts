@@ -31,7 +31,7 @@ import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
 import { DomButtonId } from '../lib/domTools';
 import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
-import { Chat } from '../lib/ChatMessage';
+import { Chat, ChatMessage } from '../lib/ChatMessage';
 
 export class Participant extends Entity
 {
@@ -753,6 +753,11 @@ export class Participant extends Entity
             BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1)
                 .catch(error => { log.info('Participant.sendGroupChat', error); });
         }
+    }
+
+    onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    {
+        this.privateChatWindow?.onChatMessagePersisted(chat, chatMessage);
     }
 
     public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void

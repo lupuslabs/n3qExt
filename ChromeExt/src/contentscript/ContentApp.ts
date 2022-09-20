@@ -576,6 +576,10 @@ export class ContentApp
                 return false;
             } break;
 
+            case ContentMessage.type_chatMessagePersisted: {
+                this.getRoom().onChatMessagePersisted(message.data.chat, message.data.chatMessage);
+                return false;
+            } break;
             case ContentMessage.type_chatHistoryDeleted: {
                 this.getRoom().onChatHistoryDeleted(message.data.deletions);
                 return false;

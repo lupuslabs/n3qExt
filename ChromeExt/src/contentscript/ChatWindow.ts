@@ -11,7 +11,7 @@ import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { ChatConsole } from './ChatConsole';
 import { Entity } from './Entity';
-import { Chat, ChatMessage, ChatType, makeChatMessageId } from '../lib/ChatMessage';
+import { areChatsEqual, Chat, ChatMessage, ChatType, makeChatMessageId } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
@@ -205,15 +205,15 @@ export class ChatWindow extends Window
 
     addLine(id: string|null, nick: string, text: string, dontPersist: boolean = false): void
     {
+        const time = new Date();
         if (is.nil(id)) {
-            id = makeChatMessageId();
+            id = makeChatMessageId(time, nick);
         }
         if (!is.nil(this.chatMessages[id])) {
             return;
         }
         const translated = this.app.translateText('Chatwindow.' + text, text);
 
-        const time = new Date();
         const message: ChatMessage = {
             timestamp: Utils.utcStringOfDate(time),
             id:        id,
@@ -299,13 +299,21 @@ export class ChatWindow extends Window
         .catch(error => this.app.onError(error));
     }
 
+    public onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    {
+        if (areChatsEqual(chat, this.chat)) {
+            if (is.nil(this.chatMessages[chatMessage.id])) {
+                this.chatMessages[chatMessage.id] = chatMessage;
+                this.drawChatMessages();
+            }
+        }
+    }
+
     public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
     {
-        deletions.filter(({chat}) => {
-            return chat.type === this.chat.type
-                && chat.roomJid === this.chat.roomJid
-                && chat.roomNick === this.chat.roomNick;
-        }).forEach(({olderThanTime}) => {
+        deletions
+        .filter(({chat}) => areChatsEqual(chat, this.chat))
+        .forEach(({olderThanTime}) => {
             for (const id in this.chatMessages) {
                 if (this.chatMessages[id].timestamp < olderThanTime) {
                     delete this.chatMessages[id];

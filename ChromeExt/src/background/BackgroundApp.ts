@@ -33,7 +33,7 @@ import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
-import { Chat, isChat, isChatMessage } from '../lib/ChatMessage';
+import { Chat, ChatMessage, isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
 
@@ -933,6 +933,7 @@ export class BackgroundApp
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
                 await this.chatHistoryStorage.storeChatRecord(chat, chatMessage);
                 sendResponse(new BackgroundSuccessResponse());
+                this.sendPersistedChatMessageToTabs(chat, chatMessage);
             })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
@@ -977,6 +978,14 @@ export class BackgroundApp
             return true;
         }
         return false;
+    }
+
+    sendPersistedChatMessageToTabs(chat: Chat, chatMessage: ChatMessage): void
+    {
+        const tabIds = this.getRoomJid2TabIds(chat.roomJid) ?? [];
+        for (const tabId of tabIds) {
+            this.sendToTab(tabId, ContentMessage.type_chatMessagePersisted, {chat, chatMessage});
+        }
     }
 
     sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
