@@ -982,7 +982,7 @@ export class BackgroundApp
     sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
     {
         for (const [roomJid, deletions] of deletionsByRoomJid) {
-            const tabIds = this.roomJid2tabId.get(roomJid) ?? [];
+            const tabIds = this.getRoomJid2TabIds(roomJid) ?? [];
             for (const tabId of tabIds) {
                 this.sendToTab(tabId, ContentMessage.type_chatHistoryDeleted, {deletions});
             }

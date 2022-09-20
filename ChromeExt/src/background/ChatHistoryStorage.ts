@@ -69,7 +69,7 @@ export class ChatHistoryStorage {
             [transaction, transactionPromise] = this.getNewDbTransaction();
             const chatRecord = await this.getOrCreateChatRecord(
                 transaction, chat.type, chat.roomJid, chat.roomNick, chatMessage.timestamp);
-            await this.createChatMessage(transaction, chatRecord, chatMessage);
+            await this.createChatMessageIfNew(transaction, chatRecord, chatMessage);
             await transactionPromise;
             if (this.debugLogEnabled) {
                 log.debug('ChatHistoryStorage.storeChatRecord: Done.', {chat, chatMessage});
@@ -226,7 +226,12 @@ export class ChatHistoryStorage {
     //--------------------------------------------------------------------------
     // ChatMessageRecord
 
-    private async createChatMessage(transaction: IDBTransaction, chat: ChatRecord, msg: ChatMessage): Promise<void> {
+    private async createChatMessageIfNew(
+        transaction: IDBTransaction, chat: ChatRecord, msg: ChatMessage
+    ): Promise<void> {
+        if (await this.hasChatMessageWithId(transaction, chat.id, msg.id)) {
+            return;
+        }
         const chatMessageRecord: ChatMessageRecord = {
             chatId:    chat.id,
             timestamp: msg.timestamp,
@@ -235,7 +240,24 @@ export class ChatHistoryStorage {
             text:      msg.text,
         };
         const chatMessageTable = transaction.objectStore('ChatMessage');
-        await this.awaitDbRequest(chatMessageTable.add(chatMessageRecord));
+        try {
+            await this.awaitDbRequest(chatMessageTable.add(chatMessageRecord));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.createChatMessage: chatMessageTable.add failed!';
+            throw new ErrorWithData(msg, {chatMessageRecord, error});
+        }
+    }
+
+    private async hasChatMessageWithId(
+        transaction: IDBTransaction, chatId: number, chatMessageId: string
+    ): Promise<boolean> {
+        const chatMessageTable = transaction.objectStore('ChatMessage');
+        try {
+            return !is.nil(await this.awaitDbRequest(chatMessageTable.get([chatId, chatMessageId])));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.hasChatMessageWithId: chatMessageTable.get failed!';
+            throw new ErrorWithData(msg, {chatId, chatMessageId, error});
+        }
     }
 
     private async getChatMessageRecordsByChatId(
@@ -244,7 +266,12 @@ export class ChatHistoryStorage {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         const index = chatMessageTable.index('iChatTimestamp');
         const keyRange = IDBKeyRange.bound([chatId, '0'], [chatId, '9'], false, false);
-        return this.awaitDbRequest(index.getAll(keyRange));
+        try {
+            return this.awaitDbRequest(index.getAll(keyRange));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getChatMessageRecordsByChatId: iChatTimestamp.getAll failed!';
+            throw new ErrorWithData(msg, {chatId, error});
+        }
     }
 
     private async deleteOldChatMessageRecordsByChatIdOlderThanTime(
@@ -256,17 +283,33 @@ export class ChatHistoryStorage {
         const index = chatMessageTable.index('iChatTimestamp');
         const keyRange = IDBKeyRange.bound([chatId, '0'], [chatId, '9'], false, false);
         const cursorRequest = index.openCursor(keyRange);
-        let cursor = await this.awaitDbRequest(cursorRequest);
+        let cursor: IDBCursorWithValue;
+        try {
+            cursor = await this.awaitDbRequest(cursorRequest);
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: iChatTimestamp.openCursor failed!';
+            throw new ErrorWithData(msg, {chatId, error});
+        }
         while (!is.nil(cursor)) {
-            const message: ChatMessage = cursor.value;
-            if (message.timestamp >= olderThanTime) {
+            const chatMessage: ChatMessage = cursor.value;
+            if (chatMessage.timestamp >= olderThanTime) {
                 chatIsEmpty = false;
                 cursor = null;
             } else {
-                await this.awaitDbRequest(cursor.delete());
+                try {
+                    await this.awaitDbRequest(cursor.delete());
+                } catch (error) {
+                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: cursor.delete failed!';
+                    throw new ErrorWithData(msg, {chatMessage, error});
+                }
                 deletedCount++;
                 cursor.continue();
-                cursor = await this.awaitDbRequest(cursorRequest);
+                try {
+                    cursor = await this.awaitDbRequest(cursorRequest);
+                } catch (error) {
+                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: cursor.continue failed!';
+                    throw new ErrorWithData(msg, {chatId, error});
+                }
             }
         }
         return {chatIsEmpty, deletedCount};
@@ -284,10 +327,23 @@ export class ChatHistoryStorage {
             return chatFromIndex;
         }
         const metaTable = transaction.objectStore('Meta');
-        const lastId: number = (await this.awaitDbRequest(metaTable.get('lastChatId')))?.value ?? 0;
+        let metaRecord;
+        try {
+            metaRecord = await this.awaitDbRequest(metaTable.get('lastChatId'))
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.get failed!';
+            throw new ErrorWithData(msg, {type, roomJid, roomNick, lastMaintained, error});
+        }
+        const lastId: number = metaRecord?.value ?? 0;
         const id = lastId + 1;
-        await this.awaitDbRequest(metaTable.put({name: 'lastChatId', value: id}));
-        const chat: ChatRecord = {
+        metaRecord = {name: 'lastChatId', value: id};
+        try {
+            await this.awaitDbRequest(metaTable.put(metaRecord));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.put failed!';
+            throw new ErrorWithData(msg, {metaRecord, error});
+        }
+        const chatRecord: ChatRecord = {
             id:             id,
             type:           type,
             roomJid:        roomJid,
@@ -295,18 +351,33 @@ export class ChatHistoryStorage {
             lastMaintained: lastMaintained,
         };
         const chatTable = transaction.objectStore('Chat');
-        await this.awaitDbRequest(chatTable.add(chat));
-        return chat;
+        try {
+            await this.awaitDbRequest(chatTable.add(chatRecord));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: chatTable.add failed!';
+            throw new ErrorWithData(msg, {chatRecord, error});
+        }
+        return chatRecord;
     }
     
     private async updateChatRecord(transaction: IDBTransaction, chatRecord: ChatRecord): Promise<void> {
         const chatTable = transaction.objectStore('Chat');
-        await this.awaitDbRequest(chatTable.put(chatRecord));
+        try {
+            await this.awaitDbRequest(chatTable.put(chatRecord));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.updateChatRecord: chatTable.put failed!';
+            throw new ErrorWithData(msg, {chatRecord, error});
+        }
     }
 
     private async deleteChatRecordById(transaction: IDBTransaction, chatRecordId: number): Promise<void> {
         const chatTable = transaction.objectStore('Chat');
-        await this.awaitDbRequest(chatTable.delete(chatRecordId));
+        try {
+            await this.awaitDbRequest(chatTable.delete(chatRecordId));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.deleteChatRecordById: chatTable.delete failed!';
+            throw new ErrorWithData(msg, {chatRecordId, error});
+        }
     }
 
     private async getChatRecordByTypeRoomJidRoomNick(
@@ -314,13 +385,23 @@ export class ChatHistoryStorage {
     ): Promise<ChatRecord|null> {
         const chatTable = transaction.objectStore('Chat');
         const index = chatTable.index('iTypeRoomJidNick');
-        return this.awaitDbRequest(index.get(IDBKeyRange.only([type, roomJid, roomNick])));
+        try {
+            return this.awaitDbRequest(index.get(IDBKeyRange.only([type, roomJid, roomNick])));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getChatRecordByTypeRoomJidRoomNick: iTypeRoomJidNick.get failed!';
+            throw new ErrorWithData(msg, {type, roomJid, roomNick, error});
+        }
     }
 
     private async getChatRecordToMaintain(transaction: IDBTransaction, olderThanTime: string): Promise<ChatRecord|null> {
         const chatTable = transaction.objectStore('Chat');
         const index = chatTable.index('iLastMaintained');
-        return this.awaitDbRequest(index.get(IDBKeyRange.upperBound(olderThanTime, true)));
+        try {
+            return this.awaitDbRequest(index.get(IDBKeyRange.upperBound(olderThanTime, true)));
+        } catch (error) {
+            const msg = 'ChatHistoryStorage.getChatRecordToMaintain: iLastMaintained.get failed!';
+            throw new ErrorWithData(msg, {olderThanTime, error});
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -363,7 +444,7 @@ export class ChatHistoryStorage {
         // transaction is null or already known to be erroneous with known root cause.
         // To be called to ensure abortion and proper disposal of the transaction and its associated promise.
         if (is.nil(transaction) !== is.nil(transactionPromise)) {
-            const msg = 'Only transaction or transactionPromise is nil - but not both!';
+            const msg = 'ChatHistoryStorage.disposeErroneousTransaction: Only transaction or transactionPromise is nil - but not both!';
             throw new ErrorWithData(msg, {transaction, transactionPromise});
         }
         if (!is.nil(transaction)) {
@@ -400,7 +481,7 @@ export class ChatHistoryStorage {
     }
 
     //--------------------------------------------------------------------------
-    // Schema iniztialization and updates
+    // Schema initialization and updates
 
     private dbOnUpgradeNeeded(db: IDBDatabase, ev: IDBVersionChangeEvent): void
     {
