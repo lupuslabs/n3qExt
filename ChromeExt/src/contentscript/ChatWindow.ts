@@ -206,26 +206,29 @@ export class ChatWindow extends Window
     addLine(id: string|null, nick: string, text: string, dontPersist: boolean = false): void
     {
         const time = new Date();
-        if (is.nil(id)) {
+        let generateId = is.nil(id);
+        if (generateId) {
             id = makeChatMessageId(time, nick);
         }
         if (!is.nil(this.chatMessages[id])) {
             return;
         }
-        const translated = this.app.translateText('Chatwindow.' + text, text);
 
+        const textTranslated = this.app.translateText('Chatwindow.' + text, text);
         const message: ChatMessage = {
             timestamp: Utils.utcStringOfDate(time),
             id:        id,
             nick:      nick,
-            text:      translated,
+            text:      textTranslated,
         };
 
-        this.chatMessages[id] = message;
-        this.showLine(message);
-
-        if (!dontPersist) {
-            BackgroundMessage.handleNewChatMessage(this.chat, message).catch(error => this.app.onError(error));
+        if (dontPersist) {
+            this.chatMessages[id] = message;
+            this.showLine(message);
+        } else {
+            BackgroundMessage.handleNewChatMessage(this.chat, message, generateId)
+            .catch(error => this.app.onError(error));
+            // Persisted message comes back in via onChatMessagePersisted and is stored/drawn there.
         }
     }
 

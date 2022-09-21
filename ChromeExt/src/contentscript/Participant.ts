@@ -471,8 +471,6 @@ export class Participant extends Entity
 
         this.app.sendStanza(iq, stanzaId, (stanza: XmlElement) =>
         {
-            // chatWindow.addLine(this.roomNick + Date.now(), this.roomNick, 'xx');
-
             const info = {};
             const versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
             if (versionQuery) {
@@ -572,12 +570,6 @@ export class Participant extends Entity
                 }
             }
         }
-
-        // if (this.privateChatWindow == null) {
-        //     new SimpleToast(this.app, 'PrivateChat', Config.get('room.privateChatToastDurationSec', 60), 'privatechat', name, text).show();
-        // } else {
-        //     this.privateChatWindow?.addLine(nick + Date.now(), name, text);
-        // }
     }
 
     onReceivePoke(node: XmlElement): void

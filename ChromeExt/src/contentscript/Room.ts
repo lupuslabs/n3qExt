@@ -591,7 +591,7 @@ export class Room
         }
     }
 
-    showChatMessage(id: string, name: string, text: string)
+    showChatMessage(id: string|null, name: string, text: string)
     {
         this.chatWindow.addLine(id, name, text);
     }

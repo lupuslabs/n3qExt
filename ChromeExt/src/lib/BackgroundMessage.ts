@@ -91,6 +91,11 @@ export class FindBackpackItemPropertiesResponse extends BackgroundResponse
     constructor(public propertiesSet: ItemPropertiesSet) { super(true); }
 }
 
+export class NewChatMessageResponse extends BackgroundSuccessResponse
+{
+    constructor(public keepChatMessage: boolean) { super(); }
+}
+
 export class GetChatHistoryResponse extends BackgroundSuccessResponse
 {
     constructor(public chatHistory: ChatMessage[]) { super(); }
@@ -379,10 +384,14 @@ export class BackgroundMessage
         });
     }
 
-    static handleNewChatMessage(chat: Chat, chatMessage: ChatMessage): Promise<void>
+    static handleNewChatMessage(chat: Chat, chatMessage: ChatMessage, deduplicate: boolean): Promise<boolean>
     {
-        return BackgroundMessage.sendMessageCheckOk({
-            'type': BackgroundMessage.handleNewChatMessage.name, chat, chatMessage,
+        return new Promise((resolve, reject) => {
+            BackgroundMessage.sendMessageCheckOk({
+                'type': BackgroundMessage.handleNewChatMessage.name, chat, chatMessage, deduplicate,
+            })
+            .then(response => resolve(response.keepChatMessage))
+            .catch(error => reject(error));
         });
     }
 

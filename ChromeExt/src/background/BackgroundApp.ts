@@ -19,7 +19,7 @@ import
     ApplyItemToBackpackItemResponse,
     BackpackTransferCompleteResponse,
     BackpackTransferUnauthorizeResponse,
-    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse, GetChatHistoryResponse
+    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse, GetChatHistoryResponse, NewChatMessageResponse
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -384,7 +384,7 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.handleNewChatMessage.name: {
-                return this.handle_newChatMessage(message.chat, message.chatMessage, sendResponse);
+                return this.handle_newChatMessage(message.chat, message.chatMessage, message.deduplicate, sendResponse);
             } break;
 
             case BackgroundMessage.getChatHistory.name: {
@@ -919,21 +919,30 @@ export class BackgroundApp
         return false;
     }
 
-    handle_newChatMessage(chat: unknown, chatMessage: unknown, sendResponse: (response: any) => void): boolean
-    {
+    handle_newChatMessage(
+        chat: unknown, chatMessage: unknown, deduplicate: unknown, sendResponse: (response: any) => void,
+    ): boolean {
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, chatMessage})});
+            sendResponse({'ok': false,
+                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
         } else if (!isChatMessage(chatMessage)) {
             const error = new Error('chatMessage is not a ChatMesage object!');
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, chatMessage})});
+            sendResponse({'ok': false,
+                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
+        } else if (!is.boolean(deduplicate)) {
+            const error = new Error('deduplicate is not a boolean!');
+            sendResponse({'ok': false,
+                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
-                await this.chatHistoryStorage.storeChatRecord(chat, chatMessage);
-                sendResponse(new BackgroundSuccessResponse());
-                this.sendPersistedChatMessageToTabs(chat, chatMessage);
+                const keepChatMessage = await this.chatHistoryStorage.storeChatRecord(chat, chatMessage, deduplicate);
+                sendResponse(new NewChatMessageResponse(keepChatMessage));
+                if (keepChatMessage) {
+                    this.sendPersistedChatMessageToTabs(chat, chatMessage);
+                }
             })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
         }
