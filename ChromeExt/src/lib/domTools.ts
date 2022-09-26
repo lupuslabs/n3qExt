@@ -98,8 +98,13 @@ export function getHtmlImgSrcOpacityAtPos(elem: HTMLImageElement, localX: number
     const srcWidth  = Math.max(1, Math.round(srcPixelSizeX));
     const srcHeight = Math.max(1, Math.round(srcPixelSizeY));
     ctx.drawImage(elem, srcX, srcY, srcWidth, srcHeight, 0, 0, 1, 1);
-    const opacity = ctx.getImageData(0, 0, 1, 1).data[3] / 255; // [0]R [1]G [2]B [3]A
-    
+    let opacity: number;
+    try {
+        opacity = ctx.getImageData(0, 0, 1, 1).data[3] / 255; // [0]R [1]G [2]B [3]A
+    } catch (error) {
+        // "canvas has been tainted by cross-origin data" - happens when the original image came from another origin.
+        opacity = 1.0;
+    }
     canvasElem.remove();
     return opacity;
 }
