@@ -186,6 +186,11 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.fetchUrl.name, 'url': url, 'version': version });
     }
 
+    static fetchUrlAsDataUrl(url: string, version: string): Promise<FetchUrlResponse>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.fetchUrlAsDataUrl.name, 'url': url, 'version': version });
+    }
+
     static waitReady(): Promise<any>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.waitReady.name });

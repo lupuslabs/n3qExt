@@ -151,7 +151,26 @@ export class BackpackItem
 
     setImage(url: string): void
     {
-        $(this.imageElem).css({ 'background-image': 'url("' + url + '")' });
+        if (url.startsWith('data:')) {
+            this.setResolvedImageUrl(url);
+            return;
+        }
+        BackgroundMessage.fetchUrlAsDataUrl(url, '')
+        .then(response => {
+            if (!response.ok) {
+                throw new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, response});
+            }
+            this.setResolvedImageUrl(response.data);
+        })
+        .catch(error => {
+            this.app.onError(error);
+            this.setResolvedImageUrl(url);
+        });
+    }
+
+    private setResolvedImageUrl(url: string): void
+    {
+        $(this.imageElem).css({ 'background-image': `url("${url}")` });
     }
 
     setText(text: string): void

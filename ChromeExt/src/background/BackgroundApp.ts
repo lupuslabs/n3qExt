@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import { client, xml, jid } from '@xmpp/client';
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import
 {
@@ -19,7 +19,10 @@ import
     ApplyItemToBackpackItemResponse,
     BackpackTransferCompleteResponse,
     BackpackTransferUnauthorizeResponse,
-    BackpackTransferAuthorizeResponse, BackpackIsItemStillInRepoResponse, GetChatHistoryResponse, NewChatMessageResponse
+    BackpackTransferAuthorizeResponse,
+    BackpackIsItemStillInRepoResponse,
+    GetChatHistoryResponse,
+    NewChatMessageResponse,
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -272,6 +275,10 @@ export class BackgroundApp
                 return this.handle_fetchUrl(message.url, message.version, sendResponse);
             } break;
 
+            case BackgroundMessage.fetchUrlAsDataUrl.name: {
+                return this.handle_fetchUrlAsDataUrl(message.url, message.version, sendResponse);
+            } break;
+
             case BackgroundMessage.jsonRpc.name: {
                 return this.handle_jsonRpc(message.url, message.json, sendResponse);
             } break;
@@ -403,9 +410,9 @@ export class BackgroundApp
         }
     }
 
-    private readonly httpCacheData = {};
-    private readonly httpCacheTime = {};
-    private readonly httpCacheRequests: Map<string, Array<(response?: any) => void>> = new Map<string, Array<(response?: any) => void>>();
+    private readonly httpCacheData: Map<string, {response: Response, blob: Blob, responseTimeUsecs: number}> = new Map();
+    private readonly httpCacheRequests: Map<string, Array<{resolve: (blob: Blob) => void, reject: (error: any) => void}>> = new Map();
+    private lastCacheMaintenanceTime: number = 0;
 
     checkMaintainHttpCache(): void
     {
@@ -422,19 +429,14 @@ export class BackgroundApp
         if (Utils.logChannel('backgroundFetchUrlCache', true)) { log.info('BackgroundApp.maintainHttpCache'); }
         let cacheTimeout = Config.get('httpCache.maxAgeSec', 3600);
         let now = Date.now();
-        let deleteKeys = new Array<string>();
-        for (let key in this.httpCacheTime) {
-            if (now - this.httpCacheTime[key] > cacheTimeout * 1000) {
-                deleteKeys.push(key);
+        for (const [key, {responseTimeUsecs}] of this.httpCacheData) {
+            if (now - responseTimeUsecs > cacheTimeout * 1000) {
+                if (Utils.logChannel('backgroundFetchUrlCache', true)) {
+                    log.info('BackgroundApp.maintainHttpCache', (now - responseTimeUsecs) / 1000, 'sec', 'delete', key);
+                }
+                this.httpCacheData.delete(key);
             }
         }
-
-        deleteKeys.forEach(key =>
-        {
-            if (Utils.logChannel('backgroundFetchUrlCache', true)) { log.info('BackgroundApp.maintainHttpCache', (now - this.httpCacheTime[key]) / 1000, 'sec', 'delete', key); }
-            delete this.httpCacheData[key];
-            delete this.httpCacheTime[key];
-        });
     }
 
     private async fetchJSON(url: string): Promise<any>
@@ -449,86 +451,154 @@ export class BackgroundApp
         });
     }
 
-    lastCacheMaintenanceTime: number = 0;
-    handle_fetchUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
+    fetchUrl(url: string, version: string): Promise<Blob>
     {
         this.checkMaintainHttpCache();
+        return new Promise<Blob>((resolve, reject) => {
+            let key = version + url;
 
-        let key = version + url;
-        let isCached = version != '_nocache' && this.httpCacheData[key] != undefined;
-
-        if (isCached) {
-            // log.debug('BackgroundApp.handle_fetchUrl', 'cache-age', (now - this.httpCacheTime[key]) / 1000, url, 'version=', version);
-        } else {
+            const cachedEntry = version === '_nocache' ? null : this.httpCacheData.get(key);
+            if (!is.nil(cachedEntry)) {
+                // log.debug('BackgroundApp.handle_fetchUrl', 'cache-age', (now - cachedEntry.responseTimeUsecs) / 1000, url, 'version=', version);
+                resolve(cachedEntry.blob);
+                return;
+            }
             if (Utils.logChannel('backgroundFetchUrlCache', true)) { log.info('BackgroundApp.handle_fetchUrl', 'not-cached', url, 'version=', version); }
-        }
-
-        if (isCached) {
-            sendResponse({ 'ok': true, 'data': this.httpCacheData[key] });
-            return false;
-        }
-
-        try {
 
             let requests = this.httpCacheRequests.get(key) ?? [];
-            requests.push(sendResponse);
+            const triggerFetch = requests.length === 0;
+            requests.push({resolve, reject});
             this.httpCacheRequests.set(key, requests);
-            if (requests.length > 1) {
-                return true;
+
+            if (triggerFetch) {
+                this.fetchUrlFromServer(key, url, version);
+            }
+        });
+    }
+
+    fetchUrlFromServer(key: string, url: string, version: string): void
+    {
+        (async () => {
+            let response: Response;
+            try {
+                response = await fetch(url, { cache: 'reload' });
+            } catch (error) {
+                const msg = 'fetchUrlFromServer.fetchUrlFromServer: fetch failed!';
+                throw new ErrorWithData(msg, {});
+            }
+            // log.debug('BackgroundApp.fetchUrlFromServer', 'httpResponse', url, response);
+            if (!response.ok) {
+                const msg = 'fetchUrlFromServer.fetchUrlFromServer: Fetch resulted in error response.';
+                throw new ErrorWithData(msg, {response});
             }
 
-            fetch(url, { cache: 'reload' })
-                .then(httpResponse =>
-                {
-                    // log.debug('BackgroundApp.handle_fetchUrl', 'httpResponse', url, httpResponse);
-                    if (httpResponse.ok) {
-                        return httpResponse.text();
-                    } else {
-                        throw { 'ok': false, 'status': httpResponse.status, 'statusText': httpResponse.statusText };
-                    }
-                })
-                .then(text =>
-                {
-                    if (version == '_nocache') {
-                        //dont cache
-                    } else if (text == '') {
-                        this.httpCacheData[key] = text;
-                        this.httpCacheTime[key] = 0;
-                    } else {
-                        this.httpCacheData[key] = text;
-                        this.httpCacheTime[key] = Date.now();
-                    }
-                    let response = { 'ok': true, 'data': text };
-                    if (Utils.logChannel('backgroundFetchUrl', true)) { log.info('BackgroundApp.handle_fetchUrl', 'response', url, text.length, response); }
+            let blob: Blob;
+            try {
+                blob = await response.blob();
+            } catch (error) {
+                const msg = 'fetchUrlFromServer.fetchUrlFromServer: text retrieval failed!';
+                throw new ErrorWithData(msg, {response});
+            }
 
-                    for (let sr of requests) {
-                        sr(response);
-                    }
-                    this.httpCacheRequests.delete(key);
-                })
-                .catch(ex =>
-                {
-                    log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
-                    let status = ex.status;
-                    if (!status) { status = ex.name; }
-                    if (!status) { status = 'Error'; }
-                    let statusText = ex.statusText;
-                    if (!statusText) { statusText = ex.message + ' ' + url; }
-                    if (!statusText) { if (ex.toString) { statusText = ex.toString() + ' ' + url; } }
-                    let response = { 'ok': false, 'status': status, 'statusText': statusText };
-
-                    for (let sr of requests) {
-                        sr(response);
-                    }
-                    this.httpCacheRequests.delete(key);
-                });
-            return true;
-
-        } catch (error) {
+            if (version !== '_nocache') {
+                let responseTimeUsecs = blob.size === 0
+                    ? 0 // Empty response is to be deleted on next maintenance.
+                    : Date.now(); // Nonempty response is to be deleted after configured cache timeout.
+                this.httpCacheData.set(key, {response, blob, responseTimeUsecs});
+            }
+            
+            if (Utils.logChannel('backgroundFetchUrl', true)) {
+                log.info('BackgroundApp.fetchUrlFromServer', 'response', url, blob.size, response);
+            }
+            for (const {resolve} of this.httpCacheRequests.get(key) ?? []) {
+                resolve(blob);
+            }
+            this.httpCacheRequests.delete(key);
+        })().catch(error => {
             log.debug('BackgroundApp.handle_fetchUrl', 'exception', url, error);
-            sendResponse({ 'ok': false, 'status': error.status, 'statusText': error.statusText });
-            return false;
-        }
+            for (const {reject} of this.httpCacheRequests.get(key) ?? []) {
+                reject(error);
+            }
+            this.httpCacheRequests.delete(key);
+        });
+    }
+
+    handle_fetchUrl(url: unknown, version: unknown, sendResponse: (response?: any) => void): boolean
+    {
+        (async () => {
+            if (!is.string(url)) {
+                const error = new ErrorWithData('BackgroundApp.handle_fetchUrl: url is not a string!', {url, version});
+                log.debug('BackgroundApp.handle_fetchUrl', 'exception', error);
+                throw error;
+            }
+            if (!is.string(version)) {
+                const error = new ErrorWithData('BackgroundApp.handle_fetchUrl: version is not a string!', {url, version});
+                log.debug('BackgroundApp.handle_fetchUrl', 'exception', error);
+                throw error;
+            }
+            const blob = await this.fetchUrl(url, version);
+
+            const fileReader = new FileReader();
+            let text: string;
+            try {
+                fileReader.readAsText(blob);
+                text = await new Promise<string>(resolve => {
+                    fileReader.onload = event => {
+                        resolve(<string>event.target.result); // readAsDataURL always provides a string.
+                    };
+                });
+            } catch (error) {
+                const msg = 'fetchUrlFromServer.handle_fetchUrl: Blob decoding failed!';
+                throw new ErrorWithData(msg, {blob});
+            }
+
+            sendResponse({ 'ok': true, 'data': text });
+        })().catch(ex => {
+            log.debug('BackgroundApp.handle_fetchUrl', 'catch', url, ex);
+            const status = String(ex.data?.response?.status ?? ex.name ?? 'Error');
+            const statusText = ex.data?.response?.statusText ?? `ex.message ${url}`;
+            sendResponse({ 'ok': false, 'status': status, 'statusText': statusText });
+        });
+        return true;
+    }
+
+    handle_fetchUrlAsDataUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
+    {
+        (async () => {
+            if (!is.string(url)) {
+                const error = new ErrorWithData('BackgroundApp.handle_fetchUrlAsDataUrl: url is not a string!', {url, version});
+                log.debug('BackgroundApp.handle_fetchUrl', 'exception', error);
+                throw error;
+            }
+            if (!is.string(version)) {
+                const error = new ErrorWithData('BackgroundApp.handle_fetchUrlAsDataUrl: version is not a string!', {url, version});
+                log.debug('BackgroundApp.handle_fetchUrl', 'exception', error);
+                throw error;
+            }
+            const blob = await this.fetchUrl(url, version);
+
+            const fileReader = new FileReader();
+            let dataUrl: string;
+            try {
+                fileReader.readAsDataURL(blob);
+                dataUrl = await new Promise<string>(resolve => {
+                    fileReader.onload = event => {
+                        resolve(<string>event.target.result); // readAsDataURL always provides a string.
+                    };
+                });
+            } catch (error) {
+                const msg = 'fetchUrlFromServer.handle_fetchUrlAsDataUrl: Blob decoding failed!';
+                throw new ErrorWithData(msg, {blob});
+            }
+
+            sendResponse({ 'ok': true, 'data': dataUrl });
+        })().catch(ex => {
+            log.debug('BackgroundApp.handle_fetchUrlAsDataUrl', 'catch', url, ex);
+            const status = String(ex.data?.response?.status ?? ex.name ?? 'Error');
+            const statusText = ex.data?.response?.statusText ?? `ex.message ${url}`;
+            sendResponse({ 'ok': false, 'status': status, 'statusText': statusText });
+        });
+        return true;
     }
 
     handle_jsonRpc(url: string, postBody: any, sendResponse: (response?: any) => void): boolean
