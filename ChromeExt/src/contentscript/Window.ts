@@ -1,5 +1,6 @@
 import * as $ from 'jquery';
 import 'webpack-jquery-ui';
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
@@ -88,6 +89,7 @@ export class Window
                     {
                         $(windowElem).append('<div id="' + maskId + '" style="background-color: #ffffff; opacity: 0.001; position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>');
                         if (this.onResize) { this.onResize(ev, ui); }
+                        this.startPreventingPointerEventLoss();
                     },
                     resize: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
                     {
@@ -97,6 +99,7 @@ export class Window
                     {
                         $('#' + maskId).remove();
                         if (this.onResizeStop) { this.onResizeStop(ev, ui); }
+                        this.stopPreventingPointerEventLoss();
                     },
                 });
             }
@@ -133,6 +136,7 @@ export class Window
                 {
                     this.app.toFront(windowElem, ContentApp.LayerWindow);
                     if (this.onDragStart) { this.onDragStart(ev, ui); }
+                    this.startPreventingPointerEventLoss();
                 },
                 drag: (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
                 {
@@ -141,6 +145,7 @@ export class Window
                 stop: (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
                 {
                     if (this.onDragStop) { this.onDragStop(ev, ui); }
+                    this.stopPreventingPointerEventLoss();
                 },
             });
         }
@@ -223,4 +228,32 @@ export class Window
             }
         }
     }
+
+    // Workaround to prevent pointer loss when hovering over anything listening for pointerEvents:
+    // Todo: Remove after switching drag and resize handling from JQuerry to the pointerEvents API.
+    private pointerEventLossPreventionElem: Element|null = null;
+    private startPreventingPointerEventLoss(): void
+    {
+        if (is.nil(this.pointerEventLossPreventionElem)) {
+            const elem = document.createElement('div');
+            elem.classList.add('n3q-base');
+            elem.style.position = 'absolute';
+            elem.style.top = '0';
+            elem.style.right = '0';
+            elem.style.bottom = '0';
+            elem.style.left = '0';
+            elem.style.pointerEvents = 'auto';
+            this.app.getDisplay()?.appendChild(elem);
+            this.app.toFront(elem, ContentApp.LayerDrag);
+            this.pointerEventLossPreventionElem = elem;
+        }
+    }
+    private stopPreventingPointerEventLoss(): void
+    {
+        if (!is.nil(this.pointerEventLossPreventionElem)) {
+            this.app.getDisplay()?.removeChild(this.pointerEventLossPreventionElem);
+            this.pointerEventLossPreventionElem = null;
+        }
+    }
+
 }
