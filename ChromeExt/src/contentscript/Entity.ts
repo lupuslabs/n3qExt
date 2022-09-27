@@ -22,7 +22,6 @@ export class Entity
     protected avatarDisplay: Avatar;
     protected positionX: number = -1;
     protected defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
-    protected inMove: boolean = false;
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
@@ -93,34 +92,21 @@ export class Entity
 
     move(newX: number): void
     {
-        this.inMove = true;
-
         if (newX < 0) { newX = 0; }
 
-        this.setPosition(this.getPosition());
-
         const oldX = this.getPosition();
+        this.setPosition(oldX);
         const diffX = newX - oldX;
-        const absDiffX = diffX < 0 ? -diffX : diffX;
 
-        if (this.avatarDisplay) {
-            if (diffX < 0) {
-                this.avatarDisplay.setActivity('moveleft');
-            } else {
-                this.avatarDisplay.setActivity('moveright');
-            }
+        this.avatarDisplay?.setActivity(diffX < 0 ? 'moveleft' : 'moveright'); // Also sets speed.
+        if (!this.avatarDisplay?.hasSpeed()) {
+            // Happens when no avatarDisplay or animations not loaded yet or move animation has no speed defined.
+            this.avatarDisplay?.setActivity(''); // Slide doesn't clear activity when done, so do it now.
+            this.quickSlide(newX);
+            return;
         }
-
-        if (this.avatarDisplay) {
-            if (!this.avatarDisplay.hasSpeed()) {
-                this.quickSlide(newX);
-                return;
-            }
-        }
-
         const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
-        const durationSec = absDiffX / speedPixelPerSec;
-
+        const durationSec = Math.abs(diffX) / speedPixelPerSec;
         $(this.getElem())
             .stop(true)
             .animate(
@@ -136,7 +122,6 @@ export class Entity
 
     onMoveDestinationReached(newX: number): void
     {
-        this.inMove = false;
         this.setPosition(newX);
         this.avatarDisplay?.setActivity('');
     }
