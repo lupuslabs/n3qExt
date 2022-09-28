@@ -742,7 +742,7 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
 
-                    'Badges.editModeHint': 'Ziehe Badges hierhin',
+                    'Badges.editModeHint': 'Lege Badges hier ab',
 
                     'SimpleItemTransfer.senderConfirmQuestionTitle': 'Gegenstand übergeben',
                     'SimpleItemTransfer.senderConfirmQuestionText':
