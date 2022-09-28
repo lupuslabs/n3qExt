@@ -151,21 +151,7 @@ export class BackpackItem
 
     setImage(url: string): void
     {
-        if (url.startsWith('data:')) {
-            this.setResolvedImageUrl(url);
-            return;
-        }
-        BackgroundMessage.fetchUrlAsDataUrl(url, '')
-        .then(response => {
-            if (!response.ok) {
-                throw new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, response});
-            }
-            this.setResolvedImageUrl(response.data);
-        })
-        .catch(error => {
-            this.app.onError(error);
-            this.setResolvedImageUrl(url);
-        });
+        this.app.fetchUrlAsDataUrl(url).then(dataUrl => this.setResolvedImageUrl(dataUrl));
     }
 
     private setResolvedImageUrl(url: string): void

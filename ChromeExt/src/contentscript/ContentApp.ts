@@ -1258,4 +1258,25 @@ export class ContentApp
         });
     }
 
+    // CORS-rules-evading content retrieval:
+
+    async fetchUrlAsDataUrl(url: string): Promise<string>
+    {
+        if (url.startsWith('data:')) {
+            return url;
+        }
+        let response;
+        try {
+            response = await BackgroundMessage.fetchUrlAsDataUrl(url, '');
+        } catch (error) {
+            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, error}));
+            return url;
+        }
+        if (!response.ok) {
+            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, response}));
+            return url;
+        }
+        return response.data;
+    }
+
 }
