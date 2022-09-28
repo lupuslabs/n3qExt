@@ -77,6 +77,17 @@ export class Nickname implements IObserver
             column.addItem('inventory', 'Backpack', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { this.app.showBackpackWindow(); });
         }
 
+        if (!is.nil(this.participant.getBadgesDisplay())) {
+            const [menuItemId, labelId] = ['badgesEditMode', 'BadgesEditMode'];
+            const onClick = ev => {
+                if (Utils.isBackpackEnabled() && is.nil(this.app.getBackpackWindow())) {
+                    this.app.showBackpackWindow();
+                }
+                this.participant.getBadgesDisplay()?.enterEditMode();
+            };
+            column.addItem(menuItemId, labelId, MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, onClick);
+        }
+
         column.addItem('settings', 'Settings', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { if (this.participant) { this.app.showSettings(this.participant.getElem()); } });
 
         column.addItem('vidconf', 'Video Conference', MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, ev => { if (this.participant) { this.app.showVidconfWindow(); } });

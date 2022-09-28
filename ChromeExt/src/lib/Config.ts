@@ -61,6 +61,7 @@ export class Config
             web3: false,
             iframeApi: false,
             items: false,
+            badges: false,
             SimpleItemTransfer: false,
             // Disabled in code: DomOpacityAwarePointerEventDispatcher.ctor
             // pointerEventHandlingIncommingPointer: false, // pointermove omitted when pointerEventHandlingWithMove = false.
@@ -274,6 +275,13 @@ export class Config
                 PointsChannelSocial: { weight: 1, x0: 0, css: { backgroundColor: '#8080ff' } },
             }
         },
+        badges: {
+            enabled: true,
+            displayTop: 200,
+            displayRight: 100,
+            displayBottom: 0,
+            displayLeft: 80,
+        },
         items: {
             'enabledProviders': ['n3q']
         },
@@ -402,6 +410,7 @@ export class Config
                     'Menu.Settings': 'Settings',
                     'Menu.Stay Here': 'Stay on tab change',
                     'Menu.Backpack': 'Backpack',
+                    'Menu.BadgesEditMode': 'Edit Badges',
                     'Menu.Chat Window': 'Chat History',
                     'Menu.Video Conference': 'Video Conference',
                     'Menu.Chat': 'Chat',
@@ -455,6 +464,8 @@ export class Config
                     'Backpack.Too many items': 'Too many items',
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
+
+                    'Badges.editModeHint': 'Drop badges here',
 
                     'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send Item',
                     'SimpleItemTransfer.senderConfirmQuestionText': 'Do you want to send {item} to {recipient}?',
@@ -676,6 +687,7 @@ export class Config
                     'Menu.Settings': 'Einstellungen',
                     'Menu.Stay Here': 'Bleiben bei Tabwechsel',
                     'Menu.Backpack': 'Rucksack',
+                    'Menu.BadgesEditMode': 'Badges Ändern',
                     'Menu.Chat Window': 'Chatverlauf',
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',
@@ -729,6 +741,8 @@ export class Config
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+
+                    'Badges.editModeHint': 'Ziehe Badges hierhin',
 
                     'SimpleItemTransfer.senderConfirmQuestionTitle': 'Gegenstand übergeben',
                     'SimpleItemTransfer.senderConfirmQuestionText':

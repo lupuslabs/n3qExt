@@ -569,6 +569,41 @@
             }
 
         }
+
+        div.n3q-badges {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.1);
+            z-index: 5;
+            user-select: none;
+            pointer-events: none;
+
+            div.n3q-badge {
+                position: absolute;
+                background-color: rgba(0, 255, 0, 0.1);
+                pointer-events: none;
+            }
+
+            div.n3q-badge.n3q-badgesEditMode {
+                pointer-events: auto;
+            }
+    
+            div.n3q-badgesEditModeHint {
+                margin: 0.5em 0.5em;
+                font-size: 1.5em;
+                color: rgba(171, 193, 21, 1.0);
+                pointer-events: none;
+            }
+
+        }
+
+        div.n3q-badges.n3q-badgesEditMode {
+            margin-left: -1px;
+            margin-bottom: -1px;
+            border: 1px solid rgba(171, 193, 21, 1.0);
+            background-color: rgba(171, 193, 21, 0.1);
+            pointer-events: auto;
+        }
+
     }
 
     input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button {

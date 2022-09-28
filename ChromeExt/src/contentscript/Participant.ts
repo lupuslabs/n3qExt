@@ -24,6 +24,7 @@ import { PrivateChatWindow } from './PrivateChatWindow';
 import { PrivateVidconfWindow } from './PrivateVidconfWindow';
 import { PointsBar } from './PointsBar';
 import { ActivityBar } from './ActivityBar';
+import { BadgesDisplay } from './BadgesDisplay';
 import { VpProtocol } from '../lib/VpProtocol';
 import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
@@ -38,6 +39,7 @@ export class Participant extends Entity
     private nicknameDisplay: Nickname;
     private pointsDisplay: PointsBar;
     private activityDisplay: ActivityBar;
+    private badgesDisplay: BadgesDisplay;
     private chatoutDisplay: Chatout;
     private chatinDisplay: Chatin;
     private isFirstPresence: boolean = true;
@@ -61,6 +63,7 @@ export class Participant extends Entity
         }
     }
 
+    getBadgesDisplay(): BadgesDisplay|null { return this.badgesDisplay; }
     getChatout(): Chatout { return this.chatoutDisplay; }
     getUserId(): string { return this.userId; }
 
@@ -108,6 +111,7 @@ export class Participant extends Entity
     {
         this.avatarDisplay?.stop();
         this.nicknameDisplay?.stop();
+        this.badgesDisplay?.stop();
         this.chatoutDisplay?.stop();
         this.chatinDisplay?.stop();
         super.remove();
@@ -133,6 +137,7 @@ export class Participant extends Entity
         let vpAnimationsUrl = '';
         let vpImageUrl = '';
         let vpPoints = '';
+        let vpBadges = '';
 
         let hasIdentityUrl = false;
 
@@ -199,6 +204,7 @@ export class Participant extends Entity
                     vpAnimationsUrl = as.String(attrs.AvatarUrl, vpAnimationsUrl);
                     vpImageUrl = as.String(attrs.ImageUrl);
                     vpPoints = as.String(attrs.Points);
+                    vpBadges = as.String(attrs.Badges);
                 }
             }
         }
@@ -239,6 +245,11 @@ export class Participant extends Entity
                 this.avatarDisplay.addClass('n3q-participant-avatar');
             }
 
+            if (Config.get('badges.enabled', false)) {
+                this.badgesDisplay = new BadgesDisplay(this.app, this, this.getElem());
+            }
+
+            // Uses this.badgesDisplay to decide about presence of a menu item:
             this.nicknameDisplay = new Nickname(this.app, this, this.isSelf, this.getElem());
             if (!this.isSelf) {
                 if (Config.get('room.nicknameOnHover', true)) {
@@ -324,6 +335,8 @@ export class Participant extends Entity
                 }
             }
         }
+
+        this.badgesDisplay?.updateBadgesFromPresence(vpBadges);
 
         if (this.isSelf) {
             await this.pointsDisplay?.showTitleWithActivities();

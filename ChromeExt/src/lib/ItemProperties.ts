@@ -9,6 +9,7 @@ const NodeRSA = require('node-rsa');
 export enum Pid
 {
     Id = 'Id',
+    Version = 'Version',
     InventoryId = 'InventoryId',
     Name = 'Name',
     Digest = 'Digest',
@@ -100,6 +101,20 @@ export enum Pid
     LargeImageUrl = 'LargeImageUrl',
     ShowEffect = 'ShowEffect',
     AutoClaimed = 'AutoClaimed',
+    BadgeAspect = 'BadgeAspect',
+    BadgeIsActive = 'BadgeIsActive',
+    BadgeTitle = 'BadgeTitle',
+    BadgeDescription = 'BadgeDescription',
+    BadgeLinkUrl = 'BadgeLinkUrl',
+    BadgeLinkLabel = 'BadgeLinkLabel',
+    BadgeImageUrl = 'BadgeImageUrl',
+    BadgeImageWidth = 'BadgeImageWidth',
+    BadgeImageHeight = 'BadgeImageHeight',
+    BadgeIconUrl = 'BadgeIconUrl',
+    BadgeIconWidth = 'BadgeIconWidth',
+    BadgeIconHeight = 'BadgeIconHeight',
+    BadgeIconX = 'BadgeIconX',
+    BadgeIconY = 'BadgeIconY',
 }
 
 export class ItemProperties
