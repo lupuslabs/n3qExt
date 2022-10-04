@@ -592,20 +592,31 @@
         background: url(../assets/icons/close-circle-o.svg) no-repeat center center / contain;
     }
 
+
+    div.n3q-menu-columns {
+        position: absolute;
+        bottom: 30px;
+        left: 0;
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        align-items: flex-end;
+    }
+
+    div.n3q-menu-column {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: stretch;
+    }
+
     div.n3q-menu-item {
         color: black;
         background-color: white;
         white-space: nowrap;
-        //border: 1px solid #888;
         min-height: 14px;
         padding: 2px 4px 2px 2px;
-        position: absolute;
-        transition: transform ease-out 200ms;
-        transition-duration: 200ms;
-        opacity: 0.0;
-        transform: translate(-3px, -35px) scale(0.1, 0.1);
         user-select: none;
-        // display: none;
 
         div.n3q-menu-icon {
             display: inline-block;
@@ -624,10 +635,8 @@
         }
     }
 
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item {
-        opacity: 1.0;
-        transform: scale(1.0, 1.0);
-        // display: block;
+    input[type=checkbox].n3q-menu-open:not(:checked) ~ div.n3q-menu-columns {
+        display: none;
     }
 
     div.n3q-menuitem-chat div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
@@ -640,40 +649,6 @@
     div.n3q-menuitem-privatechat div.n3q-menu-icon { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
     div.n3q-menuitem-greet div.n3q-menu-icon { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
     div.n3q-menuitem-bye div.n3q-menu-icon { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
-
-    div.n3q-menu-item.n3q-menu-column-main   { z-index: 1; }
-    div.n3q-menu-item.n3q-menu-column-action { z-index: 0; }
-
-    div.n3q-menu-item.n3q-menu-column-main   { transform: translate(-20px, -15px) scale(0, 0); }
-    div.n3q-menu-item.n3q-menu-column-action { transform: translate(-20px, -15px) scale(0, 0); }
-    div.n3q-menu-item.n3q-menu-column-interaction { transform: translate(-20px, -15px) scale(0, 0); }
-
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-test           { transform: translate(90px,   -5px) scale(1, 1); }
-
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-getweblin      { transform: translate(62px, -132px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-inventory      { transform: translate(62px, -132px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-settings       { transform: translate(62px, -110px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-vidconf        { transform: translate(62px,  -88px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chatwin        { transform: translate(62px,  -66px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat           { transform: translate(62px,  -44px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-Actions        { transform: translate(-3px, -242px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-wave           { transform: translate(-3px, -220px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-dance          { transform: translate(-3px, -198px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-cheer          { transform: translate(-3px, -176px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-kiss           { transform: translate(-3px, -154px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-clap           { transform: translate(-3px, -132px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-laugh          { transform: translate(-3px, -110px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-angry          { transform: translate(-3px,  -88px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-deny           { transform: translate(-3px,  -66px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-yawn           { transform: translate(-3px,  -44px) scale(1, 1); }
-
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatevidconf { transform: translate(-3px, -110px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-privatechat    { transform: translate(-3px,  -88px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-greet          { transform: translate(-3px,  -66px) scale(1, 1); }
-    input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-bye            { transform: translate(-3px,  -44px) scale(1, 1); }
-
-    div.n3q-participant-other div.n3q-menu-item.n3q-menu-column-main { transform: translate(-20px, -35px) scale(0, 0); }
-    div.n3q-participant-other input[type=checkbox].n3q-menu-open:checked ~ div.n3q-menu-item.n3q-menuitem-chat { transform: translate(-20px, -44px) scale(1, 1); }
 
     div.n3q-menu-item:hover { filter: brightness(0.9); }
     div.n3q-menu-item:active { filter: brightness(0.8); }

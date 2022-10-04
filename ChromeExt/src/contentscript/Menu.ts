@@ -58,7 +58,7 @@ export class MenuItem
 
     render(): HTMLElement
     {
-        this.elem = <HTMLElement>$('<div class="n3q-base n3q-menu-item n3q-menu-column-' + this.column.id + ' n3q-menuitem-' + this.id + ' n3q-shadow-small" data-translate="attr:title:Menu children" title="' + this.text + '" />').get(0);
+        this.elem = <HTMLElement>$('<div class="n3q-base n3q-menu-item n3q-menuitem-' + this.id + ' n3q-shadow-small" data-translate="attr:title:Menu children" title="' + this.text + '" />').get(0);
         if (this.onClick == undefined || this.onClick == null) {
             $(this.elem).addClass('n3q-menu-item-disabled');
         }
@@ -108,6 +108,18 @@ export class MenuColumn
             this.items[id].setCheckbox(hasCheckbox);
         }
     }
+
+    render(parentElem: HTMLElement)
+    {
+        const columnElem = document.createElement('div');
+        columnElem.classList.add('n3q-base', 'n3q-menu-column', `n3q-menu-column-${this.id}`);
+        columnElem.setAttribute('data-translate', 'children');
+        parentElem.appendChild(columnElem);
+        for (let itemId in this.items) {
+            columnElem.appendChild(this.items[itemId].render());
+        }
+    }
+
 }
 
 export class Menu
@@ -138,14 +150,13 @@ export class Menu
         let label = <HTMLElement>$('<label for="n3q-id-menu-open-avatarmenu-' + this.id + '" class="n3q-base n3q-menu-open-button"></label>').get(0);
         $(menu).append(label);
 
+        const columnsElem = document.createElement('div');
+        columnsElem.classList.add('n3q-base', 'n3q-menu-columns');
+        columnsElem.setAttribute('data-translate', 'children');
+        menu.appendChild(columnsElem);
         for (let columnId in this.columns) {
-            let column = this.columns[columnId];
-            for (let itemId in column.items) {
-                let item = column.items[itemId];
-                let itemElem = item.render();
-                $(menu).append(itemElem);
-            };
-        };
+            this.columns[columnId].render(columnsElem);
+        }
 
         this.app.translateElem(menu);
 
