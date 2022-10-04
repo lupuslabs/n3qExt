@@ -590,7 +590,9 @@
             div.n3q-badgesEditModeHint {
                 margin: 0.5em 0.5em;
                 font-size: 1.5em;
-                color: rgba(171, 193, 21, 1.0);
+                letter-spacing: 1px;
+                color: hsl(81, 100%, 20%);
+                filter: drop-shadow(0px 0px 0.5px rgba(255, 255, 255, 1.0));
                 pointer-events: none;
             }
 
@@ -599,9 +601,17 @@
         div.n3q-badges.n3q-badgesEditMode {
             margin-left: -1px;
             margin-bottom: -1px;
-            border: 1px solid rgba(171, 193, 21, 1.0);
-            background-color: rgba(171, 193, 21, 0.1);
+            border: 1px solid rgb(171, 193, 21);
+            background-color: rgba(171, 193, 21, 0.2);
             pointer-events: auto;
+        }
+
+        div.n3q-badgesEditModeBackground {
+            position: absolute;
+            z-index: 1;
+            backdrop-filter: blur(3px);
+            user-select: none;
+            pointer-events: none;
         }
 
     }
@@ -676,6 +686,7 @@
 
     div.n3q-menuitem-chat div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
     div.n3q-menuitem-inventory div.n3q-menu-icon { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
+    div.n3q-menuitem-badgesEditMode div.n3q-menu-icon { background: url(../assets/icons/ic_badgesEditMode.svg) no-repeat center center / contain; }
     div.n3q-menuitem-vidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
     div.n3q-menuitem-chatwin div.n3q-menu-icon { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
     div.n3q-menuitem-settings div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }

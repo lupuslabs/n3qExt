@@ -80,10 +80,18 @@ export class Nickname implements IObserver
         if (!is.nil(this.participant.getBadgesDisplay())) {
             const [menuItemId, labelId] = ['badgesEditMode', 'BadgesEditMode'];
             const onClick = ev => {
+                const badges = this.participant.getBadgesDisplay();
+                if (is.nil(badges)) {
+                    return;
+                }
                 if (Utils.isBackpackEnabled() && is.nil(this.app.getBackpackWindow())) {
                     this.app.showBackpackWindow();
                 }
-                this.participant.getBadgesDisplay()?.enterEditMode();
+                if (badges.getIsInEditMode()) {
+                    badges.exitEditMode();
+                } else {
+                    badges.enterEditMode();
+                }
             };
             column.addItem(menuItemId, labelId, MenuHasIcon.Yes, MenuHasCheckbox.No, MenuOnClickClose.Yes, onClick);
         }

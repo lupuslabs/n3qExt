@@ -24,6 +24,7 @@ export class BadgesDisplay
     private badges: Map<string,BadgeDisplay> = new Map();
     private containerDimensions: {top: number, right: number, bottom: number, left: number}; // From avatar center bottom.
     private containerElem: HTMLElement;
+    private editModeBackgroundElem?: HTMLElement;
     private editModeHintElem?: HTMLElement;
     private editModeExitElem?: HTMLElement = null;
     private isInEditMode: boolean = false;
@@ -99,14 +100,18 @@ export class BadgesDisplay
         }
         this.isInEditMode = true;
         this.containerElem.classList.add('n3q-badgesEditMode');
+        this.editModeBackgroundElem = document.createElement('div');
+        this.editModeBackgroundElem.classList.add('n3q-base', 'n3q-badgesEditModeBackground');
+        this.parentDisplay.appendChild(this.editModeBackgroundElem);
         this.editModeHintElem = document.createElement('div');
-        this.editModeHintElem.classList.add('n3q-badgesEditModeHint');
+        this.editModeHintElem.classList.add('n3q-base', 'n3q-badgesEditModeHint');
         this.editModeHintElem.innerText = this.app.translateText('Badges.editModeHint');
         this.containerElem.appendChild(this.editModeHintElem);
         this.showEditModeExitButton();
         for (const badgeDisplay of this.badges.values()) {
             badgeDisplay.enterEditMode();
         }
+        this.updateDisplay();
     }
 
     public exitEditMode(): void
@@ -118,6 +123,8 @@ export class BadgesDisplay
         this.containerElem.classList.remove('n3q-badgesEditMode');
         this.containerElem.removeChild(this.editModeHintElem);
         this.editModeHintElem = null;
+        this.parentDisplay.removeChild(this.editModeBackgroundElem);
+        this.editModeBackgroundElem = null;
         this.containerElem.removeChild(this.editModeExitElem);
         this.editModeExitElem = null;
         for (const badgeDisplay of this.badges.values()) {
@@ -267,11 +274,18 @@ export class BadgesDisplay
             this.containerElem.classList.add('n3q-base', 'n3q-badges');
             this.parentDisplay.appendChild(this.containerElem);
         }
-        const cDims = this.containerDimensions;
-        this.containerElem.style.bottom = `${cDims.bottom}px`;
-        this.containerElem.style.left = `${-cDims.left}px`;
-        this.containerElem.style.width = `${cDims.left + cDims.right}px`;
-        this.containerElem.style.height = `${cDims.top - cDims.bottom}px`;
+        const {top, right, bottom, left} = this.containerDimensions;
+        const [width, height] = [left + right, top - bottom];
+        this.containerElem.style.bottom = `${bottom}px`;
+        this.containerElem.style.left = `${-left}px`;
+        this.containerElem.style.width = `${width}px`;
+        this.containerElem.style.height = `${height}px`;
+        if (!is.nil(this.editModeBackgroundElem)) {
+            this.editModeBackgroundElem.style.bottom = `${bottom}px`;
+            this.editModeBackgroundElem.style.left = `${-left}px`;
+            this.editModeBackgroundElem.style.width = `${width}px`;
+            this.editModeBackgroundElem.style.height = `${height}px`;
+        }
 
         for (const badge of this.badges.values()) {
             badge.updateDisplay();
