@@ -11,6 +11,7 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
+import { SimpleToast } from './Toast';
 
 export class BadgesDisplay
 {
@@ -35,6 +36,7 @@ export class BadgesDisplay
     private readonly isLocal: boolean;
 
     private debugLogEnabled: boolean;
+    private badgesEnabledMax: number;
     private badges: Map<string,BadgeDisplay> = new Map();
     private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
@@ -67,7 +69,7 @@ export class BadgesDisplay
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.onBackpackShowItem', {itemProperties});
         }
-        this.updateBadgeFromFullItem(itemProperties);
+        this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
     }
 
     public onBackpackSetItem(itemProperties: ItemProperties): void
@@ -75,7 +77,7 @@ export class BadgesDisplay
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.onBackpackSetItem', {itemProperties});
         }
-        this.updateBadgeFromFullItem(itemProperties);
+        this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
     }
 
     public onBackpackHideItem(itemProperties: ItemProperties): void
@@ -83,7 +85,7 @@ export class BadgesDisplay
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.onBackpackHideItem', {itemProperties});
         }
-        this.removeBadge(itemProperties);
+        this.removeBadge(this.makeBadgeKey(itemProperties), itemProperties);
     }
 
     //--------------------------------------------------------------------------
@@ -92,6 +94,7 @@ export class BadgesDisplay
     public onUserSettingsChanged(): void
     {
         this.debugLogEnabled = Utils.logChannel('badges');
+        this.badgesEnabledMax = as.Int(Config.get('badges.badgesEnabledMax'), 3);
         this.containerDimensions = {
             avatarYTop: as.Int(Config.get('badges.displayAvatarYTop'), 200),
             avatarXRight: as.Int(Config.get('badges.displayAvatarXRight'), 100),
@@ -284,6 +287,20 @@ export class BadgesDisplay
     public onBadgeDropInside(
         eventData: PointerEventData, itemProperties: ItemProperties, correctPointerOffset: boolean = false,
     ): void {
+        const badgeKey = this.makeBadgeKey(itemProperties);
+        if (this.badges.size >= this.badgesEnabledMax && !this.badges.has(badgeKey)) {
+            const toast = new SimpleToast(
+                this.app, 'badges-TooMuchBadges',
+                Config.get('room.errorToastDurationSec', 8),
+                'warning', 'BadgeNotEnabled', 'TooMuchBadgesEnabled',
+            );
+            toast.show();
+            if (this.debugLogEnabled) {
+                const msg = 'BadgesDisplay.onBadgeDropInside: Done with too much badges toast.';
+                log.info(msg, {eventData, itemProperties});
+            }
+            return;
+        }
         const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(itemProperties);
         let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
         if (correctPointerOffset) {
@@ -297,16 +314,17 @@ export class BadgesDisplay
         itemPropertiesNew[Pid.BadgeIsActive] = 'true';
         itemPropertiesNew[Pid.BadgeIconX] = String(avatarXClipped);
         itemPropertiesNew[Pid.BadgeIconY] = String(avatarYClipped);
-        this.updateBadgeFromFullItem(itemPropertiesNew);
+        this.updateBadgeFromFullItem(badgeKey, itemPropertiesNew);
         this.updateBadgeOnServer(itemPropertiesNew);
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBadgeDropInside: Done.', {eventData, itemProperties, itemPropertiesNew});
+            const msg = 'BadgesDisplay.onBadgeDropInside: Done with update.';
+            log.info(msg, {eventData, itemProperties, itemPropertiesNew});
         }
     }
 
     public onBadgeDropOutside(itemProperties: ItemProperties): void
     {
-        this.removeBadge(itemProperties);
+        this.removeBadge(this.makeBadgeKey(itemProperties), itemProperties);
         const itemPropertiesNew = {...itemProperties};
         itemPropertiesNew[Pid.BadgeIsActive] = '0';
         this.updateBadgeOnServer(itemPropertiesNew);
@@ -422,7 +440,7 @@ export class BadgesDisplay
             }
             for (const id in response.items) {
                 const itemProperties = response.items[id];
-                this.updateBadgeFromFullItem(itemProperties);
+                this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
             }
             if (this.debugLogEnabled) {
                 log.info('BadgesDisplay.updateBadgesFromBackpack: Update complete.', {this: {...this}});
@@ -433,9 +451,8 @@ export class BadgesDisplay
         });
     }
 
-    private removeBadge(itemProperties: ItemProperties): void
+    private removeBadge(badgeKey: string, itemProperties: ItemProperties): void
     {
-        const badgeKey = this.makeBadgeKey(itemProperties);
         this.badges.get(badgeKey)?.stop();
         this.badges.delete(badgeKey);
         if (this.debugLogEnabled) {
@@ -443,23 +460,31 @@ export class BadgesDisplay
         }
     }
 
-    private updateBadgeFromFullItem(itemProperties: ItemProperties): void
+    private updateBadgeFromFullItem(badgeKey: string, itemProperties: ItemProperties): void
     {
-        const badgeKey = this.makeBadgeKey(itemProperties);
         const isEnabledBadge = as.Bool(itemProperties[Pid.BadgeIsActive]);
         if (isEnabledBadge) {
             const iconUrl = ItemProperties.getBadgeIconUrl(itemProperties);
             this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
                 const badge = this.badges.get(badgeKey);
                 if (is.nil(badge)) {
-                    const badgeDisplay = new BadgeDisplay(this.app, this, itemProperties, iconDataUrl);
-                    this.badges.set(badgeKey, badgeDisplay);
+                    if (this.badges.size >= this.badgesEnabledMax) {
+                        if (this.debugLogEnabled) {
+                            const msg = 'BadgesDisplay.updateBadgeFromFullItem: Disabling badge - limit reached.';
+                            log.info(msg, {itemProperties, badgesEnabledMax: this.badgesEnabledMax});
+                        }
+                        const itemPropertiesNew = {...itemProperties, [Pid.BadgeIsActive]: 'false'};
+                        this.updateBadgeOnServer(itemPropertiesNew);
+                    } else {
+                        const badgeDisplay = new BadgeDisplay(this.app, this, itemProperties, iconDataUrl);
+                        this.badges.set(badgeKey, badgeDisplay);
+                    }
                 } else {
                     badge.onPropertiesLoaded(itemProperties, iconDataUrl);
                 }
             });
         } else {
-            this.removeBadge(itemProperties);
+            this.removeBadge(badgeKey, itemProperties);
         }
     }
 

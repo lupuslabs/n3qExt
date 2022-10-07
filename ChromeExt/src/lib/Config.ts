@@ -277,6 +277,7 @@ export class Config
         },
         badges: {
             enabled: true,
+            badgesEnabledMax: 3,
             // Distances from avatar bottom center:
             displayAvatarYTop: 200,
             displayAvatarXRight: 100,
@@ -550,6 +551,8 @@ export class Config
                     'Toast.Your activity points have been claimed automatically': 'Your activity points have been claimed automatically. To maximize your yield, it is beneficial to claim them every day. Drag your Points-item to a web page, click it and claim.',
                     'Toast.NotDerezzed': 'Failed to Pick Up Item',
                     'Toast.NotYourItem': 'This is not your item.',
+                    'Toast.BadgeNotEnabled': 'Failed to enable badge',
+                    'Toast.TooMuchBadgesEnabled': 'You already have the maximum count of badges enabled.',
 
                     'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
@@ -829,6 +832,8 @@ export class Config
                     'Toast.Your activity points have been claimed automatically': 'Deine Aktivitätspunkte wurden nach einiger Zeit automatisch zugeteilt. Um die Ausbeute zu steigern, ist es besser die Punkte selbst zu beanspruchen. Dafür trägt man den Punkte-Gegenstand auf eine Seite, klickt darauf und holt die Punkte. Am besten jeden Tag.',
                     'Toast.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
                     'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
+                    'Toast.BadgeNotEnabled': 'Badge aktivieren fehlgeschlagen',
+                    'Toast.TooMuchBadgesEnabled': 'Du hast bereits die maximale Anzahl an Badges aktiviert.',
 
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
