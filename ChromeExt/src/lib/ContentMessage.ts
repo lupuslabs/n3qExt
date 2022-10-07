@@ -18,7 +18,7 @@ export class BackpackSetItemData
 
 export class BackpackRemoveItemData
 {
-    constructor(public id: string,)
+    constructor(public id: string, public properties: ItemProperties)
     {
     }
 }

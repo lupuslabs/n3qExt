@@ -31,7 +31,8 @@ export class Avatar implements IObserver
     private elem: HTMLDivElement;
     private imageElem: HTMLImageElement;
     private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
-    private dragElem: HTMLElement;
+    private dragElem?: HTMLElement;
+    private dragBadgeElem?: HTMLImageElement;
     private hasAnimation = false;
     private animations: AnimationsXml.AnimationsDefinition;
     private defaultGroup: string;
@@ -81,56 +82,88 @@ export class Avatar implements IObserver
             this.entity.onMouseDoubleClickAvatar(eventData);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, eventData => {
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
             const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
-            dragElem.classList.add('dragging');
+            dragElem.classList.add('n3q-dragging');
             this.dragElem = dragElem;
             this.app.getDisplay()?.append(dragElem);
             this.app.toFront(dragElem, ContentApp.LayerDrag);
-            this.entity.onDragAvatarStart(eventData);
+
+            if (this.entity instanceof RoomItem && this.entity.isMyItem()) {
+                const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+                this.dragBadgeElem = badges?.makeDraggedBadgeIcon(this.entity.getProperties());
+            }
+
+            this.entity.onDragAvatarStart(ev);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, eventData => {
-            this.dragElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
-            this.dragElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
-            if (eventData.buttons !== DomButtonId.first || eventData.modifierKeys !== DomModifierKeyId.none) {
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, ev => {
+            if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
                 this.pointerEventDispatcher.cancelDrag();
             }
+
+            const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+            const properties = this.entity instanceof RoomItem ? this.entity.getProperties() : {};
+            let targetIsBadges = badges?.isValidEditModeBadgeDrop(ev, properties);
+            if (targetIsBadges) {
+                badges?.showDraggedBadgeIconInside(properties, ev, this.dragBadgeElem);
+            } else {
+                badges?.hideDraggedBadgeIcon(this.dragBadgeElem);
+            }
+
+            if (targetIsBadges) {
+                this.dragElem.classList.add('n3q-hidden');
+            } else {
+                this.dragElem.style.left = `${ev.clientX - ev.startDomElementOffsetX}px`;
+                this.dragElem.style.top = `${ev.clientY - ev.startDomElementOffsetY}px`;
+                this.dragElem.classList.remove('n3q-hidden');
+            }
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
-            const dropTargetElem = eventData.dropTarget;
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, ev => {
+            const dropTargetElem = ev.dropTarget;
             if (this.entity instanceof RoomItem 
             && this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
                 dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
-            const dropTargetElem = eventData.dropTargetLast;
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, ev => {
+            const dropTargetElem = ev.dropTargetLast;
             dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, eventData => {
-            if (this.entity instanceof RoomItem && eventData.dropTarget instanceof HTMLElement
-            && eventData.dropTarget.classList.contains('n3q-backpack-pane')) {
-                this.onRoomItemDropOnBackpack(eventData, this.entity, eventData.dropTarget);
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, ev => {
+            if (this.entity instanceof RoomItem && ev.dropTarget instanceof HTMLElement
+            && ev.dropTarget.classList.contains('n3q-backpack-pane')) {
+                this.onRoomItemDropOnBackpack(ev, this.entity, ev.dropTarget);
                 return;
             }
             if (this.entity instanceof RoomItem) {
-                const dropTargetEntity = this.app.getEntityByelem(eventData.dropTarget);
+
+                const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+                const properties = this.entity.getProperties();
+                if (badges?.isValidEditModeBadgeDrop(ev, properties)) {
+                    badges?.onBadgeDropInside(ev, properties);
+                    return;
+                }
+
+                const dropTargetEntity = this.app.getEntityByelem(ev.dropTarget);
                 if (dropTargetEntity?.isValidDropTargetForItem(this.entity)) {
                     dropTargetEntity.onGotItemDroppedOn(this.entity);
                     return;
                 }
+
             }
-            let newX = this.entity.getPosition() + eventData.distanceX;
+            let newX = this.entity.getPosition() + ev.distanceX;
             newX = Math.max(0, Math.min(document.documentElement.offsetWidth - 1, newX));
             this.entity.onDraggedTo(newX);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragcancel, eventData => {
-            // Nothing to do.
-        });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
-            if (!is.nil(this.dragElem)) {
-                this.app.getDisplay()?.removeChild(this.dragElem);
-            }
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => {
+            this.dragElem?.parentElement?.removeChild(this.dragElem);
+            const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+            this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
         });
 
     }

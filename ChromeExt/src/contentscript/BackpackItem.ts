@@ -22,7 +22,8 @@ export class BackpackItem
     private textElem: HTMLDivElement;
     private coverElem: HTMLDivElement;
     private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
-    private dragElem: HTMLElement;
+    private dragElem?: HTMLElement;
+    private dragBadgeElem?: HTMLImageElement;
     private dragIsRezable: boolean = false;
     private dragIsRezzed: boolean = false;
     private x: number = 100;
@@ -82,55 +83,16 @@ export class BackpackItem
         });
 
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, eventData => {
-            const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
-            dragElem.classList.add('dragging');
-            this.dragElem = dragElem;
-            this.app.getDisplay()?.append(dragElem);
-            this.app.toFront(dragElem, ContentApp.LayerDrag);
-            this.elem.classList.add('n3q-hidden');
-
-            this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
-            this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
-            if (this.dragIsRezable && !this.dragIsRezzed) {
-                this.app.showDropzone();
-            }
-            this.toFront();
-            this.info?.close();
+            this.onDragStart(eventData);
         });
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, eventData => {
-            if (!this.dragIsRezzed) {
-                if (this.isDraggablePositionInDropzone(eventData)) {
-                    this.app.hiliteDropzone(true);
-                } else {
-                    this.app.hiliteDropzone(false);
-                }
-            }
-
-            this.dragElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
-            this.dragElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
-
-            if (eventData.buttons !== DomButtonId.first || eventData.modifierKeys !== DomModifierKeyId.none) {
-                this.pointerEventDispatcher.cancelDrag();
-            }
-        });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
-            // Nothing to do.
-        });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
-            // Nothing to do.
+            this.onDragMove(eventData);
         });
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, eventData => {
             this.onDragDrop(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragcancel, eventData => {
-            // Nothing to do.
-        });
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
-            this.app.hideDropzone();
-            if (!is.nil(this.dragElem)) {
-                this.app.getDisplay()?.removeChild(this.dragElem);
-            }
-            this.elem.classList.remove('n3q-hidden');
+            this.onDragEnd(eventData);
         });
 
     }
@@ -251,6 +213,59 @@ export class BackpackItem
         this.info?.close();
     }
 
+    private onDragStart(ev: PointerEventData): void
+    {
+        const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
+        dragElem.classList.add('n3q-dragging');
+        this.dragElem = dragElem;
+        this.app.getDisplay()?.append(dragElem);
+        this.app.toFront(dragElem, ContentApp.LayerDrag);
+        this.elem.classList.add('n3q-hidden');
+
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+        this.dragBadgeElem = badges?.makeDraggedBadgeIcon(this.properties);
+
+        this.dragIsRezable = as.Bool(this.properties[Pid.IsRezable], true);
+        this.dragIsRezzed = as.Bool(this.properties[Pid.IsRezzed]);
+        if (this.dragIsRezable && !this.dragIsRezzed) {
+            this.app.showDropzone();
+        }
+        this.toFront();
+        this.info?.close();
+    }
+
+    private onDragMove(ev: PointerEventData): void
+    {
+        if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
+            this.pointerEventDispatcher.cancelDrag();
+            return;
+        }
+
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+        let targetIsBadges = badges?.isValidEditModeBadgeDrop(ev, this.properties);
+        if (targetIsBadges) {
+            badges?.showDraggedBadgeIconInside(this.properties, ev, this.dragBadgeElem);
+        } else {
+            badges?.hideDraggedBadgeIcon(this.dragBadgeElem);
+        }
+
+        if (!this.dragIsRezzed) {
+            if (!targetIsBadges && this.isDraggablePositionInDropzone(ev)) {
+                this.app.hiliteDropzone(true);
+            } else {
+                this.app.hiliteDropzone(false);
+            }
+        }
+
+        if (targetIsBadges) {
+            this.dragElem.classList.add('n3q-hidden');
+        } else {
+            this.dragElem.style.left = `${ev.clientX - ev.startDomElementOffsetX}px`;
+            this.dragElem.style.top = `${ev.clientY - ev.startDomElementOffsetY}px`;
+            this.dragElem.classList.remove('n3q-hidden');
+        }
+    }
+
     private onDragDrop(ev: PointerEventData): void
     {
         if (this.isDraggablePositionInBackpack(ev)) {
@@ -262,6 +277,13 @@ export class BackpackItem
             }
             return;
         }
+
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+        if (badges?.isValidEditModeBadgeDrop(ev, this.properties)) {
+            badges?.onBadgeDropInside(ev, this.properties);
+            return;
+        }
+
         const dropTargetEntity = this.app.getEntityByelem(ev.dropTarget);
         if (dropTargetEntity instanceof Participant && dropTargetEntity.isValidDropTargetForItem(this)) {
             dropTargetEntity.onGotItemDroppedOn(this);
@@ -276,6 +298,15 @@ export class BackpackItem
             return;
         }
         // No action.
+    }
+
+    private onDragEnd(ev: PointerEventData): void
+    {
+        this.app.hideDropzone();
+        this.dragElem?.parentElement?.removeChild(this.dragElem);
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+        this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
+        this.elem.classList.remove('n3q-hidden');
     }
 
     private draggedItemCenter(ev: PointerEventData): { x: number, y: number }

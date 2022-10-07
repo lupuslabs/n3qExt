@@ -125,7 +125,7 @@
         background-color: white;
     }
 
-    div.n3q-hidden {
+    div.n3q-hidden, img.n3q-hidden {
         // display: none!important;
         visibility: hidden;
     }
@@ -319,13 +319,13 @@
 
     // Entity
 
-    div.n3q-avatar.dragging,
+    div.n3q-avatar.n3q-dragging,
     div.n3q-entity div.n3q-avatar {
         position: relative;
         user-select: none;
     }
 
-    div.n3q-avatar.dragging img.n3q-avatar-image,
+    div.n3q-avatar.n3q-dragging img.n3q-avatar-image,
     div.n3q-entity div.n3q-avatar img.n3q-avatar-image {
         position: absolute;
         left: 0;
@@ -349,7 +349,7 @@
         // box-shadow: inset 0 0 100px rgba(171, 193, 21, 0.4);
     }
 
-    div.n3q-avatar.dragging {
+    div.n3q-avatar.n3q-dragging {
         position: absolute;
         opacity: 0.5;
         pointer-events: none;
@@ -570,50 +570,49 @@
 
         }
 
-        div.n3q-badges {
-            position: absolute;
-            background-color: rgba(255, 0, 0, 0.1);
-            z-index: 5;
-            user-select: none;
-            pointer-events: none;
+    }
 
-            div.n3q-badge {
-                position: absolute;
-                background-color: rgba(0, 255, 0, 0.1);
-                pointer-events: none;
-            }
+    div.n3q-participant div.n3q-badges {
+        position: absolute;
+        background-color: rgba(255, 0, 0, 0.1);
+        z-index: 3;
+        user-select: none;
+        pointer-events: none;
+    }
+    div.n3q-participant div.n3q-badges.n3q-badgesEditMode {
+        margin-left: -1px;
+        margin-bottom: -1px;
+        border: 1px solid rgb(171, 193, 21);
+        background-color: rgba(171, 193, 21, 0.2);
+        pointer-events: auto;
 
-            div.n3q-badge.n3q-badgesEditMode {
-                pointer-events: auto;
-            }
-    
-            div.n3q-badgesEditModeHint {
-                margin: 0.5em 0.5em;
-                font-size: 1.5em;
-                letter-spacing: 1px;
-                color: hsl(81, 100%, 20%);
-                filter: drop-shadow(0px 0px 0.5px rgba(255, 255, 255, 1.0));
-                pointer-events: none;
-            }
-
-        }
-
-        div.n3q-badges.n3q-badgesEditMode {
-            margin-left: -1px;
-            margin-bottom: -1px;
-            border: 1px solid rgb(171, 193, 21);
-            background-color: rgba(171, 193, 21, 0.2);
-            pointer-events: auto;
-        }
-
-        div.n3q-badgesEditModeBackground {
-            position: absolute;
-            z-index: 1;
-            backdrop-filter: blur(3px);
-            user-select: none;
+        div.n3q-badgesEditModeHint {
+            margin: 0.5em 0.5em;
+            font-size: 1.5em;
+            letter-spacing: 1px;
+            color: hsl(81, 100%, 20%);
+            filter: drop-shadow(0px 0px 0.5px rgba(255, 255, 255, 1.0));
             pointer-events: none;
         }
-
+    }
+    div.n3q-participant div.n3q-badgesEditModeBackground {
+        position: absolute;
+        z-index: 1;
+        backdrop-filter: blur(3px);
+        user-select: none;
+        pointer-events: none;
+    }
+    div.n3q-participant div.n3q-badges img.n3q-badge {
+        position: absolute;
+        pointer-events: auto;
+        touch-action: none;
+    }
+    img.n3q-badge-draggedElem {
+        position: absolute;
+        pointer-events: none;
+    }
+    img.n3q-badge-draggedElem.n3q-outside {
+        opacity: 0.5;
     }
 
     input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button {
@@ -1369,7 +1368,7 @@
         }
     }
 
-    div.n3q-backpack-item.dragging {
+    div.n3q-backpack-item.n3q-dragging {
         opacity: 0.5;
         pointer-events: none;
     }

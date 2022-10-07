@@ -1,3 +1,4 @@
+import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -8,12 +9,25 @@ import { Config } from '../lib/Config';
 import { BadgeDisplay } from './BadgeDisplay';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 
 export class BadgesDisplay
 {
     // Displays and allows for drag 'n drop editing of badges.
+    //
+    // Avatar coordinates start at the bottom center of the avatar:
+    //         ___
+    //   Y    /.,.\
+    // + ^    \ ~ /
+    //   |     /|\
+    //   |    / | \
+    //   |     / \
+    // 0 |    /   \
+    //     <----+----> X
+    //     -    0    +
+    //
+    // A Badge's position are the avatar coordinates measured at the middle center of the badge.
 
     private readonly app: ContentApp;
     private readonly entity: Entity;
@@ -22,7 +36,7 @@ export class BadgesDisplay
 
     private debugLogEnabled: boolean;
     private badges: Map<string,BadgeDisplay> = new Map();
-    private containerDimensions: {top: number, right: number, bottom: number, left: number}; // From avatar center bottom.
+    private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
     private editModeBackgroundElem?: HTMLElement;
     private editModeHintElem?: HTMLElement;
@@ -40,22 +54,55 @@ export class BadgesDisplay
         if (this.isLocal && Utils.isBackpackEnabled()) {
             this.updateBadgesFromBackpack();
         }
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.constructor: Construction complete.', {this: {...this}});
+        }
     }
 
     //--------------------------------------------------------------------------
-    // Public API for Entity and the avatar menu
+    // API for ContentApp
+
+    public onBackpackShowItem(itemProperties: ItemProperties): void
+    {
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onBackpackShowItem', {itemProperties});
+        }
+        this.updateBadgeFromFullItem(itemProperties);
+    }
+
+    public onBackpackSetItem(itemProperties: ItemProperties): void
+    {
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onBackpackSetItem', {itemProperties});
+        }
+        this.updateBadgeFromFullItem(itemProperties);
+    }
+
+    public onBackpackHideItem(itemProperties: ItemProperties): void
+    {
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onBackpackHideItem', {itemProperties});
+        }
+        this.removeBadge(itemProperties);
+    }
+
+    //--------------------------------------------------------------------------
+    // API for Entity and the avatar menu
 
     public onUserSettingsChanged(): void
     {
         this.debugLogEnabled = Utils.logChannel('badges');
         this.containerDimensions = {
-            top: as.Int(Config.get('badges.displayTop'), 200),
-            right: as.Int(Config.get('badges.displayRight'), 100),
-            bottom: as.Int(Config.get('badges.displayBottom'), 0),
-            left: as.Int(Config.get('badges.displayLeft'), 100),
+            avatarYTop: as.Int(Config.get('badges.displayAvatarYTop'), 200),
+            avatarXRight: as.Int(Config.get('badges.displayAvatarXRight'), 100),
+            avatarYBottom: as.Int(Config.get('badges.displayAvatarYBottom'), 0),
+            avatarXLeft: as.Int(Config.get('badges.displayAvatarXLeft'), -100),
         };
         this.exitEditMode();
         this.updateDisplay();
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onUserSettingsChanged: Update complete.', {this: {...this}});
+        }
     }
 
     public updateBadgesFromPresence(badgesStr: string): void
@@ -109,9 +156,12 @@ export class BadgesDisplay
         this.containerElem.appendChild(this.editModeHintElem);
         this.showEditModeExitButton();
         for (const badgeDisplay of this.badges.values()) {
-            badgeDisplay.enterEditMode();
+            badgeDisplay.onEnterEditMode();
         }
         this.updateDisplay();
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.enterEditMode: Entered edit mode.', {this: {...this}});
+        }
     }
 
     public exitEditMode(): void
@@ -128,7 +178,10 @@ export class BadgesDisplay
         this.containerElem.removeChild(this.editModeExitElem);
         this.editModeExitElem = null;
         for (const badgeDisplay of this.badges.values()) {
-            badgeDisplay.exitEditMode();
+            badgeDisplay.onExitEditMode();
+        }
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.exitEditMode: Exited edit mode.', {this: {...this}});
         }
     }
 
@@ -143,10 +196,127 @@ export class BadgesDisplay
             this.parentDisplay.removeChild(this.containerElem);
             this.containerElem = null;
         }
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.stop: Stopped.', {this: {...this}});
+        }
     }
 
     //--------------------------------------------------------------------------
-    // Public API for BadgeDisplay
+    // Drag 'n drop related API
+
+    public makeDraggedBadgeIcon(itemProperties: ItemProperties, iconDataUrl?: string): HTMLImageElement|null {
+        if (!ItemProperties.getIsBadge(itemProperties)) {
+            return null;
+        }
+        const iconElem = document.createElement('img');
+        iconElem.classList.add('n3q-base', 'n3q-badge-draggedElem', 'n3q-hidden');
+        if (is.string(iconDataUrl)) {
+            iconElem.setAttribute('src', iconDataUrl);
+        } else {
+            const iconUrl = ItemProperties.getBadgeIconUrl(itemProperties);
+            this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
+                iconElem.setAttribute('src', iconDataUrl);
+            });
+        }
+        this.app.getDisplay()?.append(iconElem);
+        this.app.toFront(iconElem, ContentApp.LayerDrag);
+        return iconElem;
+    }
+
+    public showDraggedBadgeIconInside(
+        itemProperties: ItemProperties,
+        eventData: PointerEventData,
+        badgeIconElem?: HTMLImageElement,
+        correctPointerOffset: boolean = false,
+    ): void {
+        if (is.nil(badgeIconElem)) {
+            return;
+        }
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(itemProperties);
+        const [iconWidthHalf, iconHeightHalf] = [iconWidth / 2, iconHeight / 2];
+        let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
+        if (correctPointerOffset) {
+             centerClientX = centerClientX - eventData.startDomElementOffsetX + iconWidthHalf;
+             centerClientY = centerClientY - eventData.startDomElementOffsetY + iconHeightHalf;
+        }
+        const {avatarX, avatarY} = this.translateClientToAvatarPos(centerClientX, centerClientY);
+        const {avatarXClipped, avatarYClipped} = this.clipBadgeAvatarPos(avatarX, avatarY, iconWidth, iconHeight);
+        const {clientX, clientY} = this.translateAvatarToClientPos(avatarXClipped, avatarYClipped);
+        badgeIconElem.style.width = `${iconWidth}px`;
+        badgeIconElem.style.height = `${iconHeight}px`;
+        badgeIconElem.style.left = `${clientX - iconWidthHalf}px`;
+        badgeIconElem.style.top = `${clientY - iconHeightHalf}px`;
+        badgeIconElem.classList.remove('n3q-outside', 'n3q-hidden');
+    }
+
+    public showDraggedBadgeIconOutside(
+        itemProperties: ItemProperties, eventData: PointerEventData, badgeIconElem?: HTMLImageElement
+    ): void {
+        if (is.nil(badgeIconElem)) {
+            return;
+        }
+        badgeIconElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
+        badgeIconElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
+        badgeIconElem.classList.remove('n3q-hidden');
+        badgeIconElem.classList.add('n3q-outside');
+    }
+
+    public hideDraggedBadgeIcon(badgeIconElem?: HTMLImageElement): void {
+        badgeIconElem?.classList.add('n3q-hidden');
+    }
+
+    public disposeDraggedBadgeIcon(badgeIconElem?: HTMLImageElement): null {
+        badgeIconElem?.parentElement?.removeChild(badgeIconElem);
+        return null;
+    }
+
+    public isValidEditModeBadgeDrop(eventData: PointerEventData, itemProperties: ItemProperties): boolean
+    {
+        if (!this.isInEditMode
+        || !ItemProperties.getIsBadge(itemProperties)
+        || eventData.dropTarget instanceof HTMLElement && eventData.dropTarget !== this.containerElem) {
+            return false;
+        }
+        const {avatarX, avatarY} = this.translateClientToAvatarPos(eventData.clientX, eventData.clientY);
+        return this.isAvatarPosInside(avatarX, avatarY);
+    }
+
+    public onBadgeDropInside(
+        eventData: PointerEventData, itemProperties: ItemProperties, correctPointerOffset: boolean = false,
+    ): void {
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(itemProperties);
+        let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
+        if (correctPointerOffset) {
+            const [iconWidthHalf, iconHeightHalf] = [iconWidth / 2, iconHeight / 2];
+            centerClientX = centerClientX - eventData.startDomElementOffsetX + iconWidthHalf;
+            centerClientY = centerClientY - eventData.startDomElementOffsetY + iconHeightHalf;
+        }
+        const {avatarX, avatarY} = this.translateClientToAvatarPos(centerClientX, centerClientY);
+        const {avatarXClipped, avatarYClipped} = this.clipBadgeAvatarPos(avatarX, avatarY, iconWidth, iconHeight);
+        const itemPropertiesNew = {...itemProperties};
+        itemPropertiesNew[Pid.BadgeIsActive] = 'true';
+        itemPropertiesNew[Pid.BadgeIconX] = String(avatarXClipped);
+        itemPropertiesNew[Pid.BadgeIconY] = String(avatarYClipped);
+        this.updateBadgeFromFullItem(itemPropertiesNew);
+        this.updateBadgeOnServer(itemPropertiesNew);
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onBadgeDropInside: Done.', {eventData, itemProperties, itemPropertiesNew});
+        }
+    }
+
+    public onBadgeDropOutside(itemProperties: ItemProperties): void
+    {
+        this.removeBadge(itemProperties);
+        const itemPropertiesNew = {...itemProperties};
+        itemPropertiesNew[Pid.BadgeIsActive] = '0';
+        this.updateBadgeOnServer(itemPropertiesNew);
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.onBadgeDropOutside: Done.', {itemProperties, itemPropertiesNew});
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // API for BadgeDisplay
 
     public getBadgesContainer(): HTMLElement
     {
@@ -157,23 +327,92 @@ export class BadgesDisplay
         avatarX: number, avatarY: number, width: number, height: number
     ): {inContainerTop: number, inContainerLeft: number} {
         // avatarX and avatarY are measured from avatar center bottom towards right top.
-        const cDims = this.containerDimensions;
-
-        // Clip avatarX and avatarY to display baoundaries taking width and height into account:
-        const halfwidth = width / 2;
-        const halfHeight = height / 2;
-        const avatarXM = Math.max(-cDims.left + halfwidth, Math.min(cDims.right - halfwidth, avatarX));
-        const avatarYM = Math.max(cDims.bottom + halfHeight, Math.min(cDims.top - halfHeight, avatarY));
+        const {avatarXClipped, avatarYClipped} = this.clipBadgeAvatarPos(avatarX, avatarY, width, height);
 
         // Offset coordinates to DOM top/left coordinates inside container div:
-        const inContainerTop = cDims.top - avatarYM;
-        const inContainerLeft = avatarXM + cDims.left;
+        const cDims = this.containerDimensions;
+        const inContainerTop = cDims.avatarYTop - avatarYClipped;
+        const inContainerLeft = avatarXClipped - cDims.avatarXLeft;
 
         return {inContainerTop, inContainerLeft}
     }
 
+    public clipBadgeAvatarPos(
+        avatarX: number, avatarY: number, width: number, height: number
+    ): {avatarXClipped: number, avatarYClipped: number} {
+        // Clips avatarX and avatarY to display baoundaries taking width and height of the badge into account:
+        const {avatarYTop, avatarXRight, avatarYBottom, avatarXLeft} = this.containerDimensions;
+        const [halfwidth, halfHeight] = [width / 2, height / 2];
+        const [avatarYBottomM, avatarYTopM] = [avatarYBottom + halfHeight, avatarYTop - halfHeight];
+        const [avatarXLeftM, avatarXRightM] = [avatarXLeft + halfwidth, avatarXRight - halfwidth];
+        const avatarXClipped = Math.max(avatarXLeftM, Math.min(avatarXRightM, avatarX));
+        const avatarYClipped = Math.max(avatarYBottomM, Math.min(avatarYTopM, avatarY));
+        return {avatarXClipped, avatarYClipped};
+    }
+
+    public isAvatarPosInside(avatarX: number, avatarY: number): boolean
+    {
+        const {avatarYTop, avatarXRight, avatarYBottom, avatarXLeft} = this.containerDimensions;
+        return avatarX >= avatarXLeft && avatarX <= avatarXRight
+            && avatarY >= avatarYBottom && avatarY <= avatarYTop;
+    }
+
+    public translateClientToAvatarPos(clientX: number, clientY: number): {avatarX: number, avatarY: number} {
+        const avatarOriginClientX = this.entity.getPosition();
+        const avatarOriginClientY = document.documentElement.clientHeight;
+        const avatarX = clientX - avatarOriginClientX;
+        const avatarY = avatarOriginClientY - clientY;
+        return {avatarX, avatarY};
+    }
+
+    public translateAvatarToClientPos(avatarX: number, avatarY: number): {clientX: number, clientY: number} {
+        const avatarOriginClientX = this.entity.getPosition();
+        const avatarOriginClientY = document.documentElement.clientHeight;
+        const clientX = avatarX + avatarOriginClientX;
+        const clientY = avatarOriginClientY - avatarY;
+        return {clientX, clientY};
+    }
+
+    public onMouseEnterBadge(eventData: PointerEventData): void
+    {
+        if (!this.isInEditMode) {
+            this.entity.onMouseEnterAvatar(eventData);
+        }
+    }
+
+    public onMouseLeaveBadge(eventData: PointerEventData): void
+    {
+        if (!this.isInEditMode) {
+            this.entity.onMouseLeaveAvatar(eventData);
+        }
+    }
+
+    public onBadgePointerDown(eventData: PointerEventData): void
+    {
+        this.entity.select();
+    }
+
     //--------------------------------------------------------------------------
     // Badge state updates
+
+    private updateBadgeOnServer(itemProperties: ItemProperties): void
+    {
+        const itemId = itemProperties[Pid.Id];
+        const action = 'Badge.SetState';
+        const args = {
+            'IsActive': itemProperties[Pid.BadgeIsActive],
+            'IconX': itemProperties[Pid.BadgeIconX],
+            'IconY': itemProperties[Pid.BadgeIconY],
+        };
+        BackgroundMessage.executeBackpackItemAction(itemId, action, args, [itemId]).catch(error => {
+            const msg = 'BadgesDisplay.updateBadgeOnServer: executeBackpackItemAction failed!';
+            this.app.onError(new ErrorWithData(msg, {itemProperties, action, error}));
+            this.updateBadgesFromBackpack();
+        });
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.updateBadgeOnServer: executeBackpackItemAction message sent.', {itemId, action, args});
+        }
+    }
 
     private updateBadgesFromBackpack(): void
     {
@@ -181,14 +420,16 @@ export class BadgesDisplay
             if (!response?.ok) {
                 throw new ErrorWithData('BackgroundMessage.getBackpackState failed!', {response});
             }
-            const items: ItemProperties[] = [];
             for (const id in response.items) {
-                items.push(response.items[id]);
+                const itemProperties = response.items[id];
+                this.updateBadgeFromFullItem(itemProperties);
             }
-            items.forEach(itemProperties => this.updateBadgeFromFullItem(itemProperties));
+            if (this.debugLogEnabled) {
+                log.info('BadgesDisplay.updateBadgesFromBackpack: Update complete.', {this: {...this}});
+            }
         }).catch(error => {
-            const msg = 'BadgesDisplay.updateBadgesFromBackpack: !';
-            this.app.onError(new ErrorWithData(msg, {error}))
+            const msg = 'BadgesDisplay.updateBadgesFromBackpack: Update failed!';
+            this.app.onError(new ErrorWithData(msg, {error}));
         });
     }
 
@@ -197,24 +438,28 @@ export class BadgesDisplay
         const badgeKey = this.makeBadgeKey(itemProperties);
         this.badges.get(badgeKey)?.stop();
         this.badges.delete(badgeKey);
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.removeBadge: Done.', {itemProperties, this: {...this}});
+        }
     }
 
     private updateBadgeFromFullItem(itemProperties: ItemProperties): void
     {
         const badgeKey = this.makeBadgeKey(itemProperties);
         const isEnabledBadge = as.Bool(itemProperties[Pid.BadgeIsActive]);
-        const badge = this.badges.get(badgeKey);
-        if (is.nil(badge)) {
-            if (isEnabledBadge) {
-                this.badges.set(badgeKey, new BadgeDisplay(this.app, this, itemProperties));
-            }
+        if (isEnabledBadge) {
+            const iconUrl = ItemProperties.getBadgeIconUrl(itemProperties);
+            this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
+                const badge = this.badges.get(badgeKey);
+                if (is.nil(badge)) {
+                    const badgeDisplay = new BadgeDisplay(this.app, this, itemProperties, iconDataUrl);
+                    this.badges.set(badgeKey, badgeDisplay);
+                } else {
+                    badge.onPropertiesLoaded(itemProperties, iconDataUrl);
+                }
+            });
         } else {
-            if (isEnabledBadge) {
-                badge.onPropertiesLoaded(itemProperties);
-            } else {
-                badge.stop();
-                this.badges.delete(badgeKey);
-            }
+            this.removeBadge(itemProperties);
         }
     }
 
@@ -256,6 +501,9 @@ export class BadgesDisplay
             });
             [lastProviderId, lastInventoryId] = [providerId, inventoryId];
         }
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.parseBadgesStrFromPresence: Done.', {badgesStr, badges});
+        }
         return badges;
     }
 
@@ -265,7 +513,7 @@ export class BadgesDisplay
     }
 
     //--------------------------------------------------------------------------
-    // GUI updates
+    // Display
 
     private updateDisplay(): void
     {
@@ -274,15 +522,15 @@ export class BadgesDisplay
             this.containerElem.classList.add('n3q-base', 'n3q-badges');
             this.parentDisplay.appendChild(this.containerElem);
         }
-        const {top, right, bottom, left} = this.containerDimensions;
-        const [width, height] = [left + right, top - bottom];
-        this.containerElem.style.bottom = `${bottom}px`;
-        this.containerElem.style.left = `${-left}px`;
+        const {avatarYTop, avatarXRight, avatarYBottom, avatarXLeft} = this.containerDimensions;
+        const [width, height] = [avatarXRight - avatarXLeft, avatarYTop - avatarYBottom];
+        this.containerElem.style.bottom = `${avatarYBottom}px`;
+        this.containerElem.style.left = `${avatarXLeft}px`;
         this.containerElem.style.width = `${width}px`;
         this.containerElem.style.height = `${height}px`;
         if (!is.nil(this.editModeBackgroundElem)) {
-            this.editModeBackgroundElem.style.bottom = `${bottom}px`;
-            this.editModeBackgroundElem.style.left = `${-left}px`;
+            this.editModeBackgroundElem.style.bottom = `${avatarYBottom}px`;
+            this.editModeBackgroundElem.style.left = `${avatarXLeft}px`;
             this.editModeBackgroundElem.style.width = `${width}px`;
             this.editModeBackgroundElem.style.height = `${height}px`;
         }

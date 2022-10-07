@@ -565,15 +565,21 @@ export class ContentApp
             } break;
 
             case ContentMessage.type_onBackpackShowItem: {
-                this.backpackWindow?.onShowItem(message.data.id, message.data.properties);
+                const properties = message.data.properties;
+                this.backpackWindow?.onShowItem(message.data.id, properties);
+                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackShowItem(properties);
                 return false;
             } break;
             case ContentMessage.type_onBackpackSetItem: {
-                this.backpackWindow?.onSetItem(message.data.id, message.data.properties);
+                const properties = message.data.properties;
+                this.backpackWindow?.onSetItem(message.data.id, properties);
+                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackSetItem(properties);
                 return false;
             } break;
             case ContentMessage.type_onBackpackHideItem: {
+                const properties = message.data.properties;
                 this.backpackWindow?.onHideItem(message.data.id);
+                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackHideItem(properties);
                 return false;
             } break;
 

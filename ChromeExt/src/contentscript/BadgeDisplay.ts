@@ -1,8 +1,9 @@
-import { is } from '../lib/is';
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
-import { as } from '../lib/as';
 import { BadgesDisplay } from './BadgesDisplay';
+import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { DomButtonId } from '../lib/domTools';
 
 export class BadgeDisplay
 {
@@ -12,104 +13,147 @@ export class BadgeDisplay
     private readonly badgesDisplay: BadgesDisplay;
 
     private properties: ItemProperties;
-    private propertiesLoaded: boolean = false;
-    private iconElem: HTMLElement;
-    private iconDataUrl?: string;
-    private loadComplete: boolean = false;
-    private isInEditMode: boolean = false;
+    private iconDataUrl: string;
+    private readonly iconElem: HTMLImageElement;
+    private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher = null;
 
-    constructor(app: ContentApp, badgesDisplay: BadgesDisplay, properties: ItemProperties)
-    {
-        this.app = app;
-        this.badgesDisplay = badgesDisplay;
-        if (is.nil(properties[Pid.BadgeIconUrl])) {
-            this.properties = properties;
-        } else {
-            this.properties = {};
-            this.onPropertiesLoaded(properties);
-        }
-    }
+    private isStopping: boolean = false;
+    private dragIconElem?: HTMLImageElement = null;
 
     //--------------------------------------------------------------------------
     // API for BadgesDisplay
+
+    constructor(app: ContentApp, badgesDisplay: BadgesDisplay, properties: ItemProperties, iconDataUrl: string)
+    {
+        this.app = app;
+        this.badgesDisplay = badgesDisplay;
+        this.iconElem = document.createElement('img');
+        this.iconElem.classList.add('n3q-base', 'n3q-badge');
+        this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
+        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.iconElem);
+        this.initEventHandling();
+        this.onPropertiesLoaded(properties, iconDataUrl);
+    }
+
+    public onPropertiesLoaded(itemProperties: ItemProperties, iconDataUrl: string): void
+    {
+        this.properties = itemProperties;
+        this.iconDataUrl = iconDataUrl;
+        this.updateDisplay();
+    }
 
     public getProperties(): ItemProperties
     {
         return this.properties;
     }
 
-    public onPropertiesLoaded(properties: ItemProperties): void
-    {
-        if (this.properties[Pid.BadgeIconUrl] !== properties[Pid.BadgeIconUrl]) {
-            const iconUrl = as.String(properties[Pid.BadgeIconUrl]);
-            this.app.fetchUrlAsDataUrl(iconUrl).then(dataUrl => this.onIconLoaded(dataUrl));
-        }
-        this.properties = properties;
-        this.propertiesLoaded = true;
-        this.updateDisplay();
-    }
-
     public stop(): void
     {
-        if (!is.nil(this.iconElem)) {
-            // Todo: Cancel drag.
-            this.badgesDisplay.getBadgesContainer().removeChild(this.iconElem);
-            this.iconElem = null;
-        }
+        this.isStopping = true;
+        // Todo: Close info popup.
+        this.onExitEditMode();
+        this.iconElem?.parentElement?.removeChild(this.iconElem);
     }
 
     public updateDisplay(): void
     {
-        if (!this.loadComplete) {
-            return;
-        }
-        if (is.nil(this.iconElem)) {
-            this.iconElem = document.createElement('div');
-            this.iconElem.classList.add('n3q-base', 'n3q-badge');
-            this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
-        }
-        this.iconElem.style.backgroundImage = `url("${this.iconDataUrl}")`;
-
-        const width = as.Int(this.properties[Pid.BadgeIconWidth]);
-        const height = as.Int(this.properties[Pid.BadgeIconHeight]);
-        let x = as.Float(this.properties[Pid.BadgeIconX]);
-        let y = as.Float(this.properties[Pid.BadgeIconY]);
-        const {inContainerTop, inContainerLeft} = this.badgesDisplay.translateBadgePos(x, y, width, height);
-        this.iconElem.style.width = `${width}px`;
-        this.iconElem.style.height = `${height}px`;
-        this.iconElem.style.top = `${inContainerTop - height / 2}px`;
-        this.iconElem.style.left = `${inContainerLeft - width / 2}px`;
+        this.updateIcon();
     }
 
-    public enterEditMode(): void
+    public onEnterEditMode(): void
     {
-        if (this.isInEditMode) {
-            return;
-        }
-        this.isInEditMode = true;
+        // Called when badges display is entering edit mode after creation of this badge.
+        // Todo: Close info popup.
     }
 
-    public exitEditMode(): void
+    public onExitEditMode(): void
     {
-        if (!this.isInEditMode) {
-            return;
-        }
-        this.isInEditMode = false;
+        // Called when badges display is exiting edit mode after creation of this badge.
+        this.pointerEventDispatcher.cancelDrag();
     }
 
     //--------------------------------------------------------------------------
-    // Handling of updates and properties/icon loading
+    // Display and event handling
 
-    private onIconLoaded(iconDataUrl: string): void
+    private updateIcon(): void
     {
-        this.iconDataUrl = iconDataUrl;
-        this.updateLoadComplete();
-        this.updateDisplay();
+        if (this.isStopping) {
+            return;
+        }
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(this.properties);
+        const {iconX, iconY} = ItemProperties.getBadgeIconPos(this.properties);
+        const {inContainerTop, inContainerLeft}
+            = this.badgesDisplay.translateBadgePos(iconX, iconY, iconWidth, iconHeight);
+        this.iconElem.style.width = `${iconWidth}px`;
+        this.iconElem.style.height = `${iconHeight}px`;
+        this.iconElem.style.top = `${inContainerTop - iconHeight / 2}px`;
+        this.iconElem.style.left = `${inContainerLeft - iconWidth / 2}px`;
+        this.iconElem.setAttribute('src', this.iconDataUrl);
+
+        this.pointerEventDispatcher.setDragStartDistance(this.badgesDisplay.getIsInEditMode() ? 0.0 : null);
     }
 
-    private updateLoadComplete(): void
+    private initEventHandling(): void
     {
-        this.loadComplete = this.propertiesLoaded && !is.nil(this.iconDataUrl);
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverenter, ev => {
+            this.badgesDisplay.onMouseEnterBadge(ev);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverleave, ev => {
+            this.badgesDisplay.onMouseLeaveBadge(ev);
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, ev => {
+            this.badgesDisplay.onBadgePointerDown(ev);
+        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.click, ev => {
+            if (!this.isStopping && !this.badgesDisplay.getIsInEditMode()) {
+                // Todo: Toggle info popup.
+            }
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
+            if (this.badgesDisplay.getIsInEditMode()) {
+                this.iconElem.classList.add('n3q-hidden');
+                this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.properties, this.iconDataUrl);
+            } else {
+                this.pointerEventDispatcher.cancelDrag();
+            }
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, ev => {
+            if (this.badgesDisplay.getIsInEditMode()) {
+                if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
+                    this.pointerEventDispatcher.cancelDrag();
+                    return;
+                }
+                const display = this.badgesDisplay;
+                if (display.isValidEditModeBadgeDrop(ev, this.properties)) {
+                    display.showDraggedBadgeIconInside(this.properties, ev, this.dragIconElem, true);
+                } else {
+                    display.showDraggedBadgeIconOutside(this.properties, ev, this.dragIconElem);
+                }
+            }
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, ev => {
+            if (this.badgesDisplay.getIsInEditMode()) {
+                const display = this.badgesDisplay;
+                if (display.isValidEditModeBadgeDrop(ev, this.properties)) {
+                    display.onBadgeDropInside(ev, this.properties, true);
+                } else {
+                    display.onBadgeDropOutside(this.properties);
+                }
+            }
+        });
+
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => {
+            this.dragIconElem = this.badgesDisplay.disposeDraggedBadgeIcon(this.dragIconElem);
+            this.iconElem.classList.remove('n3q-hidden');
+            this.updateDisplay();
+        });
+
     }
 
 }

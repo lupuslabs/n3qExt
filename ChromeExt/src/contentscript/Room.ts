@@ -17,6 +17,7 @@ import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and 
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
 import { Chat, ChatMessage } from '../lib/ChatMessage';
+import { is } from '../lib/is';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -66,6 +67,7 @@ export class Room
     getPageUrl(): string { return this.pageUrl; }
     setPageUrl(pageUrl: string): void { this.pageUrl = pageUrl; }
     getParticipant(nick: string): Participant { return this.participants[nick]; }
+    getMyParticipant(): Participant|null { return is.nil(this.myNick) ? null : this.getParticipant(this.myNick); }
     getItem(nick: string): RoomItem { return this.items[nick]; }
 
     getItemByItemId(itemId: string): null | RoomItem

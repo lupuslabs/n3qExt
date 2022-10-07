@@ -91,7 +91,7 @@ export class Backpack
 
     sendRemoveItemToAllTabs(itemId: string)
     {
-        const data = new BackpackRemoveItemData(itemId);
+        const data = new BackpackRemoveItemData(itemId, this.getItem(itemId).getProperties());
         this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
     }
 

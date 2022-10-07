@@ -35,7 +35,7 @@ export class DomOpacityAwarePointerEventDispatcher {
     private readonly eventListeners = new Map<string, (data: PointerEventData) => any>();
     private readonly opacityMin: number;
     private readonly clickDoubleMaxDelayMs: number;
-    private readonly dragStartDistance: number;
+    private dragStartDistance: number;
     private readonly dragDropTargetUpdateIntervalMs: number;
 
     private lastPointerEventWasForUs: boolean = false;
@@ -122,7 +122,7 @@ export class DomOpacityAwarePointerEventDispatcher {
 
         this.opacityMin = as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
         this.clickDoubleMaxDelayMs = 1000 * as.Float(Config.get('avatars.pointerDoubleclickMaxSec'), 0.25);
-        this.dragStartDistance = as.Float(Config.get('avatars.pointerDragStartDistance'), 3.0);
+        this.setDragStartDistance();
         const dragUpdateIntervalSecs = as.Float(Config.get('avatars.pointerDropTargetUpdateIntervalSec'), 0.5);
         this.dragDropTargetUpdateIntervalMs = 1000 * dragUpdateIntervalSecs;
 
@@ -148,6 +148,12 @@ export class DomOpacityAwarePointerEventDispatcher {
     public setEventListener(type: string, handler: (ev: PointerEventData) => void): void
     {
         this.eventListeners.set(type, handler);
+    }
+
+    public setDragStartDistance(startDistance?: number): void
+    {
+        startDistance = startDistance ?? as.Float(Config.get('avatars.pointerDragStartDistance'), 3.0);
+        this.dragStartDistance = startDistance;
     }
 
     public addDropTargetTransparentClass(...classNames: Array<string>): void

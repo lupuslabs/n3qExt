@@ -237,6 +237,32 @@ export class ItemProperties
         }
     }
 
+    static getIsBadge(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.BadgeAspect]);
+    }
+
+    static getBadgeIconDimensions(itemProperties: ItemProperties): {iconWidth: number, iconHeight: number}
+    {
+        return {
+            iconWidth: as.Int(itemProperties[Pid.BadgeIconWidth]),
+            iconHeight: as.Int(itemProperties[Pid.BadgeIconHeight]),
+        };
+    }
+
+    static getBadgeIconPos(itemProperties: ItemProperties): {iconX: number, iconY: number}
+    {
+        return {
+            iconX: as.Float(itemProperties[Pid.BadgeIconX]),
+            iconY: as.Float(itemProperties[Pid.BadgeIconY]),
+        };
+    }
+
+    static getBadgeIconUrl(itemProperties: ItemProperties): string
+    {
+        return as.String(itemProperties[Pid.BadgeIconUrl]);
+    }
+
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }

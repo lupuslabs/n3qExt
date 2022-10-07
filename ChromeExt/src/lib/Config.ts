@@ -277,10 +277,11 @@ export class Config
         },
         badges: {
             enabled: true,
-            displayTop: 200,
-            displayRight: 100,
-            displayBottom: 0,
-            displayLeft: 80,
+            // Distances from avatar bottom center:
+            displayAvatarYTop: 200,
+            displayAvatarXRight: 100,
+            displayAvatarYBottom: 0,
+            displayAvatarXLeft: -80,
         },
         items: {
             'enabledProviders': ['n3q']
