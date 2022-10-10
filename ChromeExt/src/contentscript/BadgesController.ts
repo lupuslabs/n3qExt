@@ -6,14 +6,14 @@ import { ContentApp } from './ContentApp';
 import { Entity } from './Entity';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { BadgeDisplay } from './BadgeDisplay';
+import { Badge } from './Badge';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 import { SimpleToast } from './Toast';
 
-export class BadgesDisplay
+export class BadgesController
 {
     // Displays and allows for drag 'n drop editing of badges.
     //
@@ -37,7 +37,7 @@ export class BadgesDisplay
 
     private debugLogEnabled: boolean;
     private badgesEnabledMax: number;
-    private badges: Map<string,BadgeDisplay> = new Map();
+    private badges: Map<string,Badge> = new Map();
     private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
     private editModeBackgroundElem?: HTMLElement;
@@ -111,10 +111,14 @@ export class BadgesDisplay
     public updateBadgesFromPresence(badgesStr: string): void
     {
         if (this.isLocal) {
-            return; // Own badges are updated by onItem* methods.
+            return; // Own badges are updated by onBackpack*Item methods.
         }
         const sparseItems = this.parseBadgesStrFromPresence(badgesStr);
         // Todo: Get properties somehow and update.
+
+        if (this.debugLogEnabled) {
+            log.info('BadgesDisplay.updateBadgesFromPresence: Done.', {badgesStr, sparseItems});
+        }
     }
 
     public getBadgesStrForPresence(): string
@@ -476,7 +480,7 @@ export class BadgesDisplay
                         const itemPropertiesNew = {...itemProperties, [Pid.BadgeIsActive]: 'false'};
                         this.updateBadgeOnServer(itemPropertiesNew);
                     } else {
-                        const badgeDisplay = new BadgeDisplay(this.app, this, itemProperties, iconDataUrl);
+                        const badgeDisplay = new Badge(this.app, this, itemProperties, iconDataUrl);
                         this.badges.set(badgeKey, badgeDisplay);
                     }
                 } else {

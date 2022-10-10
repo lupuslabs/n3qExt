@@ -1,16 +1,16 @@
 import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
-import { BadgesDisplay } from './BadgesDisplay';
+import { BadgesController } from './BadgesController';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 
-export class BadgeDisplay
+export class Badge
 {
     // Displays a single badge.
 
     private readonly app: ContentApp;
-    private readonly badgesDisplay: BadgesDisplay;
+    private readonly badgesDisplay: BadgesController;
 
     private properties: ItemProperties;
     private iconDataUrl: string;
@@ -23,7 +23,7 @@ export class BadgeDisplay
     //--------------------------------------------------------------------------
     // API for BadgesDisplay
 
-    constructor(app: ContentApp, badgesDisplay: BadgesDisplay, properties: ItemProperties, iconDataUrl: string)
+    constructor(app: ContentApp, badgesDisplay: BadgesController, properties: ItemProperties, iconDataUrl: string)
     {
         this.app = app;
         this.badgesDisplay = badgesDisplay;

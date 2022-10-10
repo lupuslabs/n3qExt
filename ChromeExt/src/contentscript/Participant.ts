@@ -24,7 +24,7 @@ import { PrivateChatWindow } from './PrivateChatWindow';
 import { PrivateVidconfWindow } from './PrivateVidconfWindow';
 import { PointsBar } from './PointsBar';
 import { ActivityBar } from './ActivityBar';
-import { BadgesDisplay } from './BadgesDisplay';
+import { BadgesController } from './BadgesController';
 import { VpProtocol } from '../lib/VpProtocol';
 import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
@@ -39,7 +39,7 @@ export class Participant extends Entity
     private nicknameDisplay: Nickname;
     private pointsDisplay: PointsBar;
     private activityDisplay: ActivityBar;
-    private badgesDisplay: BadgesDisplay;
+    private badgesDisplay: BadgesController;
     private chatoutDisplay: Chatout;
     private chatinDisplay: Chatin;
     private isFirstPresence: boolean = true;
@@ -63,7 +63,7 @@ export class Participant extends Entity
         }
     }
 
-    getBadgesDisplay(): BadgesDisplay|null { return this.badgesDisplay; }
+    getBadgesDisplay(): BadgesController|null { return this.badgesDisplay; }
     getChatout(): Chatout { return this.chatoutDisplay; }
     getUserId(): string { return this.userId; }
 
@@ -246,7 +246,7 @@ export class Participant extends Entity
             }
 
             if (Config.get('badges.enabled', false)) {
-                this.badgesDisplay = new BadgesDisplay(this.app, this, this.getElem());
+                this.badgesDisplay = new BadgesController(this.app, this, this.getElem());
             }
 
             // Uses this.badgesDisplay to decide about presence of a menu item:
