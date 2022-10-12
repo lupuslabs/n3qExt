@@ -230,7 +230,8 @@ export class ContentApp
             navLang = navigator.language;
         }
         this.language = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
-        this.babelfish = new Translator(Config.get('i18n.translations', {})[this.language], this.language, Config.get('i18n.serviceUrl', ''));
+        const translationTable = Config.get('i18n.translations', {})[this.language];
+        this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
 
         this.vpi = new VpiResolver(BackgroundMessage, Config);
         this.vpi.language = Translator.getShortLanguageCode(this.language);

@@ -78,6 +78,7 @@ export class Config
         settings: {
             nameGeneratorBlocklistRetries: 30,
             nameGeneratorBlocklist: ['black', 'bronze', 'brown', 'chocolate', 'coffee', 'maroon', 'white', 'yellow'],
+            avatarGeneratorLink: 'https://www.weblin.io/Avatars',
         },
         design: {
             name: 'basic',
@@ -393,6 +394,8 @@ export class Config
                     'Popup.Saved': 'Saved',
                     'Popup.Show avatar': 'Show avatar on pages',
                     'Popup.Uncheck to hide': 'Uncheck to hide avatar on pages',
+                    'Popup.Create your own avatar': '...or create your own avatar in the new ',
+                    'Popup.Avatar Generator': 'avatar generator',
 
                     'Menu.Menu': 'Menu',
                     'Menu.Settings': 'Settings',
@@ -665,6 +668,8 @@ export class Config
                     'Popup.Saved': 'Gespeichert',
                     'Popup.Show avatar': 'Avatar auf Seiten anzeigen',
                     'Popup.Uncheck to hide': 'Abschalten, um das Avatar auf Webseiten nicht anzuzeigen',
+                    'Popup.Create your own avatar': '...oder mache einen eigenen Avatar mit dem neuen ',
+                    'Popup.Avatar Generator': 'Avatar-Generator',
 
                     'Menu.Menu': 'Menü',
                     'Menu.Settings': 'Einstellungen',

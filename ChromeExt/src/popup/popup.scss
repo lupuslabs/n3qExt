@@ -123,8 +123,30 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-label {
         // filter: brightness(0.8);
     }
 
-    // div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar {
-    // }   
+    div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar {
+        .n3q-popup-group-avatar-column {
+            display: inline-table;
+        }
+        
+        .n3q-popup-group-avatar-gallery {
+            max-width: 60%;
+        }
+
+        .n3q-popup-group-avatar-generator {
+            max-width: 40%;
+            margin-left: 16px;
+            padding-left: 16px;
+            // border-left: 1px dashed #a9a9a9;
+        }
+
+        a {
+            font: unset;
+        }
+    }   
+
+    div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar div.n3q-popup-text {
+        vertical-align: top;
+    }
 
     div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar div.n3q-popup-label {
         vertical-align: top;

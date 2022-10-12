@@ -21,8 +21,13 @@ export class PopupApp
 
     constructor(protected appendToMe: HTMLElement)
     {
-        let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
-        this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
+        let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
+        if (navLang === '') {
+            navLang = navigator.language;
+        }
+        let language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        const translationTable = Config.get('i18n.translations', {})[language];
+        this.babelfish = new Translator(translationTable, language, Config.get('i18n.serviceUrl', ''));
     }
 
     async dev_start()
@@ -121,24 +126,37 @@ export class PopupApp
 
             let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-avatar" data-translate="children"/>').get(0);
 
+            let avatarGallery = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-gallery" data-translate="children"/>').get(0);
+
             let input = $('<input type="hidden" id="n3q-id-popup-avatar" class="n3q-base" />').get(0);
             $(input).val(avatar);
-            group.append(input);
+            avatarGallery.append(input);
 
             let label = $('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Avatar</div>').get(0);
-            group.append(label);
+            avatarGallery.append(label);
 
             let left = <HTMLElement>$('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-left">&lt;</button>').get(0);
-            group.append(left);
+            avatarGallery.append(left);
 
             let icon = <HTMLImageElement>$('<img class="n3q-base n3q-popup-avatar-current" />').get(0);
-            group.append(icon);
+            avatarGallery.append(icon);
 
             let right = <HTMLElement>$('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-right">&gt;</button>').get(0);
-            group.append(right);
+            avatarGallery.append(right);
 
-            let name = $('<div class="n3q-base n3q-popup-avatar-name" />').get(0);
-            group.append(name);
+                
+            let avatarLink = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-generator" data-translate="children"/>').get(0);
+            
+            let generatorText = $('<div class="n3q-base n3q-popup-text" data-translate="children">'
+                + '<span  data-translate="text:Popup">Create your own avatar</span>'
+                + '<a href="' + Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars') 
+                + '" data-translate="text:Popup">Avatar Generator</a>'
+                + '</div>').get(0);
+
+            avatarLink.append(generatorText);
+
+            group.append(avatarGallery);
+            group.append(avatarLink);
 
             this.setCurrentAvatar(avatar, icon, input, name);
 
