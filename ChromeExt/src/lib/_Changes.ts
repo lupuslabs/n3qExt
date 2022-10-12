@@ -17,6 +17,7 @@ export class _Changes
             ['Fix', 'Dragged items now never affect more than one drop target'],
             ['Fix', 'Dragging a room item owned by someone else over own backpack window now doesn\'t move the item'],
             ['Fix', 'Room item info now always opens in front of other all room items and avatars'],
+            ['Fix', 'Fixed move animation not stopping on own avatar when switching tabs'],
         ]],
         ['1.2.2', 'AvatarApi', [
             ['Add', 'Avatar API'],
