@@ -365,6 +365,10 @@ export class BackgroundApp
                 return this.handle_executeBackpackItemAction(message.itemId, message.action, message.args, message.involvedIds, sendResponse);
             } break;
 
+            case BackgroundMessage.getItemsByInventoryItemIds.name: {
+                return this.handle_getItemsByInventoryItemIds(message.itemsToGet, sendResponse);
+            } break;
+
             case BackgroundMessage.pointsActivity.name: {
                 return this.handle_pointsActivity(message.channel, message.n, sendResponse);
             } break;
@@ -868,6 +872,21 @@ export class BackgroundApp
             sendResponse(new BackgroundItemExceptionResponse(new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable)));
         }
         return false;
+    }
+
+    handle_getItemsByInventoryItemIds(itemsToGet: ItemProperties[], sendResponse: (response?: any) => void): boolean
+    {
+        if (this.backpack) {
+            this.backpack.getItemsByInventoryItemIds(itemsToGet)
+            .then(items => sendResponse({ok: true, items}))
+            .catch(error => {
+                sendResponse({ok: false, 'ex': Utils.prepareValForMessage({error, itemsToGet})});
+            });
+        } else {
+            const error = new Error('Items subsystem diabled!');
+            sendResponse({ok: false, 'ex': Utils.prepareValForMessage({error, itemsToGet})});
+        }
+        return true;
     }
 
     private lastPointsSubmissionTime: number = 0;

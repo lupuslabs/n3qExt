@@ -383,6 +383,13 @@ export class Backpack
         await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY, changed, deleted, options);
     }
 
+    getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
+    {
+        const itemsPromises = [...this.providers.values()]
+        .map(provider => provider.getItemsByInventoryItemIds(itemsToGet));
+        return Promise.all(itemsPromises).then(itemLists => [].concat(...itemLists));
+    }
+
     stanzaOutFilter(stanza: xml): xml
     {
         for (let [providerId, provider] of this.providers) {

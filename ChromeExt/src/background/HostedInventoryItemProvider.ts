@@ -35,7 +35,7 @@ export namespace HostedInventoryItemProvider
     class ItemCacheEntry
     {
         public accessTime = Date.now();
-        constructor(private itemProperties: ItemProperties, public roomJid: string, public participantNick: string) { }
+        constructor(private itemProperties: ItemProperties) { }
         getProperties(): ItemProperties
         {
             this.accessTime = Date.now();
@@ -116,6 +116,14 @@ export namespace HostedInventoryItemProvider
                 throw error;
             }
             return itemIds;
+        }
+
+        async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
+        {
+            const {itemsLoaded, itemsToLoadByInventory} = this.getItemsLoadedAndInventoryItemIdsToLoad(itemsToGet);
+            const rermainingItemsPromise = this.requestItemsFromServer(itemsToLoadByInventory);
+            itemsLoaded.push(...await rermainingItemsPromise);
+            return itemsLoaded;
         }
 
         async loadServerItems(): Promise<void>
@@ -462,7 +470,7 @@ export namespace HostedInventoryItemProvider
             let deletedIds = [];
             let changedIds = [];
             let result = {};
-            let multiItemProperties = {};
+            let multiItemProperties: {[prop: string]: ItemProperties} = {};
             try {
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
@@ -512,68 +520,63 @@ export namespace HostedInventoryItemProvider
 
             let changedRooms = new Set<string>();
 
-            if (createdIds) {
-                for (let i = 0; i < createdIds.length; i++) {
-                    const id = createdIds[i];
-                    const props = multiItemProperties[id];
-                    let item = await this.backpack.createRepositoryItem(id, props);
-                    if (item.isRezzed()) {
-                        const room = item.getProperties()[Pid.RezzedLocation];
-                        this.backpack.addToRoom(id, room);
-                        changedRooms.add(room);
-                    }
-                    this.backpack.sendAddItemToAllTabs(id);
-                }
-            }
-
-            if (changedIds) {
-                for (let i = 0; i < changedIds.length; i++) {
-                    const id = changedIds[i];
-                    const item = this.backpack.getItem(id);
-                    if (item != null) {
-                        const wasRezzed = item.isRezzed();
-                        const room = item.getProperties()[Pid.RezzedLocation];
-                        if (wasRezzed) {
-                            changedRooms.add(room);
-                        }
-
-                        const props = multiItemProperties[id];
-                        this.backpack.setRepositoryItemProperties(id, props, { skipPresenceUpdate: true });
-
-                        const isRezzed = item.isRezzed();
-                        if (!wasRezzed && isRezzed) {
-                            const newRoom = item.getProperties()[Pid.RezzedLocation];
-                            this.backpack.addToRoom(id, newRoom);
-                            changedRooms.add(newRoom);
-                        } else if (wasRezzed && !isRezzed) {
-                            this.backpack.removeFromRoom(id, room);
-                            changedRooms.add(room);
-                        }
-                    }
-                }
-            }
-
-            if (deletedIds) {
-                for (let i = 0; i < deletedIds.length; i++) {
-                    const id = deletedIds[i];
-                    const item = this.backpack.getItem(id);
-                    if (item != null) {
-                        const wasRezzed = item.isRezzed();
-                        const room = item.getProperties()[Pid.RezzedLocation];
-                        if (wasRezzed) {
-                            changedRooms.add(room);
-                        }
-                    }
-                    this.backpack.sendRemoveItemToAllTabs(id);
-                    this.backpack.deleteRepositoryItem(id);
-                }
-            }
+            Object.values(multiItemProperties ?? {}).forEach(item => this.onCreateOrUpdateItem(item, changedRooms));
+            (deletedIds ?? []).forEach(itemId => this.onDeleteItem(itemId, changedRooms));
 
             for (let room of changedRooms) {
                 this.backpack.requestSendPresenceFromTab(room);
             }
 
             return result;
+        }
+
+        private onCreateOrUpdateItem(newItem: ItemProperties, changedRoomsAccu: Set<string>): void
+        {
+            const itemId = newItem[Pid.Id];
+            if (this.backpack.isItem(itemId)) {
+                const backpackItem = this.backpack.getItem(itemId);
+                const wasRezzed = backpackItem.isRezzed();
+                const oldRoom = backpackItem.getProperties()[Pid.RezzedLocation];
+
+                // Also sends update message to tabs:
+                this.backpack.setRepositoryItemProperties(itemId, newItem, { skipPresenceUpdate: true });
+
+                const isRezzed = backpackItem.isRezzed();
+                const newRoom = backpackItem.getProperties()[Pid.RezzedLocation];
+                if (wasRezzed && (!isRezzed || oldRoom !== newRoom)) {
+                    this.backpack.removeFromRoom(itemId, oldRoom);
+                    changedRoomsAccu.add(oldRoom);
+                }
+                if (isRezzed && (!wasRezzed || oldRoom !== newRoom)) {
+                    this.backpack.addToRoom(itemId, newRoom);
+                    changedRoomsAccu.add(newRoom);
+                }
+            } else {
+                // Doesn't send create message to tabs:
+                this.backpack.createRepositoryItem(itemId, newItem).then(backpackItem => {
+                    this.backpack.sendAddItemToAllTabs(itemId);
+                    if (backpackItem.isRezzed()) {
+                        const room = backpackItem.getProperties()[Pid.RezzedLocation];
+                        this.backpack.addToRoom(itemId, room);
+                        changedRoomsAccu.add(room);
+                    }
+                });
+            }
+        }
+
+        private onDeleteItem(itemId: string, changedRoomsAccu: Set<string>): void
+        {
+            if (this.backpack.isItem(itemId)) {
+                const item = this.backpack.getItem(itemId);
+                const wasRezzed = item.isRezzed();
+                if (wasRezzed) {
+                    const oldRoom = item.getProperties()[Pid.RezzedLocation];
+                    this.backpack.removeFromRoom(itemId, oldRoom);
+                    changedRoomsAccu.add(oldRoom);
+                }
+                this.backpack.sendRemoveItemToAllTabs(itemId);
+                this.backpack.deleteRepositoryItem(itemId);
+            }
         }
 
         async genericAction(action: string, args: ItemProperties): Promise<ItemProperties>
@@ -764,7 +767,6 @@ export namespace HostedInventoryItemProvider
         // -------------------- item cache ----------------------
 
         private itemCache = new Map<string, ItemCacheEntry>();
-        private itemRequests = new Set<string>();
         private lastItemCacheMaintenanceTime = 0;
 
         checkMaintainItemCache(): void
@@ -794,14 +796,156 @@ export namespace HostedInventoryItemProvider
                 if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                     const cacheEntry = this.itemCache.get(key);
                     log.info('HostedInventoryItemProvider.maintainItemCache', 'delete',
-                        '(age=' + (now - this.itemCache.get(key).accessTime) / 1000 + ')',
-                        key, cacheEntry.roomJid, cacheEntry.participantNick);
+                        '(age=' + (now - this.itemCache.get(key).accessTime) / 1000 + ')', key);
                 }
                 this.itemCache.delete(key);
             }
         }
 
+        private makeItemCacheKey(inventoryId: string, itemId: string): string { return `${inventoryId}:${itemId}`}
+
+        // -------------------- Generic item loading ----------------------
+
+        private getItemsLoadedAndInventoryItemIdsToLoad(
+            itemIds: ItemProperties[]
+        ): {itemsLoaded: ItemProperties[], itemsToLoadByInventory: Map<string,{itemId: string, cacheKey: string}[]>} {
+            const itemsToLoad = new Map<string,{itemId: string, cacheKey: string}[]>(); // Map<inventoryId,itemId[]>
+            const itemsLoaded: ItemProperties[] = [];
+            for (const item of itemIds) {
+                const [providerId, inventoryId] = [item[Pid.Provider], item[Pid.InventoryId]];
+                const [itemId, version] = [item[Pid.Id], item[Pid.Version]];
+                if (providerId === this.id) {
+                    if (inventoryId === this.userId && this.backpack.isItem(itemId)) {
+                        const itemLoaded = this.backpack.getItem(itemId).getProperties();
+                        if (is.nil(version) || version === itemLoaded[Pid.Version]) {
+                            itemsLoaded.push(itemLoaded);
+                            continue;
+                        }
+                    }
+                    const cacheKey = this.makeItemCacheKey(inventoryId, itemId);
+                    const cacheEntry = this.itemCache.get(cacheKey);
+                    if (!is.nil(cacheEntry)) {
+                        const itemLoaded = cacheEntry.getProperties();
+                        if (is.nil(version) || version === itemLoaded[Pid.Version]) {
+                            itemsLoaded.push(itemLoaded);
+                            continue;
+                        }
+                    }
+                    let inventoryItemIds = itemsToLoad.get(inventoryId);
+                    if (is.nil(inventoryItemIds)) {
+                        inventoryItemIds = [];
+                        itemsToLoad.set(inventoryId, inventoryItemIds);
+                    }
+                    inventoryItemIds.push({itemId, cacheKey});
+                }
+            }
+            return {itemsLoaded, itemsToLoadByInventory: itemsToLoad};
+        }
+
+        private itemRequests = new Map<string, ((item?: ItemProperties) => void)[]>();
+
+        private requestItemsFromServer(
+            itemsToLoadByInventory: Map<string,{itemId: string, cacheKey: string}[]>
+        ): Promise<ItemProperties[]> {
+            const itemPromises: Promise<ItemProperties|null>[] = [];
+            for (const [inventoryId, itemIdCacheKeys] of itemsToLoadByInventory) {
+                const itemIdCacheKeysToRequest
+                    = this.generateItemPromisesForInventoryItemsRequest(itemIdCacheKeys, itemPromises);
+                if (itemIdCacheKeysToRequest.size !== 0) {
+                    this.performInventoryItemsRequest(inventoryId, itemIdCacheKeysToRequest);
+                }
+            }
+            const itemsPromise = Promise.all(itemPromises)
+            .then((items: (ItemProperties|null)[]) => items.filter(item => !is.nil(item)));
+            return itemsPromise;
+        }
+
+        private generateItemPromisesForInventoryItemsRequest(
+            itemIdCacheKeys: {itemId: string, cacheKey: string}[], itemPromisesAccu: Promise<ItemProperties|null>[],
+        ): Map<string, string> {
+            const itemIdCacheKeysToRequest = new Map<string, string>();
+            for (const {itemId, cacheKey} of itemIdCacheKeys) {
+                let requestItemCallbacks = this.itemRequests.get(cacheKey);
+                if (is.nil(requestItemCallbacks)) {
+                    requestItemCallbacks = [];
+                    this.itemRequests.set(cacheKey, requestItemCallbacks);
+                    itemIdCacheKeysToRequest.set(itemId, cacheKey);
+                }
+                itemPromisesAccu.push(new Promise<ItemProperties>(resolve => {
+                    requestItemCallbacks.push(resolve);
+                }));
+            }
+            return itemIdCacheKeysToRequest;
+        }
+
+        private performInventoryItemsRequest(inventoryId: string, itemIdCacheKeysToRequest: Map<string, string>): void {
+            const itemIds = [...itemIdCacheKeysToRequest.keys()];
+            const [userId, token] = [this.userId, this.accessToken];
+            if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                log.info('HostedInventoryItemProvider.loadItemsFromServer', {inventoryId, itemIds});
+            }
+            const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, inventoryId, itemIds);
+            this.rpcClient.call(this.config().itemApiUrl, request)
+            .then(async rawResponse => this.handleInventoryItemsResponse(
+                inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>rawResponse
+            )).catch(error => {
+                console.info('HostedInventoryItemProvider.loadItemsFromServer', {error});
+            }).finally(() => {
+                // Resolve remaining callbacks for which no item has been returned:
+                for (const cacheKey of itemIdCacheKeysToRequest.values()) {
+                    const callbacks = this.itemRequests.get(cacheKey) ?? [];
+                    this.itemRequests.delete(cacheKey);
+                    callbacks.forEach(resolve => resolve(null));
+                }
+            });
+        }
+
+        private handleInventoryItemsResponse(
+            inventoryId: string,
+            itemIdCacheKeysToRequest: Map<string,string>,
+            response: RpcProtocol.UserGetItemPropertiesResponse,
+        ): void {
+            const logEnabled = Utils.logChannel('HostedInventoryItemProviderItemCache', true);
+            const items = Object.values(response.multiItemProperties);
+            if (logEnabled) {
+                const msg = 'HostedInventoryItemProvider.handleInventoryItemsResponse: Loaded items.';
+                log.info(msg, {inventoryId, items});
+            }
+            const isOwnBackpack = inventoryId === this.userId;
+
+            const changedRooms = new Set<string>();
+            for (const item of items) {
+                const itemId = items[Pid.Id];
+                const cacheKey = itemIdCacheKeysToRequest.get(itemId);
+                itemIdCacheKeysToRequest.delete(itemId);
+
+                const cacheEntry = new ItemCacheEntry(item);
+
+                if (isOwnBackpack) {
+                    this.onCreateOrUpdateItem(item, changedRooms)
+                } else {
+                    this.itemCache.set(cacheKey, cacheEntry);
+                }
+
+                const callbacks = this.itemRequests.get(cacheKey) ?? [];
+                this.itemRequests.delete(cacheKey);
+                callbacks.forEach(resolve => resolve(item));
+            }
+            if (isOwnBackpack) {
+                [...itemIdCacheKeysToRequest.keys()].forEach(itemId => this.onDeleteItem(itemId, changedRooms));
+            }
+            changedRooms.forEach(room => this.backpack.requestSendPresenceFromTab(room));
+
+            if (logEnabled && itemIdCacheKeysToRequest.size !== 0) {
+                const itemIds = itemIdCacheKeysToRequest.keys();
+                const msg = 'HostedInventoryItemProvider.handleInventoryItemsResponse: Some requested items don\'t exist or are invisible to this user!';
+                log.info(msg, {inventoryId, itemIds});
+            }
+        }
+
         // -----------------------------------------------------
+
+        private itemsRequestedForDependendPresence = new Set<string>();
 
         async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
         {
@@ -809,21 +953,22 @@ export namespace HostedInventoryItemProvider
             if (vpProps) {
                 dependentPresence.attrs._incomplete = true;
 
+                const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
+                const cacheKey = this.makeItemCacheKey(inventoryId, itemId);
                 if (this.backpack.isItem(itemId)) {
                     const backpackProps = this.backpack.getItem(itemId).getProperties();
                     this.completeDependentPresence(backpackProps, dependentPresence, vpProps);
 
-                } else if (this.itemCache.has(itemId)) {
+                } else if (this.itemCache.has(cacheKey)) {
                     const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
                     const vpDigest = as.String(vpProps.attrs[Pid.Digest], '');
-                    const cacheEntry = this.itemCache.get(itemId);
+                    const cacheEntry = this.itemCache.get(cacheKey);
 
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                         let now = Date.now();
-                        const cacheEntry = this.itemCache.get(itemId);
                         log.info('HostedInventoryItemProvider.onDependentPresence', 'access',
-                            '(age=' + (now - this.itemCache.get(itemId).accessTime) / 1000 + ')',
-                            itemId, cacheEntry.roomJid, cacheEntry.participantNick);
+                            '(age=' + (now - this.itemCache.get(cacheKey).accessTime) / 1000 + ')',
+                            itemId, roomJid, participantNick);
                     }
 
                     const cachedProps = cacheEntry.getProperties();
@@ -851,7 +996,7 @@ export namespace HostedInventoryItemProvider
             this.checkMaintainItemCache();
         }
 
-        completeDependentPresence(props: ItemProperties, dependentPresence: xml, vpProps: any): void
+        private completeDependentPresence(props: ItemProperties, dependentPresence: xml, vpProps: any): void
         {
             delete dependentPresence.attrs._incomplete;
             for (let key in props) {
@@ -861,12 +1006,13 @@ export namespace HostedInventoryItemProvider
 
         private deferredItemPropertiesRequests = new Map<string, DeferredItemPropertiesRequest>();
 
-        async requestItemPropertiesForDependentPresence(itemId: string, inventoryId: string, roomJid: string, participantNick: string): Promise<void>
-        {
-            if (inventoryId === '') { return; }
-            if (this.itemRequests.has(itemId)) { return; }
-
-            this.itemRequests.add(itemId);
+        private requestItemPropertiesForDependentPresence(
+            itemId: string, inventoryId: string, roomJid: string, participantNick: string,
+        ): void {
+            if (inventoryId === '' || this.itemsRequestedForDependendPresence.has(itemId)) {
+                return;
+            }
+            this.itemsRequestedForDependendPresence.add(itemId);
 
             const timerKey = roomJid + '/' + participantNick;
             if (this.deferredItemPropertiesRequests.has(timerKey)) {
@@ -880,45 +1026,27 @@ export namespace HostedInventoryItemProvider
 
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'inventory=' + deferredRequest.inventoryId, Array.from(deferredRequest.itemIds).join(' ')); }
 
-                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, deferredRequest.inventoryId, Array.from(deferredRequest.itemIds));
-                    this.rpcClient.call(this.config().itemApiUrl, request)
-                        .then(async r =>
-                        {
-                            for (let id of deferredRequest.itemIds) {
-                                this.itemRequests.delete(id);
+                    const itemsToGet = [...deferredRequest.itemIds.values()]
+                    .map(itemId => ({[Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId}));
+                    this.getItemsByInventoryItemIds(itemsToGet).then(items => {
+                        for (let id of deferredRequest.itemIds) {
+                            this.itemsRequestedForDependendPresence.delete(id);
+                        }
+                        this.backpack.replayPresence(roomJid, participantNick);
+                        for (const item of items) {
+                            if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                                log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set', {items, roomJid, participantNick});
                             }
-
-                            const response = <RpcProtocol.UserGetItemPropertiesResponse>r;
-
-                            for (let id in response.multiItemProperties) {
-                                const props = response.multiItemProperties[id];
-
-                                this.itemCache.set(id, new ItemCacheEntry(props, deferredRequest.roomJid, deferredRequest.participantNick));
-
-                                if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
-                                    const cacheEntry = this.itemCache.get(id);
-                                    log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set', id, cacheEntry.roomJid, cacheEntry.participantNick);
-                                }
-
-                                await this.forwardCachedProperties(id);
-                            }
-                        })
-                        .catch(error =>
-                        {
-                            console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
-                        });
+                        }
+                    })
+                    .catch(error =>
+                    {
+                        console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
+                    });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
                 let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);
                 deferredRequest.itemIds.add(itemId);
                 this.deferredItemPropertiesRequests.set(timerKey, deferredRequest);
-            }
-        }
-
-        async forwardCachedProperties(itemId: string)
-        {
-            if (this.itemCache.has(itemId)) {
-                const cacheEntry = this.itemCache.get(itemId);
-                await this.backpack.replayPresence(cacheEntry.roomJid, cacheEntry.participantNick);
             }
         }
 

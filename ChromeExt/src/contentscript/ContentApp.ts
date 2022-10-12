@@ -83,10 +83,7 @@ export class ContentApp
     getRoom(): Room { return this.room; }
     getLanguage(): string { return this.language; }
 
-    getMyParticipant(): undefined | Participant
-    {
-        return this.room?.getParticipant(this.room.getMyNick()) ?? null;
-    }
+    getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
 
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 

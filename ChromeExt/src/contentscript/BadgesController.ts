@@ -114,8 +114,8 @@ export class BadgesController
             return; // Own badges are updated by onBackpack*Item methods.
         }
         const sparseItems = this.parseBadgesStrFromPresence(badgesStr);
-        // Todo: Get properties somehow and update.
-
+        BackgroundMessage.getItemsByInventoryItemIds(sparseItems)
+        .then(items => items.forEach(item => this.updateBadgeFromFullItem(this.makeBadgeKey(item), item)));
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.updateBadgesFromPresence: Done.', {badgesStr, sparseItems});
         }
@@ -127,7 +127,7 @@ export class BadgesController
         let lastProviderId: string|null = null;
         let lastInventoryId: string|null = null;
         for (const badgeDisplay of this.badges.values()) {
-            const {Provider, InventoryId, Id} = badgeDisplay.getProperties();
+            const {Provider, InventoryId, Id, Version} = badgeDisplay.getProperties();
             const ids: string[] = [];
             if (Provider !== lastProviderId) {
                 ids.push(Provider);
@@ -136,6 +136,7 @@ export class BadgesController
                 ids.push(InventoryId);
             }
             ids.push(Id);
+            ids.push(Version);
             badgeStrs.push(ids.join(':'));
             [lastProviderId, lastInventoryId] = [Provider, InventoryId];
         }
@@ -442,10 +443,8 @@ export class BadgesController
             if (!response?.ok) {
                 throw new ErrorWithData('BackgroundMessage.getBackpackState failed!', {response});
             }
-            for (const id in response.items) {
-                const itemProperties = response.items[id];
-                this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
-            }
+            Object.values<ItemProperties>(response.items)
+            .forEach(item => this.updateBadgeFromFullItem(this.makeBadgeKey(item), item));
             if (this.debugLogEnabled) {
                 log.info('BadgesDisplay.updateBadgesFromBackpack: Update complete.', {this: {...this}});
             }

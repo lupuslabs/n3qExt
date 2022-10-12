@@ -214,6 +214,11 @@ export class Room
                 }
             }
 
+            const badgesStr = this.getMyParticipant()?.getBadgesDisplay()?.getBadgesStrForPresence();
+            if (is.string(badgesStr)) {
+                vpProps['Badges'] = badgesStr;
+            }
+
             const presence = xml('presence', { to: this.jid + '/' + this.resource });
 
             presence.append(xml('x', { xmlns: 'firebat:avatar:state', }).append(xml('position', { x: as.Int(this.posX) })));

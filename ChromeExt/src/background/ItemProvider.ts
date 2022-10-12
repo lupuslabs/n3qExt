@@ -7,6 +7,15 @@ export interface IItemProvider
 {
     init(): Promise<void>;
     loadItems(): Promise<void>;
+
+    // Each element of itemsToGet has to contain the properties Provider, InventoryId and ID.
+    // It may also contain the assumed current Version, which may be used by the
+    // provider to determine whether to return a cached item or request it from a server.
+    // Given Version doesn't have to match the returned item's Version.
+    // Elements having the wrong Provider are ignored.
+    // Doesn't throw. In case of error or item not retrievable, the item is just omitted from the result.
+    getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>;
+
     getItemIds(): Promise<string[]>;
     addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>;
     deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>;

@@ -388,6 +388,16 @@ export class LocalStorageItemProvider implements IItemProvider
         return itemIds;
     }
 
+    async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
+    {
+        // Ignores InventoryId.
+        const backpackItems = this.backpack.getItems();
+        return itemsToGet
+        .filter(itemToGet => itemToGet[Pid.Provider] === this.id)
+        .map(({Id}) => backpackItems[Id])
+        .filter(item => !is.nil(item));
+    }
+
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         let item = await this.backpack.createRepositoryItem(itemId, props);

@@ -389,6 +389,12 @@ export class BackgroundMessage
         });
     }
 
+    static getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
+    {
+        const request = { 'type': BackgroundMessage.getItemsByInventoryItemIds.name, itemsToGet };
+        return BackgroundMessage.sendMessageCheckOk(request).then(response => <ItemProperties[]>(response.items));
+    }
+
     static handleNewChatMessage(chat: Chat, chatMessage: ChatMessage, deduplicate: boolean): Promise<boolean>
     {
         return new Promise((resolve, reject) => {
