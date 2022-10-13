@@ -178,12 +178,12 @@ export class Room
     async onUserSettingsChanged(): Promise<void>
     {
         await this.enter();
-        window.setTimeout(async () => { await this.sendPresence(); }, as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1) * 1000);
+        window.setTimeout(() => this.sendPresence(), as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1) * 1000);
     }
 
-    async sendPresence(): Promise<void>
+    sendPresence(): void
     {
-        try {
+        (async() => {
             const vpProps = { xmlns: 'vp:props', 'timestamp': Date.now(), 'Nickname': this.resource, 'AvatarId': this.avatar, 'nickname': this.resource, 'avatar': 'gif/' + this.avatar };
 
             const nickname = await this.getBackpackItemNickname(this.resource);
@@ -262,10 +262,10 @@ export class Room
 
             // log.debug('#### send', presence.children[1].attrs);
             this.app.sendStanza(presence);
-        } catch (error) {
+        })().catch(error => {
             log.info(error);
             Panic.now();
-        }
+        });
     }
 
     async getPointsItemPoints(defaultValue: number): Promise<number> { return as.Int(await this.getBackpackItemProperty({ [Pid.PointsAspect]: 'true' }, Pid.PointsTotal, defaultValue)); }

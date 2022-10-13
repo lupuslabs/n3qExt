@@ -256,7 +256,7 @@ export class IframeApi
             if (doActivate) {
                 const [action, args, involvedIds] = ['Activatable.SetState', {Value: 'true'}, [itemId]];
                 await BackgroundMessage.executeBackpackItemAction(itemId, action, args, involvedIds);
-                this.app.getRoom().sendPresence().catch(error => {/* Already handled. */});
+                this.app.getRoom().sendPresence();
             }
 
             if (doCreate || doActivate) {

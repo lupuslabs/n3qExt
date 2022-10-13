@@ -1251,7 +1251,7 @@ export class ContentApp
         {
             await BackgroundMessage.deleteBackpackItem(itemId, {});
             if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
-                this.getRoom()?.sendPresence().catch(error => {/* already handled */});
+                this.getRoom()?.sendPresence();
             }
             onDeleted?.(itemId);
         })().catch(error =>
