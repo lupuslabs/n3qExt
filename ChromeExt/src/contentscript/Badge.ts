@@ -12,7 +12,7 @@ export class Badge
     private readonly app: ContentApp;
     private readonly badgesDisplay: BadgesController;
 
-    private properties: ItemProperties;
+    private item: ItemProperties;
     private iconDataUrl: string;
     private readonly iconElem: HTMLImageElement;
     private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher = null;
@@ -23,7 +23,7 @@ export class Badge
     //--------------------------------------------------------------------------
     // API for BadgesDisplay
 
-    constructor(app: ContentApp, badgesDisplay: BadgesController, properties: ItemProperties, iconDataUrl: string)
+    constructor(app: ContentApp, badgesDisplay: BadgesController, item: ItemProperties, iconDataUrl: string)
     {
         this.app = app;
         this.badgesDisplay = badgesDisplay;
@@ -32,19 +32,19 @@ export class Badge
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.iconElem);
         this.initEventHandling();
-        this.onPropertiesLoaded(properties, iconDataUrl);
+        this.onPropertiesLoaded(item, iconDataUrl);
     }
 
-    public onPropertiesLoaded(itemProperties: ItemProperties, iconDataUrl: string): void
+    public onPropertiesLoaded(item: ItemProperties, iconDataUrl: string): void
     {
-        this.properties = itemProperties;
+        this.item = item;
         this.iconDataUrl = iconDataUrl;
         this.updateDisplay();
     }
 
     public getProperties(): ItemProperties
     {
-        return this.properties;
+        return this.item;
     }
 
     public stop(): void
@@ -80,8 +80,8 @@ export class Badge
         if (this.isStopping) {
             return;
         }
-        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(this.properties);
-        const {iconX, iconY} = ItemProperties.getBadgeIconPos(this.properties);
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(this.item);
+        const {iconX, iconY} = ItemProperties.getBadgeIconPos(this.item);
         const {inContainerTop, inContainerLeft}
             = this.badgesDisplay.translateBadgePos(iconX, iconY, iconWidth, iconHeight);
         this.iconElem.style.width = `${iconWidth}px`;
@@ -116,7 +116,7 @@ export class Badge
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 this.iconElem.classList.add('n3q-hidden');
-                this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.properties, this.iconDataUrl);
+                this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.iconDataUrl);
             } else {
                 this.pointerEventDispatcher.cancelDrag();
             }
@@ -129,10 +129,10 @@ export class Badge
                     return;
                 }
                 const display = this.badgesDisplay;
-                if (display.isValidEditModeBadgeDrop(ev, this.properties)) {
-                    display.showDraggedBadgeIconInside(this.properties, ev, this.dragIconElem, true);
+                if (display.isValidEditModeBadgeDrop(ev, this.item)) {
+                    display.showDraggedBadgeIconInside(this.item, ev, this.dragIconElem, true);
                 } else {
-                    display.showDraggedBadgeIconOutside(this.properties, ev, this.dragIconElem);
+                    display.showDraggedBadgeIconOutside(this.item, ev, this.dragIconElem);
                 }
             }
         });
@@ -140,10 +140,10 @@ export class Badge
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 const display = this.badgesDisplay;
-                if (display.isValidEditModeBadgeDrop(ev, this.properties)) {
-                    display.onBadgeDropInside(ev, this.properties, true);
+                if (display.isValidEditModeBadgeDrop(ev, this.item)) {
+                    display.onBadgeDropInside(ev, this.item, true);
                 } else {
-                    display.onBadgeDropOutside(this.properties);
+                    display.onBadgeDropOutside(this.item);
                 }
             }
         });
