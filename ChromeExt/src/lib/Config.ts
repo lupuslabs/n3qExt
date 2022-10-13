@@ -278,6 +278,7 @@ export class Config
         badges: {
             enabled: true,
             badgesEnabledMax: 3,
+            sendPresenceDelaySec: 1,
             // Distances from avatar bottom center:
             displayAvatarYTop: 200,
             displayAvatarXRight: 100,

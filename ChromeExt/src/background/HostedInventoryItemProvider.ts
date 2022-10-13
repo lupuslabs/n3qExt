@@ -547,8 +547,10 @@ export namespace HostedInventoryItemProvider
                     this.backpack.removeFromRoom(itemId, oldRoom);
                     changedRoomsAccu.add(oldRoom);
                 }
-                if (isRezzed && (!wasRezzed || oldRoom !== newRoom)) {
-                    this.backpack.addToRoom(itemId, newRoom);
+                if (isRezzed) {
+                    if (!wasRezzed || oldRoom !== newRoom) {
+                        this.backpack.addToRoom(itemId, newRoom);
+                    }
                     changedRoomsAccu.add(newRoom);
                 }
             } else {
@@ -812,8 +814,8 @@ export namespace HostedInventoryItemProvider
             const itemsToLoad = new Map<string,{itemId: string, cacheKey: string}[]>(); // Map<inventoryId,itemId[]>
             const itemsLoaded: ItemProperties[] = [];
             for (const item of itemIds) {
-                const [providerId, inventoryId] = [item[Pid.Provider], item[Pid.InventoryId]];
-                const [itemId, version] = [item[Pid.Id], item[Pid.Version]];
+                const [providerId, inventoryId, itemId, version]
+                    = [item[Pid.Provider], item[Pid.InventoryId], item[Pid.Id], item[Pid.Version]];
                 if (providerId === this.id) {
                     if (inventoryId === this.userId && this.backpack.isItem(itemId)) {
                         const itemLoaded = this.backpack.getItem(itemId).getProperties();
@@ -871,7 +873,7 @@ export namespace HostedInventoryItemProvider
                     this.itemRequests.set(cacheKey, requestItemCallbacks);
                     itemIdCacheKeysToRequest.set(itemId, cacheKey);
                 }
-                itemPromisesAccu.push(new Promise<ItemProperties>(resolve => {
+                itemPromisesAccu.push(new Promise<ItemProperties|null>(resolve => {
                     requestItemCallbacks.push(resolve);
                 }));
             }
@@ -882,14 +884,14 @@ export namespace HostedInventoryItemProvider
             const itemIds = [...itemIdCacheKeysToRequest.keys()];
             const [userId, token] = [this.userId, this.accessToken];
             if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
-                log.info('HostedInventoryItemProvider.loadItemsFromServer', {inventoryId, itemIds});
+                log.info('HostedInventoryItemProvider.performInventoryItemsRequest', {inventoryId, itemIds});
             }
             const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, inventoryId, itemIds);
             this.rpcClient.call(this.config().itemApiUrl, request)
-            .then(async rawResponse => this.handleInventoryItemsResponse(
-                inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>rawResponse
+            .then(response => this.handleInventoryItemsResponse(
+                inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>response
             )).catch(error => {
-                console.info('HostedInventoryItemProvider.loadItemsFromServer', {error});
+                console.info('HostedInventoryItemProvider.performInventoryItemsRequest', {error});
             }).finally(() => {
                 // Resolve remaining callbacks for which no item has been returned:
                 for (const cacheKey of itemIdCacheKeysToRequest.values()) {
@@ -915,7 +917,7 @@ export namespace HostedInventoryItemProvider
 
             const changedRooms = new Set<string>();
             for (const item of items) {
-                const itemId = items[Pid.Id];
+                const itemId = item[Pid.Id];
                 const cacheKey = itemIdCacheKeysToRequest.get(itemId);
                 itemIdCacheKeysToRequest.delete(itemId);
 
@@ -936,6 +938,12 @@ export namespace HostedInventoryItemProvider
             }
             changedRooms.forEach(room => this.backpack.requestSendPresenceFromTab(room));
 
+            itemIdCacheKeysToRequest.forEach((cacheKey, itemId) => {
+                const callbacks = this.itemRequests.get(cacheKey) ?? [];
+                this.itemRequests.delete(cacheKey);
+                callbacks.forEach(resolve => resolve(null));
+            });
+
             if (logEnabled && itemIdCacheKeysToRequest.size !== 0) {
                 const itemIds = itemIdCacheKeysToRequest.keys();
                 const msg = 'HostedInventoryItemProvider.handleInventoryItemsResponse: Some requested items don\'t exist or are invisible to this user!';
@@ -949,7 +957,7 @@ export namespace HostedInventoryItemProvider
 
         async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
         {
-            const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
+            const vpProps = dependentPresence.getChildren('x').find(child => child.attrs?.xmlns === 'vp:props');
             if (vpProps) {
                 dependentPresence.attrs._incomplete = true;
 
@@ -960,7 +968,6 @@ export namespace HostedInventoryItemProvider
                     this.completeDependentPresence(backpackProps, dependentPresence, vpProps);
 
                 } else if (this.itemCache.has(cacheKey)) {
-                    const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
                     const vpDigest = as.String(vpProps.attrs[Pid.Digest], '');
                     const cacheEntry = this.itemCache.get(cacheKey);
 
@@ -1027,16 +1034,20 @@ export namespace HostedInventoryItemProvider
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'inventory=' + deferredRequest.inventoryId, Array.from(deferredRequest.itemIds).join(' ')); }
 
                     const itemsToGet = [...deferredRequest.itemIds.values()]
-                    .map(itemId => ({[Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId}));
+                    .map(itemId => ({[Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId, [Pid.Version]: ''}));
                     this.getItemsByInventoryItemIds(itemsToGet).then(items => {
                         for (let id of deferredRequest.itemIds) {
                             this.itemsRequestedForDependendPresence.delete(id);
                         }
-                        this.backpack.replayPresence(roomJid, participantNick);
-                        for (const item of items) {
+                        if (items.length === itemsToGet.length) {
+                            this.backpack.replayPresence(roomJid, participantNick);
                             if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
-                                log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'set', {items, roomJid, participantNick});
+                                const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: Replayed presence.';
+                                log.info(msg, {items, roomJid, participantNick});
                             }
+                        } else {
+                            const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: didn\'t get all items.';
+                            console.info(msg, {itemsToGet, items});
                         }
                     })
                     .catch(error =>
