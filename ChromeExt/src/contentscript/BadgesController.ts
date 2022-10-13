@@ -64,28 +64,28 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // API for ContentApp
 
-    public onBackpackShowItem(itemProperties: ItemProperties): void
+    public onBackpackShowItem(item: ItemProperties): void
     {
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackShowItem', {itemProperties});
+            log.info('BadgesDisplay.onBackpackShowItem', {item});
         }
-        this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
+        this.updateBadgeFromFullItem(this.makeBadgeKey(item), item);
     }
 
-    public onBackpackSetItem(itemProperties: ItemProperties): void
+    public onBackpackSetItem(item: ItemProperties): void
     {
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackSetItem', {itemProperties});
+            log.info('BadgesDisplay.onBackpackSetItem', {item});
         }
-        this.updateBadgeFromFullItem(this.makeBadgeKey(itemProperties), itemProperties);
+        this.updateBadgeFromFullItem(this.makeBadgeKey(item), item);
     }
 
-    public onBackpackHideItem(itemProperties: ItemProperties): void
+    public onBackpackHideItem(item: ItemProperties): void
     {
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackHideItem', {itemProperties});
+            log.info('BadgesDisplay.onBackpackHideItem', {item});
         }
-        this.removeBadge(this.makeBadgeKey(itemProperties), itemProperties);
+        this.removeBadge(this.makeBadgeKey(item));
     }
 
     //--------------------------------------------------------------------------
@@ -212,8 +212,8 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // Drag 'n drop related API
 
-    public makeDraggedBadgeIcon(itemProperties: ItemProperties, iconDataUrl?: string): HTMLImageElement|null {
-        if (!ItemProperties.getIsBadge(itemProperties)) {
+    public makeDraggedBadgeIcon(item: ItemProperties, iconDataUrl?: string): HTMLImageElement|null {
+        if (!ItemProperties.getIsBadge(item)) {
             return null;
         }
         const iconElem = document.createElement('img');
@@ -221,7 +221,7 @@ export class BadgesController
         if (is.string(iconDataUrl)) {
             iconElem.setAttribute('src', iconDataUrl);
         } else {
-            const iconUrl = ItemProperties.getBadgeIconUrl(itemProperties);
+            const iconUrl = ItemProperties.getBadgeIconUrl(item);
             this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
                 iconElem.setAttribute('src', iconDataUrl);
             });
@@ -232,7 +232,7 @@ export class BadgesController
     }
 
     public showDraggedBadgeIconInside(
-        itemProperties: ItemProperties,
+        item: ItemProperties,
         eventData: PointerEventData,
         badgeIconElem?: HTMLImageElement,
         correctPointerOffset: boolean = false,
@@ -240,7 +240,7 @@ export class BadgesController
         if (is.nil(badgeIconElem)) {
             return;
         }
-        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(itemProperties);
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(item);
         const [iconWidthHalf, iconHeightHalf] = [iconWidth / 2, iconHeight / 2];
         let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
         if (correctPointerOffset) {
@@ -258,7 +258,7 @@ export class BadgesController
     }
 
     public showDraggedBadgeIconOutside(
-        itemProperties: ItemProperties, eventData: PointerEventData, badgeIconElem?: HTMLImageElement
+        item: ItemProperties, eventData: PointerEventData, badgeIconElem?: HTMLImageElement
     ): void {
         if (is.nil(badgeIconElem)) {
             return;
@@ -278,10 +278,10 @@ export class BadgesController
         return null;
     }
 
-    public isValidEditModeBadgeDrop(eventData: PointerEventData, itemProperties: ItemProperties): boolean
+    public isValidEditModeBadgeDrop(eventData: PointerEventData, item: ItemProperties): boolean
     {
         if (!this.isInEditMode
-        || !ItemProperties.getIsBadge(itemProperties)
+        || !ItemProperties.getIsBadge(item)
         || eventData.dropTarget instanceof HTMLElement && eventData.dropTarget !== this.containerElem) {
             return false;
         }
@@ -290,9 +290,9 @@ export class BadgesController
     }
 
     public onBadgeDropInside(
-        eventData: PointerEventData, itemProperties: ItemProperties, correctPointerOffset: boolean = false,
+        eventData: PointerEventData, item: ItemProperties, correctPointerOffset: boolean = false,
     ): void {
-        const badgeKey = this.makeBadgeKey(itemProperties);
+        const badgeKey = this.makeBadgeKey(item);
         if (this.badges.size >= this.badgesEnabledMax && !this.badges.has(badgeKey)) {
             const toast = new SimpleToast(
                 this.app, 'badges-TooMuchBadges',
@@ -302,11 +302,11 @@ export class BadgesController
             toast.show();
             if (this.debugLogEnabled) {
                 const msg = 'BadgesDisplay.onBadgeDropInside: Done with too much badges toast.';
-                log.info(msg, {eventData, itemProperties});
+                log.info(msg, {eventData, item});
             }
             return;
         }
-        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(itemProperties);
+        const {iconWidth, iconHeight} = ItemProperties.getBadgeIconDimensions(item);
         let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
         if (correctPointerOffset) {
             const [iconWidthHalf, iconHeightHalf] = [iconWidth / 2, iconHeight / 2];
@@ -315,26 +315,26 @@ export class BadgesController
         }
         const {avatarX, avatarY} = this.translateClientToAvatarPos(centerClientX, centerClientY);
         const {avatarXClipped, avatarYClipped} = this.clipBadgeAvatarPos(avatarX, avatarY, iconWidth, iconHeight);
-        const itemPropertiesNew = {...itemProperties};
-        itemPropertiesNew[Pid.BadgeIsActive] = 'true';
-        itemPropertiesNew[Pid.BadgeIconX] = String(avatarXClipped);
-        itemPropertiesNew[Pid.BadgeIconY] = String(avatarYClipped);
-        this.updateBadgeFromFullItem(badgeKey, itemPropertiesNew);
-        this.updateBadgeOnServer(itemPropertiesNew);
+        const itemNew = {...item};
+        itemNew[Pid.BadgeIsActive] = 'true';
+        itemNew[Pid.BadgeIconX] = String(avatarXClipped);
+        itemNew[Pid.BadgeIconY] = String(avatarYClipped);
+        this.updateBadgeFromFullItem(badgeKey, itemNew);
+        this.updateBadgeOnServer(itemNew);
         if (this.debugLogEnabled) {
             const msg = 'BadgesDisplay.onBadgeDropInside: Done with update.';
-            log.info(msg, {eventData, itemProperties, itemPropertiesNew});
+            log.info(msg, {eventData, item, itemNew});
         }
     }
 
-    public onBadgeDropOutside(itemProperties: ItemProperties): void
+    public onBadgeDropOutside(item: ItemProperties): void
     {
-        this.removeBadge(this.makeBadgeKey(itemProperties), itemProperties);
-        const itemPropertiesNew = {...itemProperties};
-        itemPropertiesNew[Pid.BadgeIsActive] = '0';
-        this.updateBadgeOnServer(itemPropertiesNew);
+        this.removeBadge(this.makeBadgeKey(item));
+        const itemNew = {...item};
+        itemNew[Pid.BadgeIsActive] = '0';
+        this.updateBadgeOnServer(itemNew);
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBadgeDropOutside: Done.', {itemProperties, itemPropertiesNew});
+            log.info('BadgesDisplay.onBadgeDropOutside: Done.', {item, itemNew});
         }
     }
 
@@ -418,18 +418,18 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // Badge state updates
 
-    private updateBadgeOnServer(itemProperties: ItemProperties): void
+    private updateBadgeOnServer(item: ItemProperties): void
     {
-        const itemId = itemProperties[Pid.Id];
+        const itemId = item[Pid.Id];
         const action = 'Badge.SetState';
         const args = {
-            'IsActive': itemProperties[Pid.BadgeIsActive],
-            'IconX': itemProperties[Pid.BadgeIconX],
-            'IconY': itemProperties[Pid.BadgeIconY],
+            'IsActive': item[Pid.BadgeIsActive],
+            'IconX': item[Pid.BadgeIconX],
+            'IconY': item[Pid.BadgeIconY],
         };
         BackgroundMessage.executeBackpackItemAction(itemId, action, args, [itemId]).catch(error => {
             const msg = 'BadgesDisplay.updateBadgeOnServer: executeBackpackItemAction failed!';
-            this.app.onError(new ErrorWithData(msg, {itemProperties, action, error}));
+            this.app.onError(new ErrorWithData(msg, {item, action, error}));
             this.updateBadgesFromBackpack();
         });
         if (this.debugLogEnabled) {
@@ -454,40 +454,40 @@ export class BadgesController
         });
     }
 
-    private removeBadge(badgeKey: string, itemProperties: ItemProperties): void
+    private removeBadge(badgeKey: string): void
     {
         this.badges.get(badgeKey)?.stop();
         this.badges.delete(badgeKey);
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.removeBadge: Done.', {itemProperties, this: {...this}});
+            log.info('BadgesDisplay.removeBadge: Done.', {this: {...this}});
         }
     }
 
-    private updateBadgeFromFullItem(badgeKey: string, itemProperties: ItemProperties): void
+    private updateBadgeFromFullItem(badgeKey: string, item: ItemProperties): void
     {
-        const isEnabledBadge = as.Bool(itemProperties[Pid.BadgeIsActive]);
+        const isEnabledBadge = as.Bool(item[Pid.BadgeIsActive]);
         if (isEnabledBadge) {
-            const iconUrl = ItemProperties.getBadgeIconUrl(itemProperties);
+            const iconUrl = ItemProperties.getBadgeIconUrl(item);
             this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
                 const badge = this.badges.get(badgeKey);
                 if (is.nil(badge)) {
                     if (this.badges.size >= this.badgesEnabledMax) {
                         if (this.debugLogEnabled) {
                             const msg = 'BadgesDisplay.updateBadgeFromFullItem: Disabling badge - limit reached.';
-                            log.info(msg, {itemProperties, badgesEnabledMax: this.badgesEnabledMax});
+                            log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
                         }
-                        const itemPropertiesNew = {...itemProperties, [Pid.BadgeIsActive]: 'false'};
-                        this.updateBadgeOnServer(itemPropertiesNew);
+                        const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
+                        this.updateBadgeOnServer(itemNew);
                     } else {
-                        const badgeDisplay = new Badge(this.app, this, itemProperties, iconDataUrl);
+                        const badgeDisplay = new Badge(this.app, this, item, iconDataUrl);
                         this.badges.set(badgeKey, badgeDisplay);
                     }
                 } else {
-                    badge.onPropertiesLoaded(itemProperties, iconDataUrl);
+                    badge.onPropertiesLoaded(item, iconDataUrl);
                 }
             });
         } else {
-            this.removeBadge(badgeKey, itemProperties);
+            this.removeBadge(badgeKey);
         }
     }
 
