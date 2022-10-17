@@ -148,6 +148,15 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-label {
         vertical-align: top;
     }
 
+    div.n3q-window-content div#n3q-id-popup .n3q-popup-text .n3q-popup-avatar-generator-link-icon {
+        background: url(../assets/icons/external_link.svg) no-repeat center center / contain;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-left: 4px;
+        vertical-align: -0.125em;
+    }
+
     div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar div.n3q-popup-label {
         vertical-align: top;
     }

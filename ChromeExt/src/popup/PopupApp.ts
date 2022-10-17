@@ -126,7 +126,7 @@ export class PopupApp
 
             let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-avatar" data-translate="children"/>').get(0);
 
-            let avatarGallery = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-gallery" data-translate="children"/>').get(0);
+            const avatarGallery = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-gallery" data-translate="children"/>').get(0);
 
             let input = $('<input type="hidden" id="n3q-id-popup-avatar" class="n3q-base" />').get(0);
             $(input).val(avatar);
@@ -145,14 +145,18 @@ export class PopupApp
             avatarGallery.append(right);
 
                 
-            let avatarLink = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-generator" data-translate="children"/>').get(0);
+            const avatarLink = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-generator" data-translate="children"/>').get(0);
             
-            let generatorText = $('<div class="n3q-base n3q-popup-text" data-translate="children">'
+            const avatarGeneratorLink = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars')
+            const generatorText = $('<div class="n3q-base n3q-popup-text" data-translate="children">'
                 + '<span  data-translate="text:Popup">Create your own avatar</span>'
-                + '<a href="' + Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars') 
-                + '" data-translate="text:Popup">Avatar Generator</a>'
+                + '<a href="' + avatarGeneratorLink + '" target="_blank" data-translate="text:Popup">' 
+                +   'Avatar Generator' 
+                + '</a>'
+                + '<a href="' + avatarGeneratorLink + '" target="_blank">' 
+                +   '<span class="n3q-base n3q-popup-avatar-generator-link-icon"/>'
+                + '</a>'
                 + '</div>').get(0);
-
             avatarLink.append(generatorText);
 
             group.append(avatarGallery);
