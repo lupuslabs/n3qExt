@@ -105,27 +105,27 @@ export class ChatWindow extends Window
             const soundcheckElem = <HTMLElement>$('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>').get(0);
             $(soundcheckElem).append(soundCheckboxElem);
 
-            const retentionInfoElem = <HTMLElement>$(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`).get(0);
-            {
-                const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
-                let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
-                    seconds, this.app.getLanguage(), {maximumFractionDigits: 0, unitDisplay: 'long'},
-                );
-                if (unitCount >= 1000) {
-                    text = this.app.translateText('Chatwindow.RetentionDurationForever', 'forever');
-                } else {
-                    const tpl = this.app.translateText('Chatwindow.RetentionDuration', 'Stored for {duration}'); 
-                    text = tpl.replace('{duration}', text);
-                }
-                retentionInfoElem.innerText = text;
-            }
+            // const retentionInfoElem = <HTMLElement>$(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`).get(0);
+            // {
+            //     const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
+            //     let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
+            //         seconds, this.app.getLanguage(), {maximumFractionDigits: 0, unitDisplay: 'long'},
+            //     );
+            //     if (unitCount >= 1000) {
+            //         text = this.app.translateText('Chatwindow.RetentionDurationForever', 'forever');
+            //     } else {
+            //         const tpl = this.app.translateText('Chatwindow.RetentionDuration', 'Stored for {duration}'); 
+            //         text = tpl.replace('{duration}', text);
+            //     }
+            //     retentionInfoElem.innerText = text;
+            // }
 
             $(chatinElem).append(chatinTextElem);
             $(chatinElem).append(chatinSendElem);
 
             $(contentElem).append(chatoutElem);
             $(contentElem).append(chatinElem);
-            $(contentElem).append(retentionInfoElem);
+            // $(contentElem).append(retentionInfoElem);
             $(contentElem).append(clearElem);
             $(contentElem).append(soundcheckElem);
 
