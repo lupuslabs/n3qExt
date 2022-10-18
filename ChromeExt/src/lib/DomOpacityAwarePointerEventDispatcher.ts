@@ -71,10 +71,13 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.app = app;
         this.domElem = domElem;
 
-        this.logButtons = Utils.logChannel('pointerEventHandlingButtons');
-        this.logDrag = Utils.logChannel('pointerEventHandlingDrag');
-        this.logHover = Utils.logChannel('pointerEventHandlingHover');
-        this.logWithMove = Utils.logChannel('pointerEventHandlingWithMove');
+        this.logButtons = false; // Utils.logChannel('pointerEventHandlingButtons');
+        this.logDrag = false; // Utils.logChannel('pointerEventHandlingDrag');
+        this.logHover = false; // Utils.logChannel('pointerEventHandlingHover');
+        this.logWithMove = false; // Utils.logChannel('pointerEventHandlingWithMove');
+        const logIncommingPointer = false; // Utils.logChannel('pointerEventHandlingIncommingPointer');
+        const logIncommingMouse = false; // Utils.logChannel('pointerEventHandlingIncommingMouse');
+
         if (this.logButtons) {
             this.logEventsOut.add(PointerEventType.click);
             this.logEventsOut.add(PointerEventType.doubleclick);
@@ -97,7 +100,7 @@ export class DomOpacityAwarePointerEventDispatcher {
                 this.logEventsOut.add(PointerEventType.hovermove);
             }
         }
-        if (Utils.logChannel('pointerEventHandlingIncommingPointer')) {
+        if (logIncommingPointer) {
             this.logEventsIn.add('pointerout');
             this.logEventsIn.add('pointerdown');
             this.logEventsIn.add('pointerup');
@@ -106,7 +109,7 @@ export class DomOpacityAwarePointerEventDispatcher {
                 this.logEventsIn.add('pointermove');
             }
         }
-        if (Utils.logChannel('pointerEventHandlingIncommingMouse')) {
+        if (logIncommingMouse) {
             this.logEventsIn.add('mousedown');
             this.logEventsIn.add('mouseup');
             this.logEventsIn.add('click');

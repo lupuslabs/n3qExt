@@ -62,12 +62,13 @@ export class Config
             iframeApi: false,
             items: false,
             SimpleItemTransfer: false,
-            pointerEventHandlingIncommingPointer: false, // pointermove omitted when pointerEventHandlingWithMove = false.
-            pointerEventHandlingIncommingMouse: false, // pointermove omitted when pointerEventHandlingWithMove = false.
-            pointerEventHandlingButtons: false,
-            pointerEventHandlingDrag: false, // dragmove omitted when pointerEventHandlingWithMove = false.
-            pointerEventHandlingHover: false, // hovermove omitted when pointerEventHandlingWithMove = false.
-            pointerEventHandlingWithMove: false, // Includes corresponding move events for drag and hover.
+            // Disabled in code: DomOpacityAwarePointerEventDispatcher.ctor
+            // pointerEventHandlingIncommingPointer: false, // pointermove omitted when pointerEventHandlingWithMove = false.
+            // pointerEventHandlingIncommingMouse: false, // pointermove omitted when pointerEventHandlingWithMove = false.
+            // pointerEventHandlingButtons: false,
+            // pointerEventHandlingDrag: false, // dragmove omitted when pointerEventHandlingWithMove = false.
+            // pointerEventHandlingHover: false, // hovermove omitted when pointerEventHandlingWithMove = false.
+            // pointerEventHandlingWithMove: false, // Includes corresponding move events for drag and hover.
             chatHistory: false,
         },
         client: {
@@ -779,7 +780,7 @@ export class Config
                     'iframeApi.avatarCreateBtn': 'Erstellen',
                     'iframeApi.avatarActivateBtn': 'Aktivieren',
                     'iframeApi.avatarCreateActivateBtn': 'Erstellen und aktivieren',
-                    'iframeApi.avatarCreateActivateCancelBtn': 'Nein, mach nichts',
+                    'iframeApi.avatarCreateActivateCancelBtn': 'Nein, nichts machen',
                     'iframeApi.avatarCreatedTitle': 'Avatar erstellt',
                     'iframeApi.avatarActivatedTitle': 'Avatar aktiviert',
                     'iframeApi.avatarCreatedActivatedTitle': 'Avatar erstellt und aktiviert',
