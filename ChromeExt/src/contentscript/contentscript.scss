@@ -1300,6 +1300,7 @@
         bottom: 0;
         overflow: auto;
         background: #FFFFFF; // Makes it opaque for drag and drop handling.
+        box-shadow: inset 0 4px 5px -4px #404040;
     }
 
     div.n3q-backpack-item {
