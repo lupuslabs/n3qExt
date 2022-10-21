@@ -60,6 +60,7 @@ export class BackgroundApp
     private configUpdater: ConfigUpdater;
     private resource: string;
     private isReady: boolean = false;
+    private userId: string = null;
     private backpack: Backpack = null;
     private xmppStarted = false;
     private babelfish: Translator;
@@ -133,9 +134,9 @@ export class BackgroundApp
         await this.configUpdater.startUpdateTimer(() => this.onConfigUpdated());
     }
 
-    async getUserId(): Promise<string>
+    getUserId(): string
     {
-        let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+        let userId = this.userId;
         if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserId); }
         return userId;
     }
@@ -154,6 +155,7 @@ export class BackgroundApp
             uniqueId = 'mid' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
         }
+        this.userId = uniqueId;
     }
 
     async assertThatThereIsAUserToken()

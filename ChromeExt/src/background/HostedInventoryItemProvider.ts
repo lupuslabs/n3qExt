@@ -70,7 +70,7 @@ export namespace HostedInventoryItemProvider
 
         async init(): Promise<void>
         {
-            this.userId = await this.backpack.getUserId();
+            this.userId = this.backpack.getUserId();
             this.accessToken = await this.backpack.getUserToken();
 
             try {
@@ -555,14 +555,13 @@ export namespace HostedInventoryItemProvider
                 }
             } else {
                 // Doesn't send create message to tabs:
-                this.backpack.createRepositoryItem(itemId, newItem).then(backpackItem => {
-                    this.backpack.sendAddItemToAllTabs(itemId);
-                    if (backpackItem.isRezzed()) {
-                        const room = backpackItem.getProperties()[Pid.RezzedLocation];
-                        this.backpack.addToRoom(itemId, room);
-                        changedRoomsAccu.add(room);
-                    }
-                });
+                const backpackItem = this.backpack.createRepositoryItem(itemId, newItem);
+                this.backpack.sendAddItemToAllTabs(itemId);
+                if (backpackItem.isRezzed()) {
+                    const room = backpackItem.getProperties()[Pid.RezzedLocation];
+                    this.backpack.addToRoom(itemId, room);
+                    changedRoomsAccu.add(room);
+                }
             }
         }
 

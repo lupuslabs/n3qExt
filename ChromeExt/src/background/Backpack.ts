@@ -6,8 +6,6 @@ import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
-import { Memory } from '../lib/Memory';
-import { Utils } from '../lib/Utils';
 import { BackgroundApp } from './BackgroundApp';
 import { Item } from './Item';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
@@ -28,7 +26,7 @@ export class Backpack
         if (rpcClient) { this.rpcClient = rpcClient; }
     }
 
-    async getUserId(): Promise<string> { return await this.app.getUserId(); }
+    getUserId(): string { return this.app.getUserId(); }
     async getUserToken(): Promise<string> { return await this.app.getUserToken(); }
 
     isItem(itemId: string): boolean
@@ -305,9 +303,9 @@ export class Backpack
         return found;
     }
 
-    async createRepositoryItem(itemId: string, props: ItemProperties): Promise<Item>
+    createRepositoryItem(itemId: string, props: ItemProperties): Item
     {
-        props[Pid.OwnerId] = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+        props[Pid.OwnerId] = this.getUserId();
 
         let item = this.items[itemId];
         if (item == null) {
