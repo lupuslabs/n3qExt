@@ -38,6 +38,7 @@ export class DomOpacityAwarePointerEventDispatcher {
     private dragStartDistance: number;
     private readonly dragDropTargetUpdateIntervalMs: number;
 
+    private inEventHandling: boolean = false; // For infinite recursion prevention.
     private lastPointerEventWasForUs: boolean = false;
     
     private hoverEventsLast: Map<number,PointerEvent> = new Map<number, PointerEvent>();
@@ -188,6 +189,14 @@ export class DomOpacityAwarePointerEventDispatcher {
     {
         // Handles the legacy mouse events. For every mouse event one or more pointer events already have been handled.
 
+        if (this.inEventHandling) {
+            // Routing loop detected. Just swallow the event.
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+            return;
+        }
+
+        this.inEventHandling = true;
         this.logIncommingEvent(ev);
 
         if (this.lastPointerEventWasForUs) {
@@ -198,6 +207,7 @@ export class DomOpacityAwarePointerEventDispatcher {
 
         ev.stopImmediatePropagation();
         ev.preventDefault();
+        this.inEventHandling = false;
     }
 
     private handlePointerCancelEvent(ev: PointerEvent): void
@@ -234,6 +244,14 @@ export class DomOpacityAwarePointerEventDispatcher {
 
     private handlePointerEvent(ev: PointerEvent): void
     {
+        if (this.inEventHandling) {
+            // Routing loop detected. Just swallow the event.
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+            return;
+        }
+
+        this.inEventHandling = true;
         this.logIncommingEvent(ev);
         const pointerId = ev.pointerId;
         const lastButtonsState
@@ -252,6 +270,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.lastPointerEventWasForUs = isForUs;
         ev.stopImmediatePropagation();
         ev.preventDefault();
+        this.inEventHandling = false;
     }
 
     private handlePointerEventNotForUs(ev: MouseEvent): void
