@@ -278,6 +278,7 @@
     }
 
     div.n3q-overlay-button {
+        @extend .n3q-shadow-small;
         position: absolute;
         right: -7px;
         top: -7px;
@@ -286,6 +287,7 @@
         cursor: default;
         user-select: none;
         border-radius: 100%;
+        pointer-events: auto;
     }
 
     div.n3q-overlay-button:hover { 
@@ -446,7 +448,6 @@
             div.n3q-overlay-button {
                 right: 10px;
                 background-color: #9fc415;
-                pointer-events: auto;
 
                 div.n3q-button-close-small {
                     background: url(../assets/icons/inverse-close-circle-o.svg) no-repeat center center / contain;
@@ -574,7 +575,6 @@
 
     div.n3q-participant div.n3q-badges {
         position: absolute;
-        background-color: rgba(255, 0, 0, 0.1);
         z-index: 3;
         user-select: none;
         pointer-events: none;
@@ -613,6 +613,79 @@
     }
     img.n3q-badge-draggedElem.n3q-outside {
         opacity: 0.5;
+    }
+
+    div.n3q-badgeInfoWindow {
+        @extend .n3q-shadow-small;
+        position: absolute;
+        min-width: 100px;
+        min-height: 50px;
+        max-width: 500px;
+        background-color: #ffffff;
+        pointer-events: auto;
+
+        span.n3q-badgeInfoWindow-paragraph {
+            display: block;
+            margin-bottom: 1ex;
+        }
+
+        span.n3q-badgeInfoWindow-line {
+            display: block;
+        }
+
+        div.n3q-badgeInfoWindow-content {
+            padding: 1em 2em 1em 1em;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            column-gap: 1em;
+            align-items: flex-start;
+            pointer-events: none;
+
+            img.n3q-badgeInfoWindow-image {
+            }
+
+            div.n3q-badgeInfoWindow-descriptionColumn {
+                margin-bottom: -0.5em;
+
+                div.n3q-badgeInfoWindow-title .n3q-badgeInfoWindow-line {
+                    @extend div.n3q-title;
+                    font-size: 1.25em;
+                    line-height: 1.25em;
+                }
+
+                div.n3q-badgeInfoWindow-description {
+                    font-size: 1.1em;
+                    line-height: 1.25em;
+                }
+
+                a.n3q-badgeInfoWindow-link {
+                    display: inline-block;
+                    pointer-events: auto;
+                    background: #FFFFFF; /* Transparency hint for pointer event dispatcher */
+                    font-size: 1.25em;
+                    font-weight: bold;
+                    line-height: 1.25em;
+                }
+                a.n3q-badgeInfoWindow-link > span:last-child > span:last-child {
+                    display: inline-block;
+                }
+                a.n3q-badgeInfoWindow-link > span:last-child > span:last-child:after {
+                    display: inline-block;
+                    content: '';
+                    width: 1em;
+                    height: 1em;
+                    margin-left: 0.1em;
+                    vertical-align: top;
+                    background: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCBtZWV0IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTEwIDZ2Mkg1djExaDExdi01aDJ2NmExIDEgMCAwIDEtMSAxSDRhMSAxIDAgMCAxLTEtMVY3YTEgMSAwIDAgMSAxLTFoNnptMTEtM3Y4aC0yVjYuNDEzbC03Ljc5MyA3Ljc5NGwtMS40MTQtMS40MTRMMTcuNTg1IDVIMTNWM2g4eiIvPjwvc3ZnPg==) center center / contain no-repeat;
+                }
+            }
+
+        }
+    }
+    div.n3q-badgeInfoWindow.n3q-hidden {
+        visibility: visible;
+        opacity: 0.0;
     }
 
     input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button {

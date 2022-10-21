@@ -284,6 +284,7 @@ export class Config
             displayAvatarXRight: 100,
             displayAvatarYBottom: 0,
             displayAvatarXLeft: -80,
+            infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
         items: {
             'enabledProviders': ['n3q']

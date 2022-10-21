@@ -32,6 +32,9 @@ import { ItemException } from '../lib/ItemException';
 import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
+import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { DomButtonId } from '../lib/domTools';
 
 interface ILocationMapperResponse
 {
@@ -1275,11 +1278,37 @@ export class ContentApp
             this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, error}));
             return url;
         }
-        if (!response.ok) {
+        const {ok, data} = response;
+        if (!ok || !is.string(data)) {
             this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, response}));
             return url;
         }
-        return response.data;
+        return data;
+    }
+
+    public makeWindowCloseButton(onClose: () => void, style: 'window'|'popup'|'overlay'): HTMLElement
+    {
+        const button = document.createElement('div');
+        if (style === 'window') {
+            button.classList.add('n3q-base', 'n3q-window-button');
+        } else {
+            button.classList.add('n3q-base', 'n3q-overlay-button');
+        }
+        button.setAttribute('title', this.translateText('Common.Close', 'Close'));
+        const eventdispatcher = new DomOpacityAwarePointerEventDispatcher(this, button);
+        eventdispatcher.setEventListener(PointerEventType.click, eventData => {
+            if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
+                onClose();
+            }
+        });
+        const btnIcon = document.createElement('div');
+        if (style === 'window') {
+            btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');
+        } else {
+            btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close-small');
+        }
+        button.appendChild(btnIcon);
+        return button;
     }
 
 }

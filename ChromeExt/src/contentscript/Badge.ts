@@ -4,6 +4,7 @@ import { BadgesController } from './BadgesController';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
+import { BadgeInfoWindow } from './BadgeInfoWindow';
 
 export class Badge
 {
@@ -15,24 +16,31 @@ export class Badge
     private item: ItemProperties;
     private iconDataUrl: string;
     private readonly iconElem: HTMLImageElement;
-    private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher = null;
+    private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private readonly infoWindow: BadgeInfoWindow;
 
     private isStopping: boolean = false;
     private dragIconElem?: HTMLImageElement = null;
 
     //--------------------------------------------------------------------------
-    // API for BadgesDisplay
+    // API for BadgesController and BadgeInfoWindow
 
     constructor(app: ContentApp, badgesDisplay: BadgesController, item: ItemProperties, iconDataUrl: string)
     {
         this.app = app;
         this.badgesDisplay = badgesDisplay;
+        this.infoWindow = new BadgeInfoWindow(this.app, this);
         this.iconElem = document.createElement('img');
         this.iconElem.classList.add('n3q-base', 'n3q-badge');
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.iconElem);
         this.initEventHandling();
         this.onPropertiesLoaded(item, iconDataUrl);
+    }
+
+    public getProperties(): ItemProperties
+    {
+        return this.item;
     }
 
     public onPropertiesLoaded(item: ItemProperties, iconDataUrl: string): void
@@ -42,34 +50,22 @@ export class Badge
         this.updateDisplay();
     }
 
-    public getProperties(): ItemProperties
+    public getBoundingClientRect(): DOMRect
     {
-        return this.item;
+        return this.iconElem.getBoundingClientRect();
     }
 
     public stop(): void
     {
         this.isStopping = true;
-        // Todo: Close info popup.
-        this.onExitEditMode();
+        this.infoWindow.hide();
         this.iconElem?.parentElement?.removeChild(this.iconElem);
     }
 
     public updateDisplay(): void
     {
         this.updateIcon();
-    }
-
-    public onEnterEditMode(): void
-    {
-        // Called when badges display is entering edit mode after creation of this badge.
-        // Todo: Close info popup.
-    }
-
-    public onExitEditMode(): void
-    {
-        // Called when badges display is exiting edit mode after creation of this badge.
-        this.pointerEventDispatcher.cancelDrag();
+        this.infoWindow.updateDisplay();
     }
 
     //--------------------------------------------------------------------------
@@ -90,7 +86,13 @@ export class Badge
         this.iconElem.style.left = `${inContainerLeft - iconWidth / 2}px`;
         this.iconElem.setAttribute('src', this.iconDataUrl);
 
-        this.pointerEventDispatcher.setDragStartDistance(this.badgesDisplay.getIsInEditMode() ? 0.0 : null);
+        const inEditMode = this.badgesDisplay.getIsInEditMode();
+        if (inEditMode) {
+            this.pointerEventDispatcher.cancelDrag();
+            this.pointerEventDispatcher.setDragStartDistance(0.0);
+        } else {
+            this.pointerEventDispatcher.setDragStartDistance(null);
+        }
     }
 
     private initEventHandling(): void
@@ -109,7 +111,7 @@ export class Badge
         });
         this.pointerEventDispatcher.setEventListener(PointerEventType.click, ev => {
             if (!this.isStopping && !this.badgesDisplay.getIsInEditMode()) {
-                // Todo: Toggle info popup.
+                this.infoWindow.toggleVisibility();
             }
         });
 

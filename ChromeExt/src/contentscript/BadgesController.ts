@@ -8,9 +8,7 @@ import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { Badge } from './Badge';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
-import { DomButtonId } from '../lib/domTools';
+import { PointerEventData } from '../lib/PointerEventData';
 import { SimpleToast } from './Toast';
 
 export class BadgesController
@@ -184,10 +182,8 @@ export class BadgesController
         this.editModeHintElem.classList.add('n3q-base', 'n3q-badgesEditModeHint');
         this.editModeHintElem.innerText = this.app.translateText('Badges.editModeHint');
         this.containerElem.appendChild(this.editModeHintElem);
-        this.showEditModeExitButton();
-        for (const badgeDisplay of this.badges.values()) {
-            badgeDisplay.onEnterEditMode();
-        }
+        this.editModeExitElem = this.app.makeWindowCloseButton(() => this.exitEditMode(), 'overlay');
+        this.containerElem.appendChild(this.editModeExitElem);
         this.updateDisplay();
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.enterEditMode: Entered edit mode.', {this: {...this}});
@@ -207,9 +203,7 @@ export class BadgesController
         this.editModeBackgroundElem = null;
         this.containerElem.removeChild(this.editModeExitElem);
         this.editModeExitElem = null;
-        for (const badgeDisplay of this.badges.values()) {
-            badgeDisplay.onExitEditMode();
-        }
+        this.updateDisplay();
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.exitEditMode: Exited edit mode.', {this: {...this}});
         }
@@ -644,24 +638,6 @@ export class BadgesController
         for (const badge of this.badges.values()) {
             badge.updateDisplay();
         }
-    }
-
-    private showEditModeExitButton(): void
-    {
-        this.editModeExitElem = document.createElement('div');
-        this.editModeExitElem.classList.add('n3q-base', 'n3q-overlay-button', 'n3q-shadow-small');
-        this.editModeExitElem.setAttribute('title', 'Close');
-        this.editModeExitElem.setAttribute('data-translate', 'attr:title:Common');
-        const eventdispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.editModeExitElem);
-        eventdispatcher.setEventListener(PointerEventType.click, eventData => {
-            if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
-                this.exitEditMode();
-            }
-        });
-        const btnIcon = document.createElement('div');
-        btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close-small');
-        this.editModeExitElem.appendChild(btnIcon);
-        this.containerElem.appendChild(this.editModeExitElem);
     }
 
 }
