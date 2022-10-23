@@ -282,7 +282,7 @@ export class Config
             // Distances from avatar bottom center:
             displayAvatarYTop: 200,
             displayAvatarXRight: 100,
-            displayAvatarYBottom: 0,
+            displayAvatarYBottom: 45,
             displayAvatarXLeft: -80,
             infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
@@ -414,7 +414,7 @@ export class Config
                     'Menu.Settings': 'Settings',
                     'Menu.Stay Here': 'Stay on tab change',
                     'Menu.Backpack': 'Backpack',
-                    'Menu.BadgesEditMode': 'Edit Badges',
+                    'Menu.BadgesEditMode': 'Badges',
                     'Menu.Chat Window': 'Chat History',
                     'Menu.Video Conference': 'Video Conference',
                     'Menu.Chat': 'Chat',
@@ -693,7 +693,7 @@ export class Config
                     'Menu.Settings': 'Einstellungen',
                     'Menu.Stay Here': 'Bleiben bei Tabwechsel',
                     'Menu.Backpack': 'Rucksack',
-                    'Menu.BadgesEditMode': 'Badges Ändern',
+                    'Menu.BadgesEditMode': 'Badges',
                     'Menu.Chat Window': 'Chatverlauf',
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',

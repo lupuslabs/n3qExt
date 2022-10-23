@@ -89,7 +89,7 @@ export class Badge
         const inEditMode = this.badgesDisplay.getIsInEditMode();
         if (inEditMode) {
             this.pointerEventDispatcher.cancelDrag();
-            this.pointerEventDispatcher.setDragStartDistance(0.0);
+            this.pointerEventDispatcher.setDragStartDistance(3.0);
         } else {
             this.pointerEventDispatcher.setDragStartDistance(null);
         }
@@ -110,8 +110,15 @@ export class Badge
             this.badgesDisplay.onBadgePointerDown(ev);
         });
         this.pointerEventDispatcher.setEventListener(PointerEventType.click, ev => {
-            if (!this.isStopping && !this.badgesDisplay.getIsInEditMode()) {
-                this.infoWindow.toggleVisibility();
+            if (!this.isStopping) {
+                if (this.badgesDisplay.getIsInEditMode()) {
+                    if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
+                        const display = this.badgesDisplay;
+                        display.onBadgeDropOutside(this.item);
+                    }
+                } else {
+                    this.infoWindow.toggleVisibility();
+                }
             }
         });
 

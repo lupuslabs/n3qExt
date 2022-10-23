@@ -84,9 +84,6 @@ export class Nickname implements IObserver
                 if (is.nil(badges)) {
                     return;
                 }
-                if (Utils.isBackpackEnabled() && is.nil(this.app.getBackpackWindow())) {
-                    this.app.showBackpackWindow();
-                }
                 if (badges.getIsInEditMode()) {
                     badges.exitEditMode();
                 } else {
