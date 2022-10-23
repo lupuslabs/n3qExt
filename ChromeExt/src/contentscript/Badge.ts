@@ -1,4 +1,4 @@
-import { ItemProperties } from '../lib/ItemProperties';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { BadgesController } from './BadgesController';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
@@ -85,6 +85,7 @@ export class Badge
         this.iconElem.style.top = `${inContainerTop - iconHeight / 2}px`;
         this.iconElem.style.left = `${inContainerLeft - iconWidth / 2}px`;
         this.iconElem.setAttribute('src', this.iconDataUrl);
+        this.iconElem.setAttribute('title', ItemProperties.getBadgeTitle(this.item));
 
         const inEditMode = this.badgesDisplay.getIsInEditMode();
         if (inEditMode) {
