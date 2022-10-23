@@ -46,8 +46,9 @@ export class ChatConsole
                     ['help', '/xmpp # show xmpp console'],
                     ['help', '/room # show room info'],
                     ['help', '/changes # show versions and changes'],
-                    ['help', '/i /items /stuff /backpack /things # toggle backpack window'],
-                    ['help', '/v /video /vid /vidconf /conf /jitsi # toggle video conf window'],
+                    ['help', '/i /items /inventory /backpack # toggle backpack window'],
+                    ['help', '/b /badges # toggle badges edit mode'],
+                    ['help', '/v /video /vid /vidconf /conf # toggle video conf window'],
                     ['help', '/c /chat # toggle chat window'],
                     ['help', '/info # show client info'],
                     ['help', '/who # show participants'],
@@ -67,10 +68,16 @@ export class ChatConsole
                 break;
             case '/i':
             case '/items':
+            case '/inventory':
             case '/backpack':
             case '/stuff':
             case '/things':
                 context.app?.showBackpackWindow();
+                break;
+            case '/badges':
+            case '/badge':
+            case '/b':
+                context.app?.toggleBadgesEditMode();
                 break;
             case '/v':
             case '/vid':

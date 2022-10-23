@@ -336,7 +336,7 @@ export class ContentApp
         return this.getMyParticipant()?.getElem();
     }
 
-    getEntityByelem(elem: Element|null): Entity|null
+    getEntityByelem(elem: Element | null): Entity | null
     {
         if (!(elem instanceof HTMLElement)) {
             return null;
@@ -389,6 +389,22 @@ export class ContentApp
     {
         aboveElem = aboveElem ?? this.getMyParticipantELem();
         this.room.showChatWindow(aboveElem);
+    }
+
+    toggleBadgesEditMode(): void
+    {
+        const participant: Participant = this.getMyParticipant();
+        if (participant) {
+            const badges = participant.getBadgesDisplay();
+            if (is.nil(badges)) {
+                return;
+            }
+            if (badges.getIsInEditMode()) {
+                badges.exitEditMode();
+            } else {
+                badges.enterEditMode();
+            }
+        }
     }
 
     showXmppWindow()
@@ -1275,18 +1291,18 @@ export class ContentApp
         try {
             response = await BackgroundMessage.fetchUrlAsDataUrl(url, '');
         } catch (error) {
-            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, error}));
+            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, error }));
             return url;
         }
-        const {ok, data} = response;
+        const { ok, data } = response;
         if (!ok || !is.string(data)) {
-            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', {url, response}));
+            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, response }));
             return url;
         }
         return data;
     }
 
-    public makeWindowCloseButton(onClose: () => void, style: 'window'|'popup'|'overlay'): HTMLElement
+    public makeWindowCloseButton(onClose: () => void, style: 'window' | 'popup' | 'overlay'): HTMLElement
     {
         const button = document.createElement('div');
         if (style === 'window') {
@@ -1296,7 +1312,8 @@ export class ContentApp
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
         const eventdispatcher = new DomOpacityAwarePointerEventDispatcher(this, button);
-        eventdispatcher.setEventListener(PointerEventType.click, eventData => {
+        eventdispatcher.setEventListener(PointerEventType.click, eventData =>
+        {
             if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
                 onClose();
             }
