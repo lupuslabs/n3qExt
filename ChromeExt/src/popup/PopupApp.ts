@@ -162,14 +162,14 @@ export class PopupApp
             group.append(avatarGallery);
             group.append(avatarLink);
 
-            this.setCurrentAvatar(avatar, icon, input, name);
+            this.setCurrentAvatar(avatar, icon, input);
 
             $(left).on('click', () =>
             {
                 let idx = list.indexOf(<string>$(input).val());
                 idx--;
                 if (idx < 0) { idx = list.length - 1; }
-                this.setCurrentAvatar(list[idx], icon, input, name);
+                this.setCurrentAvatar(list[idx], icon, input);
             });
 
             $(right).on('click', () =>
@@ -177,7 +177,7 @@ export class PopupApp
                 let idx = list.indexOf(<string>$(input).val());
                 idx++;
                 if (idx >= list.length) { idx = 0; }
-                this.setCurrentAvatar(list[idx], icon, input, name);
+                this.setCurrentAvatar(list[idx], icon, input);
             });
 
             this.display.append(group);
@@ -255,9 +255,8 @@ export class PopupApp
         }
     }
 
-    private setCurrentAvatar(id: string, displayElem: HTMLImageElement, hiddenElem: HTMLElement, nameElem: HTMLElement)
+    private setCurrentAvatar(id: string, displayElem: HTMLImageElement, hiddenElem: HTMLElement)
     {
-        // $(nameElem).text(id);
         $(hiddenElem).val(id);
         displayElem.src = this.getAvatarImageUrlFromAvatarId(id);
     }
