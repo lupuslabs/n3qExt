@@ -506,6 +506,7 @@
                 background-position: center;
                 background-size: contain;
                 pointer-events: auto;
+                filter: drop-shadow(rgb(112, 112, 112) 1px 1px 2px);
             }
 
             div.n3q-points-icon-0-1 { background-image: url(../assets/points/0-1.png); }
@@ -606,6 +607,7 @@
         position: absolute;
         pointer-events: auto;
         touch-action: none;
+        filter: drop-shadow(rgb(112, 112, 112) 1px 1px 2px);
     }
     img.n3q-badge-draggedElem {
         position: absolute;
