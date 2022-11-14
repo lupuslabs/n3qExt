@@ -131,6 +131,15 @@ export class Entity
         return this.positionX;
     }
 
+    /**
+     * Returns avatar bottom center viewport coordinates.
+     */
+    getClientPos(): {avatarOriginClientX: number, avatarOriginClientY: number}
+    {
+        const clientRect = this.elem.getBoundingClientRect();
+        return {avatarOriginClientX: clientRect.left, avatarOriginClientY: clientRect.bottom};
+    }
+
     quickSlide(newX: number): void
     {
         if (newX < 0) { newX = 0; }

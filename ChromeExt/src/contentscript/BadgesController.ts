@@ -396,17 +396,17 @@ export class BadgesController
             && avatarY >= avatarYBottom && avatarY <= avatarYTop;
     }
 
-    public translateClientToAvatarPos(clientX: number, clientY: number): {avatarX: number, avatarY: number} {
-        const avatarOriginClientX = this.entity.getPosition();
-        const avatarOriginClientY = document.documentElement.clientHeight;
+    public translateClientToAvatarPos(clientX: number, clientY: number): {avatarX: number, avatarY: number}
+    {
+        const {avatarOriginClientX, avatarOriginClientY} = this.entity.getClientPos();
         const avatarX = clientX - avatarOriginClientX;
         const avatarY = avatarOriginClientY - clientY;
         return {avatarX, avatarY};
     }
 
-    public translateAvatarToClientPos(avatarX: number, avatarY: number): {clientX: number, clientY: number} {
-        const avatarOriginClientX = this.entity.getPosition();
-        const avatarOriginClientY = document.documentElement.clientHeight;
+    public translateAvatarToClientPos(avatarX: number, avatarY: number): {clientX: number, clientY: number}
+    {
+        const {avatarOriginClientX, avatarOriginClientY} = this.entity.getClientPos();
         const clientX = avatarX + avatarOriginClientX;
         const clientY = avatarOriginClientY - avatarY;
         return {clientX, clientY};
