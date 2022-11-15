@@ -14,7 +14,6 @@ export class Badge
     private readonly badgesDisplay: BadgesController;
 
     private item: ItemProperties;
-    private iconDataUrl: string;
     private readonly iconElem: HTMLImageElement;
     private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
     private readonly infoWindow: BadgeInfoWindow;
@@ -25,7 +24,7 @@ export class Badge
     //--------------------------------------------------------------------------
     // API for BadgesController and BadgeInfoWindow
 
-    constructor(app: ContentApp, badgesDisplay: BadgesController, item: ItemProperties, iconDataUrl: string)
+    constructor(app: ContentApp, badgesDisplay: BadgesController, item: ItemProperties)
     {
         this.app = app;
         this.badgesDisplay = badgesDisplay;
@@ -35,7 +34,7 @@ export class Badge
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.iconElem);
         this.initEventHandling();
-        this.onPropertiesLoaded(item, iconDataUrl);
+        this.onPropertiesLoaded(item);
     }
 
     public getProperties(): ItemProperties
@@ -43,10 +42,9 @@ export class Badge
         return this.item;
     }
 
-    public onPropertiesLoaded(item: ItemProperties, iconDataUrl: string): void
+    public onPropertiesLoaded(item: ItemProperties): void
     {
         this.item = item;
-        this.iconDataUrl = iconDataUrl;
         this.updateDisplay();
     }
 
@@ -84,7 +82,7 @@ export class Badge
         this.iconElem.style.height = `${iconHeight}px`;
         this.iconElem.style.top = `${inContainerTop - iconHeight / 2}px`;
         this.iconElem.style.left = `${inContainerLeft - iconWidth / 2}px`;
-        this.iconElem.setAttribute('src', this.iconDataUrl);
+        this.iconElem.setAttribute('src', this.item.iconDataUrl);
         this.iconElem.setAttribute('title', ItemProperties.getBadgeTitle(this.item));
 
         const inEditMode = this.badgesDisplay.getIsInEditMode();
@@ -126,7 +124,7 @@ export class Badge
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 this.iconElem.classList.add('n3q-hidden');
-                this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.iconDataUrl);
+                this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.item.iconDataUrl);
             } else {
                 this.pointerEventDispatcher.cancelDrag();
             }

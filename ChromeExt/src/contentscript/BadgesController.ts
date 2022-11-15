@@ -355,7 +355,7 @@ export class BadgesController
     }
 
     //--------------------------------------------------------------------------
-    // API for BadgeDisplay
+    // API for Badge
 
     public getBadgesContainer(): HTMLElement
     {
@@ -486,36 +486,52 @@ export class BadgesController
 
     private addOrUpdateBadge(badgeKey: string, item: ItemProperties): void
     {
-        const iconUrl = ItemProperties.getBadgeIconUrl(item);
-        this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
-            this.triggerSendPresence();
-            const badge = this.badges.get(badgeKey);
-            if (is.nil(badge)) {
-                if (this.badges.size >= this.badgesEnabledMax) {
-                    if (this.isLocal) {
-                        if (this.debugLogEnabled) {
-                            const msg = 'BadgesDisplay.addOrUpdateBadge: Disabling own badge - limit reached.';
-                            log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
-                        }
-                        const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
-                        this.updateBadgeOnServer(itemNew);
-                    } else {
-                        if (this.debugLogEnabled) {
-                            const msg = 'BadgesDisplay.addOrUpdateBadge: Ignored other\'s badge - limit reached.';
-                            log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
-                        }
-                    }
-                } else {
-                    const badgeDisplay = new Badge(this.app, this, item, iconDataUrl);
-                    this.badges.set(badgeKey, badgeDisplay);
-                }
-            } else {
-                badge.onPropertiesLoaded(item, iconDataUrl);
+        // Race-free update for already present badges with unchanged icon preventing display of old state for a frame:
+        const badge = this.badges.get(badgeKey);
+        if (!is.nil(badge)) {
+            const itemOld = badge.getProperties();
+            if (ItemProperties.getBadgeIconUrl(itemOld) === ItemProperties.getBadgeIconUrl(item)) {
+                this.addOrUpdateBadgeWithKnownIconDataUrl(badgeKey, item, itemOld.iconDataUrl);
+                return;
             }
-        });
+        }
+
+        // Regular asynchronous update delaying badge construction until icon data has been retrieved:
+        const iconUrl = ItemProperties.getBadgeIconUrl(item);
+        this.app.fetchUrlAsDataUrl(iconUrl)
+        .then(iconDataUrl => this.addOrUpdateBadgeWithKnownIconDataUrl(badgeKey, item, iconDataUrl));
         if (this.debugLogEnabled) {
             const msg = 'BadgesDisplay.addOrUpdateBadge: Triggered iconDataUrl fetch.';
             log.info(msg, {item});
+        }
+    }
+
+    private addOrUpdateBadgeWithKnownIconDataUrl(badgeKey: string, item: ItemProperties, iconDataUrl: string): void
+    {
+        this.triggerSendPresence();
+        item.iconDataUrl = iconDataUrl;
+        const badge = this.badges.get(badgeKey);
+        if (is.nil(badge)) {
+            if (this.badges.size >= this.badgesEnabledMax) {
+                if (this.isLocal) {
+                    if (this.debugLogEnabled) {
+                        const msg = 'BadgesDisplay.addOrUpdateBadge: Disabling own badge - limit reached.';
+                        log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
+                    }
+                    const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
+                    this.updateBadgeOnServer(itemNew);
+                } else {
+                    if (this.debugLogEnabled) {
+                        const msg = 'BadgesDisplay.addOrUpdateBadge: Ignored other\'s badge - limit reached.';
+                        log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
+                    }
+                }
+            } else {
+                const badgeDisplay = new Badge(this.app, this, item);
+                this.badges.set(badgeKey, badgeDisplay);
+            }
+        } else {
+            badge.onPropertiesLoaded(item);
         }
     }
 
