@@ -10,6 +10,7 @@ export class _Changes
             ['Add', 'Avatar generator link to settings'],
             ['Change', 'Modal toast larger'],
             ['Change', 'Random name generator blocklist'],
+            ['Change', 'Blue icons'],
             ['Fix', 'Dragging now works with touch/pen input'],
             ['Fix', 'Links behind transparent areas of room items and avatars are now clickable'],
             ['Fix', 'Room items and avatars behind other room entities are now consistently dragable'],
