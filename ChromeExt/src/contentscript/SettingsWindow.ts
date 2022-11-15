@@ -16,7 +16,7 @@ export class SettingsWindow extends Window
     async show(options: WindowOptions)
     {
         options.titleText = this.app.translateText('Settingswindow.Settings', 'Settings');
-        options.resizable = false;
+        options.resizable = true;
 
         super.show(options);
 
