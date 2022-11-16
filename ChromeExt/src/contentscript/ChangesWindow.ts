@@ -62,7 +62,7 @@ export class ChangesWindow extends Window
 
     showHistory()
     {
-        _Changes.data.forEach(release =>
+        _Changes.data.slice().reverse().forEach(release =>
         {
             this.showLine(release[0] + ' ' + release[1]);
             release[2].forEach(change =>
