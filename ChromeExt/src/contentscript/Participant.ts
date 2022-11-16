@@ -240,7 +240,7 @@ export class Participant extends Entity
         // vpImageUrl = '';
 
         if (isFirstPresence) {
-            this.avatarDisplay = new Avatar(this.app, this, this.isSelf);
+            this.avatarDisplay = new Avatar(this.app, this, this.isSelf, true);
             if (Utils.isBackpackEnabled()) {
                 this.avatarDisplay.addClass('n3q-participant-avatar');
             }

@@ -46,7 +46,7 @@ export class Avatar implements IObserver
     isDefaultAvatar(): boolean { return this.isDefault; }
     getElem(): HTMLElement { return this.elem; }
 
-    constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean)
+    constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean, private isVisible: boolean)
     {
         this.imageElem = <HTMLImageElement>$('<img class="n3q-base n3q-avatar-image" />').get(0);
         this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-avatar" />').get(0);
@@ -59,6 +59,10 @@ export class Avatar implements IObserver
         this.setImage(url);
         this.setSize(100, 100);
         this.isDefault = true;
+
+        if (!this.isVisible) {
+            this.addClass('n3q-hidden');
+        }
 
         entity.getElem().append(this.elem);
 

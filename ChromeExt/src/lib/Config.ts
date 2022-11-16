@@ -154,6 +154,7 @@ export class Config
             itemStatsTooltipOffset: { x: 3, y: 3 },
             showPrivateChatInfoButton: false,
             autoOpenVidConfDomains: [],
+            showInvisibleItems: false,
         },
         xmpp: {
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',

@@ -8,7 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.3', 'ClickThrough', [
             ['Add', 'Avatar generator link to settings'],
-            ['Add', 'Hide invisible items from backpack'],
+            ['Add', 'Hide invisible items from backpack and room/page'],
             ['Change', 'Modal toast larger'],
             ['Change', 'Random name generator blocklist'],
             ['Change', 'Blue icons'],
