@@ -6,7 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.3', 'ClickThrough', [
+        ['1.2.3', 'ClickThroughBadgesPersistentChat', [
+            ['Add', 'Persistent chat'],
             ['Add', 'Avatar generator link to settings'],
             ['Add', 'Hide invisible items from backpack and room/page'],
             ['Change', 'Modal toast larger'],
