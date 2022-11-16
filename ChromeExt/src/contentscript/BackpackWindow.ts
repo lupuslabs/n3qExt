@@ -181,6 +181,10 @@ export class BackpackWindow extends Window
 
     onShowItem(itemId: string, properties: ItemProperties)
     {
+        if (as.Bool(properties[Pid.IsInvisible], false) && !Config.get('backpack.showInvisibleItems', false)) {
+            return;
+        }
+
         let item = this.items[itemId];
         if (!item) {
             item = new BackpackItem(this.app, this, itemId, properties);

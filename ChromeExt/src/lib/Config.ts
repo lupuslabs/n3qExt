@@ -236,6 +236,7 @@ export class Config
                 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL8cd14UE+Fy2QV6rtvbBA3UGo8TllmX\n' +
                 'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
                 '-----END PUBLIC KEY-----\n',
+            showInvisibleItems: false,
         },
         SimpleItemTransfer: {
             enabled: true,
