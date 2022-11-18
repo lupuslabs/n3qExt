@@ -742,6 +742,7 @@ export class Participant extends Entity
         switch (cmd) {
             case '/do':
                 if (parts.length < 2) { return; }
+                // text = this.app.translateText(text, text);
                 // this.chatoutDisplay?.setText(text);
                 this.avatarDisplay?.setAction(parts[1]);
                 break;

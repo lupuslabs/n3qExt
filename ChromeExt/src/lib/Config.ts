@@ -453,6 +453,16 @@ export class Config
                     'Chatwindow.RetentionDuration': 'Stored for {duration}',
                     'Chatwindow.RetentionDurationForever': 'Stored forever',
 
+                    '/do wave': '*waves*',
+                    '/do dance': '*dances*',
+                    '/do cheer': '*cheer*',
+                    '/do kiss': '*kisses*',
+                    '/do clap': '*claps*',
+                    '/do laugh': '*laughs*',
+                    '/do angry': '*is angry*',
+                    '/do deny': '*denies*',
+                    '/do yawn': '*yawns*',
+
                     'PrivateChat.Private Chat with': 'Private Chat with',
 
                     'PrivateVidconf.Private Videoconference with': 'PrivateVidconf.Private Videoconference with',
@@ -731,6 +741,16 @@ export class Config
                     'Chatwindow.Sound': 'Ton',
                     'Chatwindow.RetentionDuration': 'Gespeichert für {duration}',
                     'Chatwindow.RetentionDurationForever': 'Gespeichert für immer',
+
+                    '/do wave': '*winkt*',
+                    '/do dance': '*tanzt*',
+                    '/do cheer': '*jubelt*',
+                    '/do kiss': '*bussi*',
+                    '/do clap': '*klatscht*',
+                    '/do laugh': '*lacht*',
+                    '/do angry': '*ärgert sich*',
+                    '/do deny': '*lehnt ab*',
+                    '/do yawn': '*gähnt*',
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit',
 
