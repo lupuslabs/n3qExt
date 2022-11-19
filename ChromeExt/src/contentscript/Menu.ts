@@ -1,170 +1,517 @@
-import * as $ from 'jquery';
 import { ContentApp } from './ContentApp';
+import { is } from '../lib/is';
+import { Utils } from '../lib/Utils';
+import { Config } from '../lib/Config';
+import { as } from '../lib/as';
+import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { DomButtonId } from '../lib/domTools';
 
-interface MenuClickHandler { (ev: JQuery.Event): void }
-
-export enum MenuHasIcon
+abstract class MenuItem
 {
-    No,
-    Yes,
-}
+    protected app: ContentApp;
+    protected column: MenuColumn;
+    protected extraCssClasses: string[] = [];
+    protected iconId: string;
+    protected text: string;
 
-export enum MenuHasCheckbox
-{
-    No,
-    YesChecked,
-    YesUnchecked,
-}
+    protected itemElem: HTMLElement;
 
-export enum MenuOnClickClose
-{
-    No,
-    Yes,
-}
-
-export class MenuItem
-{
-    elem: HTMLElement;
-    iconElem: HTMLElement;
-
-    constructor(public column: MenuColumn, public id: string, public text: string, public hasIcon: MenuHasIcon, public hasCheckbox: MenuHasCheckbox, public onClickClose: MenuOnClickClose, public onClick: MenuClickHandler)
-    {
+    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
+        this.app = app;
+        this.column = column;
+        this.iconId = iconId;
+        this.text = text;
     }
 
-    setCheckbox(hasCheckbox: MenuHasCheckbox)
+    public hasIcon(): boolean
     {
-        switch (this.hasCheckbox) {
-            case MenuHasCheckbox.No: this.removeIconClass('n3q-menu-icon-noicon'); break;
-            case MenuHasCheckbox.YesUnchecked: this.removeIconClass('n3q-menu-icon-unchecked'); break;
-            case MenuHasCheckbox.YesChecked: this.removeIconClass('n3q-menu-icon-checked'); break;
-        }
-        switch (hasCheckbox) {
-            case MenuHasCheckbox.No: this.addIconClass('n3q-menu-icon-noicon'); break;
-            case MenuHasCheckbox.YesUnchecked: this.addIconClass('n3q-menu-icon-unchecked'); break;
-            case MenuHasCheckbox.YesChecked: this.addIconClass('n3q-menu-icon-checked'); break;
-        }
-        this.hasCheckbox = hasCheckbox;
+        return !is.nil(this.iconId);
     }
 
-    removeIconClass(className: string)
+    public render(renderIcon: boolean): HTMLElement
     {
-        $(this.iconElem).removeClass(className);
-    }
+        const itemElem = document.createElement('div');
+        this.itemElem = itemElem;
+        itemElem.classList.add('n3q-base', 'n3q-menu-item', 'n3q-shadow-small', ...this.extraCssClasses);
+        itemElem.setAttribute('data-translate', 'attr:title:Menu children');
+        itemElem.setAttribute('title', this.text);
+        if (this.isDisabled()) {
+            itemElem.classList.add('n3q-menu-item-disabled');
+        }
+        this.initEventHandling();
 
-    addIconClass(className: string)
-    {
-        $(this.iconElem).addClass(className);
-    }
-
-    render(): HTMLElement
-    {
-        this.elem = <HTMLElement>$('<div class="n3q-base n3q-menu-item n3q-menuitem-' + this.id + ' n3q-shadow-small" data-translate="attr:title:Menu children" title="' + this.text + '" />').get(0);
-        if (this.onClick == undefined || this.onClick == null) {
-            $(this.elem).addClass('n3q-menu-item-disabled');
-        }
-        this.iconElem = <HTMLElement>$('<div class="n3q-base n3q-menu-icon"></div>').get(0);
-        if (this.hasIcon == MenuHasIcon.No) {
-            this.addIconClass('n3q-menu-icon-noicon');
-        }
-        if (this.hasCheckbox == MenuHasCheckbox.No) {
-            //
-        } else if (this.hasCheckbox == MenuHasCheckbox.YesUnchecked) {
-            this.addIconClass('n3q-menu-icon-unchecked');
-        } else if (this.hasCheckbox == MenuHasCheckbox.YesChecked) {
-            this.addIconClass('n3q-menu-icon-checked');
-        }
-        $(this.elem).append(this.iconElem);
-        let text = <HTMLElement>$('<div class="n3q-base n3q-text" data-translate="text:Menu">' + this.text + '</div>').get(0);
-        $(this.elem).append(text);
-        $(this.elem).on('click', ev =>
-        {
-            if (typeof this.onClick == 'function') {
-                this.onClick(ev);
+        if (renderIcon) {
+            const iconElem = document.createElement('div');
+            iconElem.classList.add('n3q-base', 'n3q-menu-icon');
+            if (!is.nil(this.iconId)) {
+                iconElem.classList.add(`n3q-menu-icon-${this.iconId}`);
             }
-            if (this.onClickClose == MenuOnClickClose.Yes) {
-                this.column.menu.close();
+            itemElem.appendChild(iconElem);
+        }
+
+        const textElem = document.createElement('div');
+        textElem.classList.add('n3q-base', 'n3q-text');
+        textElem.setAttribute('data-translate', 'text:Menu');
+        textElem.innerText = this.text;
+        itemElem.appendChild(textElem);
+        return itemElem;
+    }
+
+    protected isDisabled(): boolean
+    {
+        return false;
+    }
+
+    public closeSubmenu(): boolean
+    {
+        return false;
+    }
+
+    public onUserDone(): void
+    {
+        this.column.onUserDone();
+    }
+
+    public onMenuClose(): void
+    {
+        this.itemElem?.parentNode?.removeChild(this.itemElem);
+        this.itemElem = null;
+    }
+
+    protected initEventHandling(): void {
+        let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.itemElem);
+        eventDispatcher.setEventListener(PointerEventType.click, ev => {
+            if (!is.nil(this.itemElem)) {
+                if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
+                    this.onUserAction();
+                } else {
+                    this.onUserDone();
+                }
             }
         });
-        return this.elem;
+        eventDispatcher.setEventListener(PointerEventType.doubleclick, ev => {
+            if (!is.nil(this.itemElem)) {
+                this.onUserDone();
+            }
+        });
+        eventDispatcher.setEventListener(PointerEventType.hoverenter, ev => {
+            if (!is.nil(this.itemElem)) {
+                this.onHoverEnter();
+            }
+        });
+        eventDispatcher.setEventListener(PointerEventType.hoverleave, ev => {
+            if (!is.nil(this.itemElem)) {
+                this.onHoverLeave();
+            }
+        });
     }
+
+    protected onUserAction(): void
+    {
+        this.onUserDone();
+    }
+
+    protected onHoverEnter(): void
+    {
+        this.onHoverSetClass();
+        this.onHoverEnterCloseSubmenu();
+    }
+
+    protected onHoverSetClass(): void
+    {
+        if (!this.isDisabled()) {
+            this.itemElem.classList.add('n3q-menu-item-hover');
+        }
+    }
+
+    protected onHoverEnterCloseSubmenu(): boolean
+    {
+        return this.column.onItemWantsToCloseSubmenu();
+    }
+
+    protected onHoverLeave(): void
+    {
+        this.onHoverLeaveSetClass();
+    }
+
+    protected onHoverLeaveSetClass(): void
+    {
+        this.itemElem.classList.remove('n3q-menu-item-hover');
+    }
+
+}
+
+class ActionMenuItem extends MenuItem
+{
+    protected onClick: () => void;
+
+    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string, onClick: null|(() => void))
+    {
+        super(app, column, iconId, text);
+        this.onClick = onClick;
+        this.extraCssClasses.push('n3q-action-menu-item');
+    }
+
+    protected isDisabled(): boolean
+    {
+        return is.nil(this.onClick);
+    }
+
+    protected onUserAction(): void {
+        this.onClick?.();
+        super.onUserAction();
+    }
+
+}
+
+class LabelMenuItem extends MenuItem
+{
+
+    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
+        super(app, column, iconId, text);
+        this.extraCssClasses.push('n3q-label-menu-item');
+    }
+
+}
+
+class SubmenuMenuItem extends MenuItem
+{
+    protected menu: Submenu;
+    protected openTimeoutHandle: null|number;
+
+    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
+        super(app, column, iconId, text);
+        this.menu = new Submenu(this.app, this);
+        this.extraCssClasses.push('n3q-submenu-menu-item');
+    }
+    
+    public getMenu(): Submenu
+    {
+        return this.menu;
+    }
+
+    public render(renderIcon: boolean): HTMLElement
+    {
+        super.render(renderIcon);
+        const arrowElem = document.createElement('div');
+        arrowElem.classList.add('n3q-base', 'n3q-submenu-arrow');
+        this.itemElem.appendChild(arrowElem);
+        return this.itemElem;
+    }
+
+    protected openSubmenu()
+    {
+        if (!this.menu.isOpen()) {
+            const thisClientRect = this.itemElem.getBoundingClientRect();
+            this.menu.open(thisClientRect.right, thisClientRect.bottom);
+        }
+    }
+
+    public closeSubmenu(): boolean
+    {
+        if (this.menu.isOpen()) {
+            this.menu.close();
+            return true;
+        }
+        return false;
+    }
+
+    public onMenuClose(): void
+    {
+        this.cancelHoverOpen();
+        this.menu.onMenuClose();
+    }
+
+    protected onUserAction(): void {
+        if (this.menu.isOpen()) {
+            this.menu.close();
+        } else {
+            this.openSubmenu();
+        }
+        this.cancelHoverOpen();
+    }
+
+    protected onHoverEnter(): void
+    {
+        this.cancelHoverOpen();
+        this.onHoverSetClass();
+        if (this.isDisabled() || this.menu.isOpen()) {
+            return;
+        }
+        const otherMenuWasOpen = this.onHoverEnterCloseSubmenu();
+        if (otherMenuWasOpen) {
+            this.openSubmenu();
+            return;
+        }
+        const openTimeoutMs = 1000 * as.Float(Config.get('system.submenuHoverOpenDelaySec'), 1);
+        this.openTimeoutHandle = window.setTimeout(() => this.openSubmenu(), openTimeoutMs);
+    }
+
+    protected onHoverLeave(): void
+    {
+        this.cancelHoverOpen();
+        this.onHoverLeaveSetClass();
+    }
+
+    protected cancelHoverOpen(): void
+    {
+        if (!is.nil(this.openTimeoutHandle)) {
+            window.clearTimeout(this.openTimeoutHandle);
+            this.openTimeoutHandle = null;
+        }
+    }
+
+    protected isDisabled(): boolean
+    {
+        return this.menu.isEmpty();
+    }
+
 }
 
 export class MenuColumn
 {
-    items: Record<string, MenuItem> = {};
+    protected app: ContentApp;
+    protected menu: Menu;
+    protected id: string;
+    protected items: MenuItem[] = [];
 
-    constructor(public menu: Menu, public id: string)
+    public constructor(app: ContentApp, menu: Menu, id: string)
     {
+        this.app = app;
+        this.menu = menu;
+        this.id = id;
     }
 
-    addItem(id: string, text: string, hasIcon: MenuHasIcon, hasCheckbox: MenuHasCheckbox, onClickClose: MenuOnClickClose, onClick: MenuClickHandler)
+    public isEmpty(): boolean
     {
-        this.items[id] = new MenuItem(this, id, text, hasIcon, hasCheckbox, onClickClose, onClick);
+        return this.items.length === 0;
     }
 
-    setCheckbox(id: string, hasCheckbox: MenuHasCheckbox)
+    public addActionItem(iconId: null|string, text: string, onClick: null|(() => void)): void
     {
-        if (this.items[id] != undefined) {
-            this.items[id].setCheckbox(hasCheckbox);
-        }
+        this.items.push(new ActionMenuItem(this.app, this, iconId, text, onClick));
     }
 
-    render(parentElem: HTMLElement)
+    public addLabelItem(iconId: null|string, text: string): void
+    {
+        this.items.push(new LabelMenuItem(this.app, this, iconId, text));
+    }
+
+    public addSubmenuItem(iconId: null|string, text: string): Submenu
+    {
+        const item = new SubmenuMenuItem(this.app, this, iconId, text);
+        this.items.push(item);
+        return item.getMenu();
+    }
+
+    public render(): HTMLElement
     {
         const columnElem = document.createElement('div');
         columnElem.classList.add('n3q-base', 'n3q-menu-column', `n3q-menu-column-${this.id}`);
         columnElem.setAttribute('data-translate', 'children');
-        parentElem.appendChild(columnElem);
-        for (let itemId in this.items) {
-            columnElem.appendChild(this.items[itemId].render());
+        const renderIcons = this.items.some(item => item.hasIcon());
+        for (let item of this.items) {
+            columnElem.appendChild(item.render(renderIcons));
+        }
+        return columnElem;
+    }
+
+    public onItemWantsToCloseSubmenu(): boolean
+    {
+        return this.menu.onItemWantsToCloseSubmenu();
+    }
+
+    public closeSubmenu(): boolean
+    {
+        return this.items.some(item => item.closeSubmenu());
+    }
+
+    public onUserDone(): void {
+        this.menu.onUserDone();
+    }
+
+    public onMenuClose(): void {
+        for (const item of this.items) {
+            item.onMenuClose();
         }
     }
 
 }
 
-export class Menu
+abstract class Menu
 {
-    columns: Record<string, MenuColumn> = {};
-    checkboxElem: HTMLElement;
+    protected app: ContentApp;
+    protected extraCssClasses: string[] = [];
+    protected columns: MenuColumn[] = [];
 
-    constructor(public app: ContentApp, public id: string) { }
+    protected menuElem: null|HTMLElement;
 
-    addColumn(column: MenuColumn)
+    public constructor(app: ContentApp)
     {
-        this.columns[column.id] = column;
+        this.app = app;
     }
 
-    setCheckbox(column: string, item: string, hasCheckbox: MenuHasCheckbox)
+    public addColumn(id: string): MenuColumn
     {
-        if (this.columns[column] != undefined) {
-            this.columns[column].setCheckbox(item, hasCheckbox);
+        const column = new MenuColumn(this.app, this, id);
+        this.columns.push(column);
+        return column;
+    }
+
+    public isEmpty(): boolean
+    {
+        return !this.columns.some(column => !column.isEmpty());
+    }
+
+    public isOpen(): boolean
+    {
+        return !is.nil(this.menuElem);
+    }
+
+    public open(clientX: number, clientY: number): void
+    {
+        if (!is.nil(this.menuElem)) {
+            return;
+        }
+        this.render();
+        this.applyPositionWhenReady(clientX, clientY);
+    }
+
+    public close(): void
+    {
+        this.menuElem?.parentNode?.removeChild(this.menuElem);
+        this.menuElem = null;
+        for (const column of this.columns) {
+            column.onMenuClose();
         }
     }
 
-    render(): HTMLElement
+    public onItemWantsToCloseSubmenu(): boolean
     {
-        let menu = <HTMLElement>$('<div class="n3q-base n3q-menu n3q-menu-avatar" data-translate="attr:title:Menu children" title="Menu">').get(0);
-        this.checkboxElem = <HTMLElement>$('<input type="checkbox" href="#" class="n3q-base n3q-menu-open" name="n3q-id-menu-open-avatarmenu-' + this.id + '" id="n3q-id-menu-open-avatarmenu-' + this.id + '" />').get(0);
+        return this.closeSubmenu();
+    }
 
-        $(menu).append(this.checkboxElem);
-        let label = <HTMLElement>$('<label for="n3q-id-menu-open-avatarmenu-' + this.id + '" class="n3q-base n3q-menu-open-button"></label>').get(0);
-        $(menu).append(label);
+    public closeSubmenu(): boolean
+    {
+        return this.columns.some(column => column.closeSubmenu());
+    }
+
+    public onUserDone(): void {
+        this.close();
+    }
+
+    protected render()
+    {
+        let menuElem = document.createElement('div');
+        menuElem.classList.add('n3q-base', 'n3q-menu', ...this.extraCssClasses, 'n3q-menu-hidden');
+        menuElem.setAttribute('data-translate', 'attr:title:Menu children');
 
         const columnsElem = document.createElement('div');
         columnsElem.classList.add('n3q-base', 'n3q-menu-columns');
         columnsElem.setAttribute('data-translate', 'children');
-        menu.appendChild(columnsElem);
-        for (let columnId in this.columns) {
-            this.columns[columnId].render(columnsElem);
+        menuElem.appendChild(columnsElem);
+        for (let column of this.columns) {
+            columnsElem.appendChild(column.render());
         }
+        this.app.translateElem(menuElem);
 
-        this.app.translateElem(menu);
-
-        return menu;
+        const displayElem = this.app.getDisplay();
+        displayElem.appendChild(menuElem);
+        this.menuElem = menuElem;
     }
 
-    close()
+    protected applyPositionWhenReady(clientX: number, clientY: number): void
     {
-        $(this.checkboxElem).prop('checked', false);
+        if (is.nil(this.menuElem)) {
+            return;
+        }
+        const {width} = this.menuElem.getBoundingClientRect();
+        if (is.nil(width) || width === 0) {
+            const pollIntervalMs = 1000 * as.Float(Config.get('system.domUpdatePollIntervalSec'), 1);
+            window.setTimeout(() => this.applyPositionWhenReady(clientX, clientY), pollIntervalMs);
+        } else {
+            this.applyPosition(clientX, clientY);
+        }
     }
+
+    protected applyPosition(clientX: number, clientY: number): void
+    {
+        this.app.toFront(this.menuElem, ContentApp.LayerMenu);
+        const displayElemRect = this.app.getDisplay().getBoundingClientRect();
+        const left = clientX - displayElemRect.left;
+        const bottom = clientY - displayElemRect.top;
+        const {width, height} = this.menuElem.getBoundingClientRect();
+        const top = bottom - height;
+        const [leftM, topM] = Utils.fitDimensions(
+            left, top, width, height,
+            displayElemRect.width, displayElemRect.height,
+            width, height, 0, 0, 0, 0
+        );
+        this.menuElem.style.left = `${leftM}px`;
+        this.menuElem.style.top  = `${topM}px`;
+        this.menuElem.classList.remove('n3q-menu-hidden');
+    }
+
+}
+
+export class RootMenu extends Menu
+{
+    protected pointerCatcherElem: null|HTMLElement;
+
+    public constructor(app: ContentApp, id: string)
+    {
+        super(app);
+        this.extraCssClasses.push('n3q-menu-root', `n3q-menu-${id}`);
+    }
+
+    public close(): void
+    {
+        this.pointerCatcherElem?.parentNode?.removeChild(this.pointerCatcherElem);
+        this.pointerCatcherElem = null;
+        super.close();
+    }
+
+    protected render(): void
+    {
+        super.render();
+        let catcherElem = document.createElement('div');
+        catcherElem.classList.add('n3q-base', 'n3q-menu-pointer-catcher');
+        let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, catcherElem);
+        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => this.close());
+        this.pointerCatcherElem = catcherElem;
+    }
+
+    protected applyPosition(clientX: number, clientY: number): void
+    {
+        if (!is.nil(this.pointerCatcherElem)) {
+            this.app.getDisplay().appendChild(this.pointerCatcherElem);
+            this.app.toFront(this.pointerCatcherElem, ContentApp.LayerMenu);
+        }
+        super.applyPosition(clientX, clientY);
+    }
+
+}
+
+export class Submenu extends Menu
+{
+    protected parentItem: MenuItem;
+
+    public constructor(app: ContentApp, parentItem: MenuItem)
+    {
+        super(app);
+        this.parentItem = parentItem;
+        this.extraCssClasses.push(`n3q-menu-submenu`);
+    }
+
+    public onUserDone(): void
+    {
+        this.parentItem.onUserDone();
+    }
+
+    public onMenuClose(): void
+    {
+        this.close();
+    }
+
 }

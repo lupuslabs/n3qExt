@@ -6,6 +6,11 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.2.4', 'AvatarMenu', [
+            ['Change', 'Avatar menu actions/emotes list moved into a submenu'],
+            ['Fix', 'Avatar menu lists only actions/emotes available for the current avatar'],
+            ['Fix', 'Avatar menu always opens fully on screen and is never covered by other GUI elements'],
+        ]],
         ['1.2.3', 'ClickThroughBadgesPersistentChat', [
             ['Add', 'Persistent chat'],
             ['Add', 'Avatar generator link to settings'],

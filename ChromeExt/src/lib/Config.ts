@@ -41,6 +41,8 @@ export class Config
             activateBackgroundPageProbeDelayMaxSec: 8,
             activateBackgroundPageProbeDelayFactor: 2,
             activateBackgroundPageProbeTotalSec: 120,
+            domUpdatePollIntervalSec: 0.05,
+            submenuHoverOpenDelaySec: 0.5,
         },
         log: {
             all: false,
@@ -175,6 +177,10 @@ export class Config
 
             // animationsUrlTemplate: 'https://webex.vulcan.weblin.com/avatars/gif/{id}/config.xml',
             animationsUrlTemplate: 'https://webex.vulcan.weblin.com/avatars/{id}/config.xml',
+            animationGroupBlocklistForAvatarMenu: [
+                'idle', 'moveleft', 'moveright', 'chat', // Non-emotes.
+                'sleep', // Often defined but not backed with an animation.
+            ],
 
             // list: ['gif/002/sportive03_m', 'gif/002/business03_m', 'gif/002/child02_m', 'gif/002/sportive01_m', 'gif/002/business06_m', 'gif/002/casual04_f', 'gif/002/business01_f', 'gif/002/casual30_m', 'gif/002/sportive03_f', 'gif/002/casual16_m', 'gif/002/casual10_f', 'gif/002/business03_f', 'gif/002/casual03_m', 'gif/002/sportive07_m', 'gif/002/casual13_f', 'gif/002/casual09_m', 'gif/002/casual16_f', 'gif/002/child02_f', 'gif/002/sportive08_m', 'gif/002/casual15_m', 'gif/002/casual15_f', 'gif/002/casual01_f', 'gif/002/casual11_f', 'gif/002/sportive09_m', 'gif/002/casual20_f', 'gif/002/sportive02_f', 'gif/002/business05_m', 'gif/002/casual06_m', 'gif/002/casual10_m', 'gif/002/casual02_f',],
             // randomList: ['gif/002/sportive03_m', 'gif/002/business03_m', 'gif/002/child02_m', 'gif/002/sportive01_m', 'gif/002/business06_m', 'gif/002/casual04_f', 'gif/002/business01_f', 'gif/002/casual30_m', 'gif/002/sportive03_f', 'gif/002/casual16_m', 'gif/002/casual10_f', 'gif/002/business03_f', 'gif/002/casual03_m', 'gif/002/sportive07_m', 'gif/002/casual13_f', 'gif/002/casual09_m', 'gif/002/casual16_f', 'gif/002/child02_f', 'gif/002/sportive08_m', 'gif/002/casual15_m', 'gif/002/casual15_f', 'gif/002/casual01_f', 'gif/002/casual11_f', 'gif/002/sportive09_m', 'gif/002/casual20_f', 'gif/002/sportive02_f', 'gif/002/business05_m', 'gif/002/casual06_m', 'gif/002/casual10_m', 'gif/002/casual02_f',],
@@ -420,7 +426,7 @@ export class Config
                     'Menu.Chat Window': 'Chat History',
                     'Menu.Video Conference': 'Video Conference',
                     'Menu.Chat': 'Chat',
-                    'Menu.Actions:': 'Actions:',
+                    'Menu.Actions': 'Actions',
                     'Menu.wave': 'Wave',
                     'Menu.dance': 'Dance',
                     'Menu.cheer': 'Cheer',
@@ -428,6 +434,7 @@ export class Config
                     'Menu.clap': 'Clap',
                     'Menu.laugh': 'Laugh',
                     'Menu.angry': 'Angry',
+                    'Menu.agree': 'Agree',
                     'Menu.deny': 'Deny',
                     'Menu.yawn': 'Yawn',
                     'Menu.Greet': 'Greet',
@@ -699,7 +706,7 @@ export class Config
                     'Menu.Chat Window': 'Chatverlauf',
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',
-                    'Menu.Actions:': 'Aktionen:',
+                    'Menu.Actions': 'Aktionen',
                     'Menu.wave': 'Winken',
                     'Menu.dance': 'Tanzen',
                     'Menu.cheer': 'Jubeln',
@@ -707,6 +714,7 @@ export class Config
                     'Menu.clap': 'Klatschen',
                     'Menu.laugh': 'Lachen',
                     'Menu.angry': 'Ärgern',
+                    'Menu.agree': 'Zustimmen',
                     'Menu.deny': 'Ablehnen',
                     'Menu.yawn': 'Gähnen',
                     'Menu.Greet': 'Grüßen',
