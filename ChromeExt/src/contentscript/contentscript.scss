@@ -1596,4 +1596,14 @@
         margin-right: 4px;
     }
 
+    iframe.n3q-iframe-test-box {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        border: none;
+        width: 80px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
 }

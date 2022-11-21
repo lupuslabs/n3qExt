@@ -48,7 +48,7 @@ export class OwnParticipantMenu extends ParticipantMenu
         this.makeEmotesMenuAndItem(column);
 
         if (Environment.isDevelopment()) {
-            column.addActionItem(null, 'Test', () => this.app.test());
+            this.makeDebugMenuAndItem(column);
         }
 
         // column.addActionItem(
@@ -70,6 +70,22 @@ export class OwnParticipantMenu extends ParticipantMenu
                 actionsColumn.addActionItem(null, action, () => this.participant.do(action));
                 groupBlocklist.push(action);
             }
+        }
+    }
+
+    protected makeDebugMenuAndItem(column: MenuColumn): void
+    {
+        const actionsMenu = column.addSubmenuItem('debug', 'Debug');
+        const debugColumn = actionsMenu.addColumn('debug');
+        const debugUtils = this.app.getDebugUtils();
+
+        debugColumn.addActionItem(null, 'Avatar Effect Test', () => this.app.test());
+
+        {
+            const isEnabled = debugUtils.getIframeTestBoxEnabled();
+            const iconId = isEnabled ? 'checkbox-checked' : 'checkbox-unchecked';
+            const action = () => debugUtils.toggleIframeTestBoxEnabled();
+            debugColumn.addActionItem(iconId, 'iFrame Test', action);
         }
     }
 
