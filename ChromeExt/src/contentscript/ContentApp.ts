@@ -35,6 +35,7 @@ import { Avatar } from './Avatar';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
+import { DebugUtils } from './DebugUtils';
 
 interface ILocationMapperResponse
 {
@@ -55,6 +56,7 @@ interface StanzaResponseHandler { (stanza: XmlElement): void }
 
 export class ContentApp
 {
+    private debugUtils: DebugUtils;
     private display: HTMLElement;
     private pageUrl: string;
     private presetPageUrl: string;
@@ -81,6 +83,7 @@ export class ContentApp
 
     // Getter
 
+    getDebugUtils(): DebugUtils { return this.debugUtils; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
     getRoom(): Room { return this.room; }
@@ -105,6 +108,7 @@ export class ContentApp
 
     constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
     {
+        this.debugUtils = new DebugUtils(this);
     }
 
     activateBackgroundPageProbeDelaySec = 0;
@@ -273,6 +277,8 @@ export class ContentApp
         this.startCheckPageUrl();
         this.pingBackgroundToKeepConnectionAlive();
         this.iframeApi = new IframeApi(this).start();
+
+        this.debugUtils.onAppStartComplete();
     }
 
     sleep(statusMessage: string)

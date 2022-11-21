@@ -564,12 +564,6 @@
                 text-overflow: ellipsis;
             }
 
-            div.n3q-menu {
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 2px;
-            }
-
         }
 
     }
@@ -690,32 +684,43 @@
         opacity: 0.0;
     }
 
-    input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button {
+    span.n3q-menu-open-button {
         all: initial;
         display: inline-block;
+        margin-right: 2px;
         vertical-align: middle;
         width: 14px;
         height: 14px;
-        background: url(../assets/icons/menu.svg) no-repeat center center / contain;
+        /* Flat color makes it opaque for pointer event handler: */
+        background: url(../assets/icons/menu.svg) no-repeat center center / contain #FFFFFF;
     }
 
-    // LinkedIn
-    input[type=checkbox].n3q-menu-open + label.n3q-menu-open-button:before { all: initial; }
-    input[type=checkbox].n3q-menu-open:checked + label:after { all: initial; }
-
-    input[type=checkbox].n3q-base.n3q-menu-open {
-        display: none!important;
+    div.n3q-menu-pointer-catcher {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        opacity: 0.01;
+        background: #FFFFFF;
+        pointer-events: auto;
     }
 
-    input[type=checkbox].n3q-menu-open:checked + label.n3q-menu-open-button {
-        background: url(../assets/icons/close-circle-o.svg) no-repeat center center / contain;
+    div.n3q-menu {
+        position: absolute;
     }
 
+    div.n3q-menu-root {
+        padding-bottom: 14px;
+    }
+
+    div.n3q-menu-submenu {
+        padding-left: 7px;
+    }
+
+    div.n3q-menu-hidden {
+        visibility: hidden;
+    }
 
     div.n3q-menu-columns {
-        position: absolute;
-        bottom: 30px;
-        left: 0;
         display: flex;
         flex-direction: row;
         gap: 4px;
@@ -730,12 +735,18 @@
     }
 
     div.n3q-menu-item {
+        position: relative;
         color: black;
         background-color: white;
         white-space: nowrap;
-        min-height: 14px;
+        height: 14px;
         padding: 2px 4px 2px 2px;
+        pointer-events: auto;
         user-select: none;
+
+        * {
+            pointer-events: none;
+        }
 
         div.n3q-menu-icon {
             display: inline-block;
@@ -744,40 +755,51 @@
             height:14px;
         }
 
-        div.n3q-menu-icon.n3q-menu-icon-noicon { width:1px; height:14px; }
-
         div.n3q-text {
             display: inline-block;
             vertical-align: middle;
             margin-left: 3px;
             min-width: 50px;
         }
+
+        div.n3q-submenu-arrow {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 0; 
+            height: 0; 
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 5px solid black;
+        }
+
     }
 
-    input[type=checkbox].n3q-menu-open:not(:checked) ~ div.n3q-menu-columns {
-        display: none;
+    div.n3q-submenu-menu-item {
+        padding-right: 13px;
     }
 
-    div.n3q-menuitem-chat div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-inventory div.n3q-menu-icon { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-badgesEditMode div.n3q-menu-icon { background: url(../assets/icons/ic_badgesEditMode.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-vidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-chatwin div.n3q-menu-icon { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-settings div.n3q-menu-icon { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-getweblin div.n3q-menu-icon { background: url(../assets/icons/weblin.png) no-repeat center center / contain; }
-    div.n3q-menuitem-privatevidconf div.n3q-menu-icon { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-privatechat div.n3q-menu-icon { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-greet div.n3q-menu-icon { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
-    div.n3q-menuitem-bye div.n3q-menu-icon { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
+    div.n3q-menu-icon-checkbox-unchecked { background: url(../assets/icons/checkbox-unchecked.svg) no-repeat center center / auto 0.9em; }
+    div.n3q-menu-icon-checkbox-checked { background: url(../assets/icons/checkbox-checked.svg) no-repeat center center / auto 0.9em; }
 
-    div.n3q-menu-item:hover { filter: brightness(0.9); }
-    div.n3q-menu-item:active { filter: brightness(0.8); }
+    div.n3q-menu-icon-chat { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-inventory { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-badgesEditMode { background: url(../assets/icons/ic_badgesEditMode.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-vidconf { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-chatwin { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-settings { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-getweblin { background: url(../assets/icons/weblin.png) no-repeat center center / contain; }
+    div.n3q-menu-icon-privatevidconf { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-privatechat { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-greet { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
+    div.n3q-menu-icon-bye { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
+    div.n3q-menu-icon-emotes { background: url(../assets/icons/smiley.svg) no-repeat center center / auto 0.9em; }
 
-    div.n3q-menu-item.n3q-menu-item-disabled { background-color: #888888; }
-    div.n3q-menu-item.n3q-menu-item-disabled div.n3q-text { color: #ffffff; }
+    div.n3q-menu-item:not(.n3q-menu-item-disabled):hover { filter: brightness(0.9); }
+    div.n3q-menu-item:not(.n3q-menu-item-disabled):active { filter: brightness(0.8); }
 
-    div.n3q-menu-item.n3q-menu-item-disabled:hover { filter: unset; }
-    div.n3q-menu-item.n3q-menu-item-disabled:active { filter: unset; }
+    div.n3q-menu-item.n3q-menu-item-disabled * { opacity: 0.6; }
+    div.n3q-menu-item.n3q-menu-item-disabled div.n3q-submenu-arrow { opacity: 0.25; }
 
     // Chatout
 
@@ -1572,6 +1594,16 @@
 
     div.n3q-chatin div.n3q-button-sendchat {
         margin-right: 4px;
+    }
+
+    iframe.n3q-iframe-test-box {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        border: none;
+        width: 80px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.1);
     }
 
 }

@@ -6,7 +6,6 @@ import { Entity } from './Entity';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
-import { is } from '../lib/is';
 import { IObserver } from '../lib/ObservableProperty';
 import * as AnimationsXml from './AnimationsXml';
 import { RoomItem } from './RoomItem';
@@ -427,6 +426,11 @@ export class Avatar implements IObserver
     setSpeed(pixelPerSec: number): void
     {
         this.speedPixelPerSec = pixelPerSec;
+    }
+
+    public getAnimations(): null|AnimationsXml.AnimationsDefinition
+    {
+        return this.animations;
     }
 
     getAnimationByGroup(group: string): AvatarGetAnimationResult

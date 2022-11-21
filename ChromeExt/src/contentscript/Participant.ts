@@ -33,9 +33,13 @@ import { Memory } from '../lib/Memory';
 import { DomButtonId } from '../lib/domTools';
 import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 import { Chat, ChatMessage } from '../lib/ChatMessage';
+import { RootMenu, } from './Menu';
+import { OwnParticipantMenu } from './OwnParticipantMenu';
+import { OtherParticipantMenu } from './OtherParticipantMenu';
 
 export class Participant extends Entity
 {
+    private menuDisplay: RootMenu;
     private nicknameDisplay: Nickname;
     private pointsDisplay: PointsBar;
     private activityDisplay: ActivityBar;
@@ -60,6 +64,12 @@ export class Participant extends Entity
             /*await*/ this.showIntroYouOnce();
         } else {
             $(this.getElem()).addClass('n3q-participant-other');
+        }
+
+        if (this.isSelf) {
+            this.menuDisplay = new OwnParticipantMenu(this.app, this);
+        } else {
+            this.menuDisplay = new OtherParticipantMenu(this.app, this);
         }
     }
 
@@ -114,6 +124,7 @@ export class Participant extends Entity
         this.badgesDisplay?.stop();
         this.chatoutDisplay?.stop();
         this.chatinDisplay?.stop();
+        this.closeMenu();
         super.remove();
     }
 
@@ -1180,6 +1191,18 @@ export class Participant extends Entity
             const controller = this.app.getSimpleItemTransferController();
             controller?.senderInitiateItemTransfer(this, item);
         }
+    }
+
+    public closeMenu(): void
+    {
+        this.menuDisplay.close();
+    }
+
+    public openMenu(): void
+    {
+        const alignmentElem = this.nicknameDisplay?.getElem() ?? this.elem;
+        const clientRect = alignmentElem.getBoundingClientRect();
+        this.menuDisplay.open(clientRect.left, clientRect.top);
     }
 
 }
