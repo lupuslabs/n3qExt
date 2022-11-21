@@ -779,6 +779,9 @@
         padding-right: 13px;
     }
 
+    div.n3q-menu-icon-checkbox-unchecked { background: url(../assets/icons/checkbox-unchecked.svg) no-repeat center center / auto 0.9em; }
+    div.n3q-menu-icon-checkbox-checked { background: url(../assets/icons/checkbox-checked.svg) no-repeat center center / auto 0.9em; }
+
     div.n3q-menu-icon-chat { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
     div.n3q-menu-icon-inventory { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
     div.n3q-menu-icon-badgesEditMode { background: url(../assets/icons/ic_badgesEditMode.svg) no-repeat center center / contain; }
