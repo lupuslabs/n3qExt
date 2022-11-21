@@ -471,7 +471,7 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
 
-                    'Badges.editModeHint': 'Drop badges here',
+                    'Badges.editModeHint': 'Drop your badges here',
 
                     'SimpleItemTransfer.senderConfirmQuestionTitle': 'Send Item',
                     'SimpleItemTransfer.senderConfirmQuestionText': 'Do you want to send {item} to {recipient}?',
@@ -695,7 +695,7 @@ export class Config
                     'Menu.Settings': 'Einstellungen',
                     'Menu.Stay Here': 'Bleiben bei Tabwechsel',
                     'Menu.Backpack': 'Rucksack',
-                    'Menu.BadgesEditMode': 'Badges',
+                    'Menu.BadgesEditMode': 'Sticker',
                     'Menu.Chat Window': 'Chatverlauf',
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',
@@ -750,7 +750,7 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
 
-                    'Badges.editModeHint': 'Lege Badges hier ab',
+                    'Badges.editModeHint': 'Lege deine Sticker hier ab',
 
                     'SimpleItemTransfer.senderConfirmQuestionTitle': 'Gegenstand übergeben',
                     'SimpleItemTransfer.senderConfirmQuestionText':
@@ -836,8 +836,8 @@ export class Config
                     'Toast.Your activity points have been claimed automatically': 'Deine Aktivitätspunkte wurden nach einiger Zeit automatisch zugeteilt. Um die Ausbeute zu steigern, ist es besser die Punkte selbst zu beanspruchen. Dafür trägt man den Punkte-Gegenstand auf eine Seite, klickt darauf und holt die Punkte. Am besten jeden Tag.',
                     'Toast.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
                     'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
-                    'Toast.BadgeNotEnabled': 'Badge aktivieren fehlgeschlagen',
-                    'Toast.TooMuchBadgesEnabled': 'Du hast bereits die maximale Anzahl an Badges aktiviert.',
+                    'Toast.BadgeNotEnabled': 'Sticker aktivieren fehlgeschlagen',
+                    'Toast.TooMuchBadgesEnabled': 'Du hast bereits die maximale Anzahl an Stickern aktiviert.',
 
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
