@@ -248,6 +248,9 @@ export class VpiResolver
                             }
                         }
                         location = protocol + ':' + room + suffix + '@' + server;
+                        if (destination === '') {
+                            destination = documentUrl;
+                        }
                         if (Utils.logChannel('urlMapping', false)) {
                             log.debug('VpiResolver', logData);
                         }
