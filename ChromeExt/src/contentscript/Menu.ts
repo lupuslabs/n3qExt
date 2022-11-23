@@ -81,6 +81,11 @@ abstract class MenuItem
 
     protected initEventHandling(): void {
         let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.itemElem);
+        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => {
+            if (!is.nil(this.itemElem)) {
+                this.onButtondown();
+            }
+        });
         eventDispatcher.setEventListener(PointerEventType.click, ev => {
             if (!is.nil(this.itemElem)) {
                 if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
@@ -105,6 +110,10 @@ abstract class MenuItem
                 this.onHoverLeave();
             }
         });
+    }
+
+    protected onButtondown(): void
+    {
     }
 
     protected onUserAction(): void
@@ -223,13 +232,13 @@ class SubmenuMenuItem extends MenuItem
         this.menu.onMenuClose();
     }
 
-    protected onUserAction(): void {
-        if (this.menu.isOpen()) {
-            this.menu.close();
-        } else {
-            this.openSubmenu();
-        }
+    protected onButtondown(): void
+    {
+        this.openSubmenu();
         this.cancelHoverOpen();
+    }
+
+    protected onUserAction(): void {
     }
 
     protected onHoverEnter(): void
@@ -478,7 +487,7 @@ export class RootMenu extends Menu
         let catcherElem = document.createElement('div');
         catcherElem.classList.add('n3q-base', 'n3q-menu-pointer-catcher');
         let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, catcherElem);
-        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => this.close());
+        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => this.onUserDone());
         this.pointerCatcherElem = catcherElem;
     }
 

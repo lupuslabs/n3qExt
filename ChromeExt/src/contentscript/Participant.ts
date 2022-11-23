@@ -1195,14 +1195,20 @@ export class Participant extends Entity
 
     public closeMenu(): void
     {
-        this.menuDisplay.close();
+        if (this.menuDisplay.isOpen()) {
+            this.menuDisplay.close();
+            this.nicknameDisplay?.onMenuClose();
+        }
     }
 
     public openMenu(): void
     {
-        const alignmentElem = this.nicknameDisplay?.getElem() ?? this.elem;
-        const clientRect = alignmentElem.getBoundingClientRect();
-        this.menuDisplay.open(clientRect.left, clientRect.top);
+        if (!this.menuDisplay.isOpen()) {
+            const alignmentElem = this.nicknameDisplay?.getElem() ?? this.elem;
+            const clientRect = alignmentElem.getBoundingClientRect();
+            this.menuDisplay.open(clientRect.left, clientRect.top);
+            this.nicknameDisplay?.onMenuOpen();
+        }
     }
 
 }

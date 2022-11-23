@@ -12,6 +12,7 @@ export class Nickname implements IObserver
 {
     private elem: HTMLDivElement;
     private textElem: HTMLElement;
+    private menuElem: HTMLElement;
     private nickname: string;
 
     getElem() { return this.elem; }
@@ -31,9 +32,10 @@ export class Nickname implements IObserver
         });
 
         let menuElem = document.createElement('span');
-        menuElem.classList.add('n3q-base', 'n3q-menu-open-button');
+        this.menuElem = menuElem;
+        menuElem.classList.add('n3q-base', 'n3q-menu-open-button', 'n3q-menu-open-button-closed');
         let menuEventdispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, menuElem);
-        menuEventdispatcher.setEventListener(PointerEventType.click, ev => {
+        menuEventdispatcher.setEventListener(PointerEventType.buttondown, ev => {
             if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
                 this.participant.openMenu();
             }
@@ -70,6 +72,16 @@ export class Nickname implements IObserver
     public getNickname(): string
     {
         return this.nickname;
+    }
+
+    public onMenuOpen(): void
+    {
+        this.menuElem.classList.replace('n3q-menu-open-button-closed', 'n3q-menu-open-button-open');
+    }
+
+    public onMenuClose(): void
+    {
+        this.menuElem.classList.replace('n3q-menu-open-button-open', 'n3q-menu-open-button-closed');
     }
 
 }

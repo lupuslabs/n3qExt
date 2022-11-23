@@ -692,7 +692,13 @@
         width: 14px;
         height: 14px;
         /* Flat color makes it opaque for pointer event handler: */
-        background: url(../assets/icons/menu.svg) no-repeat center center / contain #FFFFFF;
+        background: no-repeat center center / contain #FFFFFF;
+    }
+    span.n3q-menu-open-button-open {
+        background-image: url(../assets/icons/close-circle-o.svg);
+    }
+    span.n3q-menu-open-button-closed {
+        background-image: url(../assets/icons/menu.svg);
     }
 
     div.n3q-menu-pointer-catcher {
