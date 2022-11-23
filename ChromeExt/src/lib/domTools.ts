@@ -1,6 +1,7 @@
 ﻿// Vanilla DOM utilities
 
 import { is } from './is';
+import { as } from './as';
 
 //------------------------------------------------------------------------------
 // Element discovery
@@ -178,4 +179,95 @@ export function calcDomButtonIdsDiff(buttonsOld: number, buttonsNew: number): [n
     const up = buttonsOld & ~buttonsNew;
     const down = buttonsNew & ~buttonsOld;
     return [up, down];
+}
+
+//------------------------------------------------------------------------------
+// Render- and animation-related
+
+export function domOnNextRenderComplete(fun: (timestamp: number) => void): void
+{
+    window.requestAnimationFrame(() => window.requestAnimationFrame(fun));
+}
+
+export type DomElemTransition = {property: string, delay: string, duration: string, timingFun: string};
+
+export function startDomElemTransition(
+    elem: HTMLElement, guard: () => boolean, transition: DomElemTransition, finalVal: string, onComplete?: () => void
+): void {
+    if (!guard()) {
+        return;
+    }
+    stopDomElemTransition(elem, transition.property, null);
+    domOnNextRenderComplete(() => {
+        if (!guard()) {
+            return;
+        }
+        const transitions = getDomElemTransitions(elem);
+        transitions.set(transition.property, transition);
+        setDomElemTransitions(elem, transitions.values());
+        elem.style[transition.property] = finalVal;
+
+        if (!is.nil(onComplete)) {
+            const completedurationSecs
+                = domTransitionDurationAsSeconds(transition.delay)
+                + domTransitionDurationAsSeconds(transition.duration);
+            window.setTimeout(onComplete, 1000 * completedurationSecs);
+        }
+    });
+}
+
+export function stopDomElemTransition(elem: HTMLElement, property: string, newValue?: string): void
+{
+    newValue = newValue ?? window.getComputedStyle(elem)[property];
+    const transitions = getDomElemTransitions(elem);
+    transitions.delete(property);
+    setDomElemTransitions(elem, transitions.values());
+    elem.style[property] = newValue;
+}
+
+export function getDomElemTransitions(elem: HTMLElement): Map<string,DomElemTransition>
+{
+    const transitions = new Map();
+    const currentStyle = window.getComputedStyle(elem);
+    const converter = (v) => as.String(v).split(',').map(s => s.trim()).filter(s => s.length !== 0);
+    const properties = converter(currentStyle.transitionProperty);
+    const delays = converter(currentStyle.transitionDelay);
+    const durations = converter(currentStyle.transitionDuration);
+    const timingFuns = converter(currentStyle.transitionTimingFunction);
+    const getAt = (list: string[], index: number, defaultVal: string): string =>
+        list[index % Math.max(1, list.length)] ?? defaultVal;
+    for (let i = 0; i < properties.length; i++) {
+        const property = properties[i];
+        transitions.set(property, {
+            property: property, 
+            delay: getAt(delays, i, '0s'),
+            duration: getAt(durations, i, '0s'),
+            timingFun: getAt(timingFuns, i, 'ease'),
+        });
+    }
+    return transitions;
+}
+
+export function setDomElemTransitions(elem: HTMLElement, transitions: Iterable<DomElemTransition>): void
+{
+    const transitionStrings = [];
+    for (const t of transitions) {
+        transitionStrings.push(`${t.property} ${t.duration} ${t.timingFun} ${t.delay}`);
+    }
+    elem.style.transition = transitionStrings.join(', ');
+}
+
+export function domTransitionDurationAsSeconds(duration: string): number
+{
+    duration = duration.trim().toLowerCase();
+    if (duration[0] === '+') {
+        duration = duration.substr(1);
+    }
+    let [suffixLen, factor] = [0, 1.0];
+    if (duration.endsWith('ms')) {
+        [suffixLen, factor] = [2, 0.001];
+    } else if (duration.endsWith('s')) {
+        [suffixLen, factor] = [1, 1.0];
+    }
+    return factor * as.Float(duration.substr(0, duration.length - suffixLen));
 }

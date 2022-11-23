@@ -803,55 +803,74 @@
 
     // Chatout
 
-    div.n3q-chatout {
+    div.n3q-chatout-container {
+        @extend .n3q-base;
         position: absolute;
-        left: -50px;
         bottom: 110px;
-        min-width: 100px;
-        max-width: 140px;
-        max-height: 200px;
+        left: -70px;
+        width: 140px;
         z-index: 3;
-        pointer-events: auto;
 
-        div.n3q-text {
-            display: inline-block;
-            line-height: 14px;
-            word-break: break-all;
-            padding: 2px 2px;
-            margin-right: 8px;
+        div.n3q-chatout {
+            @extend .n3q-base;
+            position: relative;
+            margin: 0.5em auto 0;
+            width: fit-content;
+            min-width: 40px;
+            max-width: 140px;
+            pointer-events: auto;
+            opacity: 1;
+
+            div.n3q-speech {
+                @extend .n3q-base;
+                @extend .n3q-shadow-small;
+                position: relative;
+                background-color: #fff;
+                //border: 1px solid #888;
+                border-radius: 8px;
+
+                div.n3q-text {
+                    @extend .n3q-base;
+                    @extend .n3q-text;
+                    padding: 4px;
+                    max-height: 5em;
+                    overflow-y: auto;
+                    pointer-events: auto;
+                    text-align: center;
+                    line-break: loose;
+                    overflow-wrap: break-word;
+                }
+            }
         }
-    }
-
-    div.n3q-speech {
-        position: relative;
-        line-break: loose;
-        overflow-wrap: break-word;
-        text-align: center;
-        padding: 4px;
-        background-color: #fff;
-        //border: 1px solid #888;
-        border-radius: 8px;
-
-        :before {
-            content: ' ';
-            position: absolute;
-            width: 0;
-            height: 0;
-            left: 75px;
-            bottom: -12px;
-            border: 6px solid;
-            border-color: #888 transparent transparent #888;
+        div.n3q-chatout:last-child {
+            div.n3q-speech:before {
+                content: ' ';
+                display: block;
+                position: absolute;
+                left: 50%;
+                width: 0;
+                height: 0;
+                bottom: -12px;
+                border: 6px solid;
+                border-color: #888 transparent transparent #888;
+            }
+            div.n3q-speech:after {
+                content: ' ';
+                display: block;
+                position: absolute;
+                left: calc(50% + 1px);
+                width: 0;
+                height: 0;
+                bottom: -10px;
+                border: 5px solid;
+                border-color: #fff transparent transparent #fff;
+            }
         }
-
-        :after {
-            content: ' ';
-            position: absolute;
-            width: 0;
-            height: 0;
-            left: 76px;
-            bottom: -10px;
-            border: 5px solid;
-            border-color: #fff transparent transparent #fff;
+        div.n3q-chatout.n3q-chatout-pinned div.n3q-speech {
+            box-shadow: 1px 1px 5px rgba(0, 0, 0, 1);
+        }
+        div.n3q-chatout.n3q-chatout-pinned:last-child div.n3q-speech:before {
+            border-color: #333 transparent transparent #333;
         }
     }
 
