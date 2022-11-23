@@ -1,18 +1,18 @@
-﻿import log = require('loglevel');
-import { ContentApp } from '../contentscript/ContentApp';
+﻿import { is } from './is';
 import { as } from './as';
+import log = require('loglevel');
+import { ContentApp } from '../contentscript/ContentApp';
 import { Config } from './Config';
-import { is } from './is';
 import {
     getDomElemOpacityAtPos, getNextDomElemBehindElemAtViewportPos, getTopmostOpaqueDomElemAtViewportPos,
     cloneDomEvent, dispatchDomEvent, capturePointer, releasePointer, DomButtonId, calcDomButtonIdsDiff,
 } from './domTools';
-import { Utils } from './Utils';
 import {
     getDataFromPointerEvent, makeDummyPointerEventData, hasMovedDragDistance,
     PointerEventData, PointerEventType, setButtonsOnPointerEventData,
     setClientPosOnPointerEventData, setDistanceOnPointerEventData, setModifierKeysOnPointerEventData
 } from './PointerEventData';
+import { Utils } from './Utils';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
 
@@ -34,7 +34,7 @@ export class DomOpacityAwarePointerEventDispatcher {
 
     private readonly eventListeners = new Map<string, (data: PointerEventData) => any>();
     private readonly opacityMin: number;
-    private readonly clickDoubleMaxDelayMs: number;
+    private clickDoubleMaxDelayMs: number = 0.0;
     private dragStartDistance: number;
     private readonly dragDropTargetUpdateIntervalMs: number;
 
@@ -122,7 +122,6 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
 
         this.opacityMin = as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
-        this.clickDoubleMaxDelayMs = 1000 * as.Float(Config.get('avatars.pointerDoubleclickMaxSec'), 0.25);
         this.setDragStartDistance();
         const dragUpdateIntervalSecs = as.Float(Config.get('avatars.pointerDropTargetUpdateIntervalSec'), 0.5);
         this.dragDropTargetUpdateIntervalMs = 1000 * dragUpdateIntervalSecs;
@@ -149,6 +148,9 @@ export class DomOpacityAwarePointerEventDispatcher {
     public setEventListener(type: string, handler: (ev: PointerEventData) => void): void
     {
         this.eventListeners.set(type, handler);
+        if (type === PointerEventType.doubleclick) {
+            this.clickDoubleMaxDelayMs = 1000 * as.Float(Config.get('avatars.pointerDoubleclickMaxSec'), 0.25);
+        }
     }
 
     public setDragStartDistance(startDistance?: number): void
