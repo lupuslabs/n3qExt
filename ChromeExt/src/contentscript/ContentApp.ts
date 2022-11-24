@@ -36,6 +36,7 @@ import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePoi
 import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
+import { Client } from '../lib/Client';
 
 interface ILocationMapperResponse
 {
@@ -249,8 +250,11 @@ export class ContentApp
         await this.assertSavedPosition();
         if (Panic.isOn) { return; }
 
+        const variant = Client.getVariant();
+        // $('div#n3q[data-client-variant=' + variant + ']').remove();
         $('div#n3q').remove();
-        const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" />').get(0);
+        const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" data-client-variant="' + variant + '" />').get(0);
+        
         this.display = $('<div class="n3q-base n3q-display" />').get(0);
         $(page).append(this.display);
         this.appendToMe.append(page);
@@ -316,7 +320,9 @@ export class ContentApp
         }
 
         // Remove our own top element
-        $('#n3q').remove();
+        const variant = Client.getVariant();
+        // $('div#n3q[data-client-variant=' + variant + ']').remove();
+        $('div#n3q').remove();
 
         this.display = null;
     }
