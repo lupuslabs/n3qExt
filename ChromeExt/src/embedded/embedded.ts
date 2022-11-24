@@ -10,6 +10,7 @@ import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
+import { link } from 'fs';
 
 declare var n3q: any;
 
@@ -27,13 +28,31 @@ $(async function ()
     if (preferredClient == 'extension') {
         let extensionId = Config.get('extension.id', 'cgfkfhdinajjhfeghebnljbanpcjdlkm');
         fetch('chrome-extension://' + extensionId + '/manifest.json')
-            .then(function (response) { })
+            .then(function (response) { 
+                removeEmbeddedStyle()
+            })
             .catch(function (error)
             {
                 activateAll();
             });
     } else {
         activateAll();
+    }
+
+    function removeEmbeddedStyle()
+    {
+        const linkTags = document.getElementsByTagName('link');
+        for (let i = 0; i < linkTags.length; i++) {
+            const linkTag = linkTags[i];
+            if (linkTag.getAttribute('type') === 'text/css' && linkTag.getAttribute('rel') === 'stylesheet') {
+                const linkHref = linkTag.getAttribute('href');
+                const re = new RegExp('^(https?://cdn.weblin.io(:[0-9]+)?/v1/embedded.css|https?://localhost(:[0-9]+)?/extdist/embedded.css)');
+                if (re.test(linkHref)) {
+                    console.log('cdn.weblin.io removing embedded stylesheet');
+                    linkTag.remove();
+                }
+            }
+        } 
     }
 
     function activateAll()
