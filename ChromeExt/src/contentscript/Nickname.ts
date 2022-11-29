@@ -1,33 +1,41 @@
-import * as $ from 'jquery';
+import { is } from '../lib/is';
 import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
-import { DomModifierKeyId, getDataFromPointerEvent, PointerEventType } from '../lib/PointerEventData';
+import { DomModifierKeyId, getDataFromPointerEvent, PointerEventData, PointerEventType } from '../lib/PointerEventData';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomButtonId } from '../lib/domTools';
+import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 
 export class Nickname implements IObserver
 {
-    private elem: HTMLDivElement;
+    private elem: HTMLElement;
     private textElem: HTMLElement;
     private menuElem: HTMLElement;
     private nickname: string;
+    private isMenuOpen: boolean = false;
+    private lastLeaveEvent: PointerEventData;
 
     getElem() { return this.elem; }
 
     constructor(protected app: ContentApp, private participant: Participant, private isSelf: boolean, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-nickname n3q-shadow-small" />').get(0);
+        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-nickname n3q-shadow-small" />');
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant.select();
+        });
+        this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
+            this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hoverenter, ev, this.elem));
         });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
             this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.participant.onMouseLeaveAvatar(getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem));
+            this.lastLeaveEvent = getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem);
+            if (!this.isMenuOpen) {
+                this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
+            }
         });
 
         let menuElem = document.createElement('span');
@@ -41,10 +49,10 @@ export class Nickname implements IObserver
         });
         this.elem.appendChild(menuElem);
 
-        this.textElem = <HTMLElement>$('<div class="n3q-base n3q-text" />').get(0);
-        $(this.elem).append(this.textElem);
+        this.textElem = domHtmlElemOfHtml('<div class="n3q-base n3q-text" />');
+        this.elem.appendChild(this.textElem);
 
-        $(display).append(this.elem);
+        display.appendChild(this.elem);
     }
 
     public stop(): void
@@ -77,11 +85,17 @@ export class Nickname implements IObserver
     public onMenuOpen(): void
     {
         this.menuElem.classList.replace('n3q-menu-open-button-closed', 'n3q-menu-open-button-open');
+        this.isMenuOpen = true;
     }
 
     public onMenuClose(): void
     {
         this.menuElem.classList.replace('n3q-menu-open-button-open', 'n3q-menu-open-button-closed');
+        this.isMenuOpen = false;
+        if (!is.nil(this.lastLeaveEvent)) {
+            // Menu's pointercatcher destructed, so if pointer is hovering, a pointerenter follows after next dom update:
+            this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
+        }
     }
 
 }

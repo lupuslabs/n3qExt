@@ -25,6 +25,9 @@ export class PointsBar implements IObserver
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
         });
+        this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
+            this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hoverenter, ev, this.elem));
+        });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
             this.participant?.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
         });
