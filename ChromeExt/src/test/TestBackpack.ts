@@ -20,9 +20,13 @@ export class TestBackpack
                         backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
                     },
                 }
-            }
+            },
+            items: {
+                enabledProviders: ['nine3q'],
+            },
         });
         let ba = new BackgroundApp();
+        ba.assertThatThereIsAUserId();
         let rep = new Backpack(ba);
         await rep.init();
 
