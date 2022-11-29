@@ -36,6 +36,7 @@ import { Chat, ChatMessage } from '../lib/ChatMessage';
 import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
+import { ChatConsole } from './ChatConsole';
 
 export class Participant extends Entity
 {
@@ -56,14 +57,14 @@ export class Participant extends Entity
     {
         super(app, room, roomNick, isSelf);
 
-        $(this.getElem()).addClass('n3q-participant');
-        $(this.getElem()).attr('data-nick', roomNick);
+        this.elem.classList.add('n3q-participant');
+        this.elem.setAttribute('data-nick', roomNick);
 
         if (isSelf) {
-            $(this.getElem()).addClass('n3q-participant-self');
-            /*await*/ this.showIntroYouOnce();
+            this.elem.classList.add('n3q-participant-self');
+            this.showIntroYouOnce().catch(error => this.app.onError(error));
         } else {
-            $(this.getElem()).addClass('n3q-participant-other');
+            this.elem.classList.add('n3q-participant-other');
         }
 
         if (this.isSelf) {
@@ -71,6 +72,9 @@ export class Participant extends Entity
         } else {
             this.menuDisplay = new OtherParticipantMenu(this.app, this);
         }
+
+        this.chatoutDisplay = new Chatout(this.app, this.elem);
+        this.privateChatWindow = new PrivateChatWindow(this.app, this);
     }
 
     getBadgesDisplay(): BadgesController|null { return this.badgesDisplay; }
@@ -289,10 +293,8 @@ export class Participant extends Entity
                 }
             }
 
-            this.chatoutDisplay = new Chatout(this.app, this.getElem());
-
             if (this.isSelf) {
-                this.chatinDisplay = new Chatin(this.app, this, this.getElem());
+                this.chatinDisplay = new Chatin(this.app, this, this.elem);
             }
         }
 
@@ -576,22 +578,15 @@ export class Participant extends Entity
         if (bodyNode) {
             text = bodyNode.getText();
         }
+        if (text?.length <= 0) { return; }
 
-        if (text == '') { return; }
+        this.openPrivateChat();
+        this.privateChatWindow.addLine(null, name, text);
 
-        if (this.privateChatWindow == null) {
-            await this.openPrivateChat(this.elem);
-        }
-        this.privateChatWindow?.addLine(nick + Date.now(), name, text);
-
-        if (this.room) {
-            if (nick != this.room.getMyNick()) {
-                const chatWindow = this.privateChatWindow;
-                if (chatWindow) {
-                    if (chatWindow.isSoundEnabled()) {
-                        chatWindow.playSound();
-                    }
-                }
+        if (nick !== this.room.getMyNick()) {
+            const chatWindow = this.privateChatWindow;
+            if (chatWindow.isSoundEnabled()) {
+                chatWindow.playSound();
             }
         }
     }
@@ -714,15 +709,14 @@ export class Participant extends Entity
 
         // recent
         if (delayMSec * 1000 < as.Float(Config.get('room.maxChatAgeSec', 60))) {
-            if (!this.isChatCommand(text)) {
-                this.chatoutDisplay?.setText(text);
+            if (!ChatConsole.isChatCommand(text)) {
                 this.app.toFront(this.elem, ContentApp.LayerEntity);
             }
         }
 
         // new only
         if (delayMSec <= 100) {
-            if (this.isChatCommand(text)) {
+            if (ChatConsole.isChatCommand(text)) {
                 return this.onChatCommand(text);
             } else {
                 this.avatarDisplay?.setAction('chat');
@@ -742,8 +736,6 @@ export class Participant extends Entity
         }
     }
 
-    isChatCommand(text: string) { return text.substring(0, 1) === '/'; }
-
     onChatCommand(text: string): void
     {
         const parts: string[] = text.split(' ');
@@ -753,33 +745,24 @@ export class Participant extends Entity
         switch (cmd) {
             case '/do':
                 if (parts.length < 2) { return; }
-                // text = this.app.translateText(text, text);
-                // this.chatoutDisplay?.setText(text);
                 this.avatarDisplay?.setAction(parts[1]);
                 break;
         }
     }
 
-    // /do WaterBottle ApplyTo WaterCan
-    private chat_command_apply: string = '/action';
-    sendGroupChat(text: string, handler?: (IMessage: any) => any): void
+    sendGroupChat(text: null|string): void
     {
-        this.room?.sendGroupChat(text);
-
-        if (Config.get('points.enabled', false)) {
-            BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1)
-                .catch(error => { log.info('Participant.sendGroupChat', error); });
-        }
+        this.room.sendGroupChat(text);
     }
 
     onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
     {
-        this.privateChatWindow?.onChatMessagePersisted(chat, chatMessage);
+        this.privateChatWindow.onChatMessagePersisted(chat, chatMessage);
     }
 
     public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
     {
-        this.privateChatWindow?.onChatHistoryDeleted(deletions);
+        this.privateChatWindow.onChatHistoryDeleted(deletions);
     }
 
     // Mouse
@@ -1023,11 +1006,11 @@ export class Participant extends Entity
 
     do(what: string, countsAsActivity: boolean = true): void
     {
-        this.room?.sendGroupChat('/do ' + what);
+        this.room.sendGroupChat('/do ' + what);
 
         if (countsAsActivity && Config.get('points.enabled', false)) {
             BackgroundMessage.pointsActivity(Pid.PointsChannelEmote, 1)
-                .catch(error => { log.info('Participant.do', error); });
+                .catch(error => this.app.onError(error));
         }
     }
 
@@ -1075,25 +1058,17 @@ export class Participant extends Entity
         }
     }
 
-    async openPrivateChat(aboveElem: HTMLElement): Promise<void>
+    openPrivateChat(): void
     {
-        if (this.privateChatWindow == null) {
-            this.privateChatWindow = new PrivateChatWindow(this.app, this);
-            await this.privateChatWindow.show({
-                'above': aboveElem,
-                onClose: () => { this.privateChatWindow = null; },
-            });
-        }
+        this.privateChatWindow.show({above: this.elem}).catch(error => this.app.onError(error));
     }
 
     togglePrivateChatWindow(): void
     {
-        if (this.privateChatWindow) {
-            if (this.privateChatWindow.isOpen()) {
-                this.privateChatWindow.close();
-            }
+        if (this.privateChatWindow.isOpen()) {
+            this.privateChatWindow.close();
         } else {
-            this.openPrivateChat(this.elem);
+            this.openPrivateChat();
         }
     }
 

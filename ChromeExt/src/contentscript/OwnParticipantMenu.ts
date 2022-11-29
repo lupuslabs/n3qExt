@@ -41,7 +41,7 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         column.addActionItem('vidconf', 'Video Conference', () => this.app.showVidconfWindow());
 
-        column.addActionItem('chatwin', 'Chat Window', () => this.app.showChatWindow());
+        column.addActionItem('chatwin', 'Chat Window', () => this.app.toggleChatWindow());
 
         column.addActionItem('chat', 'Chat', () => this.participant.toggleChatin());
 

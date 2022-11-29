@@ -10,7 +10,7 @@ export class OtherParticipantMenu extends ParticipantMenu
             this.participant.initiatePrivateVidconf(this.participant.getElem()).catch(error => this.app.onError(error));
         });
         column.addActionItem('privatechat', 'Private Chat', () => {
-            this.participant.openPrivateChat(this.participant.getElem()).catch(error => this.app.onError(error));
+            this.participant.openPrivateChat();
         });
         column.addActionItem('greet', 'Greet', () => {
             this.participant.sendPoke('greet');

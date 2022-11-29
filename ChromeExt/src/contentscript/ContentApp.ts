@@ -395,12 +395,12 @@ export class ContentApp
 
     reshowChatWindow(): void
     {
-        if (this.chatIsOpen) { this.showChatWindow(); }
+        if (this.chatIsOpen) { this.room.showChatWindow(); }
     }
-    showChatWindow(aboveElem?: HTMLElement): void
+    toggleChatWindow(aboveElem?: HTMLElement): void
     {
         aboveElem = aboveElem ?? this.getMyParticipantELem();
-        this.room.showChatWindow(aboveElem);
+        this.room.toggleChatWindow(aboveElem);
     }
 
     toggleBadgesEditMode(): void

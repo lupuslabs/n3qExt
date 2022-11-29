@@ -53,5 +53,15 @@ export function areChatsEqual(chatA: Chat, chatB: Chat): boolean
 
 export function makeChatMessageId(time: Date, nick: string): string
 {
-    return `${time.getTime()}_${nick}_${Utils.randomString(4)}`;
+    return `${time.getTime()}_${Utils.hash(nick)}_${Utils.randomString(4)}`;
+}
+
+export function chatMessageCmpFun(msgA: ChatMessage, msgB: ChatMessage): number
+{
+    return msgA.timestamp < msgB.timestamp ? -1 : (msgA.timestamp === msgB.timestamp ? 0 : 1);
+}
+
+export function chatMessageIdFun(msgA: ChatMessage, msgB: ChatMessage): boolean
+{
+    return msgA.id === msgB.id && msgA.timestamp === msgB.timestamp;
 }

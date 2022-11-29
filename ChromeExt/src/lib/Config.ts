@@ -124,7 +124,7 @@ export class Config
             showNicknameTooltip: true,
             chatBubblesPerChatoutMax: 3,
             chatBubblesMinTimeRemSec: 3,
-            chatBubbleFastFadeSec: 1,
+            chatBubbleFastFadeSec: 0.75,
             chatBubbleFadeStartSec: 110.0,
             chatBubbleFadeDurationSec: 10.0,
             maxChatAgeSec: 60,

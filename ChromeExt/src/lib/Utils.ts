@@ -214,6 +214,11 @@ export class Utils
         return Object.assign(clone, obj);
     }
 
+    static utcStringOfTimestampSecs(timestampSecs: number): string
+    {
+        return this.utcStringOfDate(new Date(1000 * timestampSecs));
+    }
+
     static utcStringOfDate(date: Date): string
     {
         const utcStr = date.toISOString();

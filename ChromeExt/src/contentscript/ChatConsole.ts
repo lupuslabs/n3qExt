@@ -19,17 +19,17 @@ export class ChatConsoleContext
 
 export class ChatConsole
 {
-    static isChatCommand(text: string, context: ChatConsoleContext): boolean
+    public static isChatCommand(text: string): boolean
     {
-        if (text.substring(0, 1) === '/') {
-            return ChatConsole.chatCommand(text, context);
-        }
-        return false;
+        return text.substring(0, 1) === '/';
     }
 
-    private static chatCommand(text: string, context: ChatConsoleContext): boolean
+    public static chatCommand(text: string, context: ChatConsoleContext): boolean
     {
         let isHandled = false;
+        if (text.substring(0, 1) !== '/') {
+            return false;
+        }
 
         const parts: string[] = text.split(' ');
         if (parts.length < 1) { return; }
@@ -64,7 +64,7 @@ export class ChatConsole
                 break;
             case '/c':
             case '/chat':
-                context.app?.showChatWindow();
+                context.app?.toggleChatWindow();
                 break;
             case '/i':
             case '/items':

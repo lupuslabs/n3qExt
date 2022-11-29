@@ -18,6 +18,7 @@ import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
 import { Chat, ChatMessage } from '../lib/ChatMessage';
 import { is } from '../lib/is';
+import { ChatConsole } from './ChatConsole';
 
 export interface IRoomInfoLine extends Array<string> { 0: string, 1: string }
 export interface IRoomInfo extends Array<IRoomInfoLine> { }
@@ -66,7 +67,7 @@ export class Room
     getDestination(): string { return this.destination; }
     getPageUrl(): string { return this.pageUrl; }
     setPageUrl(pageUrl: string): void { this.pageUrl = pageUrl; }
-    getParticipant(nick: string): Participant { return this.participants[nick]; }
+    getParticipant(nick: string): null|Participant { return this.participants[nick]; }
     getMyParticipant(): Participant|null { return is.nil(this.myNick) ? null : this.getParticipant(this.myNick); }
     getItem(nick: string): RoomItem { return this.items[nick]; }
 
@@ -88,6 +89,17 @@ export class Room
             ids.push(id);
         }
         return ids;
+    }
+
+    getParticipantByDisplayName(nick: string): null|Participant
+    {
+        for (const id in this.participants) {
+            const participant = this.participants[id];
+            if (participant.getDisplayName() === nick) {
+                return participant;
+            }
+        }
+        return null;
     }
 
     getItemIds(): Array<string>
@@ -516,12 +528,62 @@ export class Room
       <body>Harpier cries: 'tis time, 'tis time.</body>
     </message>
     */
-    sendGroupChat(text: string)
+    sendGroupChat(text: null|string): void
+    {
+        if (is.nil(text) || text.length === 0) {
+            return;
+        }
+        if (this.handleGroupChatCommand(text)) {
+            return;
+        }
+        this.makeAndSendGroupChatStanza(text);
+        if (Config.get('points.enabled', false)) {
+            BackgroundMessage.pointsActivity(Pid.PointsChannelChat, 1).catch(error => this.app.onError(error));
+        }
+    }
+
+    protected makeAndSendGroupChatStanza(text: string): void
     {
         const message = xml('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick })
             .append(xml('body', { id: Utils.randomString(10) }, text))
             ;
         this.app.sendStanza(message);
+    }
+
+    protected handleGroupChatCommand(text: string): boolean
+    {
+        try {
+            const outState = {msgCount: 0};
+            const outputHandler = (data) => {
+                // data: string | [nick: string, text: string] | [[nick: string, text: string]]
+                if (Array.isArray(data)) {
+                    if (is.string(data[0])) {
+                        data = [data];
+                    }
+                } else {
+                    data = [[data]];
+                }
+                for (let message of data) {
+                    if (!Array.isArray(message)) {
+                        message = [message];
+                    }
+                    const text = as.String(message[message.length - 1]);
+                    const nick = as.String(message[message.length - 2]);
+                    if (text.length !== 0) {
+                        this.showChatMessage(null, nick, text);
+                        outState.msgCount++;
+                    }
+                }
+                if (outState.msgCount > 1) {
+                    this.showChatWindow(this.getMyParticipant()?.getElem());
+                }
+            };
+            const context = {app: this.app, room: this, out: outputHandler};
+            return ChatConsole.chatCommand(text, context);
+        } catch (error) {
+            this.app.onError(error);
+            return true;
+        }
     }
 
     sendPrivateChat(text: string, nick: string)
@@ -561,38 +623,29 @@ export class Room
         this.app.sendStanza(message);
     }
 
-    showChatWindow(aboveElem: HTMLElement): void
+    showChatWindow(aboveElem?: HTMLElement): void
     {
-        if (this.chatWindow) {
-            if (this.chatWindow.isOpen()) {
-                this.chatWindow.close();
-            } else {
-                this.app.setChatIsOpen(true);
-                this.chatWindow.show({
-                    'above': aboveElem,
-                    onClose: () =>
-                    {
-                        this.app.setChatIsOpen(false);
-                    },
-                });
-            }
+        if (!this.chatWindow.isOpen()) {
+            this.app.setChatIsOpen(true);
+            this.chatWindow.show({
+                'above': aboveElem,
+                onClose: () => this.app.setChatIsOpen(false),
+            }).catch(error => this.app.onError(error));
         }
     }
 
-    toggleChatWindow(relativeToElem: HTMLElement): void
+    toggleChatWindow(relativeToElem?: HTMLElement): void
     {
-        if (this.chatWindow) {
-            if (this.chatWindow.isOpen()) {
-                this.chatWindow.close();
-            } else {
-                this.showChatWindow(relativeToElem);
-            }
+        if (this.chatWindow.isOpen()) {
+            this.chatWindow.close();
+        } else {
+            this.showChatWindow(relativeToElem);
         }
     }
 
     showChatInWithText(text: string): void
     {
-        var participant = this.getParticipant(this.getMyNick());
+        const participant = this.getParticipant(this.getMyNick());
         if (participant) {
             participant.showChatInWithText(text);
         }

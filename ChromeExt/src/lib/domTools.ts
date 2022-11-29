@@ -2,6 +2,27 @@
 
 import { is } from './is';
 import { as } from './as';
+import { ErrorWithData } from './Utils';
+
+//------------------------------------------------------------------------------
+// Element creation
+
+export function domHtmlElemOfHtml(html: string): HTMLElement {
+    const elems = domElemsOfHtml(html);
+    const htmlElems = <HTMLElement[]> domElemsOfHtml(html).filter(e => e instanceof HTMLElement);
+    if (htmlElems.length !== 1) {
+        const msg = 'html doesn\'t parse into exactly one HTMLElement!';
+        throw new ErrorWithData(msg, {html, elems, htmlElems});
+    }
+    return htmlElems[0];
+}
+
+export function domElemsOfHtml(html: string): Element[] {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const elems = template.content.children;
+    return Array.from(elems);
+}
 
 //------------------------------------------------------------------------------
 // Element discovery
@@ -186,6 +207,8 @@ export function calcDomButtonIdsDiff(buttonsOld: number, buttonsNew: number): [n
 
 export function domOnNextRenderComplete(fun: (timestamp: number) => void): void
 {
+    // Wait for start of any animation frame (might be the first after DOM manipulations),
+    // then wait to start of next animation frame (guaranteed to be after DOM has been rendered at least once):
     window.requestAnimationFrame(() => window.requestAnimationFrame(fun));
 }
 

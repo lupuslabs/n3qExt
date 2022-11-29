@@ -1,5 +1,4 @@
 import * as $ from 'jquery';
-import { as } from '../lib/as';
 import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
@@ -63,10 +62,11 @@ export class Nickname implements IObserver
     public setNickname(nickname: string): void
     {
         this.nickname = nickname;
-        $(this.textElem).html(as.Html(nickname));
+        this.textElem.innerText = nickname;
         if (Config.get('room.showNicknameTooltip', true)) {
-            $(this.textElem).prop('title', nickname);;
+            this.textElem.title = nickname;
         }
+        this.participant.getChatout().onNickKnown(nickname);
     }
 
     public getNickname(): string

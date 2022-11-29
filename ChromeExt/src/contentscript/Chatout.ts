@@ -1,13 +1,13 @@
-import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
-import { domOnNextRenderComplete, startDomElemTransition } from '../lib/domTools';
+import { domHtmlElemOfHtml, domOnNextRenderComplete, startDomElemTransition } from '../lib/domTools';
+import { ChatMessage, chatMessageCmpFun, chatMessageIdFun } from '../lib/ChatMessage';
+import { Utils } from '../lib/Utils';
+import { OrderedSet } from '../lib/OrderedSet';
 
-type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast';
-type BubbleInfo = {
-    bubbleId: number,
-    bubbleCreatedMs: number, // Unix timestamp [ms]
+type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast'|'closed';
+type BubbleInfo = ChatMessage & {
     bubbleElem: HTMLElement,
     bubbleStatus: BubbleStatus,
 };
@@ -17,13 +17,12 @@ export class Chatout
     private app: ContentApp;
     private containerElem: HTMLElement;
     private isVisible: boolean = true;
-    private bubbles: Map<number,BubbleInfo> = new Map();
-    private bubbleElemIds: number[] = [];
-    private lastBubbleId: number = 0;
+    private bubbles: OrderedSet<BubbleInfo>;
 
     constructor(app: ContentApp, display: HTMLElement)
     {
         this.app = app;
+        this.bubbles = new OrderedSet<BubbleInfo>([], chatMessageCmpFun, chatMessageIdFun);
         this.containerElem = document.createElement('div');
         this.containerElem.classList.add('n3q-chatout-container');
         display.appendChild(this.containerElem);
@@ -34,26 +33,51 @@ export class Chatout
         this.containerElem?.remove();
     }
 
-    public setText(text: string): void
+    public onNickKnown(nick: string): void
     {
-        if (!is.nil(text) && text.length !== 0) {
-            const nowSecs = Date.now() / 1000;
-            const msgAgeSecs = nowSecs;
-            const startAgeSecs = as.Float(Config.get('room.chatBubbleFadeStartSec'), 1.0);
-            const durationCfgSecs = as.Float(Config.get('room.chatBubbleFadeDurationSec'), 1.0);
-            const {delaySecs, durationSecs}
-                = this.calculateBubbleFadeout(nowSecs, msgAgeSecs, startAgeSecs, durationCfgSecs);
-            if (delaySecs + durationSecs > as.Float(Config.get('room.chatBubblesMinTimeRemSec'), 1.0)) {
+        // Display old chat messages that wheren't attributable before the nick became known:
+        const removeIfOlder = this.getMessageTimestampRemoveIfOlder();
+        const messages = this.app.getRoom()?.getChatWindow().getChatMessagesByNickSince(nick, removeIfOlder) ?? [];
+        for (const message of messages) {
+            this.displayChatMessage(message);
+        }
+    }
 
-                const bubblesMax = Math.max(1, as.Int(Config.get('room.chatBubblesPerChatoutMax'), 1));
-                let unpinnedBubbleIds = this.bubbleElemIds.filter(id => this.bubbles.get(id).bubbleStatus !== 'pinned');
-                let bubblesToFadeout = Math.max(0, unpinnedBubbleIds.length + 1 - bubblesMax);
-                for (let index = 0; index < bubblesToFadeout; index++) {
-                    this.fadeoutFastBubble(unpinnedBubbleIds[index]);
-                }
+    public displayChatMessage(chatMessage: ChatMessage): void
+    {
+        if (chatMessage.text.match(/^\*\*[^*]+\*\*$/)) {
+            return; // Hack to suppress room enter/leave messages of all languages.
+        }
 
-                this.makeBubble(text, msgAgeSecs, delaySecs, durationSecs);
+        const nowSecs = Date.now() / 1000;
+        const msgCreatedSecs = Utils.dateOfUtcString(chatMessage.timestamp).getTime() / 1000;
+        const startAgeCfgSecs = as.Float(Config.get('room.chatBubbleFadeStartSec'), 1.0);
+        const durationCfgSecs = as.Float(Config.get('room.chatBubbleFadeDurationSec'), 1.0);
+        const {delaySecs, durationSecs}
+            = this.calculateBubbleFadeout(nowSecs, msgCreatedSecs, startAgeCfgSecs, durationCfgSecs);
+        if (delaySecs + durationSecs > as.Float(Config.get('room.chatBubblesMinTimeRemSec'), 1.0)) {
+            this.makeBubble(chatMessage, delaySecs, durationSecs);
+        }
+
+        // Remove outdated closed bubbles and trigger fast fade out of slow fading bubbles to get under the limit:
+        let bubblesCountingTowardsLimit = [];
+        const removeIfOlder = this.getMessageTimestampRemoveIfOlder();
+        for (const bubble of this.bubbles) {
+            switch (bubble.bubbleStatus) {
+                case 'closed': {
+                    if (bubble.timestamp < removeIfOlder) {
+                        this.bubbles.remove(bubble);
+                    }
+                } break;
+                case 'fadingSlow': {
+                    bubblesCountingTowardsLimit.push(bubble);
+                } break;
             }
+        }
+        const bubblesMax = Math.max(1, as.Int(Config.get('room.chatBubblesPerChatoutMax')));
+        let bubblesToFadeout = Math.max(0, bubblesCountingTowardsLimit.length - bubblesMax);
+        for (let index = 0; index < bubblesToFadeout; index++) {
+            this.fadeoutFastBubble(bubblesCountingTowardsLimit[index]);
         }
     }
 
@@ -69,98 +93,99 @@ export class Chatout
 
     public toggleVisibility(): void
     {
-        if (!this.isVisible || this.bubbles.size !== 0) {
+        if (!this.isVisible || this.bubbles.toArray().some(b => b.bubbleStatus !== 'closed')) {
             this.setVisibility(!this.isVisible);
         }
     }
 
-    protected makeBubble(text: string, createdMsecs: number, fadeDelayMs: number, fadeDurationMs: number): void
+    protected makeBubble(chatMessage: ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
     {
-        this.lastBubbleId++;
-        const bubbleId = this.lastBubbleId;
-        const bubbleWrapElem = document.createElement('div');
-        bubbleWrapElem.classList.add('n3q-chatout');
-        bubbleWrapElem.style.opacity = '1';
-        
-        const bubbleElem = document.createElement('div');
-        bubbleElem.classList.add('n3q-speech');
-        bubbleElem.onpointerdown = (ev) => this.pinBubble(bubbleId);
-        bubbleWrapElem.appendChild(bubbleElem);
-
-        const textElem = document.createElement('div');
-        textElem.classList.add('n3q-text');
-        textElem.innerHTML = as.HtmlWithClickableLinks(text);
-        bubbleElem.appendChild(textElem);
-
-        const onCloseClick = () => this.closeBubble(bubbleId);
-        bubbleWrapElem.appendChild(this.app.makeWindowCloseButton(onCloseClick, 'overlay'));
-
-        this.containerElem.appendChild(bubbleWrapElem);
+        const bubbleElem = domHtmlElemOfHtml('<div class="n3q-chatout" style="opacity: 1;"></div>');
         const bubbleStatus: BubbleStatus = 'fadingSlow';
-        const bubbleInfo: BubbleInfo = {bubbleId, bubbleCreatedMs: createdMsecs, bubbleElem: bubbleWrapElem, bubbleStatus};
-        this.bubbles.set(bubbleId, bubbleInfo);
-        this.bubbleElemIds.push(bubbleId);
+        const bubble: BubbleInfo = {...chatMessage, bubbleElem, bubbleStatus};
+        if (this.bubbles.has(bubble)) {
+            return; // Duplicate detected - keep old version.
+        }
+
+        const bubbleBubbleElem = domHtmlElemOfHtml('<div class="n3q-speech"></div>');
+        bubbleBubbleElem.onpointerdown = (ev) => this.pinBubble(bubble);
+        bubbleElem.appendChild(bubbleBubbleElem);
+
+        const textElem = domHtmlElemOfHtml('<div class="n3q-text"></div>');
+        textElem.innerHTML = as.HtmlWithClickableLinks(chatMessage.text);
+        bubbleBubbleElem.appendChild(textElem);
+
+        const onCloseClick = () => this.closeBubble(bubble);
+        bubbleElem.appendChild(this.app.makeWindowCloseButton(onCloseClick, 'overlay'));
+
+        this.bubbles.add(bubble);
+        this.containerElem.appendChild(bubbleElem);
 
         // Let element render, then start delayed fadeout:
-        domOnNextRenderComplete(() => this.fadeoutBubble(bubbleId, bubbleStatus, fadeDelayMs, fadeDurationMs));
+        this.fadeoutBubble(bubble, bubbleStatus, fadeDelayMs, fadeDurationMs);
+
     }
 
-    protected closeBubble(bubbleId: number): void
+    protected closeBubble(bubble: BubbleInfo): void
     {
-        const bubbleInfo = this.bubbles.get(bubbleId);
-        if (!is.nil(bubbleInfo)) {
-            bubbleInfo.bubbleElem.remove();
-            this.bubbles.delete(bubbleId);
-            this.bubbleElemIds = this.bubbleElemIds.filter(id => this.bubbles.has(id));
+        if (bubble.bubbleStatus !== 'closed') {
+            bubble.bubbleStatus = 'closed';
+            bubble.bubbleElem.remove();
         }
     }
 
-    protected closeBubbleWithStatus(bubbleId: number, status: BubbleStatus): void
+    protected closeBubbleWithStatus(bubble: BubbleInfo, status: BubbleStatus): void
     {
-        if (this.bubbles.get(bubbleId)?.bubbleStatus === status) {
-            this.closeBubble(bubbleId);
+        if (bubble.bubbleStatus === status) {
+            this.closeBubble(bubble);
         }
     }
 
-    protected fadeoutFastBubble(bubbleId: number): void
+    protected fadeoutFastBubble(bubble: BubbleInfo): void
     {
-        const bubbleInfo = this.bubbles.get(bubbleId);
-        if (!is.nil(bubbleInfo)) {
+        if (bubble.bubbleStatus !== 'closed') {
             const durationCfgSecs = as.Float(Config.get('room.chatBubbleFastFadeSec'), 1.0);
             const {delaySecs, durationSecs}
                 = this.calculateBubbleFadeout(0, 0, 0.0, durationCfgSecs);
-            this.fadeoutBubble(bubbleId, 'fadingFast', delaySecs, durationSecs);
+            this.fadeoutBubble(bubble, 'fadingFast', delaySecs, durationSecs);
         }
     }
 
-    protected pinBubble(bubbleId: number): void
+    protected pinBubble(bubble: BubbleInfo): void
     {
-        const bubbleInfo = this.bubbles.get(bubbleId);
-        if (!is.nil(bubbleInfo)) {
-            bubbleInfo.bubbleStatus = 'pinned';
-            const elem = bubbleInfo.bubbleElem;
+        if (bubble.bubbleStatus !== 'closed') {
+            bubble.bubbleStatus = 'pinned';
+            const elem = bubble.bubbleElem;
             elem.classList.add('n3q-chatout-pinned');
             elem.style.transition = '';
             elem.style.opacity = '1';
         }
     }
 
-    protected fadeoutBubble(bubbleId: number, newStatus: BubbleStatus, delaySecs: number, durationSecs: number): void
+    protected fadeoutBubble(bubble: BubbleInfo, newStatus: BubbleStatus, delaySecs: number, durationSecs: number): void
     {
-        const bubbleInfo = this.bubbles.get(bubbleId);
-        if (!is.nil(bubbleInfo)) {
-            bubbleInfo.bubbleStatus = newStatus;
-            const guard = () => this.bubbles.get(bubbleId)?.bubbleStatus === newStatus;
-            const t = {property: 'opacity', delay: `${delaySecs}s`, duration: `${durationSecs}s`, timingFun: 'linear'};
-            const onComplete = () => this.closeBubbleWithStatus(bubbleInfo.bubbleId, newStatus);
-            startDomElemTransition(bubbleInfo.bubbleElem, guard, t, '0.05', onComplete);
+        if (bubble.bubbleStatus !== 'closed') {
+            bubble.bubbleStatus = newStatus;
+            const guard = () => bubble.bubbleStatus === newStatus;
+            domOnNextRenderComplete(() => {
+                if (guard()) {
+                    const transition = {
+                        property: 'opacity',
+                        delay: `${delaySecs}s`,
+                        duration: `${durationSecs}s`,
+                        timingFun: 'linear',
+                    };
+                    const onComplete = () => this.closeBubbleWithStatus(bubble, newStatus);
+                    startDomElemTransition(bubble.bubbleElem, guard, transition, '0.05', onComplete);
+                }
+            });
         }
     }
 
     protected calculateBubbleFadeout(
-        nowSecs: number, bubbleAgeSecs: number, startAgeSecs: number, durationSecs: number
+        nowSecs: number, bubbleCreatedSecs: number, startAgeSecs: number, durationSecs: number
     ): {delaySecs: number, durationSecs: number} {
-        const startSecs = bubbleAgeSecs + Math.max(0.0, startAgeSecs);
+        const startSecs = bubbleCreatedSecs + Math.max(0.0, startAgeSecs);
         const delayRemSecs = startSecs - nowSecs;
         if (delayRemSecs < 0.0) {
             const durationRemSecs = durationSecs + delayRemSecs;
@@ -170,6 +195,14 @@ export class Chatout
             return {delaySecs: 0.0, durationSecs: durationRemSecs};
         }
         return {delaySecs: delayRemSecs, durationSecs};
+    }
+
+    protected getMessageTimestampRemoveIfOlder(): string
+    {
+        const nowSecs = Date.now() / 1000;
+        const startAgeCfgSecs = as.Float(Config.get('room.chatBubbleFadeStartSec'), 1.0);
+        const durationCfgSecs = as.Float(Config.get('room.chatBubbleFadeDurationSec'), 1.0);
+        return Utils.utcStringOfTimestampSecs(nowSecs - startAgeCfgSecs - durationCfgSecs);
     }
 
 }
