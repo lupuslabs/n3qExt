@@ -26,7 +26,7 @@ export class Chatout
         this.bubbles = new OrderedSet<BubbleInfo>([], chatMessageCmpFun, chatMessageIdFun);
 
         this.containerElem = domHtmlElemOfHtml('<div class="n3q-chatout-container"></div>');
-        this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 1.0));
+        this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 100));
         display.appendChild(this.containerElem);
     }
 

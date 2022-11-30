@@ -7,6 +7,7 @@ export type AvatarAnimationParams = {[id: string]: string|number} & {
     width: number,
     height: number,
     chatBubblesBottom: number,
+    chatinBottom: number,
 };
 
 export class AvatarAnimationSequence
@@ -32,6 +33,8 @@ export class AnimationsDefinition
     ) { }
 }
 
+type BottomOffsetRules = [{avatarHeightMin: number, bottomOffset: number}];
+
 export class AnimationsXml
 {
     static parseXml(dataUrl: string, data: string): AnimationsDefinition
@@ -54,19 +57,21 @@ export class AnimationsXml
         const height = as.Int(params.height, defaultSize);
 
         const chatBubblesBottomStr = params.chatBubblesBottom;
-        let heightF = 1.0;
-        const heightFRules = Config.get('room.chatBubblesDefaultBottomAvatarHeightFactors', []);
-        for (const {avatarHeightMax, chatBubblesBottomF} of heightFRules) {
-            if (height <= avatarHeightMax) {
-                heightF = chatBubblesBottomF;
-                break;
-            }
-        }
-        const chatBubblesBottom = as.Int(chatBubblesBottomStr, heightF * height);
-console.log('1', {heightFRules, heightF, height, chatBubblesBottomStr, chatBubblesBottom});
+        const chatBubblesDefault = Config.get('room.chatBubblesDefaultBottom', 100);
+        const chatBubblesRules = Config.get('room.chatBubblesDefaultBottomAvatarHeightFactors', []);
+        const chatBubblesBottom = this.getavatarHeightDependentBottomOffset(
+            chatBubblesBottomStr, height, chatBubblesRules, chatBubblesDefault
+        );
+
+        const chatinBottomStr = params.chatinBottom;
+        const chatinRules = Config.get('room.chatinDefaultBottomAvatarHeightFactors', []);
+        const chatinDefault = Config.get('room.chatinDefaultBottom', 35);
+        const chatinBottom = this.getavatarHeightDependentBottomOffset(
+            chatinBottomStr, height, chatinRules, chatinDefault
+        );
 
         const paramsParsed: AvatarAnimationParams = {
-            ...params, width, height, chatBubblesBottom,
+            ...params, width, height, chatBubblesBottom, chatinBottom,
         };
         
         $(xml).find('sequence').each((index, sequence) =>
@@ -110,4 +115,16 @@ console.log('1', {heightFRules, heightF, height, chatBubblesBottomStr, chatBubbl
 
         return new AnimationsDefinition(paramsParsed, sequences);
     }
+
+    protected static getavatarHeightDependentBottomOffset(
+        bottomOffsetStr: null|string, avatarHeight: number, heightFRules: BottomOffsetRules, defaultValue: number,
+    ): number {
+        for (const {avatarHeightMin, bottomOffset} of heightFRules) {
+            if (avatarHeight >= avatarHeightMin) {
+                return as.Int(bottomOffsetStr, bottomOffset);
+            }
+        }
+        return defaultValue;
+    }
+
 }

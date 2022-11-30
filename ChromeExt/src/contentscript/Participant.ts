@@ -136,6 +136,7 @@ export class Participant extends Entity
     public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void
     {
         this.chatoutDisplay.onAvatarAnimationsParsed(avatarAnimations);
+        this.chatinDisplay?.onAvatarAnimationsParsed(avatarAnimations);
     }
 
     // presence

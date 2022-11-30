@@ -2,6 +2,8 @@ import * as $ from 'jquery';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { domHtmlElemOfHtml } from '../lib/domTools';
+import { AnimationsDefinition } from './AnimationsXml';
+import { Config } from '../lib/Config';
 
 export class Chatin
 {
@@ -30,12 +32,18 @@ export class Chatin
         this.elem.appendChild(this.closeElem);
 
         this.app.translateElem(this.elem);
+        this.positionContainerElem(Config.get('room.chatinDefaultBottom', 30));
         display.appendChild(this.elem);
     }
 
     stop()
     {
         this.elem.remove();
+    }
+
+    public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void
+    {
+        this.positionContainerElem(avatarAnimations.params.chatinBottom);
     }
 
     onKeydown(ev: JQuery.Event)
@@ -89,4 +97,10 @@ export class Chatin
     {
         this.setVisibility(!this.isVisible);
     }
+
+    protected positionContainerElem(chatinBottom: number): void
+    {
+        this.elem.style.bottom = `${chatinBottom}px`;
+    }
+
 }
