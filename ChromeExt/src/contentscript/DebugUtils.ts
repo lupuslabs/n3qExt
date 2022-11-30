@@ -8,8 +8,6 @@ export class DebugUtils
     protected app: ContentApp;
 
     protected iframeTestBoxEnabled: boolean = false;
-    protected iframeTestBoxElem: null|HTMLElement;
-    protected shadowDomTestBoxElem: null|HTMLElement;
     
     public constructor(app: ContentApp)
     {
@@ -55,16 +53,15 @@ export class DebugUtils
 
     protected updateIframeTestBoxGui(): void
     {
+        document.getElementById('n3q-iframe-test-box')?.remove();
+        document.getElementById('n3q-shadow-dom-test-anchor')?.remove();
         if (this.iframeTestBoxEnabled) {
-            if (is.nil(this.iframeTestBoxElem)) {
+            if (is.nil(document.getElementById('n3q-iframe-test-box'))) {
                 this.makeIframeTestBoxGui();
+            }
+            if (is.nil(document.getElementById('n3q-shadow-dom-test-anchor'))) {
                 this.makeShadowDomTestBoxGui();
             }
-        } else {
-            this.iframeTestBoxElem?.remove();
-            this.iframeTestBoxElem = null;
-            this.shadowDomTestBoxElem?.remove();
-            this.shadowDomTestBoxElem = null;
         }
     }
 
@@ -72,7 +69,6 @@ export class DebugUtils
     {
         const elem = <HTMLIFrameElement> domHtmlElemOfHtml('<iframe id="n3q-iframe-test-box" />');
         elem.addEventListener('click', ev => window.alert('Clicked on iframe test box iframe.'));
-        this.iframeTestBoxElem = elem;
         document.getElementsByTagName('body')[0].appendChild(elem);
         const iframeDoc = elem.contentWindow.document;
         iframeDoc.open();
@@ -104,7 +100,6 @@ export class DebugUtils
     protected makeShadowDomTestBoxGui(): void
     {
         const shadowDomAnchorElem = domHtmlElemOfHtml('<div id="n3q-shadow-dom-test-anchor"></div>');
-        this.shadowDomTestBoxElem = shadowDomAnchorElem;
         document.getElementsByTagName('body')[0].appendChild(shadowDomAnchorElem);
         const shadowRoot = shadowDomAnchorElem.attachShadow({mode: 'closed'});
         shadowRoot.appendChild(domHtmlElemOfHtml(''
