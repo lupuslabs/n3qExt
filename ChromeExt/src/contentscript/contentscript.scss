@@ -1619,14 +1619,29 @@
         margin-right: 4px;
     }
 
-    iframe.n3q-iframe-test-box {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        border: none;
-        width: 80px;
-        height: 60px;
-        background: rgba(0, 0, 0, 0.1);
-    }
+}
 
+iframe#n3q-iframe-test-box {
+    all: initial !important;
+    position: fixed !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147483647 !important;
+    border: none !important;
+    width: 80px !important;
+    height: 60px !important;
+    background: rgba(0, 0, 0, 0.1) !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+div#n3q-shadow-dom-test-anchor {
+    all: initial !important;
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 2147483647 !important;
+    pointer-events: none !important;
 }

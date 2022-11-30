@@ -85,7 +85,7 @@ export class OwnParticipantMenu extends ParticipantMenu
             const isEnabled = debugUtils.getIframeTestBoxEnabled();
             const iconId = isEnabled ? 'checkbox-checked' : 'checkbox-unchecked';
             const action = () => debugUtils.toggleIframeTestBoxEnabled();
-            debugColumn.addActionItem(iconId, 'iFrame Test', action);
+            debugColumn.addActionItem(iconId, 'iFrame & Shadow-DOM Test', action);
         }
     }
 
