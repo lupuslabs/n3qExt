@@ -5,6 +5,7 @@ import { domHtmlElemOfHtml, domOnNextRenderComplete, startDomElemTransition } fr
 import { ChatMessage, chatMessageCmpFun, chatMessageIdFun } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { OrderedSet } from '../lib/OrderedSet';
+import { AnimationsDefinition } from './AnimationsXml';
 
 type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast'|'closed';
 type BubbleInfo = ChatMessage & {
@@ -23,14 +24,20 @@ export class Chatout
     {
         this.app = app;
         this.bubbles = new OrderedSet<BubbleInfo>([], chatMessageCmpFun, chatMessageIdFun);
-        this.containerElem = document.createElement('div');
-        this.containerElem.classList.add('n3q-chatout-container');
+
+        this.containerElem = domHtmlElemOfHtml('<div class="n3q-chatout-container"></div>');
+        this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 1.0));
         display.appendChild(this.containerElem);
     }
 
     public stop()
     {
         this.containerElem?.remove();
+    }
+
+    public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void
+    {
+        this.positionContainerElem(avatarAnimations.params.chatBubblesBottom);
     }
 
     public onNickKnown(nick: string): void
@@ -96,6 +103,11 @@ export class Chatout
         if (!this.isVisible || this.bubbles.toArray().some(b => b.bubbleStatus !== 'closed')) {
             this.setVisibility(!this.isVisible);
         }
+    }
+
+    protected positionContainerElem(chatBubblesBottom: number): void
+    {
+        this.containerElem.style.bottom = `${chatBubblesBottom}px`;
     }
 
     protected makeBubble(chatMessage: ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void

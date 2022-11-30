@@ -812,10 +812,9 @@
     div.n3q-chatout-container {
         @extend .n3q-base;
         position: absolute;
-        bottom: 110px;
         left: -70px;
         width: 140px;
-        z-index: 3;
+        z-index: 4;
 
         div.n3q-chatout {
             @extend .n3q-base;

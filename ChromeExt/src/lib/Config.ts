@@ -127,6 +127,11 @@ export class Config
             chatBubbleFastFadeSec: 0.75,
             chatBubbleFadeStartSec: 110.0,
             chatBubbleFadeDurationSec: 10.0,
+            chatBubblesDefaultBottom: 110,
+            chatBubblesDefaultBottomAvatarHeightFactors: [
+                {avatarHeightMax: 100, chatBubblesBottomF: 1.1},
+                {avatarHeightMax: 200, chatBubblesBottomF: 0.95},
+            ],
             maxChatAgeSec: 60,
             chatWindowWidth: 400,
             chatWindowHeight: 250,

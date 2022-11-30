@@ -7,7 +7,7 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
-import * as AnimationsXml from './AnimationsXml';
+import { AnimationsXml, AnimationsDefinition } from './AnimationsXml';
 import { RoomItem } from './RoomItem';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { SimpleToast } from './Toast';
@@ -33,7 +33,7 @@ export class Avatar implements IObserver
     private dragElem?: HTMLElement;
     private dragBadgeElem?: HTMLImageElement;
     private hasAnimation = false;
-    private animations: AnimationsXml.AnimationsDefinition;
+    private animations: AnimationsDefinition;
     private defaultGroup: string;
     private currentCondition: string = '';
     private currentState: string = '';
@@ -349,11 +349,8 @@ export class Avatar implements IObserver
             if (response.ok) {
                 try {
 
-                    const parsed = AnimationsXml.AnimationsXml.parseXml(url, response.data);
-                    const defaultSize = Config.get('room.defaultAnimationSize', 100);
-                    const width = as.Int(parsed.params['width'], defaultSize);
-                    const height = as.Int(parsed.params['height'], defaultSize);
-                    this.setSize(width, height);
+                    const parsed = AnimationsXml.parseXml(url, response.data);
+                    this.setSize(parsed.params.width, parsed.params.height);
 
                     this.animations = parsed;
                     this.defaultGroup = this.getDefaultGroup();
@@ -363,6 +360,7 @@ export class Avatar implements IObserver
                         this.hasAnimation = true;
                     }
 
+                    this.entity.onAvatarAnimationsParsed(this.animations);
                 } catch (error) {
                     log.info(error);
                 }
@@ -428,7 +426,7 @@ export class Avatar implements IObserver
         this.speedPixelPerSec = pixelPerSec;
     }
 
-    public getAnimations(): null|AnimationsXml.AnimationsDefinition
+    public getAnimations(): null|AnimationsDefinition
     {
         return this.animations;
     }
@@ -470,6 +468,6 @@ export class Avatar implements IObserver
 
     getDefaultGroup(): string
     {
-        return as.String(this.animations.params[AnimationsXml.AvatarAnimationParam.defaultsequence], 'idle');
+        return as.String(this.animations.params[AnimationsDefinition.defaultsequence], 'idle');
     }
 }

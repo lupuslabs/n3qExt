@@ -60,12 +60,12 @@ export class OwnParticipantMenu extends ParticipantMenu
 
     protected makeEmotesMenuAndItem(column: MenuColumn): void
     {
-        const animations = this.participant.getAvatar()?.getAnimations() ?? new AnimationsDefinition({}, {});
+        const animations = this.participant.getAvatar()?.getAnimations()?.sequences ?? {};
         const actionsMenu = column.addSubmenuItem('emotes', 'Emotes');
         const actionsColumn = actionsMenu.addColumn('emotes');
         const groupBlocklist = [...Config.get('avatars.animationGroupBlocklistForAvatarMenu', [])];
-        for (const key in animations.sequences) {
-            const action = as.String(animations.sequences[key].group);
+        for (const key in animations) {
+            const action = as.String(animations[key].group);
             if (!groupBlocklist.includes(action)) {
                 actionsColumn.addActionItem(null, action, () => this.participant.do(action));
                 groupBlocklist.push(action);

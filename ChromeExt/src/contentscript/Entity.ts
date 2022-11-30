@@ -13,6 +13,7 @@ import { ContentApp } from './ContentApp';
 import { RoomItem } from './RoomItem';
 import { BackpackItem } from './BackpackItem';
 import { PointerEventData } from '../lib/PointerEventData';
+import { AnimationsDefinition } from './AnimationsXml';
 
 export class Entity
 {
@@ -80,6 +81,11 @@ export class Entity
     removeRange(): void
     {
         if (this.rangeElem) { $(this.rangeElem).remove(); }
+    }
+
+    public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void
+    {
+        // Nothing to do if not having a Chatout.
     }
 
     setPosition(x: number): void

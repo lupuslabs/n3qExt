@@ -37,6 +37,7 @@ import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { ChatConsole } from './ChatConsole';
+import { AnimationsDefinition } from './AnimationsXml';
 
 export class Participant extends Entity
 {
@@ -130,6 +131,11 @@ export class Participant extends Entity
         this.chatinDisplay?.stop();
         this.closeMenu();
         super.remove();
+    }
+
+    public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void
+    {
+        this.chatoutDisplay.onAvatarAnimationsParsed(avatarAnimations);
     }
 
     // presence

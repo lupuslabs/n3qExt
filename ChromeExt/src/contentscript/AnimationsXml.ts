@@ -1,12 +1,13 @@
 ﻿const $ = require('jquery');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
+import { Config } from '../lib/Config';
 
-export class AvatarAnimationParam
-{
-    static defaultsequence: string = 'defaultsequence';
-    name: string;
-    value: string;
-}
+export type AvatarAnimationParams = {[id: string]: string|number} & { 
+    width: number,
+    height: number,
+    chatBubblesBottom: number,
+};
 
 export class AvatarAnimationSequence
 {
@@ -23,8 +24,10 @@ export class AvatarAnimationSequence
 
 export class AnimationsDefinition
 {
+    static defaultsequence: string = 'defaultsequence';
+
     constructor(
-        public params: { [id: string]: AvatarAnimationParam },
+        public params: AvatarAnimationParams,
         public sequences: { [id: string]: AvatarAnimationSequence }
     ) { }
 }
@@ -33,16 +36,39 @@ export class AnimationsXml
 {
     static parseXml(dataUrl: string, data: string): AnimationsDefinition
     {
-        let params: { [id: string]: AvatarAnimationParam } = {};
+        let params: {[p: string]: string} = {};
         let sequences: { [id: string]: AvatarAnimationSequence } = {};
 
         let xml = $.parseXML(data);
 
         $(xml).find('param').each((index, param) =>
         {
-            params[$(param).attr('name')] = $(param).attr('value');
+            const [name, value] = [$(param).attr('name'), $(param).attr('value')];
+            if (!is.nil(name) && !is.nil(value)) {
+                params[name] = value;
+            }
         });
 
+        const defaultSize = Config.get('room.defaultAnimationSize', 100);
+        const width = as.Int(params.width, defaultSize);
+        const height = as.Int(params.height, defaultSize);
+
+        const chatBubblesBottomStr = params.chatBubblesBottom;
+        let heightF = 1.0;
+        const heightFRules = Config.get('room.chatBubblesDefaultBottomAvatarHeightFactors', []);
+        for (const {avatarHeightMax, chatBubblesBottomF} of heightFRules) {
+            if (height <= avatarHeightMax) {
+                heightF = chatBubblesBottomF;
+                break;
+            }
+        }
+        const chatBubblesBottom = as.Int(chatBubblesBottomStr, heightF * height);
+console.log('1', {heightFRules, heightF, height, chatBubblesBottomStr, chatBubblesBottom});
+
+        const paramsParsed: AvatarAnimationParams = {
+            ...params, width, height, chatBubblesBottom,
+        };
+        
         $(xml).find('sequence').each((index, sequence) =>
         {
             let id: string = $(sequence).attr('name');
@@ -82,6 +108,6 @@ export class AnimationsXml
             sequences[id] = record;
         });
 
-        return new AnimationsDefinition(params, sequences);
+        return new AnimationsDefinition(paramsParsed, sequences);
     }
 }
