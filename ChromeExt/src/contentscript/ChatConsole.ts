@@ -27,12 +27,9 @@ export class ChatConsole
     public static chatCommand(text: string, context: ChatConsoleContext): boolean
     {
         let isHandled = false;
-        if (text.substring(0, 1) !== '/') {
-            return false;
-        }
 
         const parts: string[] = text.split(' ');
-        if (parts.length < 1) { return; }
+        if (parts.length < 1) { return false; }
         const cmd: string = parts[0];
 
         this.out(context, text);
