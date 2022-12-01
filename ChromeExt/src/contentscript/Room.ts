@@ -196,13 +196,22 @@ export class Room
     sendPresence(): void
     {
         (async() => {
+            let avatarId = this.avatar;
+
+            // Downgrade avatar ID to make it compatible to pre-v.1.2.4 clients:
+            // New clients automigrate it back to correct format.
+            // Todo: Remove after old clients all updated.
+            if (avatarId.startsWith('gif/')) {
+                avatarId = avatarId.substr(4);
+            }
+
             const vpProps = {
                 xmlns: 'vp:props',
                 timestamp: Date.now(),
                 Nickname: this.resource,
-                AvatarId: this.avatar,
+                AvatarId: avatarId,
                 nickname: this.resource,
-                avatar: this.avatar
+                avatar: avatarId,
             };
 
             const nickname = await this.getBackpackItemNickname(this.resource);
