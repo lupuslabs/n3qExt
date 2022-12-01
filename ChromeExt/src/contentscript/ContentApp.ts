@@ -74,6 +74,7 @@ export class ContentApp
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
     private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
     private iframeApi: IframeApi;
+    private avatarGallery: AvatarGallery;
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -93,6 +94,8 @@ export class ContentApp
     getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
 
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
+
+    getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
 
     /**
      * null before in a room and receiving first presence for local participant.
@@ -240,6 +243,8 @@ export class ContentApp
 
         this.vpi = new VpiResolver(BackgroundMessage, Config);
         this.vpi.language = Translator.getShortLanguageCode(this.language);
+
+        this.avatarGallery = new AvatarGallery();
 
         await this.assertActive();
         if (Panic.isOn) { return; }
@@ -1072,11 +1077,7 @@ export class ContentApp
     async assertUserAvatar()
     {
         try {
-            let avatar = await Memory.getLocal(Utils.localStorageKey_Avatar(), '');
-            if (avatar == '') {
-                avatar = AvatarGallery.getRandomAvatar();
-                await Memory.setLocal(Utils.localStorageKey_Avatar(), avatar);
-            }
+            await this.avatarGallery.getAvatarFromStorage();
         } catch (error) {
             log.info(error);
             Panic.now();
@@ -1086,7 +1087,7 @@ export class ContentApp
     async getUserAvatar(): Promise<string>
     {
         try {
-            return await Memory.getLocal(Utils.localStorageKey_Avatar(), '004/pinguin');
+            return (await this.avatarGallery.getAvatarFromStorage()).id;
         } catch (error) {
             log.info(error);
             return '004/pinguin';

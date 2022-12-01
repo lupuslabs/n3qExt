@@ -196,7 +196,14 @@ export class Room
     sendPresence(): void
     {
         (async() => {
-            const vpProps = { xmlns: 'vp:props', 'timestamp': Date.now(), 'Nickname': this.resource, 'AvatarId': this.avatar, 'nickname': this.resource, 'avatar': 'gif/' + this.avatar };
+            const vpProps = {
+                xmlns: 'vp:props',
+                timestamp: Date.now(),
+                Nickname: this.resource,
+                AvatarId: this.avatar,
+                nickname: this.resource,
+                avatar: this.avatar
+            };
 
             const nickname = await this.getBackpackItemNickname(this.resource);
             if (nickname !== '') {
@@ -248,7 +255,7 @@ export class Room
             let identityDigest = as.String(Config.get('identity.digest'), '1');
             if (identityUrl === '') {
                 if (avatarUrl === '') {
-                    avatarUrl = Utils.getAvatarUrlFromAvatarId(this.avatar);
+                    avatarUrl = this.app.getAvatarGallery().getAvatarById(this.avatar).getConfigUrl();
                 }
                 identityDigest = as.String(Utils.hash(this.resource + avatarUrl));
                 identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))

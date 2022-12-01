@@ -81,29 +81,6 @@ export class Utils
             || Config.get(`log.${channel}`, defaultValue);
     }
 
-    static makeGifExplicit(avatarId: string): string
-    {
-        const parts = avatarId.split('/');
-        if (parts.length === 1) { return 'gif/002/' + avatarId; }
-        else if (parts.length === 2) { return 'gif/' + avatarId; }
-        return 'gif/' + avatarId;
-    }
-
-    static fixDuplicateGif(avatarUrl: string): string
-    {
-        if (avatarUrl.search('gif/gif/') > 0) {
-            return avatarUrl.replace('gif/gif/', 'gif/');
-        }
-        return avatarUrl;
-    }
-
-    static getAvatarUrlFromAvatarId(avatarId: string): string
-    {
-        let avatarUrl = as.String(Config.get('avatars.animationsUrlTemplate', 'https://webex.vulcan.weblin.com/avatars/{id}/config.xml')).replace('{id}', Utils.makeGifExplicit(avatarId));
-        avatarUrl = Utils.fixDuplicateGif(avatarUrl);
-        return avatarUrl;
-    }
-
     static jsObject2xmlObject(stanza: any): xml.Element
     {
         const children = [];

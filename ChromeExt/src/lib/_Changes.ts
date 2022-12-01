@@ -7,10 +7,11 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.4', 'AvatarMenu', [
+            ['Add', 'Support for non-GIF gallery avatars'],
             ['Add', 'Restore chat bubbles from history on load'],
             ['Add', 'Multiple stacked chat bubbles'],
+            ['Add', 'Avatar menu shows all actions/emotes available for the current avatar'],
             ['Change', 'Avatar menu actions/emotes list moved into a submenu'],
-            ['Fix', 'Avatar menu lists only actions/emotes available for the current avatar'],
             ['Fix', 'Avatar menu always opens fully on screen and is never covered by other GUI elements'],
             ['Fix', 'On locations without destination, items are not rezzable'],
         ]],

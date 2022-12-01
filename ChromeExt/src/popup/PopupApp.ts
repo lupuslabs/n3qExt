@@ -9,7 +9,7 @@ import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
-import { AvatarGallery } from '../lib/AvatarGallery';
+import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
 import { RandomNames } from '../lib/RandomNames';
 
 export class PopupApp
@@ -61,7 +61,8 @@ export class PopupApp
         this.display = $('<div id="n3q-id-popup" class="n3q-base" data-translate="children"/>').get(0);
 
         let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), 'Your name'));
-        let avatar = as.String(await Memory.getLocal(Utils.localStorageKey_Avatar(), ''));
+        const avatars = new AvatarGallery();
+        const avatarDialogState = {currentAvatar: await avatars.getAvatarFromStorage()};
 
         {
             let group = $('<div class="n3q-base n3q-popup-header" data-translate="children"/>').get(0);
@@ -112,25 +113,9 @@ export class PopupApp
         }
 
         {
-            let list: Array<string> = Config.get('avatars.list', [avatar]);
-
-            let avatarIdx = list.indexOf(avatar);
-            if (avatarIdx < 0) {
-                avatar = AvatarGallery.getRandomAvatar();
-                avatarIdx = list.indexOf(avatar);
-                if (avatarIdx < 0) {
-                    avatar = '004/pinguin';
-                }
-                await Memory.setLocal(Utils.localStorageKey_Avatar(), avatar);
-            }
-
             let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-avatar" data-translate="children"/>').get(0);
 
             const avatarGallery = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-gallery" data-translate="children"/>').get(0);
-
-            let input = $('<input type="hidden" id="n3q-id-popup-avatar" class="n3q-base" />').get(0);
-            $(input).val(avatar);
-            avatarGallery.append(input);
 
             let label = $('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Avatar</div>').get(0);
             avatarGallery.append(label);
@@ -147,7 +132,7 @@ export class PopupApp
                 
             const avatarLink = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-generator" data-translate="children"/>').get(0);
             
-            const avatarGeneratorLink = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars')
+            const avatarGeneratorLink = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
             const generatorText = $('<div class="n3q-base n3q-popup-text" data-translate="children">'
                 + '<span  data-translate="text:Popup">Create your own avatar</span>'
                 + '<a href="' + avatarGeneratorLink + '" target="_blank" data-translate="text:Popup">' 
@@ -162,22 +147,18 @@ export class PopupApp
             group.append(avatarGallery);
             group.append(avatarLink);
 
-            this.setCurrentAvatar(avatar, icon, input);
+            this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
 
             $(left).on('click', () =>
             {
-                let idx = list.indexOf(<string>$(input).val());
-                idx--;
-                if (idx < 0) { idx = list.length - 1; }
-                this.setCurrentAvatar(list[idx], icon, input);
+                avatarDialogState.currentAvatar = avatarDialogState.currentAvatar.getPreviousAvatar();
+                this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
             });
 
             $(right).on('click', () =>
             {
-                let idx = list.indexOf(<string>$(input).val());
-                idx++;
-                if (idx >= list.length) { idx = 0; }
-                this.setCurrentAvatar(list[idx], icon, input);
+                avatarDialogState.currentAvatar = avatarDialogState.currentAvatar.getNextAvatar();
+                this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
             });
 
             this.display.append(group);
@@ -195,8 +176,7 @@ export class PopupApp
                 let nickname2Save = $('#n3q-id-popup-nickname').val();
                 await Memory.setLocal(Utils.localStorageKey_Nickname(), nickname2Save);
 
-                let avatar2Save = $('#n3q-id-popup-avatar').val();
-                await Memory.setLocal(Utils.localStorageKey_Avatar(), avatar2Save);
+                await avatarDialogState.currentAvatar.setAvatarInStorage();
 
                 await BackgroundMessage.userSettingsChanged();
 
@@ -255,17 +235,9 @@ export class PopupApp
         }
     }
 
-    private setCurrentAvatar(id: string, displayElem: HTMLImageElement, hiddenElem: HTMLElement)
+    private setCurrentAvatar(avatar: GalleryAvatar, displayElem: HTMLImageElement)
     {
-        $(hiddenElem).val(id);
-        displayElem.src = this.getAvatarImageUrlFromAvatarId(id);
-    }
-
-    private getAvatarImageUrlFromAvatarId(id: string)
-    {
-        let avatarUrl = Utils.getAvatarUrlFromAvatarId(id);
-        let idleUrl = new URL('idle.gif', avatarUrl);
-        return idleUrl.toString();
+        displayElem.src = avatar.getPreviewUrl();
     }
 
     stop()
