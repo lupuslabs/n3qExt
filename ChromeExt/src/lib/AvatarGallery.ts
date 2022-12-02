@@ -49,7 +49,7 @@ export class GalleryAvatar {
         return this.gallery.getAvatarByIndex(index);
     }
 
-    public async setAvatarInStorage(): Promise<void>
+    public async setAvatarInLocalMemory(): Promise<void>
     {
         await Memory.setLocal(Utils.localStorageKey_Avatar(), this.id);
     }
@@ -94,12 +94,12 @@ export class AvatarGallery
         return avatar;
     }
 
-    public async getAvatarFromStorage(): Promise<GalleryAvatar>
+    public async getAvatarFromLocalMemory(): Promise<GalleryAvatar>
     {
         let avatarId = as.String(await Memory.getLocal(Utils.localStorageKey_Avatar(), ''));
         const avatar = this.getAvatarById(avatarId);
         if (avatarId !== avatar.id) {
-            await avatar.setAvatarInStorage();
+            await avatar.setAvatarInLocalMemory();
         }
         return avatar;
     }

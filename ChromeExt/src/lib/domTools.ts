@@ -212,11 +212,12 @@ export function domOnNextRenderComplete(fun: (timestamp: number) => void): void
     window.requestAnimationFrame(() => window.requestAnimationFrame(fun));
 }
 
-export type DomElemTransition = {property: string, delay: string, duration: string, timingFun: string};
+export type DomElemTransition = {property: string, delay?: string, duration?: string, timingFun?: string};
 
 export function startDomElemTransition(
-    elem: HTMLElement, guard: () => boolean, transition: DomElemTransition, finalVal: string, onComplete?: () => void
+    elem: HTMLElement, guard: () => null|boolean, transition: DomElemTransition, finalVal: string, onComplete?: () => void,
 ): void {
+    guard = guard ?? (() => true);
     if (!guard()) {
         return;
     }
@@ -232,8 +233,8 @@ export function startDomElemTransition(
 
         if (!is.nil(onComplete)) {
             const completedurationSecs
-                = domTransitionDurationAsSeconds(transition.delay)
-                + domTransitionDurationAsSeconds(transition.duration);
+                = domTransitionDurationAsSeconds(transition.delay ?? '0s')
+                + domTransitionDurationAsSeconds(transition.duration ?? '0s');
             window.setTimeout(onComplete, 1000 * completedurationSecs);
         }
     });
@@ -275,7 +276,7 @@ export function setDomElemTransitions(elem: HTMLElement, transitions: Iterable<D
 {
     const transitionStrings = [];
     for (const t of transitions) {
-        transitionStrings.push(`${t.property} ${t.duration} ${t.timingFun} ${t.delay}`);
+        transitionStrings.push(`${t.property} ${t.duration ?? '0s'} ${t.timingFun ?? 'ease'} ${t.delay ?? '0s'}`);
     }
     elem.style.transition = transitionStrings.join(', ');
 }

@@ -23,7 +23,7 @@ export class SettingsWindow extends Window
         const aboveElem: HTMLElement = options.above;
         const bottom = as.Int(options.bottom, 150);
         const width = as.Int(options.width, 420);
-        const height = as.Int(options.height, 350);
+        const height = as.Int(options.height, 490);
 
         if (this.windowElem) {
             const windowElem = this.windowElem;

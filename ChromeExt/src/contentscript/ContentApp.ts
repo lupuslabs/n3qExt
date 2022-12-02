@@ -1077,7 +1077,7 @@ export class ContentApp
     async assertUserAvatar()
     {
         try {
-            await this.avatarGallery.getAvatarFromStorage();
+            await this.avatarGallery.getAvatarFromLocalMemory();
         } catch (error) {
             log.info(error);
             Panic.now();
@@ -1087,7 +1087,7 @@ export class ContentApp
     async getUserAvatar(): Promise<string>
     {
         try {
-            return (await this.avatarGallery.getAvatarFromStorage()).id;
+            return (await this.avatarGallery.getAvatarFromLocalMemory()).id;
         } catch (error) {
             log.info(error);
             return '004/pinguin';

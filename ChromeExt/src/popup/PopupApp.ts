@@ -1,8 +1,7 @@
-// @ts-ignore
 import imgPopupIcon from '../assets/PopupIcon.png';
 
 import log = require('loglevel');
-import * as $ from 'jquery';
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -11,6 +10,7 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
 import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
 import { RandomNames } from '../lib/RandomNames';
+import { domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
 
 export class PopupApp
 {
@@ -19,230 +19,208 @@ export class PopupApp
     private defaultDevConfig = `{}`;
     private onClose: () => void;
 
-    constructor(protected appendToMe: HTMLElement)
+    private currentAvatar: GalleryAvatar;
+    private nicknameElem: HTMLInputElement;
+
+    public constructor(protected appendToMe: HTMLElement)
     {
         let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
         if (navLang === '') {
             navLang = navigator.language;
         }
-        let language: string = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        const defaultLandg = Config.get('i18n.defaultLanguage', 'en-US');
+        const langMapper = lang => Config.get('i18n.languageMapping', {})[lang];
+        const language: string = Translator.mapLanguage(navLang, langMapper, defaultLandg);
         const translationTable = Config.get('i18n.translations', {})[language];
         this.babelfish = new Translator(translationTable, language, Config.get('i18n.serviceUrl', ''));
     }
 
-    async dev_start()
+    public dev_start(): void
     {
-        let start = $('<button style="display:inline">Start</button>').get(0);
-        $(start).bind('click', async ev =>
-        {
-            await this.start(null);
-        });
-        let stop = $('<button style="display:inline">Stop</button>').get(0);
-        $(stop).bind('click', async ev =>
-        {
-            this.stop();
-        });
+        let start = domHtmlElemOfHtml('<button style="display: inline">Start</button>');
+        start.addEventListener('click', ev => this.start(null).catch(error => log.info(error)));
+        let stop = domHtmlElemOfHtml('<button style="display: inline">Stop</button>');
+        stop.addEventListener('click', async ev => this.stop());
         this.appendToMe.append(start);
         this.appendToMe.append(stop);
         this.appendToMe.style.minWidth = '25em';
     }
 
-    async start(onClose: () => void)
+    public async start(onClose: () => void): Promise<void>
     {
         this.onClose = onClose;
 
         try {
-            let config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
+            const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
             Config.setOnlineTree(config);
         } catch (error) {
             log.warn(error);
         }
 
-        this.display = $('<div id="n3q-id-popup" class="n3q-base" data-translate="children"/>').get(0);
+        this.display = domHtmlElemOfHtml('<div id="n3q-id-popup" class="n3q-base" data-translate="children"/>');
 
-        let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), 'Your name'));
+        const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), 'Your name'));
         const avatars = new AvatarGallery();
-        const avatarDialogState = {currentAvatar: await avatars.getAvatarFromStorage()};
+        this.currentAvatar = await avatars.getAvatarFromLocalMemory();
 
-        {
-            let group = $('<div class="n3q-base n3q-popup-header" data-translate="children"/>').get(0);
-
-            let icon = <HTMLImageElement>$('<img class="n3q-base n3q-popup-icon" />').get(0);
-            icon.src = imgPopupIcon;
-            group.append(icon);
-
-            let title = $('<div class="n3q-base n3q-popup-title" data-translate="text:Popup.title">Your Weblin</div>').get(0);
-            group.append(title);
-
-            let description = $('<div class="n3q-base n3q-popup-description" data-translate="text:Popup.description">Change name and avatar, then reload the page.</div>').get(0);
-            group.append(description);
-
-            $(icon).on('click', async ev =>
-            {
-                if (ev.ctrlKey) {
-                    await this.devConfig(group);
-                }
-            });
-
-            $(icon).on('dblclick', async ev =>
-            {
-                await this.devConfig(group);
-            });
-
-            this.display.append(group);
-        }
-
-        {
-            let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-nickname" data-translate="children"/>').get(0);
-
-            let label = $('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Name</div>').get(0);
-            group.append(label);
-
-            let input = $('<input type="text" id="n3q-id-popup-nickname" class="n3q-base" />').get(0);
-            $(input).val(nickname);
-            group.append(input);
-
-            let button = $('<button class="n3q-base n3q-popup-random" data-translate="text:Popup">Random</button>').get(0);
-            $(button).bind('click', async ev =>
-            {
-                $('#n3q-id-popup-nickname').val(RandomNames.getRandomNickname());
-            });
-            group.append(button);
-
-            this.display.append(group);
-        }
-
-        {
-            let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-avatar" data-translate="children"/>').get(0);
-
-            const avatarGallery = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-gallery" data-translate="children"/>').get(0);
-
-            let label = $('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Avatar</div>').get(0);
-            avatarGallery.append(label);
-
-            let left = <HTMLElement>$('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-left">&lt;</button>').get(0);
-            avatarGallery.append(left);
-
-            let icon = <HTMLImageElement>$('<img class="n3q-base n3q-popup-avatar-current" />').get(0);
-            avatarGallery.append(icon);
-
-            let right = <HTMLElement>$('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-right">&gt;</button>').get(0);
-            avatarGallery.append(right);
-
-                
-            const avatarLink = $('<div class="n3q-base n3q-popup-group-avatar-column n3q-popup-group-avatar-generator" data-translate="children"/>').get(0);
-            
-            const avatarGeneratorLink = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
-            const generatorText = $('<div class="n3q-base n3q-popup-text" data-translate="children">'
-                + '<span  data-translate="text:Popup">Create your own avatar</span>'
-                + '<a href="' + avatarGeneratorLink + '" target="_blank" data-translate="text:Popup">' 
-                +   'Avatar Generator' 
-                + '</a>'
-                + '<a href="' + avatarGeneratorLink + '" target="_blank">' 
-                +   '<span class="n3q-base n3q-popup-avatar-generator-link-icon"/>'
-                + '</a>'
-                + '</div>').get(0);
-            avatarLink.append(generatorText);
-
-            group.append(avatarGallery);
-            group.append(avatarLink);
-
-            this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
-
-            $(left).on('click', () =>
-            {
-                avatarDialogState.currentAvatar = avatarDialogState.currentAvatar.getPreviousAvatar();
-                this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
-            });
-
-            $(right).on('click', () =>
-            {
-                avatarDialogState.currentAvatar = avatarDialogState.currentAvatar.getNextAvatar();
-                this.setCurrentAvatar(avatarDialogState.currentAvatar, icon);
-            });
-
-            this.display.append(group);
-        }
-
-        {
-            let group = $('<div class="n3q-base n3q-popup-group n3q-popup-group-save" data-translate="children"/>').get(0);
-
-            let saving = $('<div class="n3q-base n3q-popup-save-saving" data-translate="text:Popup">Saving</div>').get(0);
-
-            let save = $('<button class="n3q-base n3q-popup-save" data-translate="text:Popup">Save</button>').get(0);
-            $(save).bind('click', async ev =>
-            {
-                $(saving).fadeTo(200, 1.0);
-                let nickname2Save = $('#n3q-id-popup-nickname').val();
-                await Memory.setLocal(Utils.localStorageKey_Nickname(), nickname2Save);
-
-                await avatarDialogState.currentAvatar.setAvatarInStorage();
-
-                await BackgroundMessage.userSettingsChanged();
-
-                $(saving).fadeTo(1000, 0.0, () =>
-                {
-                    this.close();
-                });
-            });
-            group.append(save);
-            group.append(saving);
-
-            let close = $('<button class="n3q-base n3q-popup-close" data-translate="text:Common">Close</button>').get(0);
-            $(close).bind('click', async ev =>
-            {
-                this.close();
-            });
-            group.append(close);
-
-            this.display.append(group);
-        }
+        this.display.append(this.makeHeaderGroupHtml());
+        this.display.append(this.makeNicknameGroupHtml(nickname));
+        this.display.append(this.makeAvatarGroupHtml());
+        this.display.append(this.makeSaveGroupHtml());
 
         this.babelfish.translateElem(this.display);
         this.appendToMe.append(this.display);
-        $(this.appendToMe).css({ overflow: 'auto' });
+        this.appendToMe.style.overflow = 'auto';
     }
 
-    close()
+    private makeHeaderGroupHtml(): HTMLElement
     {
-        if (this.onClose) { this.onClose(); }
-    }
+        const group = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-header" data-translate="children"/>');
 
-    async devConfig(group: HTMLElement)
-    {
-        let dev = $('#n3q-popup-dev').get(0);
-        if (dev == null) {
-            dev = $('<div id="n3q-popup-dev" class="n3q-base n3q-popup-hidden" style="" />').get(0);
-            let text = $('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;" />').get(0);
-            let data = await Memory.getLocal(Utils.localStorageKey_CustomConfig(), this.defaultDevConfig);
-            $(text).val(data);
-            $(dev).append(text);
-            let apply = $('<button class="n3q-base n3q-popup-dev-apply" style="margin-top: 0.5em;">Save</button>').get(0);
-            $(apply).on('click', async ev =>
-            {
-                let data = $(text).val();
-                await Memory.setLocal(Utils.localStorageKey_CustomConfig(), data);
-            });
-            $(dev).append(apply);
-            $(group).append(dev);
-        }
-        if (dev != null) {
-            if ($(dev).hasClass('n3q-popup-hidden')) {
-                $(dev).removeClass('n3q-popup-hidden');
-            } else {
-                $(dev).addClass('n3q-popup-hidden');
+        const icon = <HTMLImageElement> domHtmlElemOfHtml('<img class="n3q-base n3q-popup-icon"/>');
+        icon.src = imgPopupIcon;
+        group.append(icon);
+
+        const title = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-title" data-translate="text:Popup.title">Your Weblin</div>');
+        group.append(title);
+
+        const description = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-description" data-translate="text:Popup.description">Change name and avatar, then reload the page.</div>');
+        group.append(description);
+
+        icon.addEventListener('click', ev => {
+            if (ev.ctrlKey) {
+                this.devConfig(group);
             }
+        });
+
+        icon.addEventListener('dblclick', ev => this.devConfig(group));
+
+        return group;
+    }
+
+    private makeNicknameGroupHtml(nickname: string): HTMLElement
+    {
+        const nicknameGroup = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-group n3q-popup-group-nickname" data-translate="children"/>');
+
+        const label = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Name</div>');
+        nicknameGroup.append(label);
+
+        this.nicknameElem = <HTMLInputElement> domHtmlElemOfHtml(`<input type="text" id="n3q-id-popup-nickname" class="n3q-base" value="${nickname}"/>`);
+        nicknameGroup.append(this.nicknameElem);
+
+        const button = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-random" data-translate="text:Popup">Random</button>');
+        button.addEventListener('click', ev => { this.nicknameElem.value = RandomNames.getRandomNickname(); });
+        nicknameGroup.append(button);
+
+        return nicknameGroup;
+    }
+
+    private makeAvatarGroupHtml(): HTMLElement
+    {
+        const group = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-group n3q-popup-group-avatar" data-translate="children"/>');
+
+        const avatarGallery = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-group-avatar-gallery" data-translate="children"/>');
+        const label = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-label" data-translate="text:Popup">Avatar</div>');
+        const left = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-left">&lt;</button>');
+        const avatarImgWrapElem = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-avatar-current"/>');
+        const avatarImgElem = <HTMLImageElement> domHtmlElemOfHtml('<img class="n3q-base"/>');
+        avatarImgWrapElem.append(avatarImgElem);
+        const right = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-avatar-arrow n3q-popup-avatar-right">&gt;</button>');
+        avatarGallery.append(label);
+        avatarGallery.append(left);
+        avatarGallery.append(avatarImgWrapElem);
+        avatarGallery.append(right);
+        group.append(avatarGallery);
+
+        avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+        left.addEventListener('click', ev => {
+            this.currentAvatar = this.currentAvatar.getPreviousAvatar();
+            avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+        });
+        right.addEventListener('click', ev => {
+            this.currentAvatar = this.currentAvatar.getNextAvatar();
+            avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+        });
+
+        const avatarGenUrl = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
+        const avatarGenBlock = domHtmlElemOfHtml(''
+            + '<div class="n3q-base n3q-popup-group-avatar-generator" data-translate="children">'
+            +     '<div data-translate="text:Popup">Create your own avatar</div>'
+            +     `<a href="${avatarGenUrl}" target="_blank" data-translate="text:Popup">`
+            +         'Avatar Generator'
+            +         '<span class="n3q-base n3q-popup-avatar-generator-link-icon"/>'
+            +     '</a>'
+            + '</div>'
+        );
+        group.append(avatarGenBlock);
+
+        return group;
+    }
+
+    private makeSaveGroupHtml(): HTMLElement
+    {
+        const group = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-group n3q-popup-group-save" data-translate="children"/>');
+
+        const saving = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-save-saving" data-translate="text:Popup">Saving</div>');
+
+        const save = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-save" data-translate="text:Popup">Save</button>');
+        save.addEventListener('click', ev => {
+            const transition = {property: 'opacity', duration: '0.2s'};
+            const nickname2Save = this.nicknameElem.value;
+            startDomElemTransition(saving, null, transition, '1', () => {
+                Memory.setLocal(Utils.localStorageKey_Nickname(), nickname2Save)
+                .then(() => this.currentAvatar.setAvatarInLocalMemory())
+                .then(() => BackgroundMessage.userSettingsChanged())
+                .then(() => {
+                    const transition = {property: 'opacity', duration: '1s'};
+                    startDomElemTransition(saving, null, transition, '0', () => this.close());
+                }).catch(error => log.info(error));
+            });
+        });
+        group.append(save);
+        group.append(saving);
+
+        const close = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-close" data-translate="text:Common">Close</button>');
+        close.addEventListener('click', ev => this.close());
+        group.append(close);
+
+        return group;
+    }
+
+    public close(): void
+    {
+        this.onClose?.();
+    }
+
+    private devConfig(group: HTMLElement): void
+    {
+        const customCfgStorageKey = Utils.localStorageKey_CustomConfig();
+        let dev = document.getElementById('n3q-popup-dev');
+        if (is.nil(dev)) {
+            dev = domHtmlElemOfHtml('<div id="n3q-popup-dev" class="n3q-base n3q-popup-hidden"/>');
+            const text = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;"/>');
+            Memory.getLocal(customCfgStorageKey, this.defaultDevConfig).then(data => {
+                text.value = data;
+                dev.append(text);
+                const apply = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-dev-apply" style="margin-top: 0.5em;">Save</button>');
+                apply.addEventListener('click', ev => {
+                    Memory.setLocal(customCfgStorageKey, text.value)
+                    .catch(error => log.info(error));
+                });
+                dev.append(apply);
+                group.append(dev);
+            }).catch(error => log.info(error));
+        }
+        if (dev.classList.contains('n3q-popup-hidden')) {
+            dev.classList.remove('n3q-popup-hidden');
+        } else {
+            dev.classList.add('n3q-popup-hidden');
         }
     }
 
-    private setCurrentAvatar(avatar: GalleryAvatar, displayElem: HTMLImageElement)
+    public stop(): void
     {
-        displayElem.src = avatar.getPreviewUrl();
-    }
-
-    stop()
-    {
-        $(this.display).remove();
+        this.display?.remove();
         this.display = null;
     }
 }

@@ -1,8 +1,8 @@
 
 div.n3q-window-content div#n3q-id-popup {
     width: 382px;
-    padding: 10px;
-    margin: 8px;
+    padding: 10px 10px 0;
+    margin: 8px 8px 0;
     font-size: 13px;
     line-height: 14px;
 }
@@ -124,71 +124,73 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-label {
     }
 
     div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar {
-        .n3q-popup-group-avatar-column {
-            display: inline-table;
-        }
-        
-        .n3q-popup-group-avatar-gallery {
-            max-width: 60%;
-        }
-
-        .n3q-popup-group-avatar-generator {
-            max-width: 40%;
-            margin-left: 16px;
-            padding-left: 16px;
-            // border-left: 1px dashed #a9a9a9;
-        }
 
         a {
             font: unset;
         }
-    }   
 
-    div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar div.n3q-popup-text {
-        vertical-align: top;
-    }
+        div.n3q-popup-label {
+            vertical-align: top;
+        }
 
-    div.n3q-window-content div#n3q-id-popup .n3q-popup-text .n3q-popup-avatar-generator-link-icon {
-        background: url(../assets/icons/external_link.svg) no-repeat center center / contain;
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        margin-left: 4px;
-        vertical-align: -0.125em;
-    }
+        .n3q-popup-group-avatar-gallery {
+            display: flex;
+            margin-top: 0.4em;
+            height: 200px;
+            align-items: center;
 
-    div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-avatar div.n3q-popup-label {
-        vertical-align: top;
-    }
+            > * {
+                height: 200px;
+            }
 
-    div.n3q-window-content div#n3q-id-popup button.n3q-popup-avatar-arrow,
-    div.n3q-window-content div#n3q-id-popup img.n3q-popup-avatar-current, 
-    div.n3q-window-content div#n3q-id-popup div.n3q-popup-avatar-name { 
-        vertical-align: top;
-        display: inline;
-    }
+            button.n3q-popup-avatar-arrow { 
+                width: 20px;
+                background-repeat: no-repeat;
+                cursor: pointer;
+            }
 
-    div.n3q-window-content div#n3q-id-popup div.n3q-popup-avatar-name { 
-        margin-left: 10px;
-    }
+            button.n3q-popup-avatar-arrow:hover {
+                filter: brightness(0.9);
+            }
 
-    div.n3q-window-content div#n3q-id-popup button.n3q-popup-avatar-arrow { 
-        width: 20px;
-        height: 100px;
-        //border: 1px solid grey;
-        background-repeat: no-repeat;
-        cursor: pointer;
-    }
+            button.n3q-popup-avatar-arrow:active {
+                position: relative;
+                left: 1px;
+                top: 1px;
+            }
 
-    div.n3q-window-content div#n3q-id-popup button.n3q-popup-avatar-arrow:hover {
-        filter: brightness(0.9);
-    }
-    
-    div.n3q-window-content div#n3q-id-popup button.n3q-popup-avatar-arrow:active {
-        position: relative;
-        left: 1px;
-        top: 1px;
-        // filter: brightness(0.8);
+            .n3q-popup-avatar-current {
+                width: 200px;
+                height: auto;
+                text-align: center;
+
+                img {
+                    max-width: 200px;
+                    max-height: 200px;
+                }
+
+            }
+
+        }
+
+        .n3q-popup-group-avatar-generator {
+            margin: 1.25em 0 0 3em;
+
+            a:before {
+                content: '...';
+                opacity: 0;
+            }
+            .n3q-popup-avatar-generator-link-icon {
+                background: url(../assets/icons/external_link.svg) no-repeat center center / contain;
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                margin-left: 4px;
+                vertical-align: -0.125em;
+            }
+
+        }
+
     }
 
 // div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-active {
@@ -248,4 +250,3 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-group-save {
         display: none;
         float: right;
     }
-
