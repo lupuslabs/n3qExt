@@ -43,6 +43,7 @@ export class Config
             activateBackgroundPageProbeTotalSec: 120,
             domUpdatePollIntervalSec: 0.05,
             submenuHoverOpenDelaySec: 0.5,
+            submenuCloseOnItemHoverDelaySec: 0.5,
         },
         log: {
             all: false,

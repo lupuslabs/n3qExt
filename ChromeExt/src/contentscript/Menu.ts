@@ -34,8 +34,7 @@ abstract class MenuItem
         const itemElem = document.createElement('div');
         this.itemElem = itemElem;
         itemElem.classList.add('n3q-base', 'n3q-menu-item', 'n3q-shadow-small', ...this.extraCssClasses);
-        itemElem.setAttribute('data-translate', 'attr:title:Menu children');
-        itemElem.setAttribute('title', this.text);
+        itemElem.setAttribute('data-translate', 'children');
         if (this.isDisabled()) {
             itemElem.classList.add('n3q-menu-item-disabled');
         }
@@ -70,7 +69,7 @@ abstract class MenuItem
 
     public onUserDone(): void
     {
-        this.column.onUserDone();
+        this.column.getMenu().onUserDone();
     }
 
     public onMenuClose(): void
@@ -124,7 +123,7 @@ abstract class MenuItem
     protected onHoverEnter(): void
     {
         this.onHoverSetClass();
-        this.onHoverEnterCloseSubmenu();
+        this.column.getMenu().onItemWantsToCloseSubmenu();
     }
 
     protected onHoverSetClass(): void
@@ -132,11 +131,6 @@ abstract class MenuItem
         if (!this.isDisabled()) {
             this.itemElem.classList.add('n3q-menu-item-hover');
         }
-    }
-
-    protected onHoverEnterCloseSubmenu(): boolean
-    {
-        return this.column.onItemWantsToCloseSubmenu();
     }
 
     protected onHoverLeave(): void
@@ -226,6 +220,11 @@ class SubmenuMenuItem extends MenuItem
         return false;
     }
 
+    public clearSubmenuCloseTimeout(): void
+    {
+        this.column.getMenu().clearSubmenuCloseTimeout();
+    }
+
     public onMenuClose(): void
     {
         this.cancelHoverOpen();
@@ -245,10 +244,14 @@ class SubmenuMenuItem extends MenuItem
     {
         this.cancelHoverOpen();
         this.onHoverSetClass();
-        if (this.isDisabled() || this.menu.isOpen()) {
+        if (this.isDisabled()) {
             return;
         }
-        const otherMenuWasOpen = this.onHoverEnterCloseSubmenu();
+        if (this.menu.isOpen()) {
+            this.column.getMenu().clearSubmenuCloseTimeout();
+            return;
+        }
+        const otherMenuWasOpen = this.column.getMenu().closeSubmenu();
         if (otherMenuWasOpen) {
             this.openSubmenu();
             return;
@@ -292,6 +295,11 @@ export class MenuColumn
         this.id = id;
     }
 
+    public getMenu(): Menu
+    {
+        return this.menu;
+    }
+
     public isEmpty(): boolean
     {
         return this.items.length === 0;
@@ -326,18 +334,9 @@ export class MenuColumn
         return columnElem;
     }
 
-    public onItemWantsToCloseSubmenu(): boolean
-    {
-        return this.menu.onItemWantsToCloseSubmenu();
-    }
-
     public closeSubmenu(): boolean
     {
         return this.items.some(item => item.closeSubmenu());
-    }
-
-    public onUserDone(): void {
-        this.menu.onUserDone();
     }
 
     public onMenuClose(): void {
@@ -355,6 +354,7 @@ abstract class Menu
     protected columns: MenuColumn[] = [];
 
     protected menuElem: null|HTMLElement;
+    protected submenuCloseTimeoutHandle: null|number;
 
     public constructor(app: ContentApp)
     {
@@ -396,13 +396,26 @@ abstract class Menu
         }
     }
 
-    public onItemWantsToCloseSubmenu(): boolean
+    public clearSubmenuCloseTimeout(): void
     {
-        return this.closeSubmenu();
+        if (!is.nil(this.submenuCloseTimeoutHandle)) {
+            window.clearTimeout(this.submenuCloseTimeoutHandle);
+            this.submenuCloseTimeoutHandle = null;
+        }
+    }
+
+    public onItemWantsToCloseSubmenu(): void
+    {
+        if (is.nil(this.submenuCloseTimeoutHandle)) {
+            const fun = () => this.closeSubmenu();
+            const closeTimeoutMs = 1000 * as.Float(Config.get('system.submenuCloseOnItemHoverDelaySec'), 1);
+            this.submenuCloseTimeoutHandle = window.setTimeout(fun, closeTimeoutMs);
+        }
     }
 
     public closeSubmenu(): boolean
     {
+        this.clearSubmenuCloseTimeout();
         return this.columns.some(column => column.closeSubmenu());
     }
 
@@ -504,13 +517,25 @@ export class RootMenu extends Menu
 
 export class Submenu extends Menu
 {
-    protected parentItem: MenuItem;
+    protected parentItem: SubmenuMenuItem;
 
-    public constructor(app: ContentApp, parentItem: MenuItem)
+    public constructor(app: ContentApp, parentItem: SubmenuMenuItem)
     {
         super(app);
         this.parentItem = parentItem;
         this.extraCssClasses.push(`n3q-menu-submenu`);
+    }
+
+    public clearSubmenuCloseTimeout(): void
+    {
+        super.clearSubmenuCloseTimeout();
+        this.parentItem.clearSubmenuCloseTimeout();
+    }
+
+    public onItemWantsToCloseSubmenu(): void
+    {
+        super.onItemWantsToCloseSubmenu();
+        this.parentItem.clearSubmenuCloseTimeout();
     }
 
     public onUserDone(): void
