@@ -93,7 +93,7 @@ export class Config
             deferPageEnterSec: 0.3,
             vpiRoot: 'https://webex.vulcan.weblin.com/vpi/v7/root.xml',
             vpiMaxIterations: 15,
-            ignoredDomainSuffixes: ['vulcan.weblin.com', 'meet.jit.si'],
+            ignoredDomainSuffixes: ['video.weblin.io', 'vulcan.weblin.com', 'meet.jit.si'],
             strippedUrlPrefixes: ['https://cdn.weblin.io/?', 'https://cdn.weblin.io/'],
             notStrippedUrlPrefixes: ['https://cdn.weblin.io/v1/', 'https://cdn.weblin.io/sso/'],
         },
