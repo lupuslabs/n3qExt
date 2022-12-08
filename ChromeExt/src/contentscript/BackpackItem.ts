@@ -92,7 +92,7 @@ export class BackpackItem
             this.onDragDrop(eventData);
         });
         this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
-            this.onDragEnd(eventData);
+            this.onDragEnd();
         });
 
     }
@@ -300,7 +300,7 @@ export class BackpackItem
         // No action.
     }
 
-    private onDragEnd(ev: PointerEventData): void
+    private onDragEnd(): void
     {
         this.app.hideDropzone();
         this.dragElem?.parentElement?.removeChild(this.dragElem);
@@ -441,6 +441,7 @@ export class BackpackItem
     destroy()
     {
         this.info?.close();
-        $(this.elem).remove();
+        this.elem.remove();
+        this.onDragEnd();
     }
 }
