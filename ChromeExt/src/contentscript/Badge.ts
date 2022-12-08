@@ -56,6 +56,7 @@ export class Badge
     public stop(): void
     {
         this.isStopping = true;
+        this.onDragEnd();
         this.infoWindow.hide();
         this.iconElem?.parentElement?.removeChild(this.iconElem);
     }
@@ -156,12 +157,17 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => {
-            this.dragIconElem = this.badgesDisplay.disposeDraggedBadgeIcon(this.dragIconElem);
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => this.onDragEnd());
+
+    }
+
+    private onDragEnd(): void
+    {
+        this.dragIconElem = this.badgesDisplay.disposeDraggedBadgeIcon(this.dragIconElem);
+        if (!this.isStopping) {
             this.iconElem.classList.remove('n3q-hidden');
             this.updateDisplay();
-        });
-
+        }
     }
 
 }

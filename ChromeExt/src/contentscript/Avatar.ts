@@ -163,12 +163,15 @@ export class Avatar implements IObserver
             this.entity.onDraggedTo(newX);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => {
-            this.dragElem?.parentElement?.removeChild(this.dragElem);
-            const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
-            this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
-        });
+        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => this.onDragEnd());
 
+    }
+
+    private onDragEnd(): void
+    {
+        this.dragElem?.parentElement?.removeChild(this.dragElem);
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
+        this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
     }
 
     private onRoomItemDropOnBackpack(eventData: PointerEventData, roomItem: RoomItem, bpPaneElem: HTMLElement): void
@@ -228,6 +231,7 @@ export class Avatar implements IObserver
             clearTimeout(this.animationTimer);
             this.animationTimer = undefined;
         }
+        this.onDragEnd();
     }
 
     hilite(on: boolean)
