@@ -9,12 +9,16 @@ export class GalleryAvatar {
     readonly id: string;
     readonly previewImage: string;
     readonly gallery: AvatarGallery;
+    readonly isSelectable: boolean;
     readonly galleryIndex: number;
 
-    public constructor(gallery: AvatarGallery, id: string, previewImage: string, galleryIndex: number) {
+    public constructor(
+        gallery: AvatarGallery, id: string, previewImage: string, isSelectable: boolean, galleryIndex: number,
+    ) {
         this.id = id;
         this.previewImage = previewImage;
         this.gallery = gallery;
+        this.isSelectable = isSelectable;
         this.galleryIndex = galleryIndex;
     }
 
@@ -31,22 +35,33 @@ export class GalleryAvatar {
         return new URL(this.previewImage, this.getConfigUrl()).toString();
     }
 
+    public getIsSelectable(): boolean
+    {
+        return this.isSelectable;
+    }
+
     public getPreviousAvatar(): GalleryAvatar
     {
+        if (!this.isSelectable) {
+            return this.gallery.getSelectableAvatarByIndex(this.gallery.getSelectableLength());
+        }
         let index = this.galleryIndex - 1;
         if (index < 0) {
-            index = this.gallery.getLength() - 1;
+            index = this.gallery.getSelectableLength() - 1;
         }
-        return this.gallery.getAvatarByIndex(index);
+        return this.gallery.getSelectableAvatarByIndex(index);
     }
 
     public getNextAvatar(): GalleryAvatar
     {
+        if (!this.isSelectable) {
+            return this.gallery.getSelectableAvatarByIndex(0);
+        }
         let index = this.galleryIndex + 1;
-        if (index >= this.gallery.getLength()) {
+        if (index >= this.gallery.getSelectableLength()) {
             index = 0;
         }
-        return this.gallery.getAvatarByIndex(index);
+        return this.gallery.getSelectableAvatarByIndex(index);
     }
 
     public async setAvatarInLocalMemory(): Promise<void>
@@ -59,21 +74,29 @@ export class GalleryAvatar {
 export class AvatarGallery
 {
     protected avatars: GalleryAvatar[] = [];
+    protected avatarsSelectable: GalleryAvatar[] = [];
 
     public constructor() {
-        for (let {id, previewImage} of Config.get('avatars.gallery', [])) {
+        for (let {id, previewImage, isSelectable} of Config.get('avatars.gallery', [])) {
             if (is.string(id) && is.string(previewImage)) {
-                this.avatars.push(new GalleryAvatar(this, id, previewImage, this.avatars.length));
+                const index = this.avatarsSelectable.length;
+                const avatar = new GalleryAvatar(this, id, previewImage, isSelectable ?? true, index);
+                this.avatars.push(avatar);
+                if (avatar.getIsSelectable()) {
+                    this.avatarsSelectable.push(avatar);
+                }
             }
         }
-        if (this.avatars.length === 0) {
-            this.avatars.push(new GalleryAvatar(this, 'gif/004/pinguin', 'idle.gif', 0));
+        if (this.avatarsSelectable.length === 0) {
+            const avatar = new GalleryAvatar(this, 'gif/004/pinguin', 'idle.gif', true, 0);
+            this.avatars.push(avatar);
+            this.avatarsSelectable.push(avatar);
         }
     }
 
-    public getLength(): number
+    public getSelectableLength(): number
     {
-        return this.avatars.length;
+        return this.avatarsSelectable.length;
     }
 
     public getAvatarById(avatarId: string): GalleryAvatar
@@ -81,16 +104,22 @@ export class AvatarGallery
         return this.getAvatarByIdOpt(avatarId) ?? this.getRandomAvatar();
     }
 
-    public getAvatarByIndex(avatarIndex: number): GalleryAvatar
+    public getAvatarByIdOpt(avatarId: string): null|GalleryAvatar
     {
-        return this.avatars[avatarIndex] ?? this.getRandomAvatar();
+        const avatarIdMangled = this.automigrateAvatarId(avatarId);
+        return this.avatars.find(a => a.id === avatarIdMangled) ?? null;
+    }
+
+    public getSelectableAvatarByIndex(avatarIndex: number): GalleryAvatar
+    {
+        return this.avatarsSelectable[avatarIndex] ?? this.getRandomAvatar();
     }
 
     public getRandomAvatar(): GalleryAvatar
     {
         const avatarIds: string[] = Config.get('avatars.randomAvatarIds', []);
         const avatarId = avatarIds[Utils.randomInt(0, avatarIds.length)] ?? '';
-        const avatar = this.getAvatarByIdOpt(avatarId) ?? this.avatars[0];
+        const avatar = this.getAvatarByIdOpt(avatarId) ?? this.avatarsSelectable[0];
         return avatar;
     }
 
@@ -102,12 +131,6 @@ export class AvatarGallery
             await avatar.setAvatarInLocalMemory();
         }
         return avatar;
-    }
-
-    protected getAvatarByIdOpt(avatarId: string): null|GalleryAvatar
-    {
-        const avatarIdMangled = this.automigrateAvatarId(avatarId);
-        return this.avatars.find(a => a.id === avatarIdMangled) ?? null;
     }
 
     protected automigrateAvatarId(avatarId: string): string

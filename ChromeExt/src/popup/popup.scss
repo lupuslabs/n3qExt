@@ -137,7 +137,7 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-label {
             display: flex;
             margin-top: 0.4em;
             height: 200px;
-            align-items: center;
+            align-items: end;
 
             > * {
                 height: 200px;
@@ -167,6 +167,7 @@ div.n3q-window-content div#n3q-id-popup div.n3q-popup-label {
                 img {
                     max-width: 200px;
                     max-height: 200px;
+                    filter: drop-shadow(1px 1px 2px #707070);
                 }
 
             }

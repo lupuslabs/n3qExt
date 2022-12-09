@@ -195,8 +195,6 @@ export class Config
                 'sleep', // Often defined but not backed with an actual image/animation file.
             ],
 
-            randomList: ['002/sportive03_m', '002/business03_m', '002/child02_m', '002/sportive01_m', '002/business06_m', '002/casual04_f', '002/business01_f', '002/casual30_m', '002/sportive03_f', '002/casual16_m', '002/casual10_f', '002/business03_f', '002/casual03_m', '002/sportive07_m', '002/casual13_f', '002/casual09_m', '002/casual16_f', '002/child02_f', '002/sportive08_m', '002/casual15_m', '002/casual15_f', '002/casual01_f', '002/casual11_f', '002/sportive09_m', '002/casual20_f', '002/sportive02_f', '002/business05_m', '002/casual06_m', '002/casual10_m', '002/casual02_f',],
-
             gallery: [
                 { id: 'gif/002/sportive03_m',   previewImage: 'idle.gif' },
                 { id: 'gif/002/business03_m',   previewImage: 'idle.gif' },
