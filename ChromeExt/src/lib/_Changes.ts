@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.4', 'AvatarMenu', [
+            ['Add', 'Claimable activity points reminder'],
             ['Add', 'Support for 200x200 gallery avatars'],
             ['Add', 'Support for non-GIF gallery avatars'],
             ['Add', 'Restore chat bubbles from history on load'],

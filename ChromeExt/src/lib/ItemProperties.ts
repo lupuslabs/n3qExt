@@ -100,6 +100,7 @@ export enum Pid
     LargeImageUrl = 'LargeImageUrl',
     ShowEffect = 'ShowEffect',
     AutoClaimed = 'AutoClaimed',
+    ShowClaimReminder = 'ShowClaimReminder',
     BadgeAspect = 'BadgeAspect',
     BadgeIsActive = 'BadgeIsActive',
     BadgeTitle = 'BadgeTitle',

@@ -1892,7 +1892,7 @@ export class BackgroundApp
                 let points = await this.backpack.getOrCreatePointsItem();
                 if (points) {
                     let itemId = as.String(points.getProperties()[Pid.Id], '');
-                    if (itemId != '') {
+                    if (itemId !== '') {
                         try {
                             const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
                             const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
@@ -1901,8 +1901,20 @@ export class BackgroundApp
                                     'You Got Activity Points',
                                     'Your activity points have been claimed automatically',
                                     'PointsAutoClaimed',
-                                    'notice',
+                                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
+                                    [],
+                                    'points.autoClaimToastDurationSec',
+                                );
+                            }
+                            const showClaimReminder = as.Bool(result[Pid.ShowClaimReminder], false);
+                            if (showClaimReminder) {
+                                this.showToastInAllTabs(
+                                    'You Can Claim Activity Points',
+                                    'Activity points can be claimed',
+                                    'PointsClaimReminder',
+                                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
                                     [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
+                                    'points.claimReminderToastDurationSec',
                                 );
                             }
                         } catch (error) {
@@ -1914,9 +1926,11 @@ export class BackgroundApp
         }
     }
 
-    showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
-    {
+    showToastInAllTabs(
+        title: string, text: string, type: string, iconType: string, links: any, durationCfgKey: string,
+    ): void {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
+        data.durationCfgKey = durationCfgKey;
         data.title = title;
         data.text = text;
         data.type = type;
