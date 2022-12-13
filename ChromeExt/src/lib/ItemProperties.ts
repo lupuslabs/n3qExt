@@ -65,7 +65,6 @@ export enum Pid
     NicknameAspect = 'NicknameAspect',
     NicknameText = 'NicknameText',
     // AvatarImageUrl = 'AvatarImageUrl',
-    AvatarAvatarId = 'AvatarAvatarId',
     AvatarAnimationsUrl = 'AvatarAnimationsUrl',
     PageEffectDuration = 'PageEffectDuration',
     PageEffectName = 'PageEffectName',

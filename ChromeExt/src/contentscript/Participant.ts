@@ -155,7 +155,7 @@ export class Participant extends Entity
         let xmppNickname = '';
 
         let vpNickname = '';
-        let vpAvatarId = '';
+        let vpAvatarId = ''; // Todo: Remove after old clients updated.
         let vpAnimationsUrl = '';
         let vpImageUrl = '';
         let vpPoints = '';

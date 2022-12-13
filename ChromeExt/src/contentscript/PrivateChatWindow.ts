@@ -9,6 +9,7 @@ import { ChatMessage } from '../lib/ChatMessage';
 
 export class PrivateChatWindow extends ChatWindow
 {
+
     public constructor(app: ContentApp, private participant: Participant)
     {
         super(app, participant);

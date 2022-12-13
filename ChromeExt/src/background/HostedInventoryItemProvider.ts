@@ -649,37 +649,29 @@ export namespace HostedInventoryItemProvider
         avatarKnownByServer = '';
         stanzaOutFilter(stanza: xml): xml
         {
-            if (stanza.name == 'presence') {
-                if (as.String(stanza.attrs['type'], 'available') == 'available') {
-
+            if (stanza.name === 'presence') {
+                if (as.String(stanza.attrs['type'], 'available') === 'available') {
                     const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
                     if (vpPropsNode) {
                         const attrs = vpPropsNode.attrs;
                         if (attrs) {
                             {
                                 const vpNickname = as.String(attrs.Nickname);
-                                if (vpNickname != '' && vpNickname != this.nicknameKnownByServer) {
-                                    try {
-                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname);
-                                        this.nicknameKnownByServer = vpNickname;
-                                    } catch (error) {
+                                if (vpNickname !== '' && vpNickname !== this.nicknameKnownByServer) {
+                                    this.nicknameKnownByServer = vpNickname;
+                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname).catch (error => {
                                         log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
-                                    }
+                                    });
                                 }
                             }
 
                             {
-                                let vpAvatar = as.String(attrs.AvatarUrl);
-                                if (vpAvatar === '') {
-                                    vpAvatar = as.String(attrs.AvatarId);
-                                }
-                                if (vpAvatar != '' && vpAvatar != this.avatarKnownByServer) {
-                                    try {
-                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar);
-                                        this.avatarKnownByServer = vpAvatar;
-                                    } catch (error) {
+                                const vpAvatar = as.String(attrs.AvatarUrl);
+                                if (vpAvatar !== '' && vpAvatar != this.avatarKnownByServer) {
+                                    this.avatarKnownByServer = vpAvatar;
+                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar).catch (error => {
                                         log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set avatar=', vpAvatar, ' at server failed', error);
-                                    }
+                                    });
                                 }
                             }
 

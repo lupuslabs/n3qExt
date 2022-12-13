@@ -148,9 +148,8 @@ export class Room
     {
         try {
             const nickname = await this.app.getUserNickname();
-            const avatar = await this.app.getUserAvatar();
+            this.avatar = await this.app.getUserAvatar();
             this.resource = await this.getBackpackItemNickname(nickname);
-            this.avatar = await this.getBackpackItemAvatarId(avatar);
         } catch (error) {
             log.info(error);
             this.resource = 'new-user';
@@ -196,22 +195,12 @@ export class Room
     sendPresence(): void
     {
         (async() => {
-            let avatarId = this.avatar;
-
-            // Downgrade avatar ID to make it compatible to pre-v.1.2.4 clients:
-            // New clients automigrate it back to correct format.
-            // Todo: Remove after old clients all updated.
-            if (avatarId.startsWith('gif/')) {
-                avatarId = avatarId.substr(4);
-            }
 
             const vpProps = {
                 xmlns: 'vp:props',
                 timestamp: Date.now(),
                 Nickname: this.resource,
-                AvatarId: avatarId,
                 nickname: this.resource,
-                avatar: avatarId,
             };
 
             const nickname = await this.getBackpackItemNickname(this.resource);
@@ -220,19 +209,9 @@ export class Room
                 vpProps['nickname'] = nickname;
             }
 
-            // let imageUrl = await this.getBackpackItemAvatarImageUrl('');
-            // if (imageUrl != '') {
-            //     vpProps['ImageUrl'] = imageUrl;
-            //     delete vpProps['AvatarId'];
-            //     delete vpProps['avatar'];
-            // }
-
-            let avatarUrl = await this.getBackpackItemAvatarAnimationsUrl('');
-            if (avatarUrl !== '') {
-                vpProps['AvatarUrl'] = avatarUrl;
-                delete vpProps['AvatarId'];
-                delete vpProps['avatar'];
-            }
+            let avatarUrl = this.app.getAvatarGallery().getAvatarById(this.avatar).getConfigUrl();
+            avatarUrl = await this.getBackpackItemAvatarAnimationsUrl(avatarUrl);
+            vpProps['AvatarUrl'] = avatarUrl;
 
             let points = 0;
             if (Config.get('points.enabled', false)) {
@@ -263,9 +242,6 @@ export class Room
             let identityUrl = as.String(Config.get('identity.url'), '');
             let identityDigest = as.String(Config.get('identity.digest'), '1');
             if (identityUrl === '') {
-                if (avatarUrl === '') {
-                    avatarUrl = this.app.getAvatarGallery().getAvatarById(this.avatar).getConfigUrl();
-                }
                 identityDigest = as.String(Utils.hash(this.resource + avatarUrl));
                 identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
                     .replace('{nickname}', encodeURIComponent(nickname))
@@ -297,7 +273,6 @@ export class Room
     }
 
     async getPointsItemPoints(defaultValue: number): Promise<number> { return as.Int(await this.getBackpackItemProperty({ [Pid.PointsAspect]: 'true' }, Pid.PointsTotal, defaultValue)); }
-    async getBackpackItemAvatarId(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.AvatarAvatarId, defaultValue)); }
     async getBackpackItemAvatarAnimationsUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.AvatarAnimationsUrl, defaultValue)); }
     // async getBackpackItemAvatarImageUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.AvatarImageUrl, defaultValue)); }
     async getBackpackItemNickname(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.NicknameText, defaultValue)); }
