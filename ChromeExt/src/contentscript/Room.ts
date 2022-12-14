@@ -524,7 +524,8 @@ export class Room
         if (is.nil(text) || text.length === 0) {
             return;
         }
-        if (this.handleGroupChatCommand(text)) {
+        if (ChatConsole.isChatCommand(text)) {
+            this.handleGroupChatCommand(text);
             return;
         }
         this.makeAndSendGroupChatStanza(text);
@@ -541,7 +542,7 @@ export class Room
         this.app.sendStanza(message);
     }
 
-    protected handleGroupChatCommand(text: string): boolean
+    protected handleGroupChatCommand(text: string): void
     {
         try {
             const outState = {msgCount: 0};
@@ -570,10 +571,9 @@ export class Room
                 }
             };
             const context = {app: this.app, room: this, out: outputHandler};
-            return ChatConsole.chatCommand(text, context);
+            ChatConsole.chatCommand(text, context);
         } catch (error) {
             this.app.onError(error);
-            return true;
         }
     }
 

@@ -24,18 +24,19 @@ export class ChatConsole
         return text.substring(0, 1) === '/';
     }
 
-    public static chatCommand(text: string, context: ChatConsoleContext): boolean
+    public static chatCommand(text: string, context: ChatConsoleContext)
     {
-        let isHandled = false;
-
-        const parts: string[] = text.split(' ');
-        if (parts.length < 1) { return false; }
-        const cmd: string = parts[0];
-
         this.out(context, text);
 
-        isHandled = true;
+        const parts: string[] = text.split(' ');
+        const cmd: string = parts[0];
+
+        if (parts.length < 1) {
+            return;
+        }
+
         switch (cmd) {
+            default:
             case '/help':
             case '/?':
                 this.out(context, [
@@ -133,11 +134,7 @@ export class ChatConsole
                     // ChatConsole.out(context, ['destination', result.destinationUrl]);
                 });
                 break;
-            default:
-                isHandled = false;
         }
-
-        return isHandled;
     }
 
     private static out(context: ChatConsoleContext, data: any): void
