@@ -294,6 +294,7 @@ export class IframeApi
                 WeblinClientApi.ClientGetApiRequest.type,
                 WeblinClientApi.ClientNotificationRequest.type,
                 WeblinClientApi.ClientItemExceptionRequest.type,
+                WeblinClientApi.ClientCreateAvatarRequest.type,
                 WeblinClientApi.ClientCreateItemRequest.type,
                 WeblinClientApi.ItemFindRequest.type,
                 WeblinClientIframeApi.ClientNavigateRequest.type,
@@ -324,6 +325,7 @@ export class IframeApi
 
             const pageApi = [
                 WeblinClientApi.ClientGetApiRequest.type,
+                WeblinClientApi.ClientCreateAvatarRequest.type,
                 WeblinClientApi.ClientCreateItemRequest.type,
                 WeblinClientApi.ItemFindRequest.type,
             ];
