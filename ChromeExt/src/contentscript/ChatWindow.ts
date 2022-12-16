@@ -225,7 +225,12 @@ export class ChatWindow extends Window
         if (generateId) {
             id = makeChatMessageId(time, nick);
         }
-        const textTranslated = this.app.translateText('Chatwindow.' + text, text);
+        let textTranslated: string;
+        if (text.startsWith('/do ')) {
+            textTranslated = this.app.translateText(text, text);
+        } else {
+            textTranslated = this.app.translateText('Chatwindow.' + text, text);
+        }
         const message: ChatMessage = {
             timestamp: Utils.utcStringOfDate(time),
             id:        id,

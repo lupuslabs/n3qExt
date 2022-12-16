@@ -542,6 +542,7 @@ export class Config
                     '/do laugh': '*laughs*',
                     '/do angry': '*is angry*',
                     '/do deny': '*denies*',
+                    '/do agree': '*acknowledges*',
                     '/do yawn': '*yawns*',
 
                     'PrivateChat.Private Chat with': 'Private Chat with',
@@ -836,6 +837,7 @@ export class Config
                     '/do laugh': '*lacht*',
                     '/do angry': '*ärgert sich*',
                     '/do deny': '*lehnt ab*',
+                    '/do agree': '*stimmt zu*',
                     '/do yawn': '*gähnt*',
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit',
