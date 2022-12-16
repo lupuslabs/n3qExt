@@ -73,10 +73,10 @@ export class Toast
         // let resizeElem = <HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0);
         // $(this.elem).append(resizeElem);
 
-        $(this.paneElem).click(() =>
+        $(this.wrapperElem).click(() =>
         {
-            $(this.wrapperElem).stop().stop().stop();
-            $(this.paneElem).stop().stop().stop().draggable({
+            $(this.paneElem).stop().stop().stop();
+            $(this.wrapperElem).stop().stop().stop().draggable({
                 distance: 4,
                 containment: 'document',
                 start: (ev: JQueryMouseEventObject, ui) => { },
