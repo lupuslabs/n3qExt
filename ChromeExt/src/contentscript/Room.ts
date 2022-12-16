@@ -524,7 +524,7 @@ export class Room
         if (is.nil(text) || text.length === 0) {
             return;
         }
-        if (ChatConsole.isChatCommand(text)) {
+        if (ChatConsole.isChatCommand(text) && !text.startsWith('/do ')) {
             this.handleGroupChatCommand(text);
             return;
         }
