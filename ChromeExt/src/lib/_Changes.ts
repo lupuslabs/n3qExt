@@ -7,7 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.4', 'AvatarMenu', [
-            ['Add', 'Client Status API allowing web sites easy detection of an enabled client'],
+            ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],
             ['Add', 'Claimable activity points reminder'],
             ['Add', 'Support for 200x200 gallery avatars'],
             ['Add', 'Support for non-GIF gallery avatars'],

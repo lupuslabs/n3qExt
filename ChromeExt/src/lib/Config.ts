@@ -280,7 +280,6 @@ export class Config
         },
         iframeApi: {
             messageMagic: 'a67igu67puz_iframeApi',
-            messageMagicStatus: 'mxuqhdydey_clientStatus',
             messageMagicPage: 'x7ft76zst7g_pageApi',
             messageMagic2Page: 'df7d86ozgh76_2pageApi',
             messageMagicRezactive: 'tr67rftghg_Rezactive',

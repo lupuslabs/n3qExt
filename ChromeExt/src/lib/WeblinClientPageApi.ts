@@ -5,55 +5,30 @@ import { Config } from './Config';
 export namespace WeblinClientPageApi
 {
 
-    class ClientStatus
-    {
-        type = 'WeblinClient.ClientStatus';
-        clientAvailable: boolean;
+    export class ClientStatusToPageSender {
 
-        public constructor(magic: string, clientAvailable: boolean)
+        clientActive: boolean = false;
+
+        public constructor(app: ContentApp) {}
+
+        public sendClientActive(): void
         {
-            this.clientAvailable = clientAvailable;
-            this[magic] = true;
-        }
-
-    }
-
-    export class ClientStatusApi {
-
-        clientAvailable: boolean = false;
-        messageHandlerInitialized: boolean = false;
-        messageMagic: string;
-
-        public constructor(app: ContentApp) {
-            this.messageMagic = Config.get('iframeApi.messageMagicStatus', 'mxuqhdydey_clientStatus');
-        }
-
-        public sendClientAvailable(): void
-        {
-            this.clientAvailable = true;
+            this.clientActive = true;
             this.sendClientStatus();
         }
     
-        public sendClientUnavailable(): void
+        public sendClientInactive(): void
         {
-            this.clientAvailable = false;
+            this.clientActive = false;
             this.sendClientStatus();
         }
 
         private sendClientStatus(): void
         {
-            if (!this.messageHandlerInitialized) {
-                this.messageHandlerInitialized = true;
-                window.addEventListener('message', (ev) => this.onMessage(ev.data));
-            }
-            const response = new ClientStatus(this.messageMagic, this.clientAvailable);
+            const response = new WeblinClientApi.ClientActiveMessage(this.clientActive);
+            const magic = Config.get('iframeApi.messageMagic2Page', 'df7d86ozgh76_2pageApi');
+            response[magic] = true;
             window.postMessage(response, '*');
-        }
-
-        onMessage(message) {
-            if (message[this.messageMagic] && message.type === 'WeblinClient.RequestClientStatus') {
-                this.sendClientStatus();
-            }
         }
 
     }

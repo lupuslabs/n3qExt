@@ -75,7 +75,7 @@ export class ContentApp
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
     private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
     private iframeApi: IframeApi;
-    private readonly clientStatusApi: WeblinClientPageApi.ClientStatusApi;
+    private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
 
     // private stayHereIsChecked: boolean = false;
@@ -115,7 +115,7 @@ export class ContentApp
     constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
     {
         this.debugUtils = new DebugUtils(this);
-        this.clientStatusApi = new WeblinClientPageApi.ClientStatusApi(this);
+        this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
     }
 
     activateBackgroundPageProbeDelaySec = 0;
@@ -291,26 +291,24 @@ export class ContentApp
         this.iframeApi = new IframeApi(this).start();
 
         this.debugUtils.onAppStartComplete();
-        this.clientStatusApi.sendClientAvailable();
+        this.statusToPageSender.sendClientActive();
     }
 
     sleep(statusMessage: string)
     {
         log.debug('ContentApp.sleep');
-        this.clientStatusApi.sendClientUnavailable();
         this.room.sleep(statusMessage);
     }
 
     wakeup()
     {
         log.debug('ContentApp.wakeup');
-        this.clientStatusApi.sendClientAvailable();
         this.room.wakeup();
     }
 
     stop()
     {
-        this.clientStatusApi.sendClientUnavailable();
+        this.statusToPageSender.sendClientInactive();
         this.iframeApi?.stop();
         this.stop_pingBackgroundToKeepConnectionAlive();
         this.stopCheckPageUrl();

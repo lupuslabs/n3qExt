@@ -10,6 +10,17 @@ export namespace WeblinClientApi
     export class SuccessResponse extends Response { constructor() { super('Message.Success', true); } }
     export class ErrorResponse extends Response { constructor(public error: any) { super('Message.Error', false); } }
 
+    export class ClientActiveMessage extends Message
+    {
+        active: boolean;
+    
+        constructor(active: boolean)
+        { 
+            super('Client.Active');
+            this.active = active;
+        }
+    }
+
     export class ClientNotificationRequest extends Request
     {
         static type = 'Client.Notification';
