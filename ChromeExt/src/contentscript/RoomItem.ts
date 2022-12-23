@@ -636,7 +636,8 @@ export class RoomItem extends Entity
     {
         const range = Utils.parseStringMap(as.String(this.getProperties()[Pid.IframeAutoRange]));
         this.showItemRange(true, range);
-        if (this.isInRange(this.room?.getParticipant(this.room.getMyNick()), range)) {
+        const myParticipant = this.room.getMyParticipant();
+        if (!is.nil(myParticipant) && this.isInRange(myParticipant, range)) {
             this.openFrame();
         } else {
             this.closeFrame();
@@ -693,7 +694,7 @@ export class RoomItem extends Entity
                 .replace('{room}', encodeURIComponent(roomJid))
                 ;
 
-            const participant = this.room.getParticipant(this.room.getMyNick());
+            const participant = this.room.getMyParticipant();
             if (participant) {
                 const participantDisplayName = participant.getDisplayName();
                 iframeUrl = iframeUrl.replace('{name}', encodeURIComponent(participantDisplayName));

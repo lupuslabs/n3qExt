@@ -90,8 +90,7 @@ export class IframeApi
     {
         try {
             let name = Utils.randomString(29);
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
+            let participant = this.app.getRoom().getMyParticipant();
             let x = participant.getPosition() + 120;
             let props = await BackgroundMessage.createBackpackItem(
                 Config.get('iframeApi.w2WMigrationProvider', 'n3q'),
@@ -119,8 +118,7 @@ export class IframeApi
                 return;
             }
 
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
+            let participant = this.app.getRoom().getMyParticipant();
             let x = participant.getPosition() + 120;
             let props = await BackgroundMessage.createBackpackItem(
                 Config.get('iframeApi.createCryptoWalletProvider', 'n3q'),
@@ -281,10 +279,11 @@ export class IframeApi
 
     private async rezzItemAtParticipant(itemId: string, dx: number): Promise<void> {
         const room = this.app.getRoom();
-        const nick = room.getMyNick();
-        const participant = room.getParticipant(nick);
-        const x = participant.getPosition() + dx;
-        await BackgroundMessage.rezBackpackItem(itemId, room.getJid(), x, room.getDestination(), {});
+        const participant = room?.getMyParticipant();
+        if (!is.nil(participant)) {
+            const x = participant.getPosition() + dx;
+            await BackgroundMessage.rezBackpackItem(itemId, room.getJid(), x, room.getDestination(), {});
+        }
     }
 
     async handle_ClientGetApiRequest(request: WeblinClientApi.ClientGetApiRequest): Promise<WeblinClientApi.Response>
@@ -358,8 +357,7 @@ export class IframeApi
             let props = await BackgroundMessage.createBackpackItem(request.provider, request.auth, 'ByNft', args);
             let itemId = props[Pid.Id];
 
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
+            const participant = this.app.getRoom().getMyParticipant();
             let x = participant.getPosition() + as.Int(request.dx, 120);
             await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
 
@@ -467,7 +465,7 @@ export class IframeApi
         }
 
         if (request.id) {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 if (response == null) { response = new WeblinClientApi.SuccessResponse(); }
                 response.id = request.id;
@@ -479,7 +477,7 @@ export class IframeApi
 
     handle_CloseWindowRequest(request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
     {
-        let roomItem = this.app.getRoom().getItemByItemId(request.item);
+        let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
         try {
             if (roomItem) {
                 roomItem.closeFrame();
@@ -494,7 +492,7 @@ export class IframeApi
     handle_WindowSetVisibilityRequest(request: WeblinClientIframeApi.WindowSetVisibilityRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom().getItemByItemId(request.item);
+            let item = this.app.getRoom()?.getItemByItemId(request.item);
             if (item) {
                 item.setFrameVisibility(request.visible);
             }
@@ -508,7 +506,7 @@ export class IframeApi
     handle_WindowSetStyleRequest(request: WeblinClientIframeApi.WindowSetStyleRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom().getItemByItemId(request.item);
+            let item = this.app.getRoom()?.getItemByItemId(request.item);
             if (item) {
                 item.setWindowStyle(request.style);
             }
@@ -522,8 +520,7 @@ export class IframeApi
     handle_BackpackSetVisibilityRequest(request: WeblinClientIframeApi.BackpackSetVisibilityRequest): WeblinClientApi.Response
     {
         try {
-            let nick = this.app.getRoom().getMyNick();
-            let participant = this.app.getRoom().getParticipant(nick);
+            const participant = this.app.getRoom()?.getMyParticipant();
             if (participant) {
                 this.app.showBackpackWindow(participant.getElem());
             }
@@ -537,7 +534,7 @@ export class IframeApi
     handle_ItemSetPropertyRequest(request: WeblinClientIframeApi.ItemSetPropertyRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemProperty(request.pid, request.value);
             }
@@ -551,7 +548,7 @@ export class IframeApi
     handle_ItemSetStateRequest(request: WeblinClientIframeApi.ItemSetStateRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemState(request.state);
             }
@@ -565,7 +562,7 @@ export class IframeApi
     handle_ItemSetConditionRequest(request: WeblinClientIframeApi.ItemSetConditionRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.setItemCondition(request.condition);
             }
@@ -579,7 +576,7 @@ export class IframeApi
     handle_ItemEffectRequest(request: WeblinClientIframeApi.ItemEffectRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.showEffect(request.effect);
             }
@@ -604,7 +601,7 @@ export class IframeApi
     handle_ClientSendPresenceRequest(request: WeblinClientIframeApi.ClientSendPresenceRequest): WeblinClientApi.Response
     {
         try {
-            this.app.getRoom().sendPresence();
+            this.app.getRoom()?.sendPresence();
         } catch (ex) {
             log.info('IframeApi.handle_ClientSendPresenceRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
@@ -625,7 +622,7 @@ export class IframeApi
     handle_ItemRangeRequest(request: WeblinClientIframeApi.ItemRangeRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
+            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
             if (roomItem) {
                 roomItem.showItemRange(request.visible, request.range);
             }
@@ -640,7 +637,7 @@ export class IframeApi
     {
         try {
             let itemId = as.String(request.itemId, request.item);
-            let roomItem = this.app.getRoom().getItemByItemId(itemId);
+            let roomItem = this.app.getRoom()?.getItemByItemId(itemId);
             if (roomItem) {
                 return new WeblinClientIframeApi.ItemGetPropertiesResponse(roomItem.getProperties(request.pids));
             } else {
@@ -657,11 +654,13 @@ export class IframeApi
         try {
             let participantId = request.participant;
             if (participantId == null) {
-                participantId = this.app.getRoom().getMyNick();
+                participantId = this.app.getRoom()?.getMyNick();
             }
-            let participant = this.app.getRoom().getParticipant(participantId);
-            if (participant) {
-                participant.showEffect(request.effect);
+            if (!is.nil(participantId)) {
+                let participant = this.app.getRoom()?.getParticipant(participantId);
+                if (participant) {
+                    participant.showEffect(request.effect);
+                }
             }
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {

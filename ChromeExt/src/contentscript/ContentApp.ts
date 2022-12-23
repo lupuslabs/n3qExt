@@ -64,7 +64,7 @@ export class ContentApp
     private pageUrl: string;
     private presetPageUrl: string;
     private roomJid: string;
-    private room: Room;
+    private room: Room|null;
     private propertyStorage: PropertyStorage = new PropertyStorage();
     private language = 'en-US';
     private babelfish: Translator;
@@ -92,7 +92,7 @@ export class ContentApp
     getDebugUtils(): DebugUtils { return this.debugUtils; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
-    getRoom(): Room { return this.room; }
+    getRoom(): Room|null { return this.room; }
     getLanguage(): string { return this.language; }
 
     getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
@@ -671,11 +671,11 @@ export class ContentApp
             } break;
 
             case ContentMessage.type_chatMessagePersisted: {
-                this.getRoom().onChatMessagePersisted(message.data.chat, message.data.chatMessage);
+                this.getRoom()?.onChatMessagePersisted(message.data.chat, message.data.chatMessage);
                 return false;
             } break;
             case ContentMessage.type_chatHistoryDeleted: {
-                this.getRoom().onChatHistoryDeleted(message.data.deletions);
+                this.getRoom()?.onChatHistoryDeleted(message.data.deletions);
                 return false;
             } break;
         }

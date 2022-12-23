@@ -374,7 +374,10 @@ export class BackpackItem
 
     rezItem(x: number)
     {
-        this.backpackWindow.rezItemSync(this.itemId, this.app.getRoom().getJid(), Math.round(x), this.app.getRoom().getDestination());
+        const room = this.app.getRoom();
+        if (!is.nil(room)) {
+            this.backpackWindow.rezItemSync(this.itemId, room.getJid(), Math.round(x), room.getDestination());
+        }
     }
 
     getPseudoRandomCoordinate(space: number, size: number, padding: number, id: string, mod: number): number

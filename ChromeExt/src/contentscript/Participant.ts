@@ -447,7 +447,7 @@ export class Participant extends Entity
         //             let domain = parsedUrl.host;
         //             if (domain) {
         //                 if (Config.get('room.autoOpenVidConfDomains', []).includes(domain)) {
-        //                     this.app.showVidconfWindow(this.room.getParticipant(this.room.getMyNick()).getElem());
+        //                     this.app.showVidconfWindow(this.room.getMyParticipant()?.getElem());
         //                 }
         //             }
         //         }
@@ -734,13 +734,11 @@ export class Participant extends Entity
                 this.avatarDisplay?.setAction('chat');
             }
 
-            if (this.room) {
-                if (nick !== this.room.getMyNick()) {
-                    const chatWindow = this.room.getChatWindow();
-                    if (chatWindow) {
-                        if (chatWindow.isSoundEnabled()) {
-                            chatWindow.playSound();
-                        }
+            if (nick !== this.room.getMyNick()) {
+                const chatWindow = this.room.getChatWindow();
+                if (chatWindow) {
+                    if (chatWindow.isSoundEnabled()) {
+                        chatWindow.playSound();
                     }
                 }
             }
@@ -911,7 +909,7 @@ export class Participant extends Entity
         this.sendParticipantMovedToAllScriptFrames();
 
         if (this.isSelf) {
-            const items = this.getRoom().getAutoRangeItems();
+            const items = this.room.getAutoRangeItems();
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 item.checkIframeAutoRange();
@@ -1105,27 +1103,26 @@ export class Participant extends Entity
         this.openPrivateVidconf(aboveElem, url);
     }
 
-    openPrivateVidconf(aboveElem: HTMLElement, urlTemplate: string): void
+    private openPrivateVidconf(aboveElem: HTMLElement, urlTemplate: string): void
     {
         if (this.privateVidconfWindow == null) {
-            const displayName = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
-
-            const url = urlTemplate
-                .replace('{name}', displayName)
-                ;
-
-            this.app.setPrivateVidconfIsOpen(true);
-
-            this.privateVidconfWindow = new PrivateVidconfWindow(this.app, this);
-            this.privateVidconfWindow.show({
-                above: aboveElem,
-                url: url,
-                onClose: () =>
-                {
-                    this.privateVidconfWindow = null;
-                    this.app.setPrivateVidconfIsOpen(false);
-                },
-            });
+            const displayName = this.room.getMyParticipant()?.getDisplayName();
+            if (!is.nil(displayName)) {
+                const url = urlTemplate.replace('{name}', displayName);
+    
+                this.app.setPrivateVidconfIsOpen(true);
+    
+                this.privateVidconfWindow = new PrivateVidconfWindow(this.app, this);
+                this.privateVidconfWindow.show({
+                    above: aboveElem,
+                    url: url,
+                    onClose: () =>
+                    {
+                        this.privateVidconfWindow = null;
+                        this.app.setPrivateVidconfIsOpen(false);
+                    },
+                });
+            }
         }
     }
 

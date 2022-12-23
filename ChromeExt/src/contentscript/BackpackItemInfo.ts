@@ -136,7 +136,7 @@ export class BackpackItemInfo
                 await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value': $(activateCheckbox).is(':checked') }, [this.backpackItem.getItemId()]);
 
                 if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
-                    this.app.getRoom().sendPresence();
+                    this.app.getRoom()?.sendPresence();
                 }
 
                 ev.stopPropagation();

@@ -1,3 +1,4 @@
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
@@ -40,14 +41,15 @@ export class PrivateChatWindow extends ChatWindow
 
             const nick = this.participant.getRoomNick();
 
-            const name = this.room.getParticipant(this.room.getMyNick()).getDisplayName();
-
-            this.room.sendPrivateChat(text, nick);
-
-            this.addLine(nick + Date.now(), name, text);
-
-            this.chatinInputElem.value = '';
-            this.chatinInputElem.focus();
+            const name = this.room.getMyParticipant()?.getDisplayName();
+            if (!is.nil(name)) {
+                this.room.sendPrivateChat(text, nick);
+    
+                this.addLine(nick + Date.now(), name, text);
+    
+                this.chatinInputElem.value = '';
+                this.chatinInputElem.focus();
+            }
         }
     }
 

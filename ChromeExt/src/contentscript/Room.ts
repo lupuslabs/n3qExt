@@ -36,7 +36,7 @@ export class Room
     private isEntered = false; // iAmAlreadyHere() needs isEntered=true to be after onPresenceAvailable
     private chatWindow: ChatWindow;
     private vidconfWindow: VidconfWindow;
-    private myNick: string;
+    private myNick: null|string;
     private showAvailability = '';
     private statusMessage = '';
 
@@ -62,7 +62,7 @@ export class Room
     }
 
     getChatWindow(): ChatWindow { return this.chatWindow; }
-    getMyNick(): string { return this.myNick; }
+    getMyNick(): string|null { return this.myNick; }
     getJid(): string { return this.jid; }
     getDestination(): string { return this.destination; }
     getPageUrl(): string { return this.pageUrl; }
@@ -636,7 +636,7 @@ export class Room
 
     showChatInWithText(text: string): void
     {
-        const participant = this.getParticipant(this.getMyNick());
+        const participant = this.getMyParticipant();
         if (participant) {
             participant.showChatInWithText(text);
         }
