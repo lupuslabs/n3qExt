@@ -1971,7 +1971,6 @@ export class BackgroundApp
                                     'PointsAutoClaimed',
                                     WeblinClientApi.ClientNotificationRequest.iconType_notice,
                                     [],
-                                    'points.autoClaimToastDurationSec',
                                 );
                             }
                             const showClaimReminder = as.Bool(result[Pid.ShowClaimReminder], false);
@@ -1982,7 +1981,6 @@ export class BackgroundApp
                                     'PointsClaimReminder',
                                     WeblinClientApi.ClientNotificationRequest.iconType_notice,
                                     [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
-                                    'points.claimReminderToastDurationSec',
                                 );
                             }
                         } catch (error) {
@@ -1994,11 +1992,9 @@ export class BackgroundApp
         }
     }
 
-    showToastInAllTabs(
-        title: string, text: string, type: string, iconType: string, links: any, durationCfgKey: string,
-    ): void {
+    showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
+    {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
-        data.durationCfgKey = durationCfgKey;
         data.title = title;
         data.text = text;
         data.type = type;

@@ -36,7 +36,6 @@ export namespace WeblinClientApi
         static iconType_question = 'question';
         iconType?: string;
         static defaultIcon = 'notice';
-        durationCfgKey?: string;
 
         links?: Array<any>;
         data?: any;

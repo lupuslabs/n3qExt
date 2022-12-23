@@ -86,6 +86,12 @@ export class Config
             notificationToastDurationSec: 30,
             showIntroYou: 10,
         },
+        toast: {
+            durationSecByType: {
+                PointsAutoClaimed: 5,
+                PointsClaimReminder: 30,
+            },
+        },
         settings: {
             nameGeneratorBlocklistRetries: 30,
             nameGeneratorBlocklist: ['black', 'bronze', 'brown', 'chocolate', 'coffee', 'maroon', 'white', 'yellow'],
@@ -358,8 +364,6 @@ export class Config
                 PointsChannelPageOwned: { weight: 1, x0: 0, css: { backgroundColor: '#ff8080' } },
                 PointsChannelSocial: { weight: 1, x0: 0, css: { backgroundColor: '#8080ff' } },
             },
-            autoClaimToastDurationSec: 5,
-            claimReminderToastDurationSec: 30,
         },
         badges: {
             enabled: true,

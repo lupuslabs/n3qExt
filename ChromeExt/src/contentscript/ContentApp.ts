@@ -709,13 +709,16 @@ export class ContentApp
 
     handle_clientNotification(request: WeblinClientApi.ClientNotificationRequest): any
     {
+        const type = request.type;
         const title = as.String(request.title);
         const text = as.String(request.text);
         const iconType = as.String(request.iconType, WeblinClientApi.ClientNotificationRequest.defaultIcon);
-        const durationCfgKey = request.durationCfgKey ?? 'client.notificationToastDurationSec';
-        const durationSecs = as.Float(Config.get(durationCfgKey), 30);
+        let durationSecs = as.Float(Config.get(`toast.durationSecByType.${type}`));
+        if (durationSecs === 0) {
+            durationSecs = as.Float(Config.get('client.notificationToastDurationSec'), 30);
+        }
         const links = request.links;
-        const toast = new SimpleToast(this, request.type, durationSecs, iconType, title, text);
+        const toast = new SimpleToast(this, type, durationSecs, iconType, title, text);
         if (links) {
             links.forEach(link =>
             {
