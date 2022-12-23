@@ -183,7 +183,7 @@ export class Config
             showPrivateChatInfoButton: false,
             autoOpenVidConfDomains: [],
             showInvisibleItems: false,
-            dontLeaveRoomOnTabChange: false,
+            stayOnTabChange: false,
         },
         xmpp: {
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',

@@ -566,7 +566,7 @@ export class ContentApp
     private evaluateStayOnTabChange(): void
     {
         const stay = false
-            || as.Bool(Config.get('room.dontLeaveRoomOnTabChange'))
+            || as.Bool(Config.get('room.stayOnTabChange'))
             || this.backpackIsOpen
             || this.vidconfIsOpen
             || this.chatIsOpen
