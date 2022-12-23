@@ -421,7 +421,7 @@ export class ContentApp
         aboveElem = aboveElem ?? this.getMyParticipantELem();
         if (this.backpackWindow) {
             this.backpackWindow.close();
-        } else {
+        } else if (Utils.isBackpackEnabled()) {
             this.setBackpackIsOpen(true);
             this.backpackWindow = new BackpackWindow(this);
             this.backpackWindow.show({
