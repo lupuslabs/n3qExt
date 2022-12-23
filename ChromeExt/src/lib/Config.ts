@@ -44,6 +44,12 @@ export class Config
             domUpdatePollIntervalSec: 0.05,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
+            sendTabStatsToBackgroundPageDelaySec: 0.1,
+            tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
+        },
+        browserAction: {
+            attentionBlinkCount: 3, // How often to blink for attention level 2
+            attentionBlinkDurationSec: 1, // How long each blink takes.
         },
         log: {
             all: false,
@@ -465,8 +471,11 @@ export class Config
                 'en-US': {
                     'Extension.Disable': 'Disable weblin.io',
                     'Extension.Enable': 'Enable weblin.io',
+                    'Extension.Hide': 'Hide weblin.io',
+                    'Extension.Show': 'Show weblin.io',
 
                     'StatusMessage.TabInvisible': 'Browser tab inactive',
+                    'StatusMessage.GuiHidden': 'GUI hidden',
 
                     'Common.Close': 'Close',
                     'Common.Undock': 'Open in separate window',
@@ -760,8 +769,11 @@ export class Config
                 'de-DE': {
                     'Extension.Disable': 'weblin.io ausschalten',
                     'Extension.Enable': 'weblin.io einschalten',
+                    'Extension.Hide': 'weblin.io ausgeblenden',
+                    'Extension.Show': 'weblin.io einblenden',
 
                     'StatusMessage.TabInvisible': 'Browser Tab inaktiv',
+                    'StatusMessage.GuiHidden': 'GUI ausgeblendet',
 
                     'Common.Close': 'Schließen',
                     'Common.Undock': 'Im eigenen Fenster öffnen',

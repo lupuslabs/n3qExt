@@ -5,7 +5,7 @@ import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { ErrorWithData, Utils } from '../lib/Utils';
-import { BackgroundMessage } from '../lib/BackgroundMessage';
+import { BackgroundMessage, TabStats } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -23,7 +23,7 @@ import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
 import { BackpackWindow } from './BackpackWindow';
-import { ItemExceptionToast, SimpleToast } from './Toast';
+import { ItemExceptionToast, SimpleToast, Toast } from './Toast';
 import { IframeApi } from './IframeApi';
 import { RandomNames } from '../lib/RandomNames';
 import { Participant } from './Participant';
@@ -34,7 +34,7 @@ import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
 import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
-import { DomButtonId } from '../lib/domTools';
+import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -60,6 +60,7 @@ export class ContentApp
 {
     private debugUtils: DebugUtils;
     private display: HTMLElement;
+    private isGuiEnabled: boolean = false;
     private pageUrl: string;
     private presetPageUrl: string;
     private roomJid: string;
@@ -77,6 +78,7 @@ export class ContentApp
     private iframeApi: IframeApi;
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
+    private toasts: Set<Toast> = new Set();
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -259,11 +261,11 @@ export class ContentApp
         if (Panic.isOn) { return; }
 
         const variant = Client.getVariant();
-        // $('div#n3q[data-client-variant=' + variant + ']').remove();
-        $('div#n3q').remove();
-        const page = $('<div id="n3q" class="n3q-base n3q-hidden-print" data-client-variant="' + variant + '" />').get(0);
-        
-        this.display = $('<div class="n3q-base n3q-display" />').get(0);
+        // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
+        document.querySelector('div#n3q')?.remove();
+        const page = domHtmlElemOfHtml(`<div id="n3q" class="n3q-base n3q-hidden-print" data-client-variant="${variant}"></div>`);
+
+        this.display = domHtmlElemOfHtml('<div class="n3q-base n3q-display"></div>');
         $(page).append(this.display);
         this.appendToMe.append(page);
 
@@ -271,6 +273,7 @@ export class ContentApp
             this.onRuntimeMessageClosure = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => this.onRuntimeMessage(message, sender, sendResponse);
             chrome.runtime.onMessage.addListener(this.onRuntimeMessageClosure);
         }
+        BackgroundMessage.signalContentAppStartToBackground().catch(error => this.onError(error));
 
         // this.enterPage();
         await this.checkPageUrlChanged();
@@ -297,13 +300,13 @@ export class ContentApp
     sleep(statusMessage: string)
     {
         log.debug('ContentApp.sleep');
-        this.room.sleep(statusMessage);
+        this.room?.sleep(statusMessage);
     }
 
     wakeup()
     {
         log.debug('ContentApp.wakeup');
-        this.room.wakeup();
+        this.room?.wakeup();
     }
 
     stop()
@@ -314,6 +317,7 @@ export class ContentApp
         this.stopCheckPageUrl();
         this.leavePage();
         this.onUnload();
+        BackgroundMessage.signalContentAppStopToBackground().catch(error => this.onError(error));
     }
 
     onUnload()
@@ -335,6 +339,44 @@ export class ContentApp
         $('div#n3q').remove();
 
         this.display = null;
+    }
+
+    private sendTabStatsTimeoutHandle?: number = null;
+
+    private onTabStatsChanged(): void
+    {
+        if (is.nil(this.sendTabStatsTimeoutHandle)) {
+            const delaySecs = 1000 * as.Float(Config.get('system.sendTabStatsToBackgroundPageDelaySec'), 0.100);
+            this.sendTabStatsTimeoutHandle = window.setTimeout(() => this.sendTabStatsToBackground(), delaySecs);
+        }
+    }
+
+    public onToastVisible(toast: Toast): void
+    {
+        this.toasts.add(toast);
+        this.onTabStatsChanged();
+    }
+
+    public onToastInvisible(toast: Toast): void
+    {
+        this.toasts.delete(toast);
+        this.onTabStatsChanged();
+    }
+
+    private sendTabStatsToBackground(): void
+    {
+        this.sendTabStatsTimeoutHandle = null;
+        const participantIds = this.room?.getParticipantIds() ?? [];
+        const participantCount = Math.max(0, participantIds.length - 1);
+        const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
+        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs) ?? 0) !== 0;
+        const hasNewPrivateChat = participantIds.some(participantId => {
+            const participant = this.room.getParticipant(participantId);
+            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs) !== 0;
+        });
+        const toastCount = this.toasts.size;
+        const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
+        BackgroundMessage.sendTabStatsToBackground(stats).catch(error => this.onError(error));
     }
 
     test(): void
@@ -597,6 +639,10 @@ export class ContentApp
                 this.handle_extensionActiveChanged(message.data.state);
             } break;
 
+            case ContentMessage.type_extensionIsGuiEnabledChanged: {
+                this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
+            } break;
+
             case ContentMessage.type_sendPresence: {
                 this.handle_sendPresence();
                 return false;
@@ -650,6 +696,7 @@ export class ContentApp
             case 'message': this.onMessage(stanza); break;
             case 'iq': this.onIq(stanza); break;
         }
+        this.onTabStatsChanged();
     }
 
     handle_userSettingsChanged(): any
@@ -694,6 +741,18 @@ export class ContentApp
             // should not happen
         } else {
             this.messageHandler({ 'type': ContentAppNotification.type_stopped });
+        }
+    }
+
+    handle_extensionIsGuiEnabledChanged(isGuiEnabled: unknown): void
+    {
+        this.isGuiEnabled = as.Bool(isGuiEnabled, true);
+        if (this.isGuiEnabled) {
+            this.display?.classList.remove('n3q-hidden');
+            this.wakeup();
+        } else {
+            this.display?.classList.add('n3q-hidden');
+            this.sleep('GuiHidden');
         }
     }
 
@@ -827,7 +886,8 @@ export class ContentApp
         this.room = new Room(this, roomJid, pageUrl, roomDestination, await this.getSavedPosition());
         if (Utils.logChannel('urlMapping', false)) { log.info('ContentApp.enterRoom', roomJid); }
 
-        this.room.enter();
+        this.room.enter().catch(error => this.onError(error));
+        this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
     }
 
     leaveRoom(): void

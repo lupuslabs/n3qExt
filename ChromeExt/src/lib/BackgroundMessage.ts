@@ -6,6 +6,23 @@ import { BackgroundApp } from '../background/BackgroundApp';
 import { Environment } from './Environment';
 import { Chat, ChatMessage } from './ChatMessage';
 
+export type TabStats = {
+    participantCount:  number, // Other participants present in the same room.
+    toastCount:        number, // Open toasts.
+    hasNewGroupChat:   boolean, // Whether new chat messages/emotes occured.
+    hasNewPrivateChat: boolean, // Whether new private chat messages occured.
+};
+
+export function MakeZeroTabStats(): TabStats
+{
+    return {
+        toastCount: 0,
+        participantCount: 0,
+        hasNewGroupChat: false,
+        hasNewPrivateChat: false,
+    };
+}
+
 export class BackgroundResponse
 {
     constructor(public ok: boolean, public status?: string, public statusText?: string, public ex?: ItemException) { }
@@ -194,6 +211,21 @@ export class BackgroundMessage
     static waitReady(): Promise<any>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.waitReady.name });
+    }
+
+    static signalContentAppStartToBackground(): Promise<void>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.signalContentAppStartToBackground.name });
+    }
+
+    static signalContentAppStopToBackground(): Promise<void>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.signalContentAppStopToBackground.name });
+    }
+
+    static sendTabStatsToBackground(data: TabStats): Promise<void>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendTabStatsToBackground.name, data });
     }
 
     static getConfigTree(name: string): Promise<any>

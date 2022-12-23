@@ -8,7 +8,7 @@
         "storage"
     ],
     "browser_action": {
-        "default_title": "Disable weblin.io"
+        "default_title": "weblin.io"
     },
     "icons": {
         "128": "./assets/icon.png"

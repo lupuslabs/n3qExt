@@ -91,6 +91,11 @@ export class Participant extends Entity
         return name;
     }
 
+    public getPrivateChatWindow(): PrivateChatWindow
+    {
+        return this.privateChatWindow;
+    }
+
     async showIntroYouOnce(): Promise<void>
     {
         const maxShowIntroYou = as.Int(Config.get('client.showIntroYou'), 0);

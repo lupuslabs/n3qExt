@@ -36,6 +36,8 @@ export class ChatWindow extends Window
     protected soundEnabled = false;
     protected room: Room;
 
+    protected nonpersitentMessages: ChatMessage[] = []; // Todo: Refactor away after introducing message types.
+
     public constructor(app: ContentApp, roomOrEntity: Room|Entity)
     {
         super(app);
@@ -71,6 +73,22 @@ export class ChatWindow extends Window
     }
 
     public isSoundEnabled(): boolean { return this.soundEnabled; }
+
+    public getRecentMessageCount(maxAgeSecs: number): number
+    {
+        let messageCount = 0;
+        const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
+        for (const message of this.chatMessages) {
+            if (true
+                && message.timestamp >= maxAgeTimestamp
+                && !message.text.startsWith('**') // Todo: Check for message type after implementation.
+                && !this.nonpersitentMessages.includes(message)
+            ) {
+                messageCount++;
+            }
+        }
+        return messageCount;
+    }
 
     public async show(options: WindowOptions)
     {
@@ -242,7 +260,9 @@ export class ChatWindow extends Window
         }
 
         this.storeChatMessage(message);
-        if (!dontPersist) {
+        if (dontPersist) {
+            this.nonpersitentMessages.push(message);
+        } else {
             BackgroundMessage.handleNewChatMessage(this.chat, message, generateId)
             .catch(error => this.app.onError(error));
             // Persisted message comes back in via onChatMessagePersisted and is stored/drawn there.

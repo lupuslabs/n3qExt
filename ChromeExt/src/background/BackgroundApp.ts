@@ -22,7 +22,7 @@ import
     BackpackTransferAuthorizeResponse,
     BackpackIsItemStillInRepoResponse,
     GetChatHistoryResponse,
-    NewChatMessageResponse,
+    NewChatMessageResponse, TabStats, MakeZeroTabStats,
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -39,6 +39,7 @@ import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { Chat, ChatMessage, isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
+import { BrowserActionGui } from './BrowserActionGui';
 
 interface ILocationMapperResponse
 {
@@ -50,6 +51,12 @@ interface PointsActivity
 {
     channel: string;
     n: number;
+}
+
+type BackgroundTabData = {
+    tabId: number;
+    isGuiEnabled: boolean;
+    stats: TabStats;
 }
 
 export class BackgroundApp
@@ -65,6 +72,7 @@ export class BackgroundApp
     private xmppStarted = false;
     private babelfish: Translator;
     private chatHistoryStorage: ChatHistoryStorage;
+    private browserActionGui: BrowserActionGui;
 
     private startupTime = Date.now();
     private waitReadyCount = 0;
@@ -79,6 +87,7 @@ export class BackgroundApp
     private readonly fullJid2TimerDeferredUnavailable: Map<string, number> = new Map<string, number>();
     private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml, availableStanza?: xml }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
     private readonly iqStanzaTabId: Map<string, number> = new Map<string, number>();
+    private readonly tabs: Map<number, BackgroundTabData> = new Map();
 
     async start(): Promise<void>
     {
@@ -120,11 +129,10 @@ export class BackgroundApp
             });
         }
 
+        this.browserActionGui = new BrowserActionGui(this);
         if (Environment.isExtension() && chrome.browserAction && chrome.browserAction.onClicked) {
-            chrome.browserAction.onClicked.addListener(async tab =>
-            {
-                await this.onBrowserActionClicked(tab.id);
-            });
+            chrome.tabs.onActivated.addListener(activeInfo => this.onBrowserTabActivated(activeInfo.tabId));
+            chrome.tabs.onRemoved.addListener((tabId, activeInfo) => this.onBrowserTabRemoved(tabId));
         }
 
         this.lastPointsSubmissionTime = Date.now();
@@ -243,15 +251,57 @@ export class BackgroundApp
         return this.babelfish.translateText(key, defaultText);
     }
 
+    public getTabData(tabId: number): BackgroundTabData
+    {
+        let tabData = this.tabs.get(tabId);
+        if (is.nil(tabData)) {
+            tabData = {
+                tabId,
+                isGuiEnabled: true,
+                stats: MakeZeroTabStats(),
+            };
+            this.tabs.set(tabId, tabData);
+        }
+        return tabData;
+    }
+
     // IPC
 
-    private async onBrowserActionClicked(tabId: number): Promise<void>
+    private onBrowserTabActivated(tabId: number): void
     {
-        let state = !as.Bool(await Memory.getLocal(Utils.localStorageKey_Active(), false), false);
-        await Memory.setLocal(Utils.localStorageKey_Active(), state);
-        chrome.browserAction.setIcon({ path: '/assets/' + (state ? 'icon.png' : 'iconDisabled.png') });
-        chrome.browserAction.setTitle({ title: this.translateText('Extension.' + (state ? 'Disable' : 'Enable')) });
-        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_extensionActiveChanged, 'data': { 'state': state } });
+        this.browserActionGui.updateBrowserActionGui(tabId);
+    }
+
+    private onBrowserTabRemoved(tabId: number): void
+    {
+        this.tabs.delete(tabId);
+        this.browserActionGui.forgetTab(tabId);
+    }
+
+    public sendIsGuiEnabledStateToTab(tabId: number): void
+    {
+        const {isGuiEnabled} = this.getTabData(tabId);
+        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_extensionIsGuiEnabledChanged, 'data': { isGuiEnabled } });
+    }
+
+    private onSignalContentAppStart(tabId: number): void
+    {
+        this.tabs.delete(tabId); // Reset tab state.
+        this.browserActionGui.forgetTab(tabId);
+        this.browserActionGui.updateBrowserActionGui(tabId);
+        this.sendIsGuiEnabledStateToTab(tabId);
+    }
+
+    private onSignalContentAppStop(tabId: number): void
+    {
+        this.tabs.delete(tabId);
+        this.browserActionGui.forgetTab(tabId);
+    }
+
+    private onStatsFromTab(tabId: number, stats: TabStats): void
+    {
+        this.getTabData(tabId).stats = stats;
+        this.browserActionGui.updateBrowserActionGui(tabId);
     }
 
     onDirectRuntimeMessage(message: any, sendResponse: (response?: any) => void)
@@ -287,6 +337,24 @@ export class BackgroundApp
 
             case BackgroundMessage.waitReady.name: {
                 return this.handle_waitReady(sendResponse);
+            } break;
+
+            case BackgroundMessage.signalContentAppStartToBackground.name: {
+                sendResponse();
+                this.onSignalContentAppStart(sender.tab.id);
+                return false;
+            } break;
+
+            case BackgroundMessage.signalContentAppStopToBackground.name: {
+                sendResponse();
+                this.onSignalContentAppStop(sender.tab.id);
+                return false;
+            } break;
+
+            case BackgroundMessage.sendTabStatsToBackground.name: {
+                sendResponse();
+                this.onStatsFromTab(sender.tab.id, message.data);
+                return false;
             } break;
 
             case BackgroundMessage.getConfigTree.name: {

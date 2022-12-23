@@ -116,6 +116,7 @@ export class Toast
             }
             $(elem).stop();
             this.app.getDisplay().removeChild(elem);
+            this.app.onToastInvisible(this);
         }
     }
 
@@ -135,8 +136,10 @@ export class Toast
     {
         if (visible) {
             $(this.wrapperElem).removeClass('n3q-hidden');
+            this.app.onToastVisible(this);
         } else {
             $(this.wrapperElem).addClass('n3q-hidden');
+            this.app.onToastInvisible(this);
         }
     }
 }
