@@ -339,6 +339,14 @@ export class Room
         } else {
             entity = this.participants[resource];
             if (!entity) {
+                if (isSelf) {
+                    const oldMyParticipant = this.getMyParticipant();
+                    if (!is.nil(oldMyParticipant)) {
+                        oldMyParticipant.remove();
+                        delete this.participants[this.myNick];
+                    }
+                    this.myNick = resource;
+                }
                 const participant = new Participant(this.app, this, resource, isSelf);
                 this.participants[resource] = participant;
                 entity = participant;
@@ -449,6 +457,7 @@ export class Room
         nicks.forEach(nick =>
         {
             this.participants[nick].remove();
+            delete this.participants[nick];
         });
     }
 
@@ -458,6 +467,7 @@ export class Room
         itemIds.forEach(itemId =>
         {
             this.items[itemId].remove();
+            delete this.items[itemId];
         });
     }
 
