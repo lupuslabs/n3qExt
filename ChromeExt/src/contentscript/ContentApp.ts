@@ -278,6 +278,7 @@ export class ContentApp
         // this.enterPage();
         await this.checkPageUrlChanged();
 
+        this.evaluateStayOnTabChange();
         if (this.roomJid != '') {
             // this.stayHereIsChecked = await Memory.getLocal(Utils.localStorageKey_StayOnTabChange(this.roomJid), false);
             this.backpackIsOpen = await Memory.getLocal(Utils.localStorageKey_BackpackIsOpen(this.roomJid), false);
@@ -562,9 +563,11 @@ export class ContentApp
         this.evaluateStayOnTabChange();
     }
 
-    evaluateStayOnTabChange(): void
+    private evaluateStayOnTabChange(): void
     {
-        const stay = this.backpackIsOpen
+        const stay = false
+            || as.Bool(Config.get('room.dontLeaveRoomOnTabChange'))
+            || this.backpackIsOpen
             || this.vidconfIsOpen
             || this.chatIsOpen
             // || this.stayHereIsChecked
