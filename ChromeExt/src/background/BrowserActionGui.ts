@@ -32,6 +32,9 @@ export class BrowserActionGui
 
     protected readonly app: BackgroundApp;
     protected readonly hasBrowserActionFeature: boolean;
+    protected readonly normalBadgeColor: string;
+    protected readonly attentionBadgeColor: string;
+    protected readonly blinkBadgeColor: string;
     protected readonly blinkPhaseCount: number;
     protected readonly blinkPhaseDurationMsecs: number;
 
@@ -40,6 +43,9 @@ export class BrowserActionGui
     constructor(app: BackgroundApp) {
         this.app = app;
         this.hasBrowserActionFeature = !is.nil(chrome?.browserAction);
+        this.normalBadgeColor = as.String(Config.get('browserAction.normalBadgeColor'), '#FFFFFF');
+        this.attentionBadgeColor = as.String(Config.get('browserAction.attentionBadgeColor'), '#000000');
+        this.blinkBadgeColor = as.String(Config.get('browserAction.attentionBlinkBadgeColor'), '#FFFFFF');
         const blinkCount = as.Int(Config.get('browserAction.attentionBlinkCount'), 3);
         const blinkDurationSecs = as.Float(Config.get('browserAction.attentionBlinkDurationSec'), 1);
         this.blinkPhaseCount = 2 * Math.max(0, blinkCount);
@@ -103,7 +109,7 @@ export class BrowserActionGui
 
         let path = '/assets/icon.png';
         let titleKey = 'Extension.Hide';
-        let color = '#1D2688';
+        let color = this.normalBadgeColor;
         let text = '';
         if (!isGuiEnabled) {
             path = '/assets/iconDisabled.png';
@@ -111,14 +117,14 @@ export class BrowserActionGui
             text = as.String(stats.participantCount);
         }
         if (attentionLevel > 0) {
-            color = '#992AD1';
+            color = this.attentionBadgeColor;
             if (attentionLevel > 1) {
                 const nowMsecs = Date.now();
                 const msecsPassed = nowMsecs - animationStart;
                 const blinkPhase = as.Int(msecsPassed / this.blinkPhaseDurationMsecs);
                 if (blinkPhase < this.blinkPhaseCount) {
                     if (blinkPhase % 2 === 1) {
-                        color = '#1D2688';
+                        color = this.blinkBadgeColor;
                     }
                     const nextPhaseAlreadyPassedMsecs = msecsPassed % this.blinkPhaseDurationMsecs;
                     const nextPhaseDelayMsecs = this.blinkPhaseDurationMsecs - nextPhaseAlreadyPassedMsecs + 1;

@@ -48,6 +48,9 @@ export class Config
             tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
         },
         browserAction: {
+            normalBadgeColor: '#DDDDDD',
+            attentionBadgeColor: '#992AD1',
+            attentionBlinkBadgeColor: '#DDDDDD',
             attentionBlinkCount: 3, // How often to blink for attention level 2
             attentionBlinkDurationSec: 1, // How long each blink takes.
         },
