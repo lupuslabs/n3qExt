@@ -16,7 +16,7 @@ import { RoomItem } from './RoomItem';
 import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and Item otherwise $().resizable does not work
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
-import { Chat, ChatMessage } from '../lib/ChatMessage';
+import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
 import { is } from '../lib/is';
 import { ChatConsole } from './ChatConsole';
 
@@ -534,7 +534,7 @@ export class Room
         if (is.nil(text) || text.length === 0) {
             return;
         }
-        if (ChatConsole.isChatCommand(text) && !text.startsWith('/do ')) {
+        if (ChatConsole.isChatCommand(text)) {
             this.handleGroupChatCommand(text);
             return;
         }
@@ -572,7 +572,8 @@ export class Room
                     const text = as.String(message[message.length - 1]);
                     const nick = as.String(message[message.length - 2]);
                     if (text.length !== 0) {
-                        this.showChatMessage(null, nick, text);
+                        const type: ChatMessageType = outState.msgCount === 0 ? 'cmd' : 'cmdResult';
+                        this.showChatMessage(null, type, nick, text);
                         outState.msgCount++;
                     }
                 }
@@ -652,9 +653,9 @@ export class Room
         }
     }
 
-    showChatMessage(id: string|null, name: string, text: string)
+    showChatMessage(id: string|null, type: ChatMessageType, name: string, text: string)
     {
-        this.chatWindow.addLine(id, name, text);
+        this.chatWindow.addLine(id, type, name, text);
     }
 
     clearChatWindow()

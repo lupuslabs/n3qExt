@@ -11,15 +11,14 @@ import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { Entity } from './Entity';
 import {
-    ChatType, Chat, areChatsEqual,
-    ChatMessage, makeChatMessageId, chatMessageCmpFun, chatMessageIdFun,
+    Chat, areChatsEqual,
+    ChatMessage, makeChatMessageId, chatMessageCmpFun, chatMessageIdFun, ChatMessageType, isUserChatMessageType,
 } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { OrderedSet } from '../lib/OrderedSet';
 import { domHtmlElemOfHtml } from '../lib/domTools';
-import { ChatConsole } from './ChatConsole';
 
 export class ChatWindow extends Window
 {
@@ -36,22 +35,20 @@ export class ChatWindow extends Window
     protected soundEnabled = false;
     protected room: Room;
 
-    protected nonpersitentMessages: ChatMessage[] = []; // Todo: Refactor away after introducing message types.
-
     public constructor(app: ContentApp, roomOrEntity: Room|Entity)
     {
         super(app);
         if (roomOrEntity instanceof Room) {
             this.room = roomOrEntity;
             this.chat = {
-                type:     ChatType.roompublic,
+                type:     'roompublic',
                 roomJid:  this.room.getJid(),
                 roomNick: '',
             };
         } else {
             this.room = roomOrEntity.getRoom();
             this.chat = {
-                type:     ChatType.roomprivate,
+                type:     'roomprivate',
                 roomJid:  this.room.getJid(),
                 roomNick: roomOrEntity.getRoomNick(),
             };
@@ -63,10 +60,10 @@ export class ChatWindow extends Window
         this.sndChat = new Sound(this.app, KeyboardSound);
 
         if (Environment.isDevelopment()) {
-            this.addLine(null, 'Nickname', 'Lorem', true);
-            this.addLine(null, 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', true);
-            this.addLine(null, 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum', true);
-            this.addLine(null, 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm', true);
+            this.addLine(null, 'debug', 'Nickname', 'Lorem');
+            this.addLine(null, 'debug', 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+            this.addLine(null, 'debug', 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
+            this.addLine(null, 'debug', 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
         }
 
         this.loadHistory();
@@ -74,16 +71,12 @@ export class ChatWindow extends Window
 
     public isSoundEnabled(): boolean { return this.soundEnabled; }
 
-    public getRecentMessageCount(maxAgeSecs: number): number
+    public getRecentMessageCount(maxAgeSecs: number, types: readonly ChatMessageType[]): number
     {
         let messageCount = 0;
         const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
         for (const message of this.chatMessages) {
-            if (true
-                && message.timestamp >= maxAgeTimestamp
-                && !message.text.startsWith('**') // Todo: Check for message type after implementation.
-                && !this.nonpersitentMessages.includes(message)
-            ) {
+            if (message.timestamp >= maxAgeTimestamp && types.includes(message.type)) {
                 messageCount++;
             }
         }
@@ -236,36 +229,30 @@ export class ChatWindow extends Window
         return this.windowElem != null;
     }
 
-    public addLine(id: string|null, nick: string, text: string, dontPersist: boolean = false): void
+    public addLine(id: string|null, type: ChatMessageType, nick: string, text: string): void
     {
         const time = new Date();
         let generateId = is.nil(id);
         if (generateId) {
             id = makeChatMessageId(time, nick);
         }
-        let textTranslated: string;
-        if (text.startsWith('/do ')) {
-            textTranslated = this.app.translateText(text, text);
+        if (isUserChatMessageType(type)) {
+            if (type === 'emote') {
+                text = this.app.translateText(text, text);
+            }
         } else {
-            textTranslated = this.app.translateText('Chatwindow.' + text, text);
+            text = this.app.translateText('Chatwindow.' + text, text);
         }
-        const message: ChatMessage = {
-            timestamp: Utils.utcStringOfDate(time),
-            id:        id,
-            nick:      nick,
-            text:      textTranslated,
-        };
+        const timestamp = Utils.utcStringOfDate(time);
+        const message: ChatMessage = { timestamp, id, type, nick, text };
         if (this.chatMessages.has(message)) {
             return;
         }
 
         this.storeChatMessage(message);
-        if (dontPersist) {
-            this.nonpersitentMessages.push(message);
-        } else {
+        if (type !== 'debug') {
             BackgroundMessage.handleNewChatMessage(this.chat, message, generateId)
             .catch(error => this.app.onError(error));
-            // Persisted message comes back in via onChatMessagePersisted and is stored/drawn there.
         }
     }
 
@@ -305,10 +292,11 @@ export class ChatWindow extends Window
     private drawChatMessage(message: ChatMessage, index: number, replaceExisting: boolean)
     {
         if (this.chatoutElem) {
+            const typeClass = `n3q-chat-type-${message.type}`;
             const ageClass = message.timestamp >= this.sessionStartTs ? 'n3q-chat-new' : 'n3q-chat-old';
             const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
             const lineElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-line ${ageClass}"></div>`);
-            lineElem.classList.add('n3q-base', 'n3q-chatwindow-line', ageClass);
+            lineElem.classList.add('n3q-base', 'n3q-chatwindow-line', typeClass, ageClass);
             const innerHtmls = [];
             if (message.nick.length !== 0) {
                 innerHtmls.push(`<span class="n3q-base n3q-text n3q-time">${as.Html(timeStr)}</span>`);
@@ -361,9 +349,7 @@ export class ChatWindow extends Window
     
     protected giveMessageToChatOut(chatMessage: ChatMessage): void
     {
-        if (!ChatConsole.isChatCommand(chatMessage.text)) {
-            this.room.getParticipantByDisplayName(chatMessage.nick)?.getChatout()?.displayChatMessage(chatMessage);
-        }
+        this.room.getParticipantByDisplayName(chatMessage.nick)?.getChatout()?.displayChatMessage(chatMessage);
     }
 
     public getChatMessagesByNickSince(nick: string, timestampStart: string): ChatMessage[]

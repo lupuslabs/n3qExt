@@ -21,7 +21,7 @@ export class ChatConsole
 {
     public static isChatCommand(text: string): boolean
     {
-        return text.startsWith('/');
+        return text.startsWith('/') && !text.startsWith('/do ');
     }
 
     public static chatCommand(text: string, context: ChatConsoleContext)

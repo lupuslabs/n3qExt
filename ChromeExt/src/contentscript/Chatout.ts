@@ -2,7 +2,7 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { domHtmlElemOfHtml, domOnNextRenderComplete, startDomElemTransition } from '../lib/domTools';
-import { ChatMessage, chatMessageCmpFun, chatMessageIdFun } from '../lib/ChatMessage';
+import { ChatMessage, chatMessageCmpFun, chatMessageIdFun, isUserChatMessageType } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { OrderedSet } from '../lib/OrderedSet';
 import { AnimationsDefinition } from './AnimationsXml';
@@ -52,8 +52,8 @@ export class Chatout
 
     public displayChatMessage(chatMessage: ChatMessage): void
     {
-        if (chatMessage.text.match(/^\*\*[^*]+\*\*$/)) {
-            return; // Hack to suppress room enter/leave messages of all languages.
+        if (!isUserChatMessageType(chatMessage.type)) {
+            return;
         }
 
         const nowSecs = Date.now() / 1000;
@@ -112,7 +112,8 @@ export class Chatout
 
     protected makeBubble(chatMessage: ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
     {
-        const bubbleElem = domHtmlElemOfHtml('<div class="n3q-chatout" style="opacity: 1;"></div>');
+        const typeClass = 'n3q-chat-type-' + chatMessage.type;
+        const bubbleElem = domHtmlElemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);
         const bubbleStatus: BubbleStatus = 'fadingSlow';
         const bubble: BubbleInfo = {...chatMessage, bubbleElem, bubbleStatus};
         if (this.bubbles.has(bubble)) {

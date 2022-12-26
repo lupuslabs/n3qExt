@@ -32,11 +32,10 @@ import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
 import { DomButtonId } from '../lib/domTools';
 import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
-import { Chat, ChatMessage } from '../lib/ChatMessage';
+import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
 import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
-import { ChatConsole } from './ChatConsole';
 import { AnimationsDefinition } from './AnimationsXml';
 
 export class Participant extends Entity
@@ -418,16 +417,16 @@ export class Participant extends Entity
             // if (this.isSelf && Environment.isDevelopment()) { this.showChatWindow(); }
             if (this.isSelf) {
                 if (Config.get('room.chatlogEnteredTheRoomSelf', true)) {
-                    this.room?.showChatMessage(null, this.roomNick, 'entered the room');
+                    this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'entered the room');
                 }
             } else {
                 if (this.room?.iAmAlreadyHere()) {
                     if (Config.get('room.chatlogEnteredTheRoom', true)) {
-                        this.room?.showChatMessage(null, this.roomNick, 'entered the room');
+                        this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'entered the room');
                     }
                 } else {
                     if (Config.get('room.chatlogWasAlreadyThere', true)) {
-                        this.room?.showChatMessage(null, this.roomNick, 'was already there');
+                        this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'was already there');
                     }
                 }
             }
@@ -460,7 +459,7 @@ export class Participant extends Entity
         this.remove();
 
         if (Config.get('room.chatlogLeftTheRoom', true)) {
-            this.room?.showChatMessage(null, this.roomNick, 'left the room');
+            this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'left the room');
         }
 
         this.sendParticipantEventToAllScriptFrames({ event: 'leave' });
@@ -593,7 +592,7 @@ export class Participant extends Entity
         if (text?.length <= 0) { return; }
 
         this.openPrivateChat();
-        this.privateChatWindow.addLine(null, name, text);
+        this.privateChatWindow.addLine(null, 'chat', name, text);
 
         if (nick !== this.room.getMyNick()) {
             const chatWindow = this.privateChatWindow;
@@ -715,24 +714,26 @@ export class Participant extends Entity
         const delayMSec = now - timestamp;
 
         // always
-        this.room?.showChatMessage(id, name, text);
+        const {isEmote, emoteId} = this.parseEmoteCmd(text);
+        const msgType: ChatMessageType = isEmote ? 'emote' : 'chat';
+        this.room?.showChatMessage(id, msgType, name, text);
 
         this.sendParticipantChatToAllScriptFrames(text);
 
         // recent
         if (delayMSec * 1000 < as.Float(Config.get('room.maxChatAgeSec', 60))) {
-            if (!ChatConsole.isChatCommand(text)) {
+            if (!isEmote) {
                 this.app.toFront(this.elem, ContentApp.LayerEntity);
             }
         }
 
         // new only
         if (delayMSec <= 100) {
-            if (ChatConsole.isChatCommand(text)) {
-                return this.onChatCommand(text);
-            } else {
-                this.avatarDisplay?.setAction('chat');
+            if (isEmote) {
+                this.avatarDisplay?.setAction(emoteId);
+                return;
             }
+            this.avatarDisplay?.setAction('chat');
 
             if (nick !== this.room.getMyNick()) {
                 const chatWindow = this.room.getChatWindow();
@@ -746,18 +747,11 @@ export class Participant extends Entity
         }
     }
 
-    onChatCommand(text: string): void
+    protected parseEmoteCmd(text: string): {isEmote: boolean, emoteId: string}
     {
-        const parts: string[] = text.split(' ');
-        if (parts.length < 1) { return; }
-        const cmd: string = parts[0];
-
-        switch (cmd) {
-            case '/do':
-                if (parts.length < 2) { return; }
-                this.avatarDisplay?.setAction(parts[1]);
-                break;
-        }
+        const emoteId = /^\/do (.+)$/.exec(text)?.[1] ?? '';
+        const isEmote = emoteId.length !== 0;
+        return {isEmote, emoteId};
     }
 
     sendGroupChat(text: null|string): void

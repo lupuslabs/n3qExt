@@ -38,6 +38,7 @@ import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
+import { userChatMessageTypes } from '../lib/ChatMessage';
 
 interface ILocationMapperResponse
 {
@@ -370,10 +371,10 @@ export class ContentApp
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
-        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs) ?? 0) !== 0;
+        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs, userChatMessageTypes) ?? 0) !== 0;
         const hasNewPrivateChat = participantIds.some(participantId => {
             const participant = this.room.getParticipant(participantId);
-            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs) !== 0;
+            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs, userChatMessageTypes) !== 0;
         });
         const toastCount = this.toasts.size;
         const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };

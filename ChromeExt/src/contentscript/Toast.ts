@@ -180,7 +180,7 @@ export class SimpleToast extends Toast
         this.buttonTexts.forEach(buttonText => {
             chatlogText += ' [' + buttonText + ']';
         });
-        this.app.getRoom()?.showChatMessage(null, chatlogName, chatlogText);
+        this.app.getRoom()?.showChatMessage(null, 'info', chatlogName, chatlogText);
     }
 }
 

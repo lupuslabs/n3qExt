@@ -3,7 +3,7 @@ import { as } from '../lib/as';
 import { BackgroundApp } from './BackgroundApp';
 import log = require('loglevel');
 import { Config } from '../lib/Config';
-import { Chat, ChatMessage, ChatType } from '../lib/ChatMessage';
+import { Chat, ChatMessage, ChatMessageType, ChatType } from '../lib/ChatMessage';
 import { ErrorWithData, Utils } from '../lib/Utils';
 
 // Schema:
@@ -22,6 +22,7 @@ type ChatMessageRecord = {
     chatId:    number; // Chat.id
     timestamp: string;
     id:        string;
+    type:      ChatMessageType;
     nick:      string;
     text:      string;
 }
@@ -49,10 +50,10 @@ export class ChatHistoryStorage {
     public onUserConfigUpdate(): void
     {
         //this.debugLogEnabled = Utils.logChannel('chatHistory', true);
-        this.messageMaxAgeSecByType.set(
-            ChatType.roompublic, as.Float(Config.get('chatHistory.roompublicMaxAgeSec'), 10e20));
-        this.messageMaxAgeSecByType.set(
-            ChatType.roomprivate, as.Float(Config.get('chatHistory.roomprivateMaxAgeSec'), 10e20));
+        const roompublicMaxAgeSecRaw = Config.get('chatHistory.roompublicMaxAgeSec');
+        this.messageMaxAgeSecByType.set('roompublic', as.Float(roompublicMaxAgeSecRaw, 10e20));
+        const roomprivateMaxAgeSecRaw = Config.get('chatHistory.roomprivateMaxAgeSec');
+        this.messageMaxAgeSecByType.set('roomprivate', as.Float(roomprivateMaxAgeSecRaw, 10e20));
         this.messageDeduplicationMaxAgeSec = as.Float(Config.get('chatHistory.messageDeduplicationMaxAgeSec'), 1);
         this.maintenanceIntervalSec = as.Float(Config.get('chatHistory.maintenanceIntervalSec'), 10e20);
         this.maintenanceCheckIntervalSec = as.Float(Config.get('chatHistory.maintenanceCheckIntervalSec'), 10);
@@ -69,8 +70,9 @@ export class ChatHistoryStorage {
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction();
-            const chatRecord = await this.getOrCreateChatRecord(
-                transaction, chat.type, chat.roomJid, chat.roomNick, chatMessage.timestamp);
+            const {type, roomJid, roomNick} = chat;
+            const timestamp = chatMessage.timestamp;
+            const chatRecord = await this.getOrCreateChatRecord(transaction, type, roomJid, roomNick, timestamp);
             const keepChatMessage = await this.createChatMessageIfNew(transaction, chatRecord, chatMessage, deduplicate);
             await transactionPromise;
             if (this.debugLogEnabled) {
@@ -94,18 +96,15 @@ export class ChatHistoryStorage {
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction(true);
-            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(
-                transaction, chat.type, chat.roomJid, chat.roomNick);
+            const {type, roomJid, roomNick} = chat;
+            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
             const chatHistoryFound = !is.nil(chatRecord);
-            let chatMessages = [];
+            const chatMessages: ChatMessage[] = [];
             if (chatHistoryFound) {
                 const chatMessageRecords = await this.getChatMessageRecordsByChatId(transaction, chatRecord.id);
-                chatMessages = chatMessageRecords.map(record => ({
-                    timestamp: record.timestamp,
-                    id:        record.id,
-                    nick:      record.nick,
-                    text:      record.text,
-                }));
+                for (const {timestamp, id, type, nick, text} of chatMessageRecords) {
+                    chatMessages.push({timestamp, id, type, nick, text});
+                }
             }
             await transactionPromise;
             if (this.debugLogEnabled) {
@@ -129,8 +128,8 @@ export class ChatHistoryStorage {
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction();
-            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(
-                transaction, chat.type, chat.roomJid, chat.roomNick);
+            const {type, roomJid, roomNick} = chat;
+            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
             const chatFound = !is.nil(chatRecord);
             let messagesDeleted = 0;
             let chatDeleted = false;
@@ -200,14 +199,11 @@ export class ChatHistoryStorage {
                         await this.updateChatRecord(transaction, chatRecord);
                     }
                     if (pruneResult.deletedCount !== 0 || pruneResult.chatIsEmpty) {
-                        const chat:Chat = {
-                            type:           chatRecord.type,
-                            roomJid:        chatRecord.roomJid,
-                            roomNick:       chatRecord.roomNick,
-                        };
-                        const jidEntries = deletedHistoriesByRoomJid.get(chat.roomJid) ?? [];
+                        const {type, roomJid, roomNick} = chatRecord;
+                        const chat:Chat = { type, roomJid, roomNick };
+                        const jidEntries = deletedHistoriesByRoomJid.get(roomJid) ?? [];
                         jidEntries.push({chat, olderThanTime: msgOlderThanTime});
-                        deletedHistoriesByRoomJid.set(chat.roomJid, jidEntries);
+                        deletedHistoriesByRoomJid.set(roomJid, jidEntries);
                     }
                 }
                 await transactionPromise;
@@ -238,13 +234,9 @@ export class ChatHistoryStorage {
         if (deduplicate && await this.hasDuplicateChatMessage(transaction, chat.id, msg)) {
             return false;
         }
-        const chatMessageRecord: ChatMessageRecord = {
-            chatId:    chat.id,
-            timestamp: msg.timestamp,
-            id:        msg.id,
-            nick:      msg.nick,
-            text:      msg.text,
-        };
+        const chatId = chat.id;
+        const {timestamp, id, type, nick, text} = msg;
+        const chatMessageRecord: ChatMessageRecord = { chatId, timestamp, id, type, nick, text };
         const chatMessageTable = transaction.objectStore('ChatMessage');
         try {
             await this.awaitDbRequest(chatMessageTable.add(chatMessageRecord));
@@ -366,7 +358,7 @@ export class ChatHistoryStorage {
             metaRecord = await this.awaitDbRequest(metaTable.get('lastChatId'))
         } catch (error) {
             const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.get failed!';
-            throw new ErrorWithData(msg, {type, roomJid, roomNick, lastMaintained, error});
+            throw new ErrorWithData(msg, { type, roomJid, roomNick, lastMaintained, error });
         }
         const lastId: number = metaRecord?.value ?? 0;
         const id = lastId + 1;
@@ -377,13 +369,7 @@ export class ChatHistoryStorage {
             const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.put failed!';
             throw new ErrorWithData(msg, {metaRecord, error});
         }
-        const chatRecord: ChatRecord = {
-            id:             id,
-            type:           type,
-            roomJid:        roomJid,
-            roomNick:       roomNick,
-            lastMaintained: lastMaintained,
-        };
+        const chatRecord: ChatRecord = { id, type, roomJid, roomNick, lastMaintained };
         const chatTable = transaction.objectStore('Chat');
         try {
             await this.awaitDbRequest(chatTable.add(chatRecord));
@@ -493,7 +479,7 @@ export class ChatHistoryStorage {
         if (!is.nil(this.db)) {
             return new Promise<void>((resolve, reject) => resolve());
         }
-        const dbConnectionRequest = indexedDB.open('chathistory', 1);
+        const dbConnectionRequest = indexedDB.open('chathistory', 2);
         dbConnectionRequest.onupgradeneeded = (ev) => {
             this.dbOnUpgradeNeeded(dbConnectionRequest.result, ev);
         };
@@ -519,20 +505,33 @@ export class ChatHistoryStorage {
 
     private dbOnUpgradeNeeded(db: IDBDatabase, ev: IDBVersionChangeEvent): void
     {
-        if (ev.oldVersion <= 0) { // Database didn't exist before.
+        if (ev.oldVersion < 2) { // Initialize fresh database.
             this.initDb(db);
         }
-        // Add version upgrade code here.
     }
 
     private initDb(db: IDBDatabase): void
     {
+        this.deleteObjectStoreIfExist(db, 'Meta');
         db.createObjectStore('Meta', {keyPath: 'name'});
+
+        this.deleteObjectStoreIfExist(db, 'Chat');
         const chatTable = db.createObjectStore('Chat', {keyPath: 'id'});
         chatTable.createIndex('iTypeRoomJidNick', ['type', 'roomJid', 'roomNick'], {unique: true});
         chatTable.createIndex('iLastMaintained', 'lastMaintained', {unique: false});
+
+        this.deleteObjectStoreIfExist(db, 'ChatMessage');
         const chatmessageTable = db.createObjectStore('ChatMessage', {keyPath: ['chatId', 'id']});
         chatmessageTable.createIndex('iChatTimestamp', ['chatId', 'timestamp'], {unique: false});
+    }
+
+    private deleteObjectStoreIfExist(db: IDBDatabase, name: string): void
+    {
+        try {
+            db.deleteObjectStore(name);
+        } catch (error) {
+            // Store doesn't exist.
+        }
     }
 
 }

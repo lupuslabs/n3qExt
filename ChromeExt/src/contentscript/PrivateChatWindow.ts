@@ -45,7 +45,7 @@ export class PrivateChatWindow extends ChatWindow
             if (!is.nil(name)) {
                 this.room.sendPrivateChat(text, nick);
     
-                this.addLine(nick + Date.now(), name, text);
+                this.addLine(nick + Date.now(), 'chat', name, text);
     
                 this.chatinInputElem.value = '';
                 this.chatinInputElem.focus();
@@ -65,7 +65,7 @@ export class PrivateChatWindow extends ChatWindow
         if (name === 'VersionInfo') {
             const json = JSON.parse(value);
             for (const key in json) {
-                this.addLine(null, key, json[key]);
+                this.addLine(null, 'cmdResult', key, json[key]);
             }
         }
     }

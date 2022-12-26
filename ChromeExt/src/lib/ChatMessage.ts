@@ -3,10 +3,8 @@
 import { is } from './is';
 import { Utils } from './Utils';
 
-export enum ChatType {
-    roompublic = 'roompublic',
-    roomprivate = 'roomprivate',
-}
+const chatTypes = ['roompublic', 'roomprivate'] as const;
+export type ChatType = typeof chatTypes[number];
 
 export type Chat = {
     type:      ChatType;
@@ -14,35 +12,54 @@ export type Chat = {
     roomNick:  string;
 };
 
+export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug'] as const;
+export type ChatMessageType = typeof chatMessageTypes[number];
+
+export const userChatMessageTypes = ['chat', 'emote'] as const;
+export type UserChatMessageType = typeof userChatMessageTypes[number];
+void((a: UserChatMessageType) : ChatMessageType => a); // Makes transpiler detect non-ChatMessageType in UserChatMessageType.
+
 export type ChatMessage = {
     timestamp: string;
     id:        string;
+    type:      ChatMessageType;
     nick:      string;
     text:      string;
 };
 
 export function isChatType(val: unknown): val is ChatType
 {
-    return is.string(val) && Object.values<string>(ChatType).includes(val);
+    return chatTypes.some(elem => elem === val);
 }
 
 export function isChat(val: unknown): val is Chat
 {
-    return !is.nil(val)
-    && isChatType(val['type'])
-    && is.string(val['roomJid'])
-    && is.string(val['roomNick'])
-    && !(val['roomNick'] !== '' && val['type'] === ChatType.roompublic)
+    return is.object(val)
+    && isChatType(val.type)
+    && is.string(val.roomJid)
+    && is.string(val.roomNick)
+    && !(val.roomNick !== '' && val.type === 'roompublic')
     ;
+}
+
+export function isChatMessageType(val: unknown): val is ChatMessageType
+{
+    return chatMessageTypes.some(elem => elem === val);
+}
+
+export function isUserChatMessageType(val: unknown): val is UserChatMessageType
+{
+    return userChatMessageTypes.some(elem => elem === val);
 }
 
 export function isChatMessage(val: unknown): val is ChatMessage
 {
-    return !is.nil(val)
-    && is.string(val['timestamp'])
-    && is.string(val['id'])
-    && is.string(val['nick'])
-    && is.string(val['text'])
+    return is.object(val)
+    && is.string(val.timestamp)
+    && is.string(val.id)
+    && isChatMessageType(val.type)
+    && is.string(val.nick)
+    && is.string(val.text)
     ;
 }
 
