@@ -470,8 +470,9 @@ abstract class Menu
             displayElemRect.width, displayElemRect.height,
             width, height, 0, 0, 0, 0
         );
+        const bottomM = displayElemRect.height - height - topM;
         this.menuElem.style.left = `${leftM}px`;
-        this.menuElem.style.top  = `${topM}px`;
+        this.menuElem.style.bottom  = `${bottomM}px`;
         this.menuElem.classList.remove('n3q-menu-hidden');
     }
 
