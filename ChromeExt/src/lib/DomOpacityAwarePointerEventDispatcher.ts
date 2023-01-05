@@ -25,12 +25,14 @@ export class DomOpacityAwarePointerEventDispatcher {
     private readonly app: ContentApp;
     private readonly domElem: Element;
 
-    private readonly logEventsIn: Set<string> = new Set<string>();
+    private readonly logIncommingPointer: boolean;
+    private readonly logIncommingMouse: boolean;
     private readonly logButtons: boolean;
     private readonly logDrag: boolean;
     private readonly logHover: boolean;
     private readonly logWithMove: boolean;
     private readonly logEventsOut: Set<string> = new Set<string>();
+    private lastMouseEventButtons: number = 0;
 
     private readonly eventListeners = new Map<string, (data: PointerEventData) => any>();
     private readonly opacityMin: number;
@@ -40,7 +42,8 @@ export class DomOpacityAwarePointerEventDispatcher {
 
     private inEventHandling: boolean = false; // For infinite recursion prevention.
     private lastPointerEventWasForUs: boolean = false;
-    
+    private swallowContextmenuEvent: boolean = false;
+
     private hoverEventsLast: Map<number,PointerEvent> = new Map<number, PointerEvent>();
     private hoverRedirectTargetsLast: Map<number,Element> = new Map<number, Element>();
 
@@ -76,8 +79,8 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.logDrag = false; // Utils.logChannel('pointerEventHandlingDrag');
         this.logHover = false; // Utils.logChannel('pointerEventHandlingHover');
         this.logWithMove = false; // Utils.logChannel('pointerEventHandlingWithMove');
-        const logIncommingPointer = false; // Utils.logChannel('pointerEventHandlingIncommingPointer');
-        const logIncommingMouse = false; // Utils.logChannel('pointerEventHandlingIncommingMouse');
+        this.logIncommingPointer = false; // Utils.logChannel('pointerEventHandlingIncommingPointer');
+        this.logIncommingMouse = false; // Utils.logChannel('pointerEventHandlingIncommingMouse');
 
         if (this.logButtons) {
             this.logEventsOut.add(PointerEventType.click);
@@ -101,25 +104,6 @@ export class DomOpacityAwarePointerEventDispatcher {
                 this.logEventsOut.add(PointerEventType.hovermove);
             }
         }
-        if (logIncommingPointer) {
-            this.logEventsIn.add('pointerout');
-            this.logEventsIn.add('pointerdown');
-            this.logEventsIn.add('pointerup');
-            this.logEventsIn.add('pointercancel');
-            if (this.logWithMove) {
-                this.logEventsIn.add('pointermove');
-            }
-        }
-        if (logIncommingMouse) {
-            this.logEventsIn.add('mousedown');
-            this.logEventsIn.add('mouseup');
-            this.logEventsIn.add('click');
-            this.logEventsIn.add('dblclick');
-            this.logEventsIn.add('contextmenu');
-            if (this.logWithMove) {
-                this.logEventsIn.add('mousemove');
-            }
-        }
 
         this.opacityMin = as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
         this.setDragStartDistance();
@@ -131,7 +115,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.domElem.addEventListener('pointerout',  updateHandler); // For non-capturing leave detection.
         this.domElem.addEventListener('pointerdown', updateHandler);
         this.domElem.addEventListener('pointerup',   updateHandler);
-        
+
         const cancelHandler = (ev: PointerEvent) => this.handlePointerCancelEvent(ev);
         this.domElem.addEventListener('pointercancel', cancelHandler);
 
@@ -199,22 +183,25 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
 
         this.inEventHandling = true;
-        this.logIncommingEvent(ev);
+        this.logIncommingMouseEvent(ev, ev.buttons !== this.lastMouseEventButtons);
+        this.lastMouseEventButtons = ev.buttons;
 
-        if (this.lastPointerEventWasForUs) {
-            // Just swallow the event.
-        } else {
+        let swallowEvent = true;
+        if (ev.type === 'contextmenu') {
+            swallowEvent = this.swallowContextmenuEvent;
+        } else if (!this.lastPointerEventWasForUs) {
             this.reroutePointerOrMouseEvent(ev);
         }
-
-        ev.stopImmediatePropagation();
-        ev.preventDefault();
+        if (swallowEvent) {
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+        }
         this.inEventHandling = false;
     }
 
     private handlePointerCancelEvent(ev: PointerEvent): void
     {
-        this.logIncommingEvent(ev);
+        this.logIncommingPointerEvent(ev, false);
 
         // Call buttonup event handlers when any button was down:
         if ((this.buttonsPointerStatesLast.get(ev.pointerId)?.buttons ?? DomButtonId.none) !== DomButtonId.none) {
@@ -230,7 +217,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         releasePointer(this.domElem, ev.pointerId);
 
         // Clean up any action-in-progress state:
-        const isInvolvedInAction 
+        const isInvolvedInAction
             =  ev.pointerId === (this.buttonsDownEventStart.pointerId ?? null)
             || ev.pointerId === (this.clickDownEventStart.pointerId ?? null);
         if (isInvolvedInAction) {
@@ -254,13 +241,16 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
 
         this.inEventHandling = true;
-        this.logIncommingEvent(ev);
         const pointerId = ev.pointerId;
         const lastButtonsState
             = this.buttonsPointerStatesLast.get(pointerId) ?? {isButtonsUp: false, buttons: DomButtonId.none};
         const isOpaqueAtLoc = this.isOpaqueAtEventLocation(ev);
         const isInvolvedInAction = pointerId === this.buttonsActionPointerId;
         const hadButtonsDown = lastButtonsState.buttons !== DomButtonId.none;
+        this.logIncommingPointerEvent(ev, ev.buttons !== lastButtonsState.buttons);
+        if (!hadButtonsDown) {
+            this.swallowContextmenuEvent = false;
+        }
 
         // Give raw event to lower element if it isn't a buttons event for us and outside domElem's opaque area:
         const isForUs = isOpaqueAtLoc || isInvolvedInAction || hadButtonsDown;
@@ -309,11 +299,13 @@ export class DomOpacityAwarePointerEventDispatcher {
             && hasMovedDragDistance(this.buttonsDownEventStart, ev, this.dragStartDistance)) {
                 this.clickEnd(true); // Prevent click or doubleclick.
                 this.buttonsResetOngoing = false; // Has been set by clickEnd.
+                this.swallowContextmenuEvent = true;
                 this.dragHandleStart(this.buttonsDownEventStart, ev);
             }
 
         }
         if (this.buttonsResetOngoing) {
+            this.swallowContextmenuEvent = true;
             this.handleButtonsReset();
         }
 
@@ -532,7 +524,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         if (this.clickOngoing) {
             this.clickOngoing = false;
             if (this.clickCount !== 0) {
-                if (!discard 
+                if (!discard
                 && !hasMovedDragDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
                     const type = this.clickCount === 1 ? PointerEventType.click : PointerEventType.doubleclick;
                     const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
@@ -546,7 +538,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.clickDownEventStart = null;
         this.clickDownEventLast = null;
         this.clickMoveEventLast = null;
-        this.clickHandlingReleasesPointer(); 
+        this.clickHandlingReleasesPointer();
     }
 
     // -------------------------------------------------------------------------
@@ -683,13 +675,13 @@ export class DomOpacityAwarePointerEventDispatcher {
                 setButtonsOnPointerEventData(cancelData, this.dragDownEventLast);
                 cancelData.dropTargetLast = this.dragDropTargetLast;
                 cancelData.dropTargetChanged = this.dragDropTargetLast !== null;
-    
+
                 if (!is.nil(cancelData.dropTargetLast)) {
                     this.callEventListener({...cancelData, type: PointerEventType.dragleave});
                 }
-    
+
                 this.callEventListener(cancelData);
-    
+
                 this.callEventListener({...cancelData, type: PointerEventType.dragend});
             }
         }
@@ -713,8 +705,9 @@ export class DomOpacityAwarePointerEventDispatcher {
     private callEventListener(data: PointerEventData): void
     {
         if (this.logEventsOut.has(data.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.callEventListeners: Event ${data.type}`;
-            log.info(msg, this.domElem, {data, this: {...this}});
+            const msg = `DomOpacityAwarePointerEventDispatcher.callEventListeners`;
+            const {type, buttons, modifierKeys} = data;
+            log.info(msg, {type, buttons, modifierKeys, domElement: this.domElem, data, this: {...this}});
         }
         try {
             this.eventListeners.get(data.type)?.(data);
@@ -777,11 +770,21 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
     }
 
-    private logIncommingEvent(ev: MouseEvent): void
+    private logIncommingPointerEvent(ev: PointerEvent, buttonsChanged: boolean): void
     {
-        if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.logIncommingEvent: Event ${ev.type}`;
-            log.info(msg, this.domElem, {ev, this: {...this}});
+        if (this.logIncommingPointer && (buttonsChanged || this.logWithMove || ev.type !== 'pointermove')) {
+            const msg = `DomOpacityAwarePointerEventDispatcher.logIncommingPointerEvent`;
+            const {type, buttons} = ev;
+            log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+        }
+    }
+
+    private logIncommingMouseEvent(ev: MouseEvent, buttonsChanged: boolean): void
+    {
+        if (this.logIncommingMouse && (buttonsChanged || this.logWithMove || ev.type !== 'mousemove')) {
+            const msg = `DomOpacityAwarePointerEventDispatcher.logIncommingMouseEvent:`;
+            const {type, buttons} = ev;
+            log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
         }
     }
 
