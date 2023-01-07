@@ -5,7 +5,7 @@ import { Element as XmlElement } from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { ErrorWithData, Utils } from '../lib/Utils';
-import { BackgroundMessage, TabStats } from '../lib/BackgroundMessage';
+import { BackgroundMessage, PresenceData, TabStats } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -973,6 +973,14 @@ export class ContentApp
             this.onCriticalError(ErrorWithData.ofError(
                 error, 'BackgroundMessage.sendStanza failed!', { stanza: stanza }));
         });
+    }
+
+    sendRoomPresence(presenceData: PresenceData): void
+    {
+        if (Utils.logChannel('contentTraffic', false)) {
+            log.debug('ContentApp.sendPresence', presenceData);
+        }
+        BackgroundMessage.sendRoomPresence(presenceData).catch(error => this.onError(error));
     }
 
     // Error handling

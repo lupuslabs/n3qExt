@@ -37,6 +37,7 @@ export class Room
     private chatWindow: ChatWindow;
     private vidconfWindow: VidconfWindow;
     private myNick: null|string;
+    private isAvailable: boolean = true;
     private showAvailability = '';
     private statusMessage = '';
 
@@ -146,6 +147,7 @@ export class Room
 
     async enter(): Promise<void>
     {
+        this.isAvailable = true;
         try {
             const nickname = await this.app.getUserNickname();
             this.avatar = await this.app.getUserAvatar();
@@ -169,13 +171,15 @@ export class Room
 
     wakeup()
     {
+        this.isAvailable = true;
         this.showAvailability = '';
         this.sendPresence();
     }
 
     leave(): void
     {
-        this.sendPresenceUnavailable();
+        this.isAvailable = false;
+        this.sendPresence();
         this.removeAllParticipants();
         this.removeAllItems();
         this.onUnload();
@@ -194,88 +198,22 @@ export class Room
 
     sendPresence(): void
     {
-        (async() => {
-
-            const vpProps = {
-                xmlns: 'vp:props',
-                timestamp: Date.now(),
-                Nickname: this.resource,
-                nickname: this.resource,
-            };
-
-            const nickname = await this.getBackpackItemNickname(this.resource);
-            if (nickname !== '') {
-                vpProps['Nickname'] = nickname;
-                vpProps['nickname'] = nickname;
-            }
-
+        try {
+            const roomJid = this.jid;
+            const {resource, posX, isAvailable, showAvailability, statusMessage} = this;
             let avatarUrl = this.app.getAvatarGallery().getAvatarById(this.avatar).getConfigUrl();
-            avatarUrl = await this.getBackpackItemAvatarAnimationsUrl(avatarUrl);
-            vpProps['AvatarUrl'] = avatarUrl;
-
-            let points = 0;
-            if (Config.get('points.enabled', false)) {
-                points = await this.getPointsItemPoints(0);
-                if (points > 0) {
-                    vpProps['Points'] = points;
-                }
-            }
-
-            const badgesStr = this.getMyParticipant()?.getBadgesDisplay()?.getBadgesStrForPresence();
-            if (is.string(badgesStr)) {
-                vpProps['Badges'] = badgesStr;
-            }
-
-            const presence = xml('presence', { to: this.jid + '/' + this.resource });
-
-            presence.append(xml('x', { xmlns: 'firebat:avatar:state', }).append(xml('position', { x: as.Int(this.posX) })));
-
-            if (this.showAvailability !== '') {
-                presence.append(xml('show', {}, this.showAvailability));
-            }
-            if (this.statusMessage !== '') {
-                presence.append(xml('status', {}, this.statusMessage));
-            }
-
-            presence.append(xml('x', vpProps));
-
-            let identityUrl = as.String(Config.get('identity.url'), '');
-            let identityDigest = as.String(Config.get('identity.digest'), '1');
-            if (identityUrl === '') {
-                identityDigest = as.String(Utils.hash(this.resource + avatarUrl));
-                identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
-                    .replace('{nickname}', encodeURIComponent(nickname))
-                    .replace('{avatarUrl}', encodeURIComponent(avatarUrl))
-                    .replace('{digest}', encodeURIComponent(identityDigest))
-                    .replace('{imageUrl}', encodeURIComponent(''))
-                    ;
-                if (points > 0) { identityUrl = identityUrl.replace('{points}', encodeURIComponent('' + points)); }
-            }
-            if (identityUrl !== '') {
-                presence.append(
-                    xml('x', { xmlns: 'firebat:user:identity', 'jid': this.userJid, 'src': identityUrl, 'digest': identityDigest })
-                );
-            }
-
-            // if (!this.isEntered) {
-            presence.append(
-                xml('x', { xmlns: 'http://jabber.org/protocol/muc' })
-                    .append(xml('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' }))
-            );
-            // }
-
-            // log.debug('#### send', presence.children[1].attrs);
-            this.app.sendStanza(presence);
-        })().catch(error => {
+            const badges = as.String(this.getMyParticipant()?.getBadgesDisplay()?.getBadgesStrForPresence());
+            const data = { roomJid, resource, avatarUrl, badges, posX, isAvailable, showAvailability, statusMessage };
+            this.app.sendRoomPresence(data);
+        } catch(error) {
             log.info(error);
             Panic.now();
-        });
+        }
     }
 
-    async getPointsItemPoints(defaultValue: number): Promise<number> { return as.Int(await this.getBackpackItemProperty({ [Pid.PointsAspect]: 'true' }, Pid.PointsTotal, defaultValue)); }
-    async getBackpackItemAvatarAnimationsUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.AvatarAnimationsUrl, defaultValue)); }
-    // async getBackpackItemAvatarImageUrl(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.AvatarImageUrl, defaultValue)); }
-    async getBackpackItemNickname(defaultValue: string): Promise<string> { return as.String(await this.getBackpackItemProperty({ [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.NicknameText, defaultValue)); }
+    private async getBackpackItemNickname(defaultValue: string): Promise<string> {
+        return as.String(await this.getBackpackItemProperty({ [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.NicknameText, defaultValue));
+    }
 
     async getBackpackItemProperty(filterProperties: ItemProperties, propertyPid: string, defautValue: any): Promise<any>
     {
@@ -291,13 +229,6 @@ export class Room
             }
         }
         return defautValue;
-    }
-
-    private sendPresenceUnavailable(): void
-    {
-        const presence = xml('presence', { type: 'unavailable', to: this.jid + '/' + this.resource });
-
-        this.app.sendStanza(presence);
     }
 
     onPresence(stanza: XmlElement): void
@@ -602,7 +533,7 @@ export class Room
             .append(xml('x', { 'xmlns': 'vp:poke', 'type': type }))
             ;
         this.app.sendStanza(message);
-        
+
         if (countsAsActivity && Config.get('points.enabled', false)) {
             BackgroundMessage.pointsActivity(Pid.PointsChannelGreet, 1)
                 .catch(error => { log.info('Room.sendPoke', error); });

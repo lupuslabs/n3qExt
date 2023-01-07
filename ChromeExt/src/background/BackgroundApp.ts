@@ -1,5 +1,7 @@
 import log = require('loglevel');
-import { client, xml, jid } from '@xmpp/client';
+import { client, jid } from '@xmpp/client';
+import * as xml from '@xmpp/xml';
+import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -22,7 +24,9 @@ import
     BackpackTransferAuthorizeResponse,
     BackpackIsItemStillInRepoResponse,
     GetChatHistoryResponse,
-    NewChatMessageResponse, TabStats, MakeZeroTabStats,
+    NewChatMessageResponse,
+    TabStats, MakeZeroTabStats,
+    PresenceData,
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -81,11 +85,11 @@ export class BackgroundApp
     private stanzasOutCount = 0;
     private stanzasInCount = 0;
 
-    private readonly stanzaQ: Array<xml> = [];
+    private readonly stanzaQ: Array<ltx.Element> = [];
     private readonly roomJid2tabId: Map<string, Array<number>> = new Map<string, Array<number>>();
     private readonly fullJid2TabWhichSentUnavailable: Map<string, number> = new Map<string, number>();
     private readonly fullJid2TimerDeferredUnavailable: Map<string, number> = new Map<string, number>();
-    private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml, availableStanza?: xml }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
+    private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml.Element, availableStanza?: xml.Element }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
     private readonly iqStanzaTabId: Map<string, number> = new Map<string, number>();
     private readonly tabs: Map<number, BackgroundTabData> = new Map();
 
@@ -367,6 +371,11 @@ export class BackgroundApp
                 return false;
             } break;
 
+            case BackgroundMessage.sendRoomPresence.name: {
+                sendResponse(this.handle_sendRoomPresence(sender.tab.id, message.presenceData));
+                return false;
+            } break;
+
             case BackgroundMessage.pingBackground.name: {
                 sendResponse(this.handle_pingBackground(sender));
                 return false;
@@ -580,7 +589,7 @@ export class BackgroundApp
                     : Date.now(); // Nonempty response is to be deleted after configured cache timeout.
                 this.httpCacheData.set(key, {response, blob, responseTimeUsecs});
             }
-            
+
             if (Utils.logChannel('backgroundFetchUrl', true)) {
                 log.info('BackgroundApp.fetchUrlFromServer', 'response', url, blob.size, response);
             }
@@ -1232,13 +1241,13 @@ export class BackgroundApp
 
     // keep room state
 
-    private readonly fullJid2PresenceList = new Map<string, Map<string, xml>>();
+    private readonly fullJid2PresenceList = new Map<string, Map<string, ltx.Element>>();
 
-    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: xml): void
+    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: ltx.Element): void
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) { } else {
-            roomPresences = new Map<string, xml>();
+            roomPresences = new Map<string, ltx.Element>();
             this.fullJid2PresenceList.set(roomJid, roomPresences);
         }
         roomPresences.set(participantNick, stanza);
@@ -1258,7 +1267,7 @@ export class BackgroundApp
         }
     }
 
-    presenceStateGetPresence(roomJid: string, participantNick: string): xml
+    presenceStateGetPresence(roomJid: string, participantNick: string): ltx.Element
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) {
@@ -1276,13 +1285,13 @@ export class BackgroundApp
         }
     }
 
-    getPresenceStateOfRoom(roomJid: string): Map<string, xml>
+    getPresenceStateOfRoom(roomJid: string): Map<string, ltx.Element>
     {
         let roomPresences = this.fullJid2PresenceList.get(roomJid);
         if (roomPresences) {
             return roomPresences;
         }
-        return new Map<string, xml>();
+        return new Map<string, ltx.Element>();
     }
 
     // send/recv stanza
@@ -1292,60 +1301,12 @@ export class BackgroundApp
         // log.debug('BackgroundApp.handle_sendStanza', stanza, tabId);
 
         try {
-            let xmlStanza: xml = Utils.jsObject2xmlObject(stanza);
+            let xmlStanza: ltx.Element = Utils.jsObject2xmlObject(stanza);
             let send = true;
 
             if (this.backpack) {
                 xmlStanza = this.backpack.stanzaOutFilter(xmlStanza);
                 if (xmlStanza == null) { return; }
-            }
-
-            if (xmlStanza.name == 'presence') {
-                let to = xmlStanza.attrs.to;
-                let toJid = jid(to);
-                let room = toJid.bare().toString();
-                let nick = toJid.getResource();
-
-                if (as.String(xmlStanza.attrs['type'], 'available') == 'available') {
-                    if (this.isDeferredUnavailable(to)) {
-                        this.cancelDeferredUnavailable(to);
-                        send = false;
-                    }
-                    this.replayPresenceToTab(room, tabId);
-                    if (!this.hasRoomJid2TabId(room, tabId)) {
-                        this.addRoomJid2TabId(room, tabId);
-                        if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.handle_sendStanza', 'adding room2tab mapping', room, '=>', tabId, 'now:', this.roomJid2tabId); }
-                    }
-                    if (send) {
-                        send = this.deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to, xmlStanza);
-                    }
-                } else { // unavailable
-                    let tabIds = this.getRoomJid2TabIds(room);
-                    if (tabIds) {
-                        let simulateLeave = false;
-                        if (tabIds.includes(tabId)) {
-                            if (tabIds.length > 1) {
-                                simulateLeave = true;
-                            }
-                            this.removeRoomJid2TabId(room, tabId);
-                            if (simulateLeave) {
-                                send = false;
-                                this.simulateUnavailableToTab(to, tabId);
-                            }
-                        }
-                    }
-                    if (send) {
-                        if (Config.get('xmpp.deferUnavailableSec', 0) > 0) {
-                            this.deferUnavailable(to);
-                            send = false;
-                        } else {
-                            this.fullJid2TabWhichSentUnavailable[to] = tabId;
-                        }
-                    }
-                    if (send) {
-                        this.presenceStateRemoveRoom(room);
-                    }
-                }
             }
 
             if (xmlStanza.name == 'iq') {
@@ -1367,7 +1328,17 @@ export class BackgroundApp
         }
     }
 
-    presenceIndicatesAway(stanza: xml)
+    private handle_sendRoomPresence(tabId: number, presenceData: PresenceData): BackgroundResponse
+    {
+        try {
+            this.sendRoomPresence(tabId, presenceData);
+            return new BackgroundSuccessResponse();
+        } catch (error) {
+            return new BackgroundErrorResponse('error', error);
+        }
+    }
+
+    presenceIndicatesAway(stanza: ltx.Element)
     {
         let showNode = stanza.getChild('show');
         if (showNode) {
@@ -1422,7 +1393,7 @@ export class BackgroundApp
         // }
     }
 
-    simulateUnavailableToTab(from: string, unavailableTabId: number)
+    private simulateUnavailableToTab(from: string, unavailableTabId: number)
     {
         let stanza = xml('presence', { type: 'unavailable', 'from': from, 'to': this.xmppJid });
         window.setTimeout(() =>
@@ -1431,7 +1402,7 @@ export class BackgroundApp
         }, 100);
     }
 
-    deferUnavailable(to: string)
+    private deferUnavailable(to: string)
     {
         if (this.fullJid2TimerDeferredUnavailable[to]) {
             // wait for it
@@ -1450,7 +1421,7 @@ export class BackgroundApp
         }
     }
 
-    isDeferredUnavailable(to: string)
+    private isDeferredUnavailable(to: string)
     {
         if (this.fullJid2TimerDeferredUnavailable[to]) {
             return true;
@@ -1458,7 +1429,7 @@ export class BackgroundApp
         return false;
     }
 
-    cancelDeferredUnavailable(to: string)
+    private cancelDeferredUnavailable(to: string)
     {
         let timer = this.fullJid2TimerDeferredUnavailable[to];
         if (timer) {
@@ -1468,13 +1439,13 @@ export class BackgroundApp
         }
     }
 
-    deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to: string, stanza: xml): boolean
+    private deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to: string, stanza: ltx.Element): boolean
     {
         let deferred = true;
 
         let deferRecord = this.fullJid2TimerDeferredAway[to];
         if (deferRecord) {
-            // 
+            //
         } else {
             deferRecord = {};
             this.fullJid2TimerDeferredAway[to] = deferRecord;
@@ -1493,7 +1464,7 @@ export class BackgroundApp
             {
                 let logWhich = 'none';
                 let logTotal = 0;
-                let stanza: xml = null;
+                let stanza: xml.Element = null;
                 if (deferRecord.awayStanza) {
                     logTotal++;
                     logWhich = 'away';
@@ -1515,7 +1486,7 @@ export class BackgroundApp
         return !deferred;
     }
 
-    public sendStanza(stanza: xml): void
+    public sendStanza(stanza: ltx.Element): void
     {
         this.stanzasOutCount++;
         if (!this.xmppConnected) {
@@ -1525,7 +1496,7 @@ export class BackgroundApp
         }
     }
 
-    private sendStanzaUnbuffered(stanza: xml): void
+    private sendStanzaUnbuffered(stanza: ltx.Element): void
     {
         try {
             this.logStanzaButNotBasicConnectionPresence(stanza);
@@ -1536,7 +1507,7 @@ export class BackgroundApp
         }
     }
 
-    private logStanzaButNotBasicConnectionPresence(stanza: xml)
+    private logStanzaButNotBasicConnectionPresence(stanza: ltx.Element)
     {
         let isConnectionPresence = false;
         if (stanza.name == 'presence') {
@@ -1559,13 +1530,144 @@ export class BackgroundApp
         }
     }
 
-    private sendPresence()
+    private sendServerPresence(): void
     {
-        this.sendStanza(xml('presence'));
+        this.sendStanza(new ltx.Element('presence'));
         // this.sendStanza(xml('presence').append(xml('x', { xmlns: 'http://jabber.org/protocol/muc' })));
     }
 
-    private async recvStanza(xmlStanza: xml)
+    private sendRoomPresence(tabId: number, presenceData: PresenceData): void
+    {
+        const presence = this.makeRoomPresence(presenceData);
+
+        let send = true;
+
+        let roomJid = presenceData.roomJid;
+        let to = `${roomJid}/${presenceData.resource}`;
+
+        if (presenceData.isAvailable) {
+            if (this.isDeferredUnavailable(to)) {
+                this.cancelDeferredUnavailable(to);
+                send = false;
+            }
+            this.replayPresenceToTab(roomJid, tabId);
+            if (!this.hasRoomJid2TabId(roomJid, tabId)) {
+                this.addRoomJid2TabId(roomJid, tabId);
+                if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.handle_sendStanza', 'adding room2tab mapping', roomJid, '=>', tabId, 'now:', this.roomJid2tabId); }
+            }
+            if (send) {
+                send = this.deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to, presence);
+            }
+        } else { // unavailable
+            let tabIds = this.getRoomJid2TabIds(roomJid);
+            if (tabIds) {
+                let simulateLeave = false;
+                if (tabIds.includes(tabId)) {
+                    if (tabIds.length > 1) {
+                        simulateLeave = true;
+                    }
+                    this.removeRoomJid2TabId(roomJid, tabId);
+                    if (simulateLeave) {
+                        send = false;
+                        this.simulateUnavailableToTab(to, tabId);
+                    }
+                }
+            }
+            if (send) {
+                if (Config.get('xmpp.deferUnavailableSec', 0) > 0) {
+                    this.deferUnavailable(to);
+                    send = false;
+                } else {
+                    this.fullJid2TabWhichSentUnavailable[to] = tabId;
+                }
+            }
+            if (send) {
+                this.presenceStateRemoveRoom(roomJid);
+            }
+        }
+
+        if (send) {
+            this.sendStanza(presence);
+        }
+
+    }
+
+    private makeRoomPresence(presenceData: PresenceData): ltx.Element
+    {
+        const user = Config.get('xmpp.user', '');
+        const domain = Config.get('xmpp.domain', '');
+        const userJid = `${user}@${domain}`;
+        let {roomJid, resource, avatarUrl, badges, posX, isAvailable, showAvailability, statusMessage} = presenceData;
+
+        const vpProps = {
+            xmlns: 'vp:props',
+            timestamp: Date.now(),
+        };
+
+        const nicknameItemProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' };
+        const itemNickname = this.backpack?.getFirstFilteredItemsPropertyValue(nicknameItemProps, Pid.NicknameText);
+        const nickname = itemNickname ?? resource;
+        vpProps['Nickname'] = nickname;
+        vpProps['nickname'] = nickname;
+
+        const avatarItemProps = { [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' };
+        const itemAvatarUrl = this.backpack?.getFirstFilteredItemsPropertyValue(avatarItemProps, Pid.AvatarAnimationsUrl);
+        vpProps['AvatarUrl'] = itemAvatarUrl ?? avatarUrl;
+
+        let points = 0;
+        if (Config.get('points.enabled', false)) {
+            const pointsItemProps = { [Pid.PointsAspect]: 'true' };
+            points = as.Int(this.backpack?.getFirstFilteredItemsPropertyValue(pointsItemProps, Pid.PointsTotal));
+            if (points > 0) {
+                vpProps['Points'] = points;
+            }
+        }
+
+        if (badges.length !== 0) {
+            vpProps['Badges'] = badges;
+        }
+
+        let presence = new ltx.Element('presence', { to: `${roomJid}/${resource}` });
+        if (!isAvailable) {
+            presence.attrs.type = 'unavailable';
+        }
+
+        presence.c('x', { xmlns: 'firebat:avatar:state', }).c('position', { x: as.Int(posX) });
+
+        if (showAvailability !== '') {
+            presence.c('show').t(showAvailability);
+        }
+        if (statusMessage !== '') {
+            presence.c('status').t(statusMessage);
+        }
+
+        presence.c('x', vpProps);
+
+        let identityUrl = as.String(Config.get('identity.url'), '');
+        let identityDigest = as.String(Config.get('identity.digest'), '1');
+        if (identityUrl === '') {
+            identityDigest = as.String(Utils.hash(this.resource + avatarUrl));
+            identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
+                .replace('{nickname}', encodeURIComponent(nickname))
+                .replace('{avatarUrl}', encodeURIComponent(avatarUrl))
+                .replace('{digest}', encodeURIComponent(identityDigest))
+                .replace('{imageUrl}', encodeURIComponent(''))
+                ;
+            if (points > 0) { identityUrl = identityUrl.replace('{points}', encodeURIComponent('' + points)); }
+        }
+        if (identityUrl !== '') {
+            presence.c('x', { xmlns: 'firebat:user:identity', 'jid': userJid, 'src': identityUrl, 'digest': identityDigest });
+        }
+
+        presence
+            .c('x', { xmlns: 'http://jabber.org/protocol/muc' })
+            .c('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' });
+
+        presence = this.backpack?.stanzaOutFilter(presence) ?? presence;
+        return presence;
+    }
+
+    private async recvStanza(xmlStanza: ltx.Element)
     {
         this.stanzasInCount++;
 
@@ -1801,7 +1903,7 @@ export class BackgroundApp
 
                 this.xmppJid = address;
 
-                this.sendPresence();
+                this.sendServerPresence();
 
                 this.xmppConnectCount++;
                 this.xmppConnected = true;
@@ -1812,7 +1914,7 @@ export class BackgroundApp
                 }
             });
 
-            this.xmpp.on('stanza', (stanza: xml) => this.recvStanza(stanza));
+            this.xmpp.on('stanza', (stanza: xml.Element) => this.recvStanza(stanza));
 
             this.xmpp.start().catch(log.info);
         } catch (error) {
@@ -1893,7 +1995,7 @@ export class BackgroundApp
         try {
             if (now - this.presencePingTime > 30000) {
                 this.presencePingTime = now;
-                this.sendPresence();
+                this.sendServerPresence();
             }
             return new BackgroundSuccessResponse();
         } catch (error) {
@@ -1901,7 +2003,7 @@ export class BackgroundApp
         }
     }
 
-    // 
+    //
 
     handle_wakeup(): boolean
     {

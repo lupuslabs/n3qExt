@@ -1,5 +1,4 @@
-import log = require('loglevel');
-import { xml } from '@xmpp/client';
+import * as ltx from 'ltx';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemProperties } from '../lib/ItemProperties';
 
@@ -29,7 +28,7 @@ export interface IItemProvider
     transferAuthorize(itemId: string, duration: number): Promise<string>;
     transferUnauthorize(itemId: string): Promise<void>;
     transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>;
-    stanzaOutFilter(stanza: xml): xml
-    getDependentPresence(itemId: string, roomJid: string): xml;
-    onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): void;
+    stanzaOutFilter(stanza: ltx.Element): ltx.Element
+    getDependentPresence(itemId: string, roomJid: string): ltx.Element;
+    onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): void;
 }

@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { xml, jid } from '@xmpp/client';
+import { jid } from '@xmpp/client';
+import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
@@ -13,6 +14,7 @@ import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { RpcClient } from '../lib/RpcClient';
+import { is } from '../lib/is';
 
 export class Backpack
 {
@@ -233,7 +235,7 @@ export class Backpack
             }
             return maxItem;
         } else if (pointsItems.length == 0) {
-            // Points item is now server based. 
+            // Points item is now server based.
             // Will be restored by Config call if deleted.
             // Not created on the fly here as before
 
@@ -301,6 +303,24 @@ export class Backpack
         }
 
         return found;
+    }
+
+    findItemsByProperties(filterProperties: ItemProperties): Item[]
+    {
+        const filterKVs = Object.entries(filterProperties);
+        const filter = itemProps => filterKVs.every(([pid, value]) => itemProps[pid] === value);
+        return this.findItems(filter);
+    }
+
+    public getFirstFilteredItemsPropertyValue(filterProperties: ItemProperties, propertyPid: string): null|string
+    {
+        for (const item of this.findItemsByProperties(filterProperties)) {
+            const value = item.getProperties()[propertyPid] ?? null;
+            if (!is.nil(value)) {
+                return value;
+            }
+        }
+        return null;
     }
 
     createRepositoryItem(itemId: string, props: ItemProperties): Item
@@ -388,7 +408,7 @@ export class Backpack
         return Promise.all(itemsPromises).then(itemLists => [].concat(...itemLists));
     }
 
-    stanzaOutFilter(stanza: xml): xml
+    stanzaOutFilter(stanza: ltx.Element): ltx.Element
     {
         for (let [providerId, provider] of this.providers) {
             try {
@@ -404,11 +424,11 @@ export class Backpack
 
             if (as.String(stanza.attrs['type'], 'available') == 'available') {
 
-                var rezzedIds = this.rooms[roomJid];
+                const rezzedIds = this.rooms[roomJid];
                 if (rezzedIds && rezzedIds.length > 0) {
                     let dependentExtension = this.getDependentPresence(roomJid);
                     if (dependentExtension) {
-                        stanza.append(dependentExtension);
+                        stanza.cnode(dependentExtension);
                     }
                 }
 
@@ -418,7 +438,7 @@ export class Backpack
         return stanza;
     }
 
-    async stanzaInFilter(stanza: xml): Promise<xml>
+    async stanzaInFilter(stanza: ltx.Element): Promise<ltx.Element>
     {
         if (stanza.name == 'presence') {
             const fromJid = new jid(stanza.attrs.from);
@@ -458,9 +478,9 @@ export class Backpack
 
     private warningNotificatonTime = 0;
     private limitNotificatonTime = 0;
-    private getDependentPresence(roomJid: string): xml
+    private getDependentPresence(roomJid: string): ltx.Element
     {
-        let result = xml('x', { 'xmlns': 'vp:dependent' });
+        let result = new ltx.Element('x', { 'xmlns': 'vp:dependent' });
 
         let ids = [];
 
@@ -500,7 +520,7 @@ export class Backpack
         for (let i = 0; i < ids.length; i++) {
             let id = ids[i];
             const itemPresence = this.getProvider(id).getDependentPresence(id, roomJid);
-            result.append(itemPresence);
+            result.cnode(itemPresence);
         }
 
         return result;

@@ -1,7 +1,8 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { is } from '../lib/is';
-import { xml, jid } from '@xmpp/client';
+import * as ltx from 'ltx';
+import * as xml from '@xmpp/xml';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -647,7 +648,7 @@ export namespace HostedInventoryItemProvider
 
         nicknameKnownByServer = '';
         avatarKnownByServer = '';
-        stanzaOutFilter(stanza: xml): xml
+        stanzaOutFilter(stanza: ltx.Element): ltx.Element
         {
             if (stanza.name === 'presence') {
                 if (as.String(stanza.attrs['type'], 'available') === 'available') {
@@ -726,7 +727,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        getDependentPresence(itemId: string, roomJid: string): xml
+        getDependentPresence(itemId: string, roomJid: string): ltx.Element
         {
             let item = this.backpack.getItem(itemId);
             if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
@@ -946,7 +947,7 @@ export namespace HostedInventoryItemProvider
 
         private itemsRequestedForDependendPresence = new Set<string>();
 
-        async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
+        async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): Promise<void>
         {
             const vpProps = dependentPresence.getChildren('x').find(child => child.attrs?.xmlns === 'vp:props');
             if (vpProps) {
@@ -994,7 +995,7 @@ export namespace HostedInventoryItemProvider
             this.checkMaintainItemCache();
         }
 
-        private completeDependentPresence(props: ItemProperties, dependentPresence: xml, vpProps: any): void
+        private completeDependentPresence(props: ItemProperties, dependentPresence: ltx.Element, vpProps: any): void
         {
             delete dependentPresence.attrs._incomplete;
             for (let key in props) {

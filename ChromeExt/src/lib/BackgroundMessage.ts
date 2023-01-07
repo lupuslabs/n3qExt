@@ -23,6 +23,17 @@ export function MakeZeroTabStats(): TabStats
     };
 }
 
+export type PresenceData = {
+    roomJid: string,
+    resource: string,
+    avatarUrl: string,
+    badges: string,
+    posX: number,
+    isAvailable: boolean,
+    showAvailability: string,
+    statusMessage: string,
+};
+
 export class BackgroundResponse
 {
     constructor(public ok: boolean, public status?: string, public statusText?: string, public ex?: ItemException) { }
@@ -236,6 +247,11 @@ export class BackgroundMessage
     static sendStanza(stanza: any): Promise<void>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendStanza.name, 'stanza': stanza });
+    }
+
+    static sendRoomPresence(presenceData: PresenceData): Promise<void>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendRoomPresence.name, presenceData });
     }
 
     static pingBackground(): Promise<void>
