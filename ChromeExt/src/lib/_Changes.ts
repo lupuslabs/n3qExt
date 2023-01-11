@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.5', 'x', [
             ['Change', 'Room item popup to adapt to content width'],
+            ['Change', 'Points bar title hover to always show all channels'],
         ]],
         ['1.2.4', 'AvatarMenu', [
             ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],

@@ -84,9 +84,9 @@ export class PointsBar implements IObserver
                 for (let channel in activitiesConfig) {
                     if (props[channel]) {
                         let value = as.Int(props[channel], 0);
-                        if (value != 0) {
+                        // if (value != 0) {
                             title += '\r\n' + this.app.translateText('Activity.' + channel) + ': ' + value;
-                        }
+                        // }
                     }
                 }
             }
