@@ -1041,7 +1041,7 @@
         max-width: 150px;
         background-color: #ffffff;
         //border: 1px solid #888;
-        padding: 3px;
+        padding: 0.5em;
 
         div.n3q-description {
             margin-top: 4px;
@@ -1076,7 +1076,10 @@
         position: absolute;
         left: -60px;
         // bottom: 70px;
-        width: 130px;
+        // width: 130px;
+        width: auto;
+        max-width: 300px;
+        min-width: 130px;
         //opacity: 0.9;
         white-space: nowrap;
         text-overflow: ellipsis;
