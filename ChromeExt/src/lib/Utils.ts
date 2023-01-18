@@ -60,6 +60,11 @@ export class Utils
         return true;
     }
 
+    static isBadgesEnabled()
+    {
+        return this.isBackpackEnabled() && Config.get('badges.enabled', false);
+    }
+
     static parseStringMap(s) {
         const o = {};
         const lines = s.split(' ');

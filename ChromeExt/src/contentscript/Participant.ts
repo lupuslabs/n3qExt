@@ -270,7 +270,7 @@ export class Participant extends Entity
                 this.avatarDisplay.addClass('n3q-participant-avatar');
             }
 
-            if (Config.get('badges.enabled', false)) {
+            if (Utils.isBadgesEnabled()) {
                 this.badgesDisplay = new BadgesController(this.app, this, this.getElem());
             }
 
