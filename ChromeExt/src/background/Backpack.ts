@@ -1,10 +1,10 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { jid } from '@xmpp/client';
+import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
+import { BackpackShowItemData, BackpackRemoveItemData, ContentMessage } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundApp } from './BackgroundApp';
@@ -80,19 +80,19 @@ export class Backpack
 
     requestSendPresenceFromTab(roomJid: string)
     {
-        this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
+        this.app.sendToTabsForRoom(roomJid, { type: ContentMessage.type_sendPresence });
     }
 
     sendAddItemToAllTabs(itemId: string)
     {
         const data = new BackpackShowItemData(itemId, this.getItem(itemId).getProperties());
-        this.app.sendToAllTabs(ContentMessage.type_onBackpackShowItem, data);
+        this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackShowItem, data });
     }
 
     sendRemoveItemToAllTabs(itemId: string)
     {
         const data = new BackpackRemoveItemData(itemId, this.getItem(itemId).getProperties());
-        this.app.sendToAllTabs(ContentMessage.type_onBackpackHideItem, data);
+        this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackHideItem, data });
     }
 
     async init(): Promise<void>
@@ -374,7 +374,7 @@ export class Backpack
             const index = rezzedIds.indexOf(itemId, 0);
             if (index > -1) {
                 rezzedIds.splice(index, 1);
-                if (rezzedIds.length == 0) {
+                if (!rezzedIds.length) {
                     delete this.rooms[roomJid];
                 }
             }
@@ -418,51 +418,36 @@ export class Backpack
             }
         }
 
-        if (stanza.name == 'presence') {
-            let toJid = new jid(stanza.attrs.to);
+        if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
+            let toJid = jid(stanza.attrs.to);
             let roomJid = toJid.bare().toString();
-
-            if (as.String(stanza.attrs['type'], 'available') == 'available') {
-
-                const rezzedIds = this.rooms[roomJid];
-                if (rezzedIds && rezzedIds.length > 0) {
-                    let dependentExtension = this.getDependentPresence(roomJid);
-                    if (dependentExtension) {
-                        stanza.cnode(dependentExtension);
-                    }
+            const rezzedIds = this.rooms[roomJid];
+            if (rezzedIds && rezzedIds.length > 0) {
+                let dependentExtension = this.getDependentPresence(roomJid);
+                if (dependentExtension) {
+                    stanza.cnode(dependentExtension);
                 }
-
             }
         }
 
         return stanza;
     }
 
-    async stanzaInFilter(stanza: ltx.Element): Promise<ltx.Element>
+    stanzaInFilter(stanza: ltx.Element): ltx.Element
     {
-        if (stanza.name == 'presence') {
-            const fromJid = new jid(stanza.attrs.from);
+        if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
+            const fromJid = jid(stanza.attrs.from);
             const roomJid = fromJid.bare().toString();
             const participantNick = fromJid.getResource();
-
-            if (as.String(stanza.attrs['type'], 'available') == 'available') {
-                const vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
-                if (vpDependent) {
-                    const dependentPresences = vpDependent.getChildren('presence');
-                    if (dependentPresences.length > 0) {
-                        for (let i = 0; i < dependentPresences.length; i++) {
-                            const dependentPresence = dependentPresences[i];
-                            const dependentFrom = jid(dependentPresence.attrs.from);
-                            const vpProps = dependentPresence.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:props');
-                            if (vpProps) {
-                                const itemId = vpProps.attrs[Pid.Id];
-                                const providerName = as.String(vpProps.attrs[Pid.Provider], '');
-                                if (this.providers.has(providerName)) {
-                                    const provider = this.providers.get(providerName);
-                                    await provider.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
-                                }
-                            }
-                        }
+            const dependentPresences = stanza.getChildren('x', 'vp:dependent')[0]?.getChildren('presence') ?? [];
+            for (const dependentPresence of dependentPresences) {
+                const vpProps = dependentPresence.getChildren('x', 'vp:props')[0];
+                if (vpProps) {
+                    const itemId = vpProps.attrs[Pid.Id];
+                    const providerName = as.String(vpProps.attrs[Pid.Provider], '');
+                    if (this.providers.has(providerName)) {
+                        const provider = this.providers.get(providerName);
+                        provider.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
                     }
                 }
             }
@@ -471,9 +456,9 @@ export class Backpack
         return stanza;
     }
 
-    async replayPresence(roomJid: string, participantNick: string)
+    replayPresence(roomJid: string, participantNick: string): void
     {
-        await this.app.replayPresence(roomJid, participantNick);
+        this.app.replayPresence(roomJid, participantNick);
     }
 
     private warningNotificatonTime = 0;
@@ -533,7 +518,7 @@ export class Backpack
         data.text = text;
         data.type = type;
         data.iconType = iconType;
-        this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_clientNotification, 'data': data });
+        this.app.sendToTabsForRoom(roomJid, { type: ContentMessage.type_clientNotification, data });
     }
 
 }

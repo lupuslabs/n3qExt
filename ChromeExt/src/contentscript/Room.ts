@@ -1,7 +1,6 @@
 import log = require('loglevel');
 import * as jid from '@xmpp/jid';
-import * as xml from '@xmpp/xml';
-import { Element as XmlElement } from 'ltx';
+import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
@@ -25,11 +24,6 @@ export interface IRoomInfo extends Array<IRoomInfoLine> { }
 
 export class Room
 {
-    private userJid: string;
-    private resource: string = '';
-    private avatar: string = '';
-    private enterRetryCount: number = 0;
-    private maxEnterRetries: number = as.Int(Config.get('xmpp.maxMucEnterRetries', 4));
     private participants: { [nick: string]: Participant; } = {};
     private items: { [nick: string]: RoomItem; } = {};
     private dependents: { [nick: string]: Array<string>; } = {};
@@ -41,15 +35,8 @@ export class Room
     private showAvailability = '';
     private statusMessage = '';
 
-    constructor(protected app: ContentApp, private jid: string, private pageUrl: string, private destination: string, private posX: number)
+    constructor(protected app: ContentApp, private jid: string, private pageUrl: string, private destination: string)
     {
-        const user = Config.get('xmpp.user', '');
-        const domain = Config.get('xmpp.domain', '');
-        if (domain == '') {
-            Panic.now();
-        }
-        this.userJid = user + '@' + domain;
-
         this.chatWindow = new ChatWindow(app, this);
     }
 
@@ -138,45 +125,35 @@ export class Room
         return items;
     }
 
-    iAmAlreadyHere()
+    public iAmAlreadyHere()
     {
         return this.isEntered;
     }
 
     // presence
 
-    async enter(): Promise<void>
+    public async enter(): Promise<void>
     {
         this.isAvailable = true;
-        try {
-            const nickname = await this.app.getUserNickname();
-            this.avatar = await this.app.getUserAvatar();
-            this.resource = await this.getBackpackItemNickname(nickname);
-        } catch (error) {
-            log.info(error);
-            this.resource = 'new-user';
-            this.avatar = '004/pinguin';
-        }
-
-        this.enterRetryCount = 0;
         this.sendPresence();
     }
 
-    sleep(statusMessage: string)
+    public sleep(statusMessage: string)
     {
         this.showAvailability = 'away';
         this.statusMessage = statusMessage;
         this.sendPresence();
     }
 
-    wakeup()
+    public wakeup()
     {
         this.isAvailable = true;
         this.showAvailability = '';
+        this.statusMessage = '';
         this.sendPresence();
     }
 
-    leave(): void
+    public leave(): void
     {
         this.isAvailable = false;
         this.sendPresence();
@@ -185,73 +162,67 @@ export class Room
         this.onUnload();
     }
 
-    onUnload()
+    public onUnload()
     {
         this.stopKeepAlive();
     }
 
-    async onUserSettingsChanged(): Promise<void>
+    public onUserSettingsChanged(): void
     {
-        await this.enter();
-        window.setTimeout(() => this.sendPresence(), as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1) * 1000);
+        if (!this.isAvailable) {
+            (async () => {
+                await this.enter();
+            })().catch(error => this.app.onError(error));
+        }
     }
 
-    sendPresence(): void
+    public sendPresence(): void
     {
-        try {
+        (async () => {
+            const timestamp = Utils.utcStringOfDate(new Date());
             const roomJid = this.jid;
-            const {resource, posX, isAvailable, showAvailability, statusMessage} = this;
-            let avatarUrl = this.app.getAvatarGallery().getAvatarById(this.avatar).getConfigUrl();
-            const badges = as.String(this.getMyParticipant()?.getBadgesDisplay()?.getBadgesStrForPresence());
-            const data = { roomJid, resource, avatarUrl, badges, posX, isAvailable, showAvailability, statusMessage };
-            this.app.sendRoomPresence(data);
-        } catch(error) {
+            const {isAvailable, showAvailability, statusMessage} = this;
+
+            let badges: string = '';
+            try {
+                badges = this.getMyParticipant()?.getBadgesDisplay()?.getBadgesStrForPresence() ?? '';
+            } catch (error) {
+                this.app.onError(error); // Not important enough to panic.
+            }
+
+            const presenceData = {
+                timestamp, roomJid,
+                isAvailable, showAvailability, statusMessage,
+                badges,
+            };
+            this.app.sendRoomPresence(presenceData);
+        })().catch(error => {
             log.info(error);
             Panic.now();
-        }
+        });
     }
 
-    private async getBackpackItemNickname(defaultValue: string): Promise<string> {
-        return as.String(await this.getBackpackItemProperty({ [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }, Pid.NicknameText, defaultValue));
-    }
-
-    async getBackpackItemProperty(filterProperties: ItemProperties, propertyPid: string, defautValue: any): Promise<any>
-    {
-        if (Utils.isBackpackEnabled()) {
-            const propSet = await BackgroundMessage.findBackpackItemProperties(filterProperties);
-            for (const id in propSet) {
-                const props = propSet[id];
-                if (props) {
-                    if (props[propertyPid]) {
-                        return props[propertyPid];
-                    }
-                }
-            }
-        }
-        return defautValue;
-    }
-
-    onPresence(stanza: XmlElement): void
+    public onPresence(stanza: ltx.Element): void
     {
         const presenceType = as.String(stanza.attrs.type, 'available');
         switch (presenceType) {
             case 'available': this.onPresenceAvailable(stanza); break;
             case 'unavailable': this.onPresenceUnavailable(stanza); break;
-            case 'error': this.onPresenceError(stanza); break;
+            default: log.info('Room.onPresence: Unexpected stanza!', { stanza }); break;
         }
     }
 
-    onPresenceAvailable(stanza: XmlElement): void
+    private onPresenceAvailable(stanza: ltx.Element): void
     {
         const to = jid(stanza.attrs.to);
         const from = jid(stanza.attrs.from);
         const resource = from.getResource();
-        const isSelf = (resource === this.resource);
+        const isSelf = stanza.attrs._isSelf ?? false;
         let entity: Entity;
         let isItem = false;
 
         // presence x.vp:props type='item'
-        const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
+        const vpPropsNode = stanza.getChild('x', 'vp:props');
         if (vpPropsNode) {
             const attrs = vpPropsNode.attrs;
             if (attrs) {
@@ -297,7 +268,7 @@ export class Room
 
         {
             const currentDependents = new Array<string>();
-            const vpDependent = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:dependent');
+            const vpDependent = stanza.getChild('x', 'vp:dependent');
             if (vpDependent) {
 
                 const dependentPresences = vpDependent.getChildren('presence');
@@ -322,7 +293,7 @@ export class Room
                 for (let i = 0; i < previousDependents.length; i++) {
                     const value = previousDependents[i];
                     if (!currentDependents.includes(value)) {
-                        const dependentUnavailablePresence = xml('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to.toString() });
+                        const dependentUnavailablePresence = new ltx.Element('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to.toString() });
                         this.onPresence(dependentUnavailablePresence);
                     }
                 }
@@ -332,7 +303,7 @@ export class Room
         }
     }
 
-    onPresenceUnavailable(stanza: XmlElement): void
+    private onPresenceUnavailable(stanza: ltx.Element): void
     {
         const from = jid(stanza.attrs.from);
         const resource = from.getResource();
@@ -347,39 +318,14 @@ export class Room
 
         const currentDependents = this.dependents[resource];
         if (currentDependents) {
-            const to = jid(stanza.attrs.to);
+            const to = stanza.attrs.to;
             for (let i = 0; i < currentDependents.length; i++) {
                 const value = currentDependents[i];
-                const dependentUnavailablePresence = xml('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to });
+                const dependentUnavailablePresence = new ltx.Element('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to });
                 this.onPresence(dependentUnavailablePresence);
             }
             delete this.dependents[resource];
         }
-    }
-
-    onPresenceError(stanza: XmlElement): void
-    {
-        const code = as.Int(stanza.getChildren('error')[0].attrs.code, -1);
-        if (code === 409) {
-            this.reEnterDifferentNick();
-        }
-    }
-
-    private reEnterDifferentNick(): void
-    {
-        this.enterRetryCount++;
-        if (this.enterRetryCount > this.maxEnterRetries) {
-            log.info('Too many retries ', this.enterRetryCount, 'giving up on room', this.jid);
-            return;
-        } else {
-            this.resource = this.getNextNick(this.resource);
-            this.sendPresence();
-        }
-    }
-
-    private getNextNick(nick: string): string
-    {
-        return nick + '_';
     }
 
     private removeAllParticipants()
@@ -428,7 +374,7 @@ export class Room
 
     // message
 
-    onMessage(stanza: XmlElement)
+    onMessage(stanza: ltx.Element)
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -477,9 +423,8 @@ export class Room
 
     protected makeAndSendGroupChatStanza(text: string): void
     {
-        const message = xml('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick })
-            .append(xml('body', { id: Utils.randomString(10) }, text))
-            ;
+        const message = new ltx.Element('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick });
+        message.c('body', { id: Utils.randomString(10) }).t(text);
         this.app.sendStanza(message);
     }
 
@@ -521,17 +466,15 @@ export class Room
 
     sendPrivateChat(text: string, nick: string)
     {
-        const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-            .append(xml('body', {}, text))
-            ;
+        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
+        message.c('body', {}).t(text);
         this.app.sendStanza(message);
     }
 
     sendPoke(nick: string, type: string, countsAsActivity: boolean = true)
     {
-        const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-            .append(xml('x', { 'xmlns': 'vp:poke', 'type': type }))
-            ;
+        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
+        message.c('x', { 'xmlns': 'vp:poke', 'type': type });
         this.app.sendStanza(message);
 
         if (countsAsActivity && Config.get('points.enabled', false)) {
@@ -542,17 +485,15 @@ export class Room
 
     sendPrivateVidconf(nick: string, url: string)
     {
-        const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-            .append(xml('x', { 'xmlns': VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfRequest.key_url]: url }))
-            ;
+        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
+        message.c('x', { 'xmlns': VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfRequest.key_url]: url });
         this.app.sendStanza(message);
     }
 
     sendDeclinePrivateVidconfResponse(nick: string, comment: string)
     {
-        const message = xml('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick })
-            .append(xml('x', { 'xmlns': VpProtocol.Response.xmlns, [VpProtocol.Response.key_to]: VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfResponse.key_type]: [VpProtocol.PrivateVideoconfResponse.type_decline], [VpProtocol.PrivateVideoconfResponse.key_comment]: comment }))
-            ;
+        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
+        message.c('x', { 'xmlns': VpProtocol.Response.xmlns, [VpProtocol.Response.key_to]: VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfResponse.key_type]: [VpProtocol.PrivateVideoconfResponse.type_decline], [VpProtocol.PrivateVideoconfResponse.key_comment]: comment });
         this.app.sendStanza(message);
     }
 
@@ -634,12 +575,6 @@ export class Room
                 },
             });
         }
-    }
-
-    sendMoveMessage(newX: number): void
-    {
-        this.posX = newX;
-        this.sendPresence();
     }
 
     // Item interaction

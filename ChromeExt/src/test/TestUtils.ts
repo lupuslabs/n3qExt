@@ -1,15 +1,12 @@
 import { expect } from 'chai';
 import { Utils } from '../lib/Utils';
-import { xml } from '@xmpp/client';
-import { Room } from '../contentscript/Room';
-const NodeRSA = require('node-rsa');
-import * as crypto from 'crypto';
+import * as ltx from 'ltx';
 
 export class TestUtils
 {
     jsObject2xmlObject_simple_presence()
     {
-        const x = Utils.jsObject2xmlObject(xml('presence'));
+        const x = Utils.jsObject2xmlObject(new ltx.Element('presence'));
         expect(x.name).to.equal('presence');
     }
 
@@ -24,7 +21,7 @@ export class TestUtils
         expect(x.children[1].attrs.xmlns).to.equal('firebat:avatar:state');
         expect(x.children[1].children[0].name).to.equal('position');
         expect(x.children[1].children[0].attrs.x).to.equal('42');
-        expect(Object.getPrototypeOf(Object.getPrototypeOf(x)).getXmlns).to.not.be.undefined;
+        expect(x.getXmlns).to.not.be.undefined;
     }
 
     jsObject2xmlObject_message_with_string_child_as_body_text()

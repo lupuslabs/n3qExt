@@ -195,6 +195,7 @@ export class Config
             pingBackgroundToKeepConnectionAliveSec: 12,
             deferUnavailableSec: 3.0,
             deferAwaySec: 0.2,
+            deferAwailable: 0.05,
             resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec: 1.0,
             versionQueryShareOs: true,
             verboseVersionQuery: false,
@@ -634,7 +635,7 @@ export class Config
                     'iframeApi.avatarCreatedTitle': 'Avatar Received',
                     'iframeApi.avatarActivatedTitle': 'Avatar Activated',
                     'iframeApi.avatarCreatedActivatedTitle': 'Avatar Received and Activated',
-                    
+
                     'Toast.Do not show this message again': 'Do not show this message again',
                     'Toast.greets': '...greeted you',
                     'Toast.byes': '...sent a goodbye',

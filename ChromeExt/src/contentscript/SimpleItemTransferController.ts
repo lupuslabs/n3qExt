@@ -69,15 +69,15 @@
  * Delete item from controller memory.
  * Check that transfer actually happened.
  * Show transfer success toast.
- * 
+ *
  * Recipient 1.a.: Receives offer message ->
  * Add item to local list with state SimpleItemTransferRecipientState.asking.
  * Show item accept question in toast to user.
- * 
+ *
  * Recipient 2.a.: Receives cancel message ->
  * Delete item from controller memory.
  * Show appropriate failure toast.
- * 
+ *
  * Recipient 2.b.: User doesn't react in time ->
  * Delete item from controller memory.
  * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
@@ -103,12 +103,9 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ItemException } from '../lib/ItemException';
 import * as jid from '@xmpp/jid';
-import * as xml from '@xmpp/xml';
-import { Element as XmlElement } from 'ltx';
-import { Element } from 'ltx';
+import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { SimpleErrorToast, SimpleToast, Toast } from './Toast';
-import { JID } from '@xmpp/jid';
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 
@@ -238,7 +235,7 @@ export class SimpleItemTransferController
      *
      * Returns, whether the stanza has been handled.
      */
-    public onStanza(stanza: XmlElement): boolean
+    public onStanza(stanza: ltx.Element): boolean
     {
         if (!as.Bool(Config.get('SimpleItemTransfer.enabled'))) {
             return false;
@@ -430,13 +427,13 @@ export class SimpleItemTransferController
                 return; // Safety net.
             }
             this.senderCleanupItem(itemId, true);
-    
+
             this.senderUnauthorize(record).catch(error => {
                 this.app.onError(ErrorWithData.ofError(
                     error, 'senderDeauthorize failed!', {record: record}, false));
             });
             this.sendMsg(record, SimpleItemTransferMsgType.cancel, cause);
-    
+
             const itemGone = await this.senderHandleItemUpdate(record, true);
             if (itemGone) {
                 // Item disappeared for non-transfer-related reasons.
@@ -718,7 +715,7 @@ export class SimpleItemTransferController
         const item = await BackgroundMessage.backpackTransferComplete(providerId, senderInvId, itemId, transferToken);
         if (!isItemWithId(item)) {
             throw new ErrorWithData(
-                'BackgroundMessage.backpackTransferComplete returned incomplete ItemProperties!', 
+                'BackgroundMessage.backpackTransferComplete returned incomplete ItemProperties!',
                 {record: record, item: item});
         }
         record.item = item;
@@ -752,7 +749,7 @@ export class SimpleItemTransferController
         if (itemGone) {
             this.senderCleanupItem(itemId, true);
             // Todo: Remove check for itemGoneFromBackpack after implementing server-side push updates:
-            if (!itemGoneFromBackpack && mayBeTransferred) {  
+            if (!itemGoneFromBackpack && mayBeTransferred) {
                 // Probably successfully transfered.
                 const translationMods = this.makeUserMsgTranslationModifiers(record);
                 const toastType = 'SimpleItemTransferSenderSent';
@@ -818,10 +815,10 @@ export class SimpleItemTransferController
     //--------------------------------------------------------------------------
     // Inter client communication
 
-    protected parseTransferNodeOfStanza(stanza: Element): undefined|SimpleItemTransferMsg
+    protected parseTransferNodeOfStanza(stanza: ltx.Element): undefined|SimpleItemTransferMsg
     {
         const fromStr: unknown = stanza.attrs.from;
-        let fromJid: undefined|JID = undefined;
+        let fromJid: undefined|jid.JID = undefined;
         let from: undefined|Participant = undefined;
         if (is.string(fromStr)) {
             fromJid = jid(fromStr);
@@ -877,7 +874,7 @@ export class SimpleItemTransferController
             stanza: stanza});
     }
 
-    protected makeMsgStanza(record: SimpleItemTransferRecord, transferNode: xml.Element): xml.Element
+    protected makeMsgStanza(record: SimpleItemTransferRecord, transferNode: ltx.Element): ltx.Element
     {
         const to = record.getMsgReceiver();
         const roomJidStr = this.room.getJid();
@@ -886,20 +883,21 @@ export class SimpleItemTransferController
         const fromJid = jid(roomJidStr);
         fromJid.setResource(this.myParticipant.getRoomNick());
 
-        const stanza = xml('message', {
+        const stanza = new ltx.Element('message', {
             type: 'chat',
             to:   toJid.toString(),
             from: fromJid.toString(),
-        }, transferNode);
+        });
+        stanza.cnode(transferNode);
         return stanza;
     }
 
     protected makeMsgTransferNode(
         record:   SimpleItemTransferRecord,
-        itemNode: xml.Element,
+        itemNode: ltx.Element,
         type:     SimpleItemTransferMsgType,
         cause?:   SimpleItemTransferCancelCause,
-    ): xml.Element {
+    ): ltx.Element {
         const transferAttrs = {};
         transferAttrs['xmlns'] = 'vp:transfer';
         transferAttrs['type'] = type;
@@ -919,11 +917,12 @@ export class SimpleItemTransferController
             transferAttrs['transferToken'] = record.transferToken;
         }
 
-        const transferNode = xml('x', transferAttrs, itemNode);
+        const transferNode = new ltx.Element('x', transferAttrs);
+        transferNode.cnode(itemNode)
         return transferNode;
     }
 
-    protected makeMsgItemNode(record: SimpleItemTransferRecord, type: SimpleItemTransferMsgType): xml.Element
+    protected makeMsgItemNode(record: SimpleItemTransferRecord, type: SimpleItemTransferMsgType): ltx.Element
     {
         let itemFiltered: ItemWithId;
         if (type !== SimpleItemTransferMsgType.offer) {
@@ -935,7 +934,7 @@ export class SimpleItemTransferController
         } else {
             itemFiltered = record.item;
         }
-        const itemNode = xml('item', itemFiltered);
+        const itemNode = new ltx.Element('item', itemFiltered);
         return itemNode;
     }
 
@@ -1017,7 +1016,7 @@ export class SimpleItemTransferController
     {
         if (iteration > 100) {
             throw new ErrorWithData(
-                'Endless recursion detected!', {translatable: translatable, iteration: iteration}); 
+                'Endless recursion detected!', {translatable: translatable, iteration: iteration});
         }
         const nextIteration = iteration + 1;
         const [srcType, srcString, fallback, modifiers]

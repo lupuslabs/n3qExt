@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
-import { xml } from '@xmpp/client';
+import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
@@ -12,7 +12,6 @@ import { RpcProtocol } from '../lib/RpcProtocol';
 import { Utils } from '../lib/Utils';
 import { Backpack } from './Backpack';
 import { IItemProvider } from './ItemProvider';
-import { Item } from './Item';
 const Web3Eth = require('web3-eth');
 
 export class LocalStorageItemProvider implements IItemProvider
@@ -20,7 +19,7 @@ export class LocalStorageItemProvider implements IItemProvider
     static type = 'LocalStorageItemProvider';
     static BackpackIdsKey = 'BackpackIds';
     static BackpackPropsPrefix = 'BackpackItem-';
-    
+
     private rpcClient: RpcClient = new RpcClient();
 
     constructor(private backpack: Backpack, private id, private providerDescription: any)
@@ -29,7 +28,7 @@ export class LocalStorageItemProvider implements IItemProvider
 
     private getBackpackIdsKey(): string
     {
-        if (Config.get('config.clusterName', 'prod') == 'dev') {
+        if (Config.get('config.clusterName', 'prod') === 'dev') {
             return LocalStorageItemProvider.BackpackIdsKey + '-dev';
         }
         return LocalStorageItemProvider.BackpackIdsKey;
@@ -613,34 +612,34 @@ export class LocalStorageItemProvider implements IItemProvider
         }
     }
 
-    stanzaOutFilter(stanza: xml): xml
+    stanzaOutFilter(stanza: ltx.Element): ltx.Element
     {
         return stanza;
     }
 
-    getDependentPresence(itemId: string, roomJid: string): xml
+    getDependentPresence(itemId: string, roomJid: string): ltx.Element
     {
         let item = this.backpack.getItem(itemId);
         if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
 
         const props = item.getProperties();
-        var presence = xml('presence', { 'from': roomJid + '/' + itemId });
-        let attrs = {
+        const presence = new ltx.Element('presence', { 'from': roomJid + '/' + itemId });
+        const attrs = {
             'xmlns': 'vp:props',
             'type': 'item',
             [Pid.Provider]: this.id
         };
-        let signed = as.String(props[Pid.Signed], '').split(' ');
+        const signed = as.String(props[Pid.Signed], '').split(' ');
         for (let pid in props) {
             if (Property.inPresence(pid) || (signed.length > 0 && signed.includes(pid))) {
                 attrs[pid] = props[pid];
             }
         }
-        presence.append(xml('x', attrs));
+        presence.c('x', attrs);
         return presence;
     }
 
-    async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: xml): Promise<void>
+    onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): void
     {
     }
 }

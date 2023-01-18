@@ -2,7 +2,6 @@ import log = require('loglevel');
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import * as ltx from 'ltx';
-import * as xml from '@xmpp/xml';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -733,7 +732,7 @@ export namespace HostedInventoryItemProvider
             if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
 
             const props = item.getProperties();
-            var presence = xml('presence', { 'from': roomJid + '/' + as.String(props[Pid.InventoryId], '') + itemId });
+            const presence = new ltx.Element('presence', { 'from': roomJid + '/' + as.String(props[Pid.InventoryId], '') + itemId });
             let attrs = {
                 'xmlns': 'vp:props',
                 'type': 'item',
@@ -753,7 +752,7 @@ export namespace HostedInventoryItemProvider
             //     attrs[Pid.OwnerName] = ownerName;
             // }
 
-            presence.append(xml('x', attrs));
+            presence.c('x', attrs);
 
             return presence;
         }
@@ -947,7 +946,7 @@ export namespace HostedInventoryItemProvider
 
         private itemsRequestedForDependendPresence = new Set<string>();
 
-        async onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): Promise<void>
+        onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): void
         {
             const vpProps = dependentPresence.getChildren('x').find(child => child.attrs?.xmlns === 'vp:props');
             if (vpProps) {
@@ -1018,7 +1017,7 @@ export namespace HostedInventoryItemProvider
                 let deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                 deferredRequest.itemIds.add(itemId);
             } else {
-                const timer = window.setTimeout(async () =>
+                const timer = window.setTimeout(() =>
                 {
                     const deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                     this.deferredItemPropertiesRequests.delete(timerKey);

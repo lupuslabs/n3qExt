@@ -1,7 +1,7 @@
 import log = require('loglevel');
-import { client, jid } from '@xmpp/client';
-import * as xml from '@xmpp/xml';
+import { client } from '@xmpp/client';
 import * as ltx from 'ltx';
+import * as jid from '@xmpp/jid';
 import { as } from '../lib/as';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -26,7 +26,7 @@ import
     GetChatHistoryResponse,
     NewChatMessageResponse,
     TabStats, MakeZeroTabStats,
-    PresenceData,
+    TabRoomPresenceData,
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -34,6 +34,7 @@ import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { Memory } from '../lib/Memory';
 import { ConfigUpdater } from './ConfigUpdater';
+import { RoomPresenceManager } from './RoomPresenceManager';
 import { Backpack } from './Backpack';
 import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
@@ -67,9 +68,10 @@ export class BackgroundApp
 {
     private xmpp: any;
     private xmppConnected = false;
-    private xmppJid: string;
+    private xmppJid: string = null;
+    private roomPresenceManager: RoomPresenceManager;
     private configUpdater: ConfigUpdater;
-    private resource: string;
+    private resource: string = null;
     private isReady: boolean = false;
     private userId: string = null;
     private backpack: Backpack = null;
@@ -86,11 +88,7 @@ export class BackgroundApp
     private stanzasInCount = 0;
 
     private readonly stanzaQ: Array<ltx.Element> = [];
-    private readonly roomJid2tabId: Map<string, Array<number>> = new Map<string, Array<number>>();
-    private readonly fullJid2TabWhichSentUnavailable: Map<string, number> = new Map<string, number>();
-    private readonly fullJid2TimerDeferredUnavailable: Map<string, number> = new Map<string, number>();
-    private readonly fullJid2TimerDeferredAway: Map<string, { timer: number, awayStanza?: xml.Element, availableStanza?: xml.Element }> = new Map<string, { timer: number, awayStanza?: any, availableStanza?: any }>();
-    private readonly iqStanzaTabId: Map<string, number> = new Map<string, number>();
+    private readonly iqStanzaTabId: Map<string, number> = new Map();
     private readonly tabs: Map<number, BackgroundTabData> = new Map();
 
     async start(): Promise<void>
@@ -109,8 +107,8 @@ export class BackgroundApp
 
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
-        let firstStart = await Memory.getLocal('client.firstStart', 0);
-        if (firstStart == 0) {
+        let firstStart = as.Int(await Memory.getLocal('client.firstStart', 0));
+        if (firstStart === 0) {
             await Memory.setLocal('client.firstStart', Date.now());
         }
         let startCount = await Memory.getLocal('client.startCount', 0);
@@ -146,40 +144,55 @@ export class BackgroundApp
         await this.configUpdater.startUpdateTimer(() => this.onConfigUpdated());
     }
 
-    getUserId(): string
+    public getUserId(): string
     {
-        let userId = this.userId;
-        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserId); }
+        let userId = this.userId ?? '';
+        if (!userId.length) { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserId); }
         return userId;
     }
 
-    async getUserToken(): Promise<string>
+    public async getUserToken(): Promise<string>
     {
-        let userId = await Memory.getLocal(Utils.localStorageKey_Token(), '');
-        if (userId == null || userId == '') { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserToken); }
+        let userId = as.String(await Memory.getLocal(Utils.localStorageKey_Token(), ''));
+        if (!userId.length) { throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoUserToken); }
         return userId;
     }
 
-    async assertThatThereIsAUserId()
+    public getXmppResource(): null|string
     {
-        let uniqueId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-        if (uniqueId == '') {
+        return this.resource ?? null;
+    }
+
+    public getXmppJid(): null|string
+    {
+        return this.xmppJid ?? null;
+    }
+
+    public getBackpack(): null|Backpack
+    {
+        return this.backpack ?? null;
+    }
+
+    public async assertThatThereIsAUserId()
+    {
+        let uniqueId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
+        if (uniqueId === '') {
             uniqueId = 'mid' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
         }
         this.userId = uniqueId;
     }
 
-    async assertThatThereIsAUserToken()
+    private async assertThatThereIsAUserToken()
     {
-        let token = await Memory.getLocal(Utils.localStorageKey_Token(), '');
-        if (token == '') {
+        let token = as.String(await Memory.getLocal(Utils.localStorageKey_Token(), ''));
+        if (token === '') {
             token = 'mto' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Token(), token);
         }
     }
 
-    async migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal()
+    private async migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal()
     {
         {
             let uniqueId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
@@ -213,7 +226,7 @@ export class BackgroundApp
         }
     }
 
-    async onConfigUpdated()
+    private async onConfigUpdated()
     {
         if (this.backpack == null) {
             if (Utils.isBackpackEnabled()) {
@@ -223,8 +236,10 @@ export class BackgroundApp
         }
 
         this.chatHistoryStorage.onUserConfigUpdate();
+        this.roomPresenceManager?.onUserSettingsChanged();
 
         if (!this.xmppStarted) {
+            this.roomPresenceManager = new RoomPresenceManager(this);
             try {
                 await this.startXmpp();
                 this.xmppStarted = true;
@@ -239,18 +254,23 @@ export class BackgroundApp
         }
     }
 
-    stop(): void
+    public stop(): void
     {
         this.configUpdater.stopUpdateTimer();
+        for (const tabId of this.tabs.keys()) {
+            this.onBrowserTabRemoved(tabId);
+        }
 
         // Does not work that way:
         // chrome.runtime?.onMessage.removeListener((message, sender, sendResponse) => { return this.onRuntimeMessage(message, sender, sendResponse); });
 
         // this.unsubscribeItemInventories();
+        this.roomPresenceManager?.stop();
+        this.roomPresenceManager = null;
         this.stopXmpp();
     }
 
-    translateText(key: string, defaultText: string = null): string
+    public translateText(key: string, defaultText: string = null): string
     {
         return this.babelfish.translateText(key, defaultText);
     }
@@ -278,8 +298,9 @@ export class BackgroundApp
 
     private onBrowserTabRemoved(tabId: number): void
     {
-        this.tabs.delete(tabId);
+        this.roomPresenceManager?.onTabUnavailable(tabId);
         this.browserActionGui.forgetTab(tabId);
+        this.tabs.delete(tabId);
     }
 
     public sendIsGuiEnabledStateToTab(tabId: number): void
@@ -299,6 +320,7 @@ export class BackgroundApp
     private onSignalContentAppStop(tabId: number): void
     {
         this.tabs.delete(tabId);
+        this.roomPresenceManager?.onTabUnavailable(tabId);
         this.browserActionGui.forgetTab(tabId);
     }
 
@@ -308,7 +330,7 @@ export class BackgroundApp
         this.browserActionGui.updateBrowserActionGui(tabId);
     }
 
-    onDirectRuntimeMessage(message: any, sendResponse: (response?: any) => void)
+    public onDirectRuntimeMessage(message: any, sendResponse: (response?: any) => void)
     {
         const sender = { tab: { id: 0 } };
         this.onRuntimeMessage(message, sender, sendResponse);
@@ -497,7 +519,7 @@ export class BackgroundApp
     private readonly httpCacheRequests: Map<string, Array<{resolve: (blob: Blob) => void, reject: (error: any) => void}>> = new Map();
     private lastCacheMaintenanceTime: number = 0;
 
-    checkMaintainHttpCache(): void
+    private checkMaintainHttpCache(): void
     {
         let now = Date.now();
         let maintenanceIntervalSec = Config.get('httpCache.maintenanceIntervalSec', 60);
@@ -507,7 +529,7 @@ export class BackgroundApp
         }
     }
 
-    maintainHttpCache(): void
+    private maintainHttpCache(): void
     {
         if (Utils.logChannel('backgroundFetchUrlCache', true)) { log.info('BackgroundApp.maintainHttpCache'); }
         let cacheTimeout = Config.get('httpCache.maxAgeSec', 3600);
@@ -534,7 +556,7 @@ export class BackgroundApp
         });
     }
 
-    fetchUrl(url: string, version: string): Promise<Blob>
+    private fetchUrl(url: string, version: string): Promise<Blob>
     {
         this.checkMaintainHttpCache();
         return new Promise<Blob>((resolve, reject) => {
@@ -559,7 +581,7 @@ export class BackgroundApp
         });
     }
 
-    fetchUrlFromServer(key: string, url: string, version: string): void
+    private fetchUrlFromServer(key: string, url: string, version: string): void
     {
         (async () => {
             let response: Response;
@@ -606,7 +628,7 @@ export class BackgroundApp
         });
     }
 
-    handle_fetchUrl(url: unknown, version: unknown, sendResponse: (response?: any) => void): boolean
+    private handle_fetchUrl(url: unknown, version: unknown, sendResponse: (response?: any) => void): boolean
     {
         (async () => {
             if (!is.string(url)) {
@@ -645,7 +667,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_fetchUrlAsDataUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
+    private handle_fetchUrlAsDataUrl(url: any, version: any, sendResponse: (response?: any) => void): boolean
     {
         (async () => {
             if (!is.string(url)) {
@@ -684,7 +706,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_jsonRpc(url: string, postBody: any, sendResponse: (response?: any) => void): boolean
+    private handle_jsonRpc(url: string, postBody: any, sendResponse: (response?: any) => void): boolean
     {
         try {
             fetch(url, {
@@ -728,7 +750,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_waitReady(sendResponse: (response?: any) => void): boolean
+    private handle_waitReady(sendResponse: (response?: any) => void): boolean
     {
         if (Utils.logChannel('contentStart', true)) { log.info('BackgroundApp.handle_waitReady'); }
         let sendResponseIsAsync = false;
@@ -751,7 +773,7 @@ export class BackgroundApp
         return sendResponseIsAsync;
     }
 
-    handle_getConfigTree(name: any): any
+    private handle_getConfigTree(name: any): any
     {
         if (Utils.logChannel('contentStart', true)) { log.info('BackgroundApp.handle_getConfigTree', name, this.isReady); }
         switch (as.String(name, Config.onlineConfigName)) {
@@ -762,33 +784,7 @@ export class BackgroundApp
         return Config.getOnlineTree();
     }
 
-    handle_getSessionConfig(key: string): any
-    {
-        let response = {};
-        try {
-            let value = Config.get(key, undefined);
-            if (value != undefined) {
-                response[key] = value;
-            }
-        } catch (error) {
-            log.debug('BackgroundApp.handle_getSessionConfig', error);
-        }
-
-        log.debug('BackgroundApp.handle_getSessionConfig', key, 'response', response);
-        return response;
-    }
-
-    handle_setSessionConfig(key: string, value: string): any
-    {
-        log.debug('BackgroundApp.handle_setSessionConfig', key, value);
-        try {
-            Memory.setSession(key, value);
-        } catch (error) {
-            log.debug('BackgroundApp.handle_setSessionConfig', error);
-        }
-    }
-
-    handle_getBackpackState(sendResponse: (response?: any) => void): boolean
+    private handle_getBackpackState(sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             let items = this.backpack.getItems();
@@ -799,7 +795,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_backpackIsItemStillInRepo(itemId: string, sendResponse: (response?: any) => void): boolean
+    private handle_backpackIsItemStillInRepo(itemId: string, sendResponse: (response?: any) => void): boolean
     {
         if (!this.backpack) {
             const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
@@ -812,7 +808,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_addBackpackItem(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
+    private handle_addBackpackItem(itemId: string, properties: ItemProperties, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.addItem(itemId, properties, options)
@@ -825,7 +821,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_modifyBackpackItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
+    private handle_modifyBackpackItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.modifyItemProperties(itemId, changed, deleted, options)
@@ -838,7 +834,7 @@ export class BackgroundApp
         return false;
     }
 
-    loadWeb3BackpackItems(sendResponse: (response?: any) => void): boolean
+    private loadWeb3BackpackItems(sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.loadWeb3Items()
@@ -851,7 +847,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_rezBackpackItem(itemId: string, room: string, x: number, destination: string, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
+    private handle_rezBackpackItem(itemId: string, room: string, x: number, destination: string, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.rezItem(itemId, room, x, destination, options)
@@ -864,7 +860,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_derezBackpackItem(itemId: string, roomJid: string, x: number, y: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
+    private handle_derezBackpackItem(itemId: string, roomJid: string, x: number, y: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.derezItem(itemId, roomJid, x, y, changed, deleted, options)
@@ -877,7 +873,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_deleteBackpackItem(itemId: string, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
+    private handle_deleteBackpackItem(itemId: string, options: ItemChangeOptions, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.deleteItem(itemId, options)
@@ -890,7 +886,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_isBackpackItem(itemId: string, sendResponse: (response?: any) => void): boolean
+    private handle_isBackpackItem(itemId: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             let isItem = this.backpack.isItem(itemId);
@@ -901,7 +897,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_getBackpackItemProperties(itemId: string, sendResponse: (response?: any) => void): boolean
+    private handle_getBackpackItemProperties(itemId: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             try {
@@ -916,7 +912,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_findBackpackItemProperties(filterProperties: ItemProperties, sendResponse: (response?: any) => void): boolean
+    private handle_findBackpackItemProperties(filterProperties: ItemProperties, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             let items = this.backpack.findItems(props =>
@@ -940,7 +936,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_executeBackpackItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, sendResponse: (response?: any) => void): boolean
+    private handle_executeBackpackItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.executeItemAction(itemId, action, args, involvedIds, false)
@@ -953,7 +949,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_getItemsByInventoryItemIds(itemsToGet: ItemProperties[], sendResponse: (response?: any) => void): boolean
+    private handle_getItemsByInventoryItemIds(itemsToGet: ItemProperties[], sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.getItemsByInventoryItemIds(itemsToGet)
@@ -970,7 +966,7 @@ export class BackgroundApp
 
     private lastPointsSubmissionTime: number = 0;
     private pointsActivities: Array<PointsActivity> = [];
-    handle_pointsActivity(channel: string, n: number, sendResponse: (response?: any) => void): boolean
+    private handle_pointsActivity(channel: string, n: number, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             if (Config.get('points.enabled', false)) {
@@ -998,7 +994,7 @@ export class BackgroundApp
     }
 
     private pointsActivitiesTimes: Map<string, number> = new Map<string, number>();
-    isPointsActivityIgnoredBecauseNeedsPause(channel: string): boolean
+    private isPointsActivityIgnoredBecauseNeedsPause(channel: string): boolean
     {
         let ignore = false;
 
@@ -1016,7 +1012,7 @@ export class BackgroundApp
         return ignore;
     }
 
-    handle_applyItemToBackpackItem(activeId: string, passiveId: string, sendResponse: (response?: any) => void): boolean
+    private handle_applyItemToBackpackItem(activeId: string, passiveId: string, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.applyItemToItem(activeId, passiveId)
@@ -1029,7 +1025,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_backpackTransferAuthorize(itemId: string, duration: number, sendResponse: (response?: any) => void): boolean
+    private handle_backpackTransferAuthorize(itemId: string, duration: number, sendResponse: (response?: any) => void): boolean
     {
         if (!this.backpack) {
             const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
@@ -1042,7 +1038,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_backpackTransferUnauthorize(itemId: string, sendResponse: (response?: any) => void): boolean
+    private handle_backpackTransferUnauthorize(itemId: string, sendResponse: (response?: any) => void): boolean
     {
         if (!this.backpack) {
             const error = new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
@@ -1055,7 +1051,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_backpackTransferComplete(
+    private handle_backpackTransferComplete(
         provider: string, senderInventoryId: string, senderItemId: string, transferToken: string,
         sendResponse: (response?: any) => void,
     ): boolean
@@ -1074,7 +1070,7 @@ export class BackgroundApp
         return true;
     }
 
-    handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
+    private handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties, sendResponse: (response?: any) => void): boolean
     {
         if (this.backpack) {
             this.backpack.createItem(provider, auth, method, args)
@@ -1087,7 +1083,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_newChatMessage(
+    private handle_newChatMessage(
         chat: unknown, chatMessage: unknown, deduplicate: unknown, sendResponse: (response: any) => void,
     ): boolean {
         if (!isChat(chat)) {
@@ -1117,7 +1113,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_getChatHistory(chat: unknown, sendResponse: (response: any) => void): boolean
+    private handle_getChatHistory(chat: unknown, sendResponse: (response: any) => void): boolean
     {
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
@@ -1134,7 +1130,7 @@ export class BackgroundApp
         return false;
     }
 
-    handle_deleteChatHistory(chat: unknown, olderThanTime: unknown, sendResponse: (response: any) => void): boolean
+    private handle_deleteChatHistory(chat: unknown, olderThanTime: unknown, sendResponse: (response: any) => void): boolean
     {
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
@@ -1157,333 +1153,74 @@ export class BackgroundApp
         return false;
     }
 
-    sendPersistedChatMessageToTabs(chat: Chat, chatMessage: ChatMessage): void
+    private sendPersistedChatMessageToTabs(chat: Chat, chatMessage: ChatMessage): void
     {
-        const tabIds = this.getRoomJid2TabIds(chat.roomJid) ?? [];
-        for (const tabId of tabIds) {
-            this.sendToTab(tabId, ContentMessage.type_chatMessagePersisted, {chat, chatMessage});
-        }
+        const message = { type: ContentMessage.type_chatMessagePersisted, data: {chat, chatMessage} };
+        this.sendToTabsForRoom(chat.roomJid, message);
     }
 
-    sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
+    private sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
     {
         for (const [roomJid, deletions] of deletionsByRoomJid) {
-            const tabIds = this.getRoomJid2TabIds(roomJid) ?? [];
-            for (const tabId of tabIds) {
-                this.sendToTab(tabId, ContentMessage.type_chatHistoryDeleted, {deletions});
-            }
+            const message = { type: ContentMessage.type_chatHistoryDeleted, data: {deletions} };
+            this.sendToTabsForRoom(roomJid, message);
         }
     }
 
-    addRoomJid2TabId(room: string, tabId: number): void
+    private getRoomJid2TabIds(roomJid: string): number[]
     {
-        let tabIds = this.getRoomJid2TabIds(room);
-        if (!tabIds) {
-            tabIds = new Array<number>();
-            this.roomJid2tabId[room] = tabIds;
-        }
-        if (!tabIds.includes(tabId)) {
-            tabIds.push(tabId);
-        }
+        return this.roomPresenceManager?.getTabIdsByRoomJid(roomJid) ?? [];
     }
 
-    removeRoomJid2TabId(room: string, tabId: number): void
+    private getAllTabIds(): number[]
     {
-        let tabIds = this.getRoomJid2TabIds(room);
-        if (tabIds) {
-            const index = tabIds.indexOf(tabId, 0);
-            if (index > -1) {
-                tabIds.splice(index, 1);
-                if (tabIds.length == 0) {
-                    delete this.roomJid2tabId[room];
-                }
-            }
-        }
-    }
-
-    getRoomJid2TabIds(room: string): Array<number>
-    {
-        return this.roomJid2tabId[room];
-    }
-
-    hasRoomJid2TabId(room: string, tabId: number): boolean
-    {
-        var tabIds = this.getRoomJid2TabIds(room);
-        if (tabIds) {
-            return tabIds.includes(tabId);
-        }
-        return false;
-    }
-
-    // hasRoomJid2(room: string): boolean
-    // {
-    //     var tabIds = this.getRoomJid2TabIds(room);
-    //     if (tabIds) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    getAllTabIds(): Array<number>
-    {
-        let tabIds = [];
-        for (let room in this.roomJid2tabId) {
-            let roomTabIds = this.roomJid2tabId[room];
-            for (let i = 0; i < roomTabIds.length; i++) {
-                let tabId = roomTabIds[i];
-                if (!tabIds.includes(tabId)) {
-                    tabIds.push(tabId);
-                }
-            }
-        }
-        return tabIds;
-    }
-
-    // keep room state
-
-    private readonly fullJid2PresenceList = new Map<string, Map<string, ltx.Element>>();
-
-    presenceStateAddPresence(roomJid: string, participantNick: string, stanza: ltx.Element): void
-    {
-        let roomPresences = this.fullJid2PresenceList.get(roomJid);
-        if (roomPresences) { } else {
-            roomPresences = new Map<string, ltx.Element>();
-            this.fullJid2PresenceList.set(roomJid, roomPresences);
-        }
-        roomPresences.set(participantNick, stanza);
-    }
-
-    presenceStateRemovePresence(roomJid: string, participantNick: string): void
-    {
-        let roomPresences = this.fullJid2PresenceList.get(roomJid);
-        if (roomPresences) {
-            if (roomPresences.has(participantNick)) {
-                roomPresences.delete(participantNick);
-            }
-
-            if (roomPresences.size == 0) {
-                this.fullJid2PresenceList.delete(roomJid);
-            }
-        }
-    }
-
-    presenceStateGetPresence(roomJid: string, participantNick: string): ltx.Element
-    {
-        let roomPresences = this.fullJid2PresenceList.get(roomJid);
-        if (roomPresences) {
-            if (roomPresences.has(participantNick)) {
-                return roomPresences.get(participantNick);
-            }
-        }
-        return null;
-    }
-
-    presenceStateRemoveRoom(roomJid: string): void
-    {
-        if (this.fullJid2PresenceList.has(roomJid)) {
-            this.fullJid2PresenceList.delete(roomJid);
-        }
-    }
-
-    getPresenceStateOfRoom(roomJid: string): Map<string, ltx.Element>
-    {
-        let roomPresences = this.fullJid2PresenceList.get(roomJid);
-        if (roomPresences) {
-            return roomPresences;
-        }
-        return new Map<string, ltx.Element>();
+        return [...this.tabs.keys()];
     }
 
     // send/recv stanza
 
-    handle_sendStanza(stanza: any, tabId: number): BackgroundResponse
+    private handle_sendStanza(stanza: any, tabId: number): BackgroundResponse
     {
         // log.debug('BackgroundApp.handle_sendStanza', stanza, tabId);
 
         try {
             let xmlStanza: ltx.Element = Utils.jsObject2xmlObject(stanza);
-            let send = true;
 
             if (this.backpack) {
                 xmlStanza = this.backpack.stanzaOutFilter(xmlStanza);
                 if (xmlStanza == null) { return; }
             }
 
-            if (xmlStanza.name == 'iq') {
+            if (xmlStanza.name === 'iq') {
                 if (xmlStanza.attrs) {
                     let stanzaType = xmlStanza.attrs.type;
                     let stanzaId = xmlStanza.attrs.id;
-                    if ((stanzaType == 'get' || stanzaType == 'set') && stanzaId) {
-                        this.iqStanzaTabId[stanzaId] = tabId;
+                    if ((stanzaType === 'get' || stanzaType === 'set') && stanzaId) {
+                        this.iqStanzaTabId.set(stanzaId, tabId);
                     }
                 }
             }
 
-            if (send) {
-                this.sendStanza(xmlStanza);
-            }
+            this.sendStanza(xmlStanza);
 
         } catch (error) {
             log.debug('BackgroundApp.handle_sendStanza', error);
         }
     }
 
-    private handle_sendRoomPresence(tabId: number, presenceData: PresenceData): BackgroundResponse
+    private handle_sendRoomPresence(tabId: number, presenceData: TabRoomPresenceData): BackgroundResponse
     {
         try {
-            this.sendRoomPresence(tabId, presenceData);
+            this.roomPresenceManager?.sendTabRoomPresence(tabId, presenceData);
             return new BackgroundSuccessResponse();
         } catch (error) {
             return new BackgroundErrorResponse('error', error);
         }
     }
 
-    presenceIndicatesAway(stanza: ltx.Element)
+    public replayPresence(roomJid: string, participantResource: string): void
     {
-        let showNode = stanza.getChild('show');
-        if (showNode) {
-            let show = showNode.getText();
-            switch (show) {
-                case 'away':
-                case 'xa':
-                case 'dnd':
-                    return true;
-                    break;
-            }
-        }
-        return false;
-    }
-
-    replayPresenceToTab(roomJid: string, tabId: number)
-    {
-        let roomPresences = this.getPresenceStateOfRoom(roomJid);
-        for (let [nick, stanza] of roomPresences) {
-            window.setTimeout(() =>
-            {
-                ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
-            }, 1);
-        }
-    }
-
-    //private deferredReplayPresenceToAvoidManyConsecutivePresencesTimer = new Map<string, number>();
-
-    async replayPresence(roomJid: string, participantNick: string)
-    {
-        let stanza = this.presenceStateGetPresence(roomJid, participantNick);
-        if (stanza !== null) {
-            stanza.attrs._replay = true;
-            await this.recvStanza(stanza);
-        }
-
-        // const timerKey = roomJid + '/' + participantNick;
-        // if (!this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.has(timerKey)) {
-
-        //     const timer = window.setTimeout(async () =>
-        //     {
-        //         this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.delete(timerKey);
-
-        //         let stanza = this.presenceStateGetPresence(roomJid, participantNick);
-        //         if (stanza !== null) {
-        //             stanza.attrs._replay = true;
-        //             await this.recvStanza(stanza);
-        //         }
-        //     }, Config.get('itemCache.deferReplayPresenceSec', 0.3) * 1000);
-
-        //     this.deferredReplayPresenceToAvoidManyConsecutivePresencesTimer.set(timerKey, timer);
-        // }
-    }
-
-    private simulateUnavailableToTab(from: string, unavailableTabId: number)
-    {
-        let stanza = xml('presence', { type: 'unavailable', 'from': from, 'to': this.xmppJid });
-        window.setTimeout(() =>
-        {
-            ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': stanza });
-        }, 100);
-    }
-
-    private deferUnavailable(to: string)
-    {
-        if (this.fullJid2TimerDeferredUnavailable[to]) {
-            // wait for it
-        } else {
-            if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.deferUnavailable'); }
-            this.fullJid2TimerDeferredUnavailable[to] = window.setTimeout(() =>
-            {
-                if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.deferUnavailable', 'execute deferred'); }
-                delete this.fullJid2TimerDeferredUnavailable[to];
-                let stanza = xml('presence', { type: 'unavailable', 'to': to });
-                this.sendStanza(stanza);
-                let roomJid = jid(to);
-                let room = roomJid.bare().toString();
-                this.presenceStateRemoveRoom(room);
-            }, Config.get('xmpp.deferUnavailableSec', 2.0) * 1000);
-        }
-    }
-
-    private isDeferredUnavailable(to: string)
-    {
-        if (this.fullJid2TimerDeferredUnavailable[to]) {
-            return true;
-        }
-        return false;
-    }
-
-    private cancelDeferredUnavailable(to: string)
-    {
-        let timer = this.fullJid2TimerDeferredUnavailable[to];
-        if (timer) {
-            if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.cancelDeferredUnavailable'); }
-            window.clearTimeout(timer);
-            delete this.fullJid2TimerDeferredUnavailable[to];
-        }
-    }
-
-    private deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to: string, stanza: ltx.Element): boolean
-    {
-        let deferred = true;
-
-        let deferRecord = this.fullJid2TimerDeferredAway[to];
-        if (deferRecord) {
-            //
-        } else {
-            deferRecord = {};
-            this.fullJid2TimerDeferredAway[to] = deferRecord;
-        }
-
-        if (this.presenceIndicatesAway(stanza)) {
-            if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.deferAway', 'record', 'away'); }
-            deferRecord.awayStanza = stanza;
-        } else {
-            if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.deferAway', 'record', 'available'); }
-            deferRecord.availableStanza = stanza;
-        }
-
-        if (deferRecord.timer == null) {
-            deferRecord.timer = window.setTimeout(() =>
-            {
-                let logWhich = 'none';
-                let logTotal = 0;
-                let stanza: xml.Element = null;
-                if (deferRecord.awayStanza) {
-                    logTotal++;
-                    logWhich = 'away';
-                    stanza = deferRecord.awayStanza;
-                }
-                if (deferRecord.availableStanza) {
-                    logTotal++;
-                    logWhich = 'available';
-                    stanza = deferRecord.availableStanza;
-                }
-                if (Utils.logChannel('backgroundPresenceManagement', true)) { log.info('BackgroundApp.deferAway', 'execute deferred', logWhich, 'of', logTotal); }
-                delete this.fullJid2TimerDeferredAway[to];
-                if (stanza) {
-                    this.sendStanza(stanza);
-                }
-            }, Config.get('xmpp.deferAwaySec', 0.2) * 1000);
-        }
-
-        return !deferred;
+        this.roomPresenceManager?.replayReceivedRoomPresenceStanza(roomJid, participantResource);
     }
 
     public sendStanza(stanza: ltx.Element): void
@@ -1509,12 +1246,12 @@ export class BackgroundApp
 
     private logStanzaButNotBasicConnectionPresence(stanza: ltx.Element)
     {
-        let isConnectionPresence = false;
-        if (stanza.name == 'presence') {
-            isConnectionPresence = (!stanza.attrs || !stanza.attrs.to || jid(stanza.attrs.to).getResource() == this.resource);
-        }
+        const toJid = as.String(stanza.attrs?.to);
+        const isConnectionPresence = stanza.name === 'presence' && (toJid.length === 0 || jid(toJid).getResource() === this.resource);
         if (!isConnectionPresence) {
-            if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name == 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to); }
+            if (Utils.logChannel('backgroundTraffic', true)) {
+                log.info('BackgroundApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', toJid);
+            }
 
             // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
             //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
@@ -1536,264 +1273,77 @@ export class BackgroundApp
         // this.sendStanza(xml('presence').append(xml('x', { xmlns: 'http://jabber.org/protocol/muc' })));
     }
 
-    private sendRoomPresence(tabId: number, presenceData: PresenceData): void
-    {
-        const presence = this.makeRoomPresence(presenceData);
 
-        let send = true;
-
-        let roomJid = presenceData.roomJid;
-        let to = `${roomJid}/${presenceData.resource}`;
-
-        if (presenceData.isAvailable) {
-            if (this.isDeferredUnavailable(to)) {
-                this.cancelDeferredUnavailable(to);
-                send = false;
-            }
-            this.replayPresenceToTab(roomJid, tabId);
-            if (!this.hasRoomJid2TabId(roomJid, tabId)) {
-                this.addRoomJid2TabId(roomJid, tabId);
-                if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.handle_sendStanza', 'adding room2tab mapping', roomJid, '=>', tabId, 'now:', this.roomJid2tabId); }
-            }
-            if (send) {
-                send = this.deferPresenceToPreferShowAvailableOverAwayBecauseQuickSuccessionIsProbablyTabSwitch(to, presence);
-            }
-        } else { // unavailable
-            let tabIds = this.getRoomJid2TabIds(roomJid);
-            if (tabIds) {
-                let simulateLeave = false;
-                if (tabIds.includes(tabId)) {
-                    if (tabIds.length > 1) {
-                        simulateLeave = true;
-                    }
-                    this.removeRoomJid2TabId(roomJid, tabId);
-                    if (simulateLeave) {
-                        send = false;
-                        this.simulateUnavailableToTab(to, tabId);
-                    }
-                }
-            }
-            if (send) {
-                if (Config.get('xmpp.deferUnavailableSec', 0) > 0) {
-                    this.deferUnavailable(to);
-                    send = false;
-                } else {
-                    this.fullJid2TabWhichSentUnavailable[to] = tabId;
-                }
-            }
-            if (send) {
-                this.presenceStateRemoveRoom(roomJid);
-            }
-        }
-
-        if (send) {
-            this.sendStanza(presence);
-        }
-
-    }
-
-    private makeRoomPresence(presenceData: PresenceData): ltx.Element
-    {
-        const user = Config.get('xmpp.user', '');
-        const domain = Config.get('xmpp.domain', '');
-        const userJid = `${user}@${domain}`;
-        let {roomJid, resource, avatarUrl, badges, posX, isAvailable, showAvailability, statusMessage} = presenceData;
-
-        const vpProps = {
-            xmlns: 'vp:props',
-            timestamp: Date.now(),
-        };
-
-        const nicknameItemProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' };
-        const itemNickname = this.backpack?.getFirstFilteredItemsPropertyValue(nicknameItemProps, Pid.NicknameText);
-        const nickname = itemNickname ?? resource;
-        vpProps['Nickname'] = nickname;
-        vpProps['nickname'] = nickname;
-
-        const avatarItemProps = { [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' };
-        const itemAvatarUrl = this.backpack?.getFirstFilteredItemsPropertyValue(avatarItemProps, Pid.AvatarAnimationsUrl);
-        vpProps['AvatarUrl'] = itemAvatarUrl ?? avatarUrl;
-
-        let points = 0;
-        if (Config.get('points.enabled', false)) {
-            const pointsItemProps = { [Pid.PointsAspect]: 'true' };
-            points = as.Int(this.backpack?.getFirstFilteredItemsPropertyValue(pointsItemProps, Pid.PointsTotal));
-            if (points > 0) {
-                vpProps['Points'] = points;
-            }
-        }
-
-        if (badges.length !== 0) {
-            vpProps['Badges'] = badges;
-        }
-
-        let presence = new ltx.Element('presence', { to: `${roomJid}/${resource}` });
-        if (!isAvailable) {
-            presence.attrs.type = 'unavailable';
-        }
-
-        presence.c('x', { xmlns: 'firebat:avatar:state', }).c('position', { x: as.Int(posX) });
-
-        if (showAvailability !== '') {
-            presence.c('show').t(showAvailability);
-        }
-        if (statusMessage !== '') {
-            presence.c('status').t(statusMessage);
-        }
-
-        presence.c('x', vpProps);
-
-        let identityUrl = as.String(Config.get('identity.url'), '');
-        let identityDigest = as.String(Config.get('identity.digest'), '1');
-        if (identityUrl === '') {
-            identityDigest = as.String(Utils.hash(this.resource + avatarUrl));
-            identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
-                .replace('{nickname}', encodeURIComponent(nickname))
-                .replace('{avatarUrl}', encodeURIComponent(avatarUrl))
-                .replace('{digest}', encodeURIComponent(identityDigest))
-                .replace('{imageUrl}', encodeURIComponent(''))
-                ;
-            if (points > 0) { identityUrl = identityUrl.replace('{points}', encodeURIComponent('' + points)); }
-        }
-        if (identityUrl !== '') {
-            presence.c('x', { xmlns: 'firebat:user:identity', 'jid': userJid, 'src': identityUrl, 'digest': identityDigest });
-        }
-
-        presence
-            .c('x', { xmlns: 'http://jabber.org/protocol/muc' })
-            .c('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' });
-
-        presence = this.backpack?.stanzaOutFilter(presence) ?? presence;
-        return presence;
-    }
-
-    private async recvStanza(xmlStanza: ltx.Element)
+    private recvStanza(xmlStanza: ltx.Element)
     {
         this.stanzasInCount++;
 
-        let isConnectionPresence = false;
-        {
-            if (xmlStanza.name == 'presence') {
-                isConnectionPresence = xmlStanza.attrs.from && (jid(xmlStanza.attrs.from).getResource() == this.resource);
-            }
-            if (!isConnectionPresence) {
-                const isReplay = as.Bool(xmlStanza.attrs._replay, false);
-                if (!isReplay) {
-                    if (Utils.logChannel('backgroundTraffic', true)) { log.info('BackgroundApp.recvStanza', xmlStanza, as.String(xmlStanza.attrs.type, xmlStanza.name == 'presence' ? 'available' : 'normal'), 'to=', xmlStanza.attrs.to, 'from=', xmlStanza.attrs.from); }
-                }
-
-                // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
-                //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
-                //     if (vpNode) {
-                //         let xmppNickname = jid(stanza.attrs.from).getResource();
-                //         let vpNickname = as.String(vpNode.attrs.Nickname, '');
-                //         log.debug('recv ########', xmppNickname, vpNickname);
-                //         if (xmppNickname != vpNickname) {
-                //             log.debug('recv ########', xmppNickname, '-x-', vpNickname);
-                //         }
-                //     }
-                // }
-            }
+        const isError = xmlStanza.attrs.type === 'error';
+        if (isError) {
+            log.info('BackgroundApp.recvStanza: Stanza is an error.', { xmlStanza });
         }
 
-        if (this.backpack) {
-            xmlStanza = await this.backpack.stanzaInFilter(xmlStanza);
-            if (xmlStanza == null) { return; }
+        let fromJid: null|jid.JID;
+        try {
+            fromJid = jid(xmlStanza.attrs.from);
+        } catch (error) {
+            fromJid = null;
+        }
+        const isPresence = fromJid && xmlStanza.name === 'presence';
+        const isConnectionPresence = isPresence && fromJid?.getResource() === this.resource;
+        const isRoomPresence = isPresence && !isConnectionPresence;
+
+        if (isRoomPresence) {
+            this.roomPresenceManager?.onReceivedRoomPresenceStanza(xmlStanza);
         }
 
-        if (xmlStanza.name == 'iq') {
-            if (xmlStanza.attrs) {
-                let stanzaType = xmlStanza.attrs.type;
-                let stanzaId = xmlStanza.attrs.id;
-                if (stanzaType == 'result' && stanzaId) {
-                    let tabId = this.iqStanzaTabId[stanzaId];
-                    if (tabId) {
-                        delete this.iqStanzaTabId[stanzaId];
-                        ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
-                    }
+        if (xmlStanza.name === 'iq') {
+            const stanzaType = xmlStanza.attrs.type;
+            const stanzaId = xmlStanza.attrs.id;
+            if (stanzaType === 'result' && stanzaId) {
+                const tabId = this.iqStanzaTabId.get(stanzaId);
+                if (tabId) {
+                    this.iqStanzaTabId.delete(stanzaId);
+                    this.sendToTab(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
                 }
+            }
 
-                if (stanzaType == 'get' && stanzaId) {
-                    await this.onIqGet(xmlStanza);
-                }
+            if (stanzaType === 'get' && stanzaId) {
+                this.onIqGet(xmlStanza).catch(error => log.info('BackgroundApp.recvStanza: onIqGet failed!', { error }));
             }
         }
 
-        if (xmlStanza.name == 'message') {
-            let from = jid(xmlStanza.attrs.from);
-            let room = from.bare().toString();
-
-            let tabIds = this.getRoomJid2TabIds(room);
-            if (tabIds) {
-                for (let i = 0; i < tabIds.length; i++) {
-                    let tabId = tabIds[i];
-                    ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
-                }
-            }
-        }
-
-        if (xmlStanza.name == 'presence') {
-            let from = jid(xmlStanza.attrs.from);
-            let room = from.bare().toString();
-            let nick = from.getResource();
-
-            if (nick != '') {
-                if (as.String(xmlStanza.attrs['type'], 'available') == 'available') {
-                    if (!isConnectionPresence) {
-                        this.presenceStateAddPresence(room, nick, xmlStanza);
-                    }
-                } else {
-                    this.presenceStateRemovePresence(room, nick);
-                }
-
-                let unavailableTabId: number = -1;
-                if (xmlStanza.attrs && xmlStanza.attrs['type'] == 'unavailable') {
-                    unavailableTabId = this.fullJid2TabWhichSentUnavailable[from];
-                    if (unavailableTabId) {
-                        delete this.fullJid2TabWhichSentUnavailable[from];
-                    }
-                }
-
-                if (unavailableTabId >= 0) {
-                    ContentMessage.sendMessage(unavailableTabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
-                    this.removeRoomJid2TabId(room, unavailableTabId);
-                    if (Utils.logChannel('room2tab', true)) { log.info('BackgroundApp.recvStanza', 'removing room2tab mapping', room, '=>', unavailableTabId, 'now:', this.roomJid2tabId); }
-                } else {
-                    let tabIds = this.getRoomJid2TabIds(room);
-                    if (tabIds) {
-                        for (let i = 0; i < tabIds.length; i++) {
-                            let tabId = tabIds[i];
-                            ContentMessage.sendMessage(tabId, { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza });
-                        }
-                    }
-                }
-            } // nick
+        if (fromJid && xmlStanza.name === 'message') {
+            let roomJid = fromJid.bare().toString();
+            const message = { 'type': ContentMessage.type_recvStanza, 'stanza': xmlStanza };
+            this.sendToTabsForRoom(roomJid, message);
         }
     }
 
-    async onIqGet(stanza: any): Promise<void>
+    private async onIqGet(stanza: ltx.Element): Promise<void>
     {
-        let versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
+        const versionQuery = stanza.getChild('query', 'jabber:iq:version');
         if (versionQuery) {
             await this.onIqGetVersion(stanza);
         }
     }
 
-    async onIqGetVersion(stanza: any): Promise<void>
+    private async onIqGetVersion(stanza: ltx.Element): Promise<void>
     {
         if (stanza.attrs) {
-            let id = stanza.attrs.id;
+            const id = stanza.attrs.id;
             if (id) {
-                let versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
+                const versionQuery = stanza.getChild('query', 'jabber:iq:version');
                 if (versionQuery) {
-                    let queryResponse = xml('query', { xmlns: 'jabber:iq:version', });
+                    const response = new ltx.Element('iq', { type: 'result', 'id': id, 'to': stanza.attrs.from });
+                    const queryResponse = response.c('query', { xmlns: 'jabber:iq:version', });
 
-                    queryResponse.append(xml('name', {}, Config.get('client.name', '_noname')))
-                    queryResponse.append(xml('version', {}, Client.getVersion()))
+                    queryResponse.c('name', {}).t(Config.get('client.name', '_noname'));
+                    queryResponse.c('version', {}).t(Client.getVersion());
 
                     let verbose = false;
-                    let auth = as.String(versionQuery.attrs.auth, '');
-                    if (auth != '' && auth == Config.get('xmpp.verboseVersionQueryWeakAuth', '')) {
+                    const auth = as.String(versionQuery.attrs.auth, '');
+                    if (auth !== '' && auth === Config.get('xmpp.verboseVersionQueryWeakAuth', '')) {
                         verbose = true;
                     }
                     if (verbose) {
@@ -1802,39 +1352,38 @@ export class BackgroundApp
                         }
                     }
                     if (verbose) {
-                        let now = Date.now();
-                        let firstStart = await Memory.getLocal('client.firstStart', 0);
-                        let startCount = await Memory.getLocal('client.startCount', 0);
-                        let userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
-                        let itemCount = this.backpack != null ? this.backpack.getItemCount() : -1;
-                        let rezzedItemCount = this.backpack != null ? this.backpack.getRezzedItemCount() : -1;
+                        const now = Date.now();
+                        const firstStart = await Memory.getLocal('client.firstStart', 0);
+                        const startCount = await Memory.getLocal('client.startCount', 0);
+                        const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                        const itemCount = this.backpack != null ? this.backpack.getItemCount() : -1;
+                        const rezzedItemCount = this.backpack != null ? this.backpack.getRezzedItemCount() : -1;
                         let points = -1
-                        let pointsItems = this.backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false));
+                        const pointsItems = this.backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false));
                         if (pointsItems.length > 0) { points = as.Int(pointsItems[0].getProperties()[Pid.PointsTotal], -1); }
 
-                        queryResponse.append(xml('Variant', {}, Client.getVariant()))
-                        queryResponse.append(xml('Language', {}, navigator.language))
-                        queryResponse.append(xml('IsDevelopment', {}, as.String(Environment.isDevelopment())));
-                        queryResponse.append(xml('Id', {}, userId));
-                        queryResponse.append(xml('SecSinceFirstStart', {}, Math.round((now - firstStart) / 1000)));
-                        queryResponse.append(xml('SecSinceStart', {}, Math.round((now - this.startupTime) / 1000)));
-                        queryResponse.append(xml('SecSincePage', {}, Math.round((now - this.waitReadyTime) / 1000)));
-                        queryResponse.append(xml('Startups', {}, startCount));
-                        queryResponse.append(xml('ContentStartups', {}, this.waitReadyCount));
-                        queryResponse.append(xml('XmppConnects', {}, this.xmppConnectCount));
-                        queryResponse.append(xml('StanzasOut', {}, this.stanzasOutCount));
-                        queryResponse.append(xml('StanzasIn', {}, this.stanzasInCount));
-                        queryResponse.append(xml('ItemCount', {}, itemCount));
-                        queryResponse.append(xml('RezzedItemCount', {}, rezzedItemCount));
-                        queryResponse.append(xml('Points', {}, points));
-                        queryResponse.append(xml('OldPoints', {}, JSON.stringify(await this.getOldPoints())));
+                        queryResponse.c('Variant').t(Client.getVariant());
+                        queryResponse.c('Language').t(navigator.language);
+                        queryResponse.c('IsDevelopment').t(as.String(Environment.isDevelopment()));
+                        queryResponse.c('Id').t(userId);
+                        queryResponse.c('SecSinceFirstStart').t(Math.round((now - firstStart) / 1000));
+                        queryResponse.c('SecSinceStart').t(Math.round((now - this.startupTime) / 1000));
+                        queryResponse.c('SecSincePage').t(Math.round((now - this.waitReadyTime) / 1000));
+                        queryResponse.c('Startups').t(startCount);
+                        queryResponse.c('ContentStartups').t(this.waitReadyCount);
+                        queryResponse.c('XmppConnects').t(this.xmppConnectCount);
+                        queryResponse.c('StanzasOut').t(this.stanzasOutCount);
+                        queryResponse.c('StanzasIn').t(this.stanzasInCount);
+                        queryResponse.c('ItemCount').t(itemCount);
+                        queryResponse.c('RezzedItemCount').t(rezzedItemCount);
+                        queryResponse.c('Points').t(points);
+                        queryResponse.c('OldPoints').t(JSON.stringify(await this.getOldPoints()));
                     }
 
                     if (Config.get('xmpp.versionQueryShareOs', false)) {
-                        queryResponse.append(xml('os', {}, navigator.userAgent));
+                        queryResponse.c('os', {}).t(navigator.userAgent);
                     }
 
-                    let response = xml('iq', { type: 'result', 'id': id, 'to': stanza.attrs.from }).append(queryResponse);
                     this.sendStanza(response);
                 }
 
@@ -1867,23 +1416,23 @@ export class BackgroundApp
     {
         this.resource = Utils.randomString(15);
 
-        let xmppUser = await Memory.getSync('xmpp.user', undefined);
-        if (xmppUser == undefined) { xmppUser = Config.get('xmpp.user', ''); }
+        let xmppUser = as.String(await Memory.getSync('xmpp.user', ''));
+        if (xmppUser.length === 0) { xmppUser = Config.get('xmpp.user', ''); }
 
-        let xmppPass = await Memory.getSync('xmpp.pass', undefined);
-        if (xmppPass == undefined) { xmppPass = Config.get('xmpp.pass', ''); }
+        let xmppPass = as.String(await Memory.getSync('xmpp.pass', ''));
+        if (xmppPass.length === 0) { xmppPass = Config.get('xmpp.pass', ''); }
 
         try {
-            var conf = {
+            if (xmppUser.length === 0 || xmppPass.length === 0) {
+                throw new Error('Missing xmpp.user or xmpp.pass');
+            }
+            const conf = {
                 service: Config.get('xmpp.service', 'wss://xmpp.vulcan.weblin.com/xmpp-websocket'),
                 domain: Config.get('xmpp.domain', 'xmpp.vulcan.weblin.com'),
                 resource: this.resource,
                 username: xmppUser,
                 password: xmppPass,
             };
-            if (conf.username == '' || conf.password == '') {
-                throw 'Missing xmpp.user or xmpp.pass';
-            }
             this.xmpp = client(conf);
 
             this.xmpp.on('error', (err: any) =>
@@ -1909,12 +1458,12 @@ export class BackgroundApp
                 this.xmppConnected = true;
 
                 while (this.stanzaQ.length > 0) {
-                    let stanza = this.stanzaQ.shift();
+                    const stanza = this.stanzaQ.shift();
                     this.sendStanzaUnbuffered(stanza);
                 }
             });
 
-            this.xmpp.on('stanza', (stanza: xml.Element) => this.recvStanza(stanza));
+            this.xmpp.on('stanza', (stanza: ltx.Element) => this.recvStanza(stanza));
 
             this.xmpp.start().catch(log.info);
         } catch (error) {
@@ -1924,71 +1473,42 @@ export class BackgroundApp
 
     private stopXmpp()
     {
-        //hw todo
+        this.xmpp.stop().catch(error => log.info('BackgroundApp.stopXmpp: xmpp.stop() failed!', { error }));
+        this.xmppConnected = false;
+        this.xmppStarted = false;
+        this.xmpp = null;
     }
 
     // Message to all tabs
 
-    sendToAllTabs(type: string, data: any)
+    public sendToAllTabs(message: { type: string, [p: string]: any })
+    {
+        this.getAllTabIds().forEach(tabId => this.sendToTab(tabId, message));
+    }
+
+    public sendToAllTabsExcept(exceptTabId: number, message: { type: string, [p: string]: any })
+    {
+        this.getAllTabIds().filter(tabId => tabId !== exceptTabId).forEach(tabId => this.sendToTab(tabId, message));
+    }
+
+    public sendToTab(tabId: number, message: { type: string, [p: string]: any }): void
     {
         try {
-            let tabIds = this.getAllTabIds();
-            if (tabIds) {
-                for (let i = 0; i < tabIds.length; i++) {
-                    let tabId = tabIds[i];
-                    ContentMessage.sendMessage(tabId, { 'type': type, 'data': data });
-                }
-            }
+            ContentMessage.sendMessage(tabId, message);
         } catch (error) {
-            //
+            log.info('BackgroundApp.sendToTab: ContentMessage.sendMessage failed.', { tabId, message });
         }
     }
 
-    sendToAllTabsExcept(exceptTabId: number, type: string, data: any)
+    public sendToTabsForRoom(room: string, message: { type: string, [p: string]: any }): void
     {
-        try {
-            let tabIds = this.getAllTabIds();
-            if (tabIds) {
-                for (let i = 0; i < tabIds.length; i++) {
-                    let tabId = tabIds[i];
-                    if (tabId != exceptTabId) {
-                        ContentMessage.sendMessage(tabId, { 'type': type, 'data': data });
-                    }
-                }
-            }
-        } catch (error) {
-            //
-        }
-    }
-
-    sendToTab(tabId: number, type: string, data: any)
-    {
-        try {
-            ContentMessage.sendMessage(tabId, { 'type': type, 'data': data });
-        } catch (error) {
-            //
-        }
-    }
-
-    sendToTabsForRoom(room: string, message: any)
-    {
-        try {
-            let tabIds = this.getRoomJid2TabIds(room);
-            if (tabIds) {
-                for (let i = 0; i < tabIds.length; i++) {
-                    let tabId = tabIds[i];
-                    ContentMessage.sendMessage(tabId, message);
-                }
-            }
-        } catch (error) {
-            //
-        }
+        this.getRoomJid2TabIds(room).forEach(tabId => this.sendToTab(tabId, message));
     }
 
     // Keep connection alive
 
     private presencePingTime: number = 0;
-    handle_pingBackground(sender: any): BackgroundResponse
+    private handle_pingBackground(sender: any): BackgroundResponse
     {
         let now = Date.now();
         if (Utils.logChannel('pingBackground', true)) { log.info('BackgroundApp.handle_pingBackground', { tabid: sender?.tab?.id, now: now / 1000, lastPingTime: this.presencePingTime / 1000 }); }
@@ -2005,39 +1525,40 @@ export class BackgroundApp
 
     //
 
-    handle_wakeup(): boolean
+    private handle_wakeup(): boolean
     {
         return true;
     }
 
-    handle_log(pieces: any): BackgroundResponse
+    private handle_log(pieces: any): BackgroundResponse
     {
         log.debug(...pieces);
         return new BackgroundSuccessResponse();
     }
 
-    handle_userSettingsChanged(): BackgroundResponse
+    public handle_userSettingsChanged(): BackgroundResponse
     {
         log.debug('BackgroundApp.handle_userSettingsChanged');
+        this.roomPresenceManager?.onUserSettingsChanged();
         this.chatHistoryStorage?.onUserConfigUpdate();
-        this.sendToAllTabs(ContentMessage.type_userSettingsChanged, {});
+        this.sendToAllTabs({ type: ContentMessage.type_userSettingsChanged });
         return new BackgroundSuccessResponse();
     }
 
-    handle_clientNotification(tabId: number, target: string, data: any): BackgroundResponse
+    private handle_clientNotification(tabId: number, target: string, data: any): BackgroundResponse
     {
-        if (target == 'currentTab') {
-            this.sendToTab(tabId, ContentMessage.type_clientNotification, data);
-        } else if (target == 'notCurrentTab') {
-            this.sendToAllTabsExcept(tabId, ContentMessage.type_clientNotification, data);
-            // } else if (target == 'activeTab') {
+        if (target === 'currentTab') {
+            this.sendToTab(tabId, { type: ContentMessage.type_clientNotification, data });
+        } else if (target === 'notCurrentTab') {
+            this.sendToAllTabsExcept(tabId, { type: ContentMessage.type_clientNotification, data });
+            // } else if (target === 'activeTab') {
         } else {
-            this.sendToAllTabs(ContentMessage.type_clientNotification, data);
+            this.sendToAllTabs({ type: ContentMessage.type_clientNotification, data });
         }
         return new BackgroundSuccessResponse();
     }
 
-    async submitPoints()
+    private async submitPoints()
     {
         let consolidated: { [channel: string]: number } = {};
 
@@ -2094,7 +1615,7 @@ export class BackgroundApp
         }
     }
 
-    showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
+    private showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
     {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
         data.title = title;
@@ -2102,10 +1623,10 @@ export class BackgroundApp
         data.type = type;
         data.iconType = iconType;
         data.links = links;
-        this.sendToAllTabs(ContentMessage.type_clientNotification, data);
+        this.sendToAllTabs({ type: ContentMessage.type_clientNotification, data });
     }
 
-    handle_test(): any
+    private handle_test(): any
     {
     }
 }

@@ -23,12 +23,10 @@ export function MakeZeroTabStats(): TabStats
     };
 }
 
-export type PresenceData = {
+export type TabRoomPresenceData = {
+    timestamp: string,
     roomJid: string,
-    resource: string,
-    avatarUrl: string,
-    badges: string,
-    posX: number,
+    badges: string, // Todo: Move tracking to RoomPresenceManager.
     isAvailable: boolean,
     showAvailability: string,
     statusMessage: string,
@@ -249,7 +247,7 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendStanza.name, 'stanza': stanza });
     }
 
-    static sendRoomPresence(presenceData: PresenceData): Promise<void>
+    static sendRoomPresence(presenceData: TabRoomPresenceData): Promise<void>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendRoomPresence.name, presenceData });
     }

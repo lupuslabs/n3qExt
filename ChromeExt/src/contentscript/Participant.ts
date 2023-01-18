@@ -1,7 +1,6 @@
 import * as $ from 'jquery';
 import * as jid from '@xmpp/jid';
-import * as xml from '@xmpp/xml';
-import { Element as XmlElement } from 'ltx';
+import * as ltx from 'ltx';
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
@@ -145,7 +144,7 @@ export class Participant extends Entity
 
     // presence
 
-    async onPresenceAvailable(stanza: XmlElement): Promise<void>
+    async onPresenceAvailable(stanza: ltx.Element): Promise<void>
     {
         let hasPosition: boolean = false;
         let newX: number = 123;
@@ -454,7 +453,7 @@ export class Participant extends Entity
         // }
     }
 
-    onPresenceUnavailable(stanza: XmlElement): void
+    onPresenceUnavailable(stanza: ltx.Element): void
     {
         this.remove();
 
@@ -484,9 +483,8 @@ export class Participant extends Entity
     fetchVcardImage(avatarDisplay: IObserver)
     {
         const stanzaId = Utils.randomString(15);
-        const iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick })
-            .append(xml('vCard', { 'xmlns': 'vcard-temp' }))
-            ;
+        const iq = new ltx.Element('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
+        iq.c('vCard', { 'xmlns': 'vcard-temp' });
         this.app.sendStanza(iq, stanzaId, (stanza) =>
         {
             const imageUrl = this.decodeVcardImage2DataUrl(stanza);
@@ -503,10 +501,10 @@ export class Participant extends Entity
         if (Environment.isDevelopment() || Config.get('xmpp.verboseVersionQuery', false)) {
             attr['auth'] = Config.get('xmpp.verboseVersionQueryWeakAuth', '');
         }
-        const query = xml('query', attr);
-        const iq = xml('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick }).append(query);
+        const iq = new ltx.Element('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
+        iq.c('query', attr);
 
-        this.app.sendStanza(iq, stanzaId, (stanza: XmlElement) =>
+        this.app.sendStanza(iq, stanzaId, (stanza: ltx.Element) =>
         {
             const info = {};
             const versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
@@ -524,7 +522,7 @@ export class Participant extends Entity
         });
     }
 
-    decodeVcardImage2DataUrl(stanza: XmlElement): string
+    decodeVcardImage2DataUrl(stanza: ltx.Element): string
     {
         let url: string;
 
@@ -553,7 +551,7 @@ export class Participant extends Entity
 
     // message
 
-    async onMessagePrivateChat(stanza: XmlElement): Promise<void>
+    onMessagePrivateChat(stanza: ltx.Element): void
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -602,7 +600,7 @@ export class Participant extends Entity
         }
     }
 
-    onReceivePoke(node: XmlElement): void
+    onReceivePoke(node: ltx.Element): void
     {
         try {
             const pokeType = node.attrs.type;
@@ -620,7 +618,7 @@ export class Participant extends Entity
         }
     }
 
-    onReceiveVidconf(node: XmlElement): void
+    onReceiveVidconf(node: ltx.Element): void
     {
         try {
             const url = node.attrs.url;
@@ -641,7 +639,7 @@ export class Participant extends Entity
         }
     }
 
-    onReceiveResponse(node: XmlElement): void
+    onReceiveResponse(node: ltx.Element): void
     {
         try {
             if (node.attrs.to === VpProtocol.PrivateVideoconfRequest.xmlns) {
@@ -655,7 +653,7 @@ export class Participant extends Entity
         }
     }
 
-    onMessageGroupchat(stanza: XmlElement): void
+    onMessageGroupchat(stanza: ltx.Element): void
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -889,8 +887,10 @@ export class Participant extends Entity
     {
         if (this.getPosition() !== newX) {
             if (this.isSelf) {
-                this.app.savePosition(newX);
-                this.room?.sendMoveMessage(newX);
+                (async () => {
+                    await this.app.savePosition(newX);
+                    this.room?.sendPresence();
+                })().catch(error => this.app.onError(error));
             } else {
                 this.quickSlide(newX);
             }
@@ -1103,9 +1103,9 @@ export class Participant extends Entity
             const displayName = this.room.getMyParticipant()?.getDisplayName();
             if (!is.nil(displayName)) {
                 const url = urlTemplate.replace('{name}', displayName);
-    
+
                 this.app.setPrivateVidconfIsOpen(true);
-    
+
                 this.privateVidconfWindow = new PrivateVidconfWindow(this.app, this);
                 this.privateVidconfWindow.show({
                     above: aboveElem,

@@ -1,13 +1,9 @@
-import log = require('loglevel');
 import { as } from '../lib/as';
-import { xml, jid } from '@xmpp/client';
-import { Config } from '../lib/Config';
-import { ItemProperties, Pid, Property } from '../lib/ItemProperties';
-import { BackpackShowItemData, BackpackRemoveItemData, BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
 import { BackgroundApp } from './BackgroundApp';
 import { Backpack } from './Backpack';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
-import { Utils } from '../lib/Utils';
 
 export class Item
 {
@@ -26,7 +22,7 @@ export class Item
 
         if (changed) {
             if (!options.skipContentNotification) {
-                this.app.sendToAllTabs(ContentMessage.type_onBackpackSetItem, new BackpackSetItemData(this.itemId, props));
+                this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackSetItem, data: new BackpackSetItemData(this.itemId, props) });
             }
 
             if (!options.skipPresenceUpdate) {
@@ -39,7 +35,7 @@ export class Item
     {
         if (this.isRezzed()) {
             let roomJid = this.properties[Pid.RezzedLocation];
-            this.app.sendToTabsForRoom(roomJid, { 'type': ContentMessage.type_sendPresence });
+            this.app.sendToTabsForRoom(roomJid, { type: ContentMessage.type_sendPresence });
         }
     }
 
@@ -50,6 +46,6 @@ export class Item
 
     isRezzedTo(roomJid: string): boolean
     {
-        return as.Bool(this.properties[Pid.IsRezzed], false) && as.String(this.properties[Pid.RezzedLocation], '/-definitely-not-a-room-jid-@') == roomJid;
+        return as.Bool(this.properties[Pid.IsRezzed], false) && as.String(this.properties[Pid.RezzedLocation], '/-definitely-not-a-room-jid-@') === roomJid;
     }
 }

@@ -1,11 +1,11 @@
 import log = require('loglevel');
 import * as $ from 'jquery';
 import * as jid from '@xmpp/jid';
-import { Element as XmlElement } from 'ltx';
+import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { ErrorWithData, Utils } from '../lib/Utils';
-import { BackgroundMessage, PresenceData, TabStats } from '../lib/BackgroundMessage';
+import { BackgroundMessage, TabRoomPresenceData, TabStats } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -55,7 +55,7 @@ export class ContentAppNotification
 }
 
 interface ContentAppNotificationCallback { (msg: any): void }
-interface StanzaResponseHandler { (stanza: XmlElement): void }
+interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
 export class ContentApp
 {
@@ -685,7 +685,7 @@ export class ContentApp
 
     handle_recvStanza(jsStanza: unknown): void
     {
-        const stanza: XmlElement = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: ltx.Element = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
@@ -890,10 +890,10 @@ export class ContentApp
     {
         this.leaveRoom();
 
-        this.room = new Room(this, roomJid, pageUrl, roomDestination, await this.getSavedPosition());
+        this.room = new Room(this, roomJid, pageUrl, roomDestination);
         if (Utils.logChannel('urlMapping', false)) { log.info('ContentApp.enterRoom', roomJid); }
 
-        this.room.enter().catch(error => this.onError(error));
+        await this.room.enter().catch(error => this.onError(error));
         this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
     }
 
@@ -907,7 +907,7 @@ export class ContentApp
         }
     }
 
-    onPresence(stanza: XmlElement): void
+    onPresence(stanza: ltx.Element): void
     {
         let isHandled = false;
 
@@ -924,7 +924,7 @@ export class ContentApp
         }
     }
 
-    onMessage(stanza: XmlElement): void
+    onMessage(stanza: ltx.Element): void
     {
         const from = jid(stanza.attrs.from);
         const roomOrUser = from.bare().toString();
@@ -934,7 +934,7 @@ export class ContentApp
         }
     }
 
-    onIq(stanza: XmlElement): void
+    onIq(stanza: ltx.Element): void
     {
         const id = stanza.attrs.id;
         if (id) {
@@ -946,7 +946,7 @@ export class ContentApp
     }
 
     sendStanza(
-        stanza: XmlElement,
+        stanza: ltx.Element,
         stanzaId: string = null,
         responseHandler: StanzaResponseHandler = null,
     ): void
@@ -975,7 +975,7 @@ export class ContentApp
         });
     }
 
-    sendRoomPresence(presenceData: PresenceData): void
+    sendRoomPresence(presenceData: TabRoomPresenceData): void
     {
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.sendPresence', presenceData);
@@ -1195,6 +1195,7 @@ export class ContentApp
     {
         try {
             await Memory.setLocal(Utils.localStorageKey_X(), x);
+            await BackgroundMessage.userSettingsChanged()
         } catch (error) {
             log.info(error);
         }

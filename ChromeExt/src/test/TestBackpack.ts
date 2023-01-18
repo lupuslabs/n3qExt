@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { xml, jid } from '@xmpp/client';
+import * as ltx from 'ltx';
 import { BackgroundApp } from '../background/BackgroundApp';
 import { Backpack } from '../background/Backpack';
 import { as } from '../lib/as';
@@ -53,7 +53,7 @@ export class TestBackpack
         expect(rep.getItems()['item2'][Pid.RezzedDestination]).to.equal('Destination2');
         expect(as.String(rep.getItems()['item3'][Pid.RezzedDestination], '')).to.equal('');
 
-        let stanza = xml('presence', { 'to': 'room1@server/nick' });
+        let stanza = new ltx.Element('presence', { 'to': 'room1@server/nick' });
         stanza = rep.stanzaOutFilter(stanza);
         expect(stanza.name).to.equal('presence');
         expect(stanza.attrs.to).to.equal('room1@server/nick');

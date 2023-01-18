@@ -1,6 +1,6 @@
 import * as $ from 'jquery';
 import 'webpack-jquery-ui';
-import { xml } from '@xmpp/client';
+import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
@@ -171,7 +171,7 @@ export class XmppWindow extends Window
         return await Memory.getSync('dev.scratchPad', '');
     }
 
-    text2Stanza(text: string): xml
+    text2Stanza(text: string): ltx.Element
     {
         const json = JSON.parse(text);
         const stanza = Utils.jsObject2xmlObject(json);

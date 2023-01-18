@@ -1,6 +1,5 @@
-import * as xml from '@xmpp/xml';
+import * as ltx from 'ltx';
 import { is } from './is';
-import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
@@ -81,20 +80,20 @@ export class Utils
             || Config.get(`log.${channel}`, defaultValue);
     }
 
-    static jsObject2xmlObject(stanza: any): xml.Element
+    static jsObject2xmlObject(stanza: any, parent?: ltx.Element): ltx.Element
     {
-        const children = [];
-        if (stanza.children !== undefined) {
-            stanza.children.forEach((child: any) =>
-            {
-                if (typeof child === typeof '') {
-                    children.push(child);
-                } else {
-                    children.push(this.jsObject2xmlObject(child));
-                }
-            });
+        let elem;
+        if (parent) {
+            if (is.string(stanza)) {
+                elem = parent.t(stanza);
+            } else {
+                elem = parent.c(stanza.name, stanza.attrs);
+            }
+        } else {
+            elem = new ltx.Element(stanza.name, stanza.attrs);
         }
-        return xml(stanza.name, stanza.attrs, children);
+        (stanza.children ?? []).forEach(child => this.jsObject2xmlObject(child, elem));
+        return elem;
     }
 
     static async sleep(ms: number): Promise<void>
