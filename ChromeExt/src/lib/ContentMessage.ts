@@ -25,6 +25,7 @@ export class BackpackRemoveItemData
 
 export class ContentMessage
 {
+    static readonly type_xmppIo = 'xmppIo';
     static readonly type_recvStanza = 'recvStanza';
     static readonly type_userSettingsChanged = 'userSettingsChanged';
     static readonly type_extensionActiveChanged = 'extensionActiveChanged';

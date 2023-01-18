@@ -631,6 +631,15 @@ export class ContentApp
                 this.handle_recvStanza(message.stanza);
             } break;
 
+            case ContentMessage.type_xmppIo: {
+                if (this.xmppWindow) {
+                    const label = message.direction === 'in' ? '_IN_' : 'OUT';
+                    const stanza: ltx.Element = Utils.jsObject2xmlObject(message.stanza);
+                    const stanzaText = stanza.toString();
+                    this.xmppWindow.showLine(label, stanzaText);
+                }
+            } break;
+
             case ContentMessage.type_userSettingsChanged: {
                 this.handle_userSettingsChanged();
             } break;
@@ -688,11 +697,6 @@ export class ContentApp
         const stanza: ltx.Element = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
-        }
-
-        if (this.xmppWindow) {
-            const stanzaText = stanza.toString();
-            this.xmppWindow.showLine('_IN_', stanzaText);
         }
 
         switch (stanza.name) {
@@ -960,10 +964,6 @@ export class ContentApp
         }
         (async () =>
         {
-            if (this.xmppWindow) {
-                const stanzaText = stanza.toString();
-                this.xmppWindow.showLine('OUT', stanzaText);
-            }
             if (stanzaId && responseHandler) {
                 this.stanzasResponses[stanzaId] = responseHandler;
             }

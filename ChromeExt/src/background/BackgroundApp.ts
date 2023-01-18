@@ -1246,12 +1246,18 @@ export class BackgroundApp
 
     private logStanzaButNotBasicConnectionPresence(stanza: ltx.Element)
     {
-        const toJid = as.String(stanza.attrs?.to);
-        const isConnectionPresence = stanza.name === 'presence' && (toJid.length === 0 || jid(toJid).getResource() === this.resource);
+        const toJid = as.String(stanza.attrs.to);
+        let isConnectionPresence = false;
+        try {
+            isConnectionPresence = stanza.name === 'presence' && (!toJid.length || jid(toJid).getResource() === this.resource);
+        } catch (error) {
+            // Ignore toJid filled but unparsable. Stanza is just logged.
+        }
         if (!isConnectionPresence) {
             if (Utils.logChannel('backgroundTraffic', true)) {
                 log.info('BackgroundApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', toJid);
             }
+            this.logStanzaToRelevantTabs(false, stanza);
 
             // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
             //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
@@ -1267,6 +1273,26 @@ export class BackgroundApp
         }
     }
 
+    private logStanzaToRelevantTabs(isIncomming: boolean, stanza: ltx.Element): void
+    {
+        let roomJid: string = '';
+        try {
+            if ((stanza.name === 'presence' || stanza.name === 'message') && this.roomPresenceManager) {
+                roomJid = jid(stanza.attrs.from ?? stanza.attrs.to).bare().toString();
+            }
+        } catch (error) {
+            // Ignore from or to JID not parsable or none present. Stanza will just be send to all tabs.
+        }
+        const type = ContentMessage.type_xmppIo;
+        const direction = isIncomming ? 'in' : 'out';
+        const message = { type, direction, stanza };
+        if (roomJid.length) {
+            this.sendToTabsForRoom(roomJid, message);
+        } else {
+            this.sendToAllTabs(message);
+        }
+    }
+
     private sendServerPresence(): void
     {
         this.sendStanza(new ltx.Element('presence'));
@@ -1277,6 +1303,7 @@ export class BackgroundApp
     private recvStanza(xmlStanza: ltx.Element)
     {
         this.stanzasInCount++;
+        this.logStanzaToRelevantTabs(true, xmlStanza);
 
         const isError = xmlStanza.attrs.type === 'error';
         if (isError) {
