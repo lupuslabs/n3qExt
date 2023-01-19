@@ -20,6 +20,7 @@ export class _Changes
             ['Fix', 'Avatar menu always opens fully on screen and is never covered by other GUI elements'],
             ['Fix', 'On locations without destination, items are not rezzable'],
             ['Fix', 'Videoconf not working till next page reload after nickname change'],
+            ['Fix', 'Inconsistent presence state for multiple tabs in same room triggering "random" walks and ghosting'],
         ]],
         ['1.2.3', 'ClickThroughBadgesPersistentChat', [
             ['Add', 'Persistent chat'],
