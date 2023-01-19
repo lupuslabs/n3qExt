@@ -222,6 +222,10 @@ export class RoomPresenceManager
                 roomPresenceStanza, isAvailable, isOwnEnterByStatus, isOwnEnterByResource, isOwnByConfirmedNick
             })
         }
+        if (isOwnEnter) {
+            // Some servers confuse outdated and new presence info in first presence after nick change, so shedule another presence right away:
+            this.scheduleSendRoomPresence(roomData)
+        }
     }
 
     public replayReceivedRoomPresenceStanza(roomJid: string, participantResource: string)
@@ -233,6 +237,14 @@ export class RoomPresenceManager
         if (stanza) {
             stanza.attrs._replay = true
             this.onReceivedRoomPresenceStanza(stanza)
+        }
+    }
+
+    public sendRoomPresence(roomJid: string): void
+    {
+        const roomData = this.rooms.get(roomJid);
+        if (roomData?.confirmedNick) {
+            this.scheduleSendRoomPresence(roomData);
         }
     }
 
@@ -294,11 +306,11 @@ export class RoomPresenceManager
             })
         }
         roomData.sendPresenceTimeoutStart = nowDate
-        const sender = () => this.sendRoomPresence(roomData.roomJid, logPresenceType)
+        const sender = () => this.doSendRoomPresence(roomData.roomJid, logPresenceType)
         roomData.sendPresenceTimeoutHandle = window.setTimeout(sender, 1000 * deferDelaySecsFinal)
     }
 
-    private sendRoomPresence(roomJid: string, logPresenceType: string): void
+    private doSendRoomPresence(roomJid: string, logPresenceType: string): void
     {
         if (this.isStopped) {
             return
@@ -306,7 +318,7 @@ export class RoomPresenceManager
         const roomData = this.rooms.get(roomJid) ?? null
         if (roomData === null) {
             if (Utils.logChannel('backgroundPresenceManagement', true)) {
-                log.info('RoomPresenceManager.sendRoomPresence: Didn\'t send room presence because no room data.', {
+                log.info('RoomPresenceManager.doSendRoomPresence: Didn\'t send room presence because no room data.', {
                     logPresenceType, roomJid,
                 })
             }
@@ -322,19 +334,18 @@ export class RoomPresenceManager
         const presenceData = roomData.presenceDataToSend
         if (!presenceData) {
             if (Utils.logChannel('backgroundPresenceManagement', true)) {
-                log.info('RoomPresenceManager.sendRoomPresence: Didn\'t send room presence because no presence data.', {
+                log.info('RoomPresenceManager.doSendRoomPresence: Didn\'t send room presence because no presence data.', {
                     logPresenceType, roomJid,
                 })
             }
         } else if (!ownResourceInRoom) {
-            log.info('RoomPresenceManager.sendRoomPresence: Can\'t send room presence because own resource to use is unknown!', {
+            log.info('RoomPresenceManager.doSendRoomPresence: Can\'t send room presence because own resource to use is unknown!', {
                 roomData,
             })
         } else {
-            const to = this.makeToJid(roomData.roomJid, ownResourceInRoom)
-            const presenceStanza = this.makeRoomPresence(to, ownResourceInRoom, presenceData)
+            const presenceStanza = this.makeRoomPresence(roomData, ownResourceInRoom, presenceData)
             if (Utils.logChannel('backgroundPresenceManagement', true)) {
-                log.info('RoomPresenceManager.sendRoomPresence: Sending room presence.', {
+                log.info('RoomPresenceManager.doSendRoomPresence: Sending room presence.', {
                     logPresenceType, presenceStanza,
                     roomData: JSON.parse(JSON.stringify(roomData)), // Avoid mutation after logging.
                 })
@@ -393,8 +404,9 @@ export class RoomPresenceManager
         return roomPresence
     }
 
-    private makeRoomPresence(to: string, ownResourceInRoom: string, presenceData: TabRoomPresenceData): ltx.Element
+    private makeRoomPresence(roomData: RoomData, ownResourceInRoom: string, presenceData: TabRoomPresenceData): ltx.Element
     {
+        const to = this.makeToJid(roomData.roomJid, ownResourceInRoom)
         if (!(presenceData?.isAvailable ?? false)) {
             return this.makeRoomUnavailablePresence(to)
         }

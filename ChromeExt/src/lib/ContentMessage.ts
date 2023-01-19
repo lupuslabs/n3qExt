@@ -33,7 +33,6 @@ export class ContentMessage
     static readonly type_onBackpackShowItem = 'onBackpackShowItem';
     static readonly type_onBackpackSetItem = 'onBackpackSetItem';
     static readonly type_onBackpackHideItem = 'onBackpackHideItem';
-    static readonly type_sendPresence = 'sendPresence';
     static readonly type_clientNotification = 'clientNotification';
     static readonly type_chatMessagePersisted = 'chatMessagePersisted';
     static readonly type_chatHistoryDeleted = 'chatHistoryDeleted';

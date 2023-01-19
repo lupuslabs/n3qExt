@@ -889,7 +889,6 @@ export class Participant extends Entity
             if (this.isSelf) {
                 (async () => {
                     await this.app.savePosition(newX);
-                    this.room?.sendPresence();
                 })().catch(error => this.app.onError(error));
             } else {
                 this.quickSlide(newX);

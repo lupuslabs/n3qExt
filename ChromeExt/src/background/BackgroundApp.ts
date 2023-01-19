@@ -1218,6 +1218,11 @@ export class BackgroundApp
         }
     }
 
+    public sendRoomPresence(roomJid: string): void
+    {
+        this.roomPresenceManager?.sendRoomPresence(roomJid);
+    }
+
     public replayPresence(roomJid: string, participantResource: string): void
     {
         this.roomPresenceManager?.replayReceivedRoomPresenceStanza(roomJid, participantResource);

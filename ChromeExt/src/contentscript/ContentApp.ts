@@ -656,11 +656,6 @@ export class ContentApp
                 this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
             } break;
 
-            case ContentMessage.type_sendPresence: {
-                this.handle_sendPresence();
-                return false;
-            } break;
-
             case ContentMessage.type_onBackpackShowItem: {
                 const properties = message.data.properties;
                 this.backpackWindow?.onShowItem(message.data.id, properties);
@@ -765,11 +760,6 @@ export class ContentApp
             this.display?.classList.add('n3q-hidden');
             this.sleep('GuiHidden');
         }
-    }
-
-    handle_sendPresence(): void
-    {
-        this.room?.sendPresence();
     }
 
     leavePage()

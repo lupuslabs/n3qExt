@@ -354,6 +354,7 @@ export class Room
     private keepAliveTimer: undefined | number = undefined;
     private keepAlive()
     {
+        // Todo: Move to RoomPresenceManager in backend.
         if (this.keepAliveTimer === undefined) {
             this.keepAliveTimer = window.setTimeout(() =>
             {
