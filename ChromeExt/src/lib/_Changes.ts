@@ -9,6 +9,7 @@ export class _Changes
         ['1.2.5', 'x', [
             ['Change', 'Room item popup to adapt to content width'],
             ['Change', 'Points bar title hover to always show all channels'],
+            ['Change', 'Backpack item popup spacing and item description'],
         ]],
         ['1.2.4', 'AvatarMenu', [
             ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],
