@@ -1035,16 +1035,20 @@
             margin-left: 4px;
         }
     }
-
+    
     div.n3q-itemprops {
         position: absolute;
         max-width: 150px;
         background-color: #ffffff;
         //border: 1px solid #888;
-        padding: 0.5em;
+        padding: 8px;
+
+        div.n3q-button-list {
+            margin-top: 8px;
+        }
 
         div.n3q-description {
-            margin-top: 4px;
+            margin: 8px 10px 4px 8px;
         }
 
         div.n3q-itemprops-list {
@@ -1055,14 +1059,41 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-top: 4px;
+            // display: flex;
+            // margin-bottom: 2px;
 
             span.n3q-itemprops-key {
                 font-weight: bold;
+                // padding: 4px 0px;
             }
     
             span.n3q-itemprops-key:after {
                 content: ': ';
             }
+
+            // .n3q-itemprops-value {
+            //     margin: 0 0.5em;
+            //     padding: 4px 0;
+            // }
+    
+            // input[type="text"].n3q-itemprops-value {
+            //     width: 100%;
+            //     padding: 4px;
+            //     box-shadow: #404040 1px 1px 3px inset;
+            // }
+
+            // div.n3q-itemprops-save {
+            //     margin: 2px 4px 2px 0px;
+            //     padding: 2px;
+            // }
+    
+        }
+    }
+
+    div.n3q-itemprops.n3q-backpackiteminfo {
+        div.n3q-description {
+            text-align: center;
         }
     }
 
@@ -1084,6 +1115,12 @@
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
+
+        div.n3q-description {
+            margin-left: 0;
+            white-space: normal;
+            text-align: left;
+        }
     }
 
     div.n3q-backpackiteminfo {

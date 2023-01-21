@@ -115,6 +115,8 @@ export enum Pid
     BadgeIconHeight = 'BadgeIconHeight',
     BadgeIconX = 'BadgeIconX',
     BadgeIconY = 'BadgeIconY',
+    EditablePropertiesAspect = 'EditablePropertiesAspect',
+    EditableProperties = 'EditableProperties',
 }
 
 export class ItemProperties

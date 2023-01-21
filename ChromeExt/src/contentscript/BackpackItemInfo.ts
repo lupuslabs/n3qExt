@@ -2,10 +2,13 @@ import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
+import { is } from '../lib/is';
+import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { Utils } from '../lib/Utils';
 import { BackpackItem } from './BackpackItem';
 import { ContentApp } from './ContentApp';
+import { SimpleErrorToast } from './Toast';
 
 export class BackpackItemInfo
 {
@@ -100,11 +103,18 @@ export class BackpackItemInfo
             display[Pid.RezzedDestination] = props[Pid.RezzedDestination];
         }
 
+
+        // const hasEditableAspect = as.Bool(props[Pid.EditablePropertiesAspect], false);
+        // let editablePropertiesList = [];
+        // if (hasEditableAspect) {
+        //     editablePropertiesList = as.String(props[Pid.EditableProperties], '').split(' ').map(propertyName => Pid[propertyName]).filter(pid => !is.nil(pid));
+        // }
+
         const listElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-list" data-translate="children" />').get(0);
         let hasStats = false;
         for (const pid in display) {
             let value = display[pid];
-            if (value) {
+            if (!is.nil(value)) {
                 hasStats = true;
 
                 if (pid === Pid.RezzedDestination) {
@@ -113,12 +123,49 @@ export class BackpackItemInfo
                     if (value.startsWith('www.')) { value = value.substr('www.'.length); }
                 }
 
-                const lineElem = <HTMLDivElement>$(''
-                    + '<div class="n3q-base n3q-itemprops-line" data-translate="children" > '
-                    + '<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">' + pid + '</span>'
-                    + '<span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="' + as.Html(value) + '">' + as.Html(value) + '</span>'
-                    + '</div>')
-                    .get(0);
+                // let isEditable = hasEditableAspect && editablePropertiesList.includes(pid);
+
+                let lineElem = null;
+                // if (isEditable) {
+                //     const originalValue = value;
+                //     lineElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-line" data-translate="children" ></div>').get(0);
+                //     let labelElem = <HTMLSpanElement>$('<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">' + pid + '</span>').get(0);
+                //     let inputElem = <HTMLInputElement>$('<input type="text" class="n3q-base n3q-input n3q-text n3q-itemprops-value" data-translate="text:ItemValue" title="' + as.Html(value) + '" value="' + as.Html(value) + '" />').get(0);
+                //     lineElem.append(labelElem);
+                //     lineElem.append(inputElem);
+                //     const saveElem = <HTMLButtonElement>$('<div class="n3q-base n3q-button n3q-itemprops-save" title="Save" data-translate="attr:title:Backpack.Itemprops text:Backpack.Itemprops">Save</div>').get(0);
+                //     $(saveElem).on('click', async ev =>
+                //     {
+                //         let value = inputElem.value;
+                //         if (value !== originalValue) {
+                //             let itemId = this.backpackItem.getItemId();
+                //             try {
+                //                 await BackgroundMessage.executeBackpackItemAction(
+                //                     itemId,
+                //                     'EditableProperties.SetProperty',
+                //                     {
+                //                         Key: pid,
+                //                         Value: value,
+                //                     },
+                //                     [itemId]
+                //                 );
+                //             } catch (ex) {
+                //                 const fact = ItemException.factFrom(ex.fact);
+                //                 const reason = ItemException.reasonFrom(ex.reason);
+                //                 const detail = ex.detail;
+                //                 new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', ItemException.fact2String(fact), ItemException.reason2String(reason), detail).show();
+                //             }
+                //         }
+                //     });
+                //     lineElem.append(saveElem);
+                // } else {
+                    lineElem = <HTMLDivElement>$(''
+                        + '<div class="n3q-base n3q-itemprops-line" data-translate="children" > '
+                        + '<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">' + pid + '</span>'
+                        + '<span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="' + as.Html(value) + '">' + as.Html(value) + '</span>'
+                        + '</div>')
+                        .get(0);
+                // }
                 $(listElem).append(lineElem);
             }
         }
@@ -126,6 +173,8 @@ export class BackpackItemInfo
         if (hasStats) {
             $(this.elem).append(listElem);
         }
+
+        const buttonListElem = <HTMLElement>$('<div class="n3q-base n3q-button-list" data-translate="children"></div>').get(0);
 
         if (as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect])) {
             const activateGroup = <HTMLElement>$('<div class="n3q-base n3q-backpack-activate" data-translate="children" />').get(0);
@@ -143,52 +192,56 @@ export class BackpackItemInfo
             });
             $(activateGroup).append(activateLabel);
             $(activateGroup).append(activateCheckbox);
-            $(this.elem).append(activateGroup);
+            $(buttonListElem).append(activateGroup);
         }
 
         if (as.Bool(props[Pid.IsRezzed])) {
-            const derezElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>').get(0);
-            $(derezElem).on('click', (ev) =>
+            const derezBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>').get(0);
+            $(derezBtn).on('click', (ev) =>
             {
                 ev.stopPropagation();
                 this.app.derezItem(this.backpackItem.getItemId());
                 this.close();
             });
-            $(this.elem).append(derezElem);
+            $(buttonListElem).append(derezBtn);
 
             const destination = as.String(props[Pid.RezzedDestination]);
             if (destination) {
-                const goElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>').get(0);
-                $(goElem).on('click', (ev) =>
+                const goBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>').get(0);
+                $(goBtn).on('click', (ev) =>
                 {
                     ev.stopPropagation();
                     window.location.assign(destination);
                 });
-                $(this.elem).append(goElem);
+                $(buttonListElem).append(goBtn);
             }
         } else {
             if (as.Bool(props[Pid.IsRezable], true)) {
-                const rezElem = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>').get(0);
-                $(rezElem).on('click', (ev) =>
+                const rezBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>').get(0);
+                $(rezBtn).on('click', (ev) =>
                 {
                     ev.stopPropagation();
                     const rezzedX = as.Int(props[Pid.RezzedX], -1);
                     this.backpackItem.rezItem(rezzedX);
                     this.close();
                 });
-                $(this.elem).append(rezElem);
+                $(buttonListElem).append(rezBtn);
             }
         }
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
-            const delBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Delete item</div>').get(0);
+            const delBtn = <HTMLElement>$('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>').get(0);
             $(delBtn).on('click', (ev) =>
             {
                 ev.stopPropagation();
                 this.app.deleteItemAsk(this.backpackItem.getItemId());
                 this.close();
             });
-            $(this.elem).append(delBtn);
+            $(buttonListElem).append(delBtn);
+        }
+
+        if ($(buttonListElem).children().length > 0) {
+            $(this.elem).append(buttonListElem);
         }
 
         if (Config.get('backpack.itemInfoExtended', false)) {

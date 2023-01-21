@@ -580,6 +580,7 @@ export class Config
                     'Backpack.Too many items': 'Too many items',
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
+                    //'Backpack.Itemprops.Save': 'OK',
 
                     'Badges.editModeHint': 'Drop your badges here',
 
@@ -765,6 +766,10 @@ export class Config
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Network',
                     'ItemPid.PageEffectRemaining': 'Usages left',
+                    'ItemPid.BadgeTitle': 'Title',
+                    'ItemPid.BadgeDescription': 'Description',
+                    'ItemPid.BadgeLinkUrl': 'Link',
+                    'ItemPid.BadgeLinkLabel': 'Link Text',
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
@@ -878,6 +883,7 @@ export class Config
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+                    //'Backpack.Itemprops.Save': 'OK',
 
                     'Badges.editModeHint': 'Lege deine Sticker hier ab',
 
@@ -1065,6 +1071,10 @@ export class Config
                     'ItemPid.Web3ContractAddress': 'Contract',
                     'ItemPid.Web3ContractNetwork': 'Netzwerk',
                     'ItemPid.PageEffectRemaining': 'Nutzbar noch',
+                    'ItemPid.BadgeTitle': 'Titel',
+                    'ItemPid.BadgeDescription': 'Info',
+                    'ItemPid.BadgeLinkUrl': 'Link',
+                    'ItemPid.BadgeLinkLabel': 'Linktext',
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',
