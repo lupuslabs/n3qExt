@@ -16,7 +16,11 @@ import { Utils } from './Utils';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
 
-export class DomOpacityAwarePointerEventDispatcher {
+export type PointerEventDispatcherOptions = {
+    ignoreOpacity?: boolean,
+};
+
+export class PointerEventDispatcher {
     // Known bugs:
     // Text cursor doesn't show for text behind transparent areas of domElem.
     // Text not selectable behind transparent areas of domElem.
@@ -32,15 +36,16 @@ export class DomOpacityAwarePointerEventDispatcher {
     private readonly logHover: boolean;
     private readonly logWithMove: boolean;
     private readonly logEventsOut: Set<string> = new Set<string>();
-    private lastMouseEventButtons: number = 0;
 
     private readonly eventListeners = new Map<string, (data: PointerEventData) => any>();
+    private readonly ignoreOpacity: boolean;
     private readonly opacityMin: number;
     private clickDoubleMaxDelayMs: number = 0.0;
     private dragStartDistance: number;
     private readonly dragDropTargetUpdateIntervalMs: number;
 
     private inEventHandling: boolean = false; // For infinite recursion prevention.
+    private lastMouseEventButtons: number = 0;
     private lastPointerEventWasForUs: boolean = false;
     private swallowContextmenuEvent: boolean = false;
 
@@ -70,7 +75,7 @@ export class DomOpacityAwarePointerEventDispatcher {
     private clickMoveEventLast: PointerEvent|null = null;
     private clickTimeoutHandle: number|null = null;
 
-    public constructor(app: ContentApp, domElem: Element)
+    public constructor(app: ContentApp, domElem: Element, options?: PointerEventDispatcherOptions)
     {
         this.app = app;
         this.domElem = domElem;
@@ -83,29 +88,30 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.logIncommingMouse = false; // Utils.logChannel('pointerEventHandlingIncommingMouse');
 
         if (this.logButtons) {
-            this.logEventsOut.add(PointerEventType.click);
-            this.logEventsOut.add(PointerEventType.doubleclick);
+            this.logEventsOut.add('click');
+            this.logEventsOut.add('doubleclick');
         }
         if (this.logDrag) {
-            this.logEventsOut.add(PointerEventType.dragstart);
-            this.logEventsOut.add(PointerEventType.dragenter);
-            this.logEventsOut.add(PointerEventType.dragleave);
-            this.logEventsOut.add(PointerEventType.dragdrop);
-            this.logEventsOut.add(PointerEventType.dragcancel);
-            this.logEventsOut.add(PointerEventType.dragend);
+            this.logEventsOut.add('dragstart');
+            this.logEventsOut.add('dragenter');
+            this.logEventsOut.add('dragleave');
+            this.logEventsOut.add('dragdrop');
+            this.logEventsOut.add('dragcancel');
+            this.logEventsOut.add('dragend');
             if (this.logWithMove) {
-                this.logEventsOut.add(PointerEventType.dragmove);
+                this.logEventsOut.add('dragmove');
             }
         }
         if (this.logHover) {
-            this.logEventsOut.add(PointerEventType.hoverenter);
-            this.logEventsOut.add(PointerEventType.hoverleave);
+            this.logEventsOut.add('hoverenter');
+            this.logEventsOut.add('hoverleave');
             if (this.logWithMove) {
-                this.logEventsOut.add(PointerEventType.hovermove);
+                this.logEventsOut.add('hovermove');
             }
         }
 
-        this.opacityMin = as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
+        this.ignoreOpacity = as.Bool(options?.ignoreOpacity);
+        this.opacityMin = this.ignoreOpacity ? 0 : as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
         this.setDragStartDistance();
         const dragUpdateIntervalSecs = as.Float(Config.get('avatars.pointerDropTargetUpdateIntervalSec'), 0.5);
         this.dragDropTargetUpdateIntervalMs = 1000 * dragUpdateIntervalSecs;
@@ -129,10 +135,10 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.domElem.addEventListener('contextmenu', mouseHandler); // Singleclick with secondary button.
     }
 
-    public setEventListener(type: string, handler: (ev: PointerEventData) => void): void
+    public setEventListener(type: PointerEventType, handler: (ev: PointerEventData) => void): void
     {
         this.eventListeners.set(type, handler);
-        if (type === PointerEventType.doubleclick) {
+        if (type === 'doubleclick') {
             this.clickDoubleMaxDelayMs = 1000 * as.Float(Config.get('avatars.pointerDoubleclickMaxSec'), 0.25);
         }
     }
@@ -205,7 +211,7 @@ export class DomOpacityAwarePointerEventDispatcher {
 
         // Call buttonup event handlers when any button was down:
         if ((this.buttonsPointerStatesLast.get(ev.pointerId)?.buttons ?? DomButtonId.none) !== DomButtonId.none) {
-            const data = getDataFromPointerEvent(PointerEventType.buttonup, ev, this.domElem);
+            const data = getDataFromPointerEvent('buttonup', ev, this.domElem);
             data.buttons = DomButtonId.none; // Assume buttons to be all up no matter what.
             this.callEventListener(data);
         }
@@ -323,7 +329,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         if (isButtonsUp) {
             // Only the final button up for a pointer triggers an actual pointerup event in chrome.
             // So just accept all heuristically detected ones:
-            this.callEventListener(getDataFromPointerEvent(PointerEventType.buttonup, ev, this.domElem));
+            this.callEventListener(getDataFromPointerEvent('buttonup', ev, this.domElem));
         }
         if (isButtonsDown) {
             // Only the first button down for a pointer triggers an actual pointerdown event in chrome.
@@ -333,7 +339,7 @@ export class DomOpacityAwarePointerEventDispatcher {
                 // Missed initial pointerdown (likely because it happened outdside domElem's bounding box).
                 this.cancelAllActions();
             } else {
-                this.callEventListener(getDataFromPointerEvent(PointerEventType.buttondown, ev, this.domElem));
+                this.callEventListener(getDataFromPointerEvent('buttondown', ev, this.domElem));
             }
             if (isInitialDown) {
                 capturePointer(this.domElem, ev.pointerId);
@@ -451,17 +457,17 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
 
         if (this.hoverEventsLast.size === 0) {
-            this.callEventListener(getDataFromPointerEvent(PointerEventType.hoverenter, ev, this.domElem));
+            this.callEventListener(getDataFromPointerEvent('hoverenter', ev, this.domElem));
         }
         this.hoverEventsLast.set(ev.pointerId, ev);
-        this.callEventListener(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.domElem));
+        this.callEventListener(getDataFromPointerEvent('hovermove', ev, this.domElem));
     }
 
     private handleHoverleave(ev: PointerEvent): void
     {
         const wasHovering = this.hoverEventsLast.delete(ev.pointerId);
         if (wasHovering && this.hoverEventsLast.size === 0) {
-            this.callEventListener(getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.domElem));
+            this.callEventListener(getDataFromPointerEvent('hoverleave', ev, this.domElem));
         }
     }
 
@@ -526,7 +532,7 @@ export class DomOpacityAwarePointerEventDispatcher {
             if (this.clickCount !== 0) {
                 if (!discard
                 && !hasMovedDragDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
-                    const type = this.clickCount === 1 ? PointerEventType.click : PointerEventType.doubleclick;
+                    const type = this.clickCount === 1 ? 'click' : 'doubleclick';
                     const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
                     setClientPosOnPointerEventData(data, this.clickDownEventStart);
                     setModifierKeysOnPointerEventData(data, this.clickMoveEventLast);
@@ -558,7 +564,7 @@ export class DomOpacityAwarePointerEventDispatcher {
         this.dragDownEventLast = eventStart;
         this.dragMoveEventLast = null;
         this.dragMoveEventDataLast = null;
-        const data = getDataFromPointerEvent(PointerEventType.dragstart, eventMove, this.domElem);
+        const data = getDataFromPointerEvent('dragstart', eventMove, this.domElem);
         setDistanceOnPointerEventData(data, this.dragDownEventStart);
         this.callEventListener(data);
         if (this.dragUserCanceled) {
@@ -580,18 +586,18 @@ export class DomOpacityAwarePointerEventDispatcher {
         }
 
         const dropData = {...moveData};
-        dropData.type = PointerEventType.dragdrop;
+        dropData.type = 'dragdrop';
         dropData.dropTargetLast = moveData.dropTarget;
         dropData.dropTargetChanged = false;
 
         if (!is.nil(dropData.dropTargetLast)) {
-            this.callEventListener({...dropData, type: PointerEventType.dragleave});
+            this.callEventListener({...dropData, type: 'dragleave'});
         }
 
         this.callEventListener(dropData);
 
         const endData = {...dropData};
-        endData.type = PointerEventType.dragend;
+        endData.type = 'dragend';
         this.callEventListener(endData);
 
         this.dragCancel(false);
@@ -626,11 +632,10 @@ export class DomOpacityAwarePointerEventDispatcher {
             this.dragDownEventLast = eventMove;
         }
 
-        // Drop target is updated less often to reduce load:
         const dropTarget = getTopmostOpaqueDomElemAtViewportPos(
             document, clientX, clientY, this.opacityMin, this.dragTransparentClasses);
 
-        const moveData = getDataFromPointerEvent(PointerEventType.dragmove, eventMove, this.domElem);
+        const moveData = getDataFromPointerEvent('dragmove', eventMove, this.domElem);
         setDistanceOnPointerEventData(moveData, this.dragDownEventStart);
         setButtonsOnPointerEventData(moveData, this.dragDownEventLast);
         moveData.dropTarget = dropTarget;
@@ -639,10 +644,10 @@ export class DomOpacityAwarePointerEventDispatcher {
 
         if (moveData.dropTargetChanged) {
             if (!is.nil(this.dragDropTargetLast)) {
-                this.callEventListener({...moveData, type: PointerEventType.dragleave});
+                this.callEventListener({...moveData, type: 'dragleave'});
             }
             if (!is.nil(dropTarget)) {
-                this.callEventListener({...moveData, type: PointerEventType.dragenter});
+                this.callEventListener({...moveData, type: 'dragenter'});
             }
         }
 
@@ -670,19 +675,19 @@ export class DomOpacityAwarePointerEventDispatcher {
             this.dragUserCanceled = false;
             if (sendCancel) {
                 const moveEventLast = this.dragMoveEventLast ?? this.dragDownEventLast;
-                const cancelData = makeDummyPointerEventData(PointerEventType.dragcancel, moveEventLast, this.domElem);
+                const cancelData = makeDummyPointerEventData('dragcancel', moveEventLast, this.domElem);
                 setDistanceOnPointerEventData(cancelData, this.dragDownEventStart);
                 setButtonsOnPointerEventData(cancelData, this.dragDownEventLast);
                 cancelData.dropTargetLast = this.dragDropTargetLast;
                 cancelData.dropTargetChanged = this.dragDropTargetLast !== null;
 
                 if (!is.nil(cancelData.dropTargetLast)) {
-                    this.callEventListener({...cancelData, type: PointerEventType.dragleave});
+                    this.callEventListener({...cancelData, type: 'dragleave'});
                 }
 
                 this.callEventListener(cancelData);
 
-                this.callEventListener({...cancelData, type: PointerEventType.dragend});
+                this.callEventListener({...cancelData, type: 'dragend'});
             }
         }
         this.dragDropTargetLast = null;
@@ -697,6 +702,9 @@ export class DomOpacityAwarePointerEventDispatcher {
 
     private isOpaqueAtEventLocation(ev: MouseEvent): boolean
     {
+        if (this.ignoreOpacity) {
+            return true;
+        }
         const [opacityAtLoc, pointerInBoundingbox] = getDomElemOpacityAtPos(this.domElem, ev.clientX, ev.clientY);
         const isOpaqueAtLoc = pointerInBoundingbox && opacityAtLoc >= this.opacityMin;
         return isOpaqueAtLoc;

@@ -56,7 +56,7 @@ export function getTopmostOpaqueDomElemAtViewportPos(
 ): Element|null {
     for (const elem of getDomElemsAtViewportPos(document, vpX, vpY, null, false)) {
         if (!domElementHasAnyClass(elem, transparentClasses)
-        && getDomElemOpacityAtPos(elem, vpX, vpY)[0] >= opacityMin) {
+        && (opacityMin === 0 || getDomElemOpacityAtPos(elem, vpX, vpY)[0] >= opacityMin)) {
             return elem;
         }
     }
@@ -185,7 +185,7 @@ export function capturePointer(domElem: Element, pointerId: number): void
         // Ignore pointer devices that have gone away.
     }
 }
-    
+
 export function releasePointer(domElem: Element, pointerId: number): void
 {
     try {
@@ -263,7 +263,7 @@ export function getDomElemTransitions(elem: HTMLElement): Map<string,DomElemTran
     for (let i = 0; i < properties.length; i++) {
         const property = properties[i];
         transitions.set(property, {
-            property: property, 
+            property: property,
             delay: getAt(delays, i, '0s'),
             duration: getAt(durations, i, '0s'),
             timingFun: getAt(timingFuns, i, 'ease'),

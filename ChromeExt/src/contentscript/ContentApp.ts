@@ -32,8 +32,8 @@ import { ItemException } from '../lib/ItemException';
 import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
+import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
@@ -1393,8 +1393,8 @@ export class ContentApp
             button.classList.add('n3q-base', 'n3q-overlay-button');
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        const eventdispatcher = new DomOpacityAwarePointerEventDispatcher(this, button);
-        eventdispatcher.setEventListener(PointerEventType.click, eventData =>
+        const eventdispatcher = new PointerEventDispatcher(this, button, { ignoreOpacity: true });
+        eventdispatcher.setEventListener('click', eventData =>
         {
             if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
                 onClose();

@@ -3,8 +3,8 @@ import { is } from '../lib/is';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { as } from '../lib/as';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
+import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 
 abstract class MenuItem
@@ -79,13 +79,13 @@ abstract class MenuItem
     }
 
     protected initEventHandling(): void {
-        let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.itemElem);
-        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => {
+        let eventDispatcher = new PointerEventDispatcher(this.app, this.itemElem);
+        eventDispatcher.setEventListener('buttondown', ev => {
             if (!is.nil(this.itemElem)) {
                 this.onButtondown();
             }
         });
-        eventDispatcher.setEventListener(PointerEventType.click, ev => {
+        eventDispatcher.setEventListener('click', ev => {
             if (!is.nil(this.itemElem)) {
                 if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
                     this.onUserAction();
@@ -94,17 +94,17 @@ abstract class MenuItem
                 }
             }
         });
-        eventDispatcher.setEventListener(PointerEventType.doubleclick, ev => {
+        eventDispatcher.setEventListener('doubleclick', ev => {
             if (!is.nil(this.itemElem)) {
                 this.onUserDone();
             }
         });
-        eventDispatcher.setEventListener(PointerEventType.hoverenter, ev => {
+        eventDispatcher.setEventListener('hoverenter', ev => {
             if (!is.nil(this.itemElem)) {
                 this.onHoverEnter();
             }
         });
-        eventDispatcher.setEventListener(PointerEventType.hoverleave, ev => {
+        eventDispatcher.setEventListener('hoverleave', ev => {
             if (!is.nil(this.itemElem)) {
                 this.onHoverLeave();
             }
@@ -188,7 +188,7 @@ class SubmenuMenuItem extends MenuItem
         this.menu = new Submenu(this.app, this);
         this.extraCssClasses.push('n3q-submenu-menu-item');
     }
-    
+
     public getMenu(): Submenu
     {
         return this.menu;
@@ -500,8 +500,8 @@ export class RootMenu extends Menu
         super.render();
         let catcherElem = document.createElement('div');
         catcherElem.classList.add('n3q-base', 'n3q-menu-pointer-catcher');
-        let eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, catcherElem);
-        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => this.onUserDone());
+        let eventDispatcher = new PointerEventDispatcher(this.app, catcherElem);
+        eventDispatcher.setEventListener('buttondown', ev => this.onUserDone());
         this.pointerCatcherElem = catcherElem;
     }
 

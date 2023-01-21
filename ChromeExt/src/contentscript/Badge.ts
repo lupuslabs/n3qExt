@@ -1,8 +1,8 @@
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { BadgesController } from './BadgesController';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
+import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 import { BadgeInfoWindow } from './BadgeInfoWindow';
 
@@ -15,7 +15,7 @@ export class Badge
 
     private item: ItemProperties;
     private readonly iconElem: HTMLImageElement;
-    private readonly pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private readonly pointerEventDispatcher: PointerEventDispatcher;
     private readonly infoWindow: BadgeInfoWindow;
 
     private isStopping: boolean = false;
@@ -32,7 +32,7 @@ export class Badge
         this.iconElem = document.createElement('img');
         this.iconElem.classList.add('n3q-base', 'n3q-badge');
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
-        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.iconElem);
+        this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.iconElem);
         this.initEventHandling();
         this.onPropertiesLoaded(item);
     }
@@ -99,17 +99,17 @@ export class Badge
     {
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverenter, ev => {
+        this.pointerEventDispatcher.setEventListener('hoverenter', ev => {
             this.badgesDisplay.onMouseEnterBadge(ev);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverleave, ev => {
+        this.pointerEventDispatcher.setEventListener('hoverleave', ev => {
             this.badgesDisplay.onMouseLeaveBadge(ev);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, ev => {
+        this.pointerEventDispatcher.setEventListener('buttondown', ev => {
             this.badgesDisplay.onBadgePointerDown(ev);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.click, ev => {
+        this.pointerEventDispatcher.setEventListener('click', ev => {
             if (!this.isStopping) {
                 if (this.badgesDisplay.getIsInEditMode()) {
                     if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
@@ -122,7 +122,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
+        this.pointerEventDispatcher.setEventListener('dragstart', ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 this.iconElem.classList.add('n3q-hidden');
                 this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.item.iconDataUrl);
@@ -131,7 +131,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, ev => {
+        this.pointerEventDispatcher.setEventListener('dragmove', ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
                     this.pointerEventDispatcher.cancelDrag();
@@ -146,7 +146,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, ev => {
+        this.pointerEventDispatcher.setEventListener('dragdrop', ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 const display = this.badgesDisplay;
                 if (display.isValidEditModeBadgeDrop(ev, this.item)) {
@@ -157,7 +157,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => this.onDragEnd());
+        this.pointerEventDispatcher.setEventListener('dragend', ev => this.onDragEnd());
 
     }
 

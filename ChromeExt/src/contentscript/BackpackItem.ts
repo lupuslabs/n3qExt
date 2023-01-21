@@ -9,11 +9,11 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
 import { BackpackWindow } from './BackpackWindow';
 import { BackpackItemInfo } from './BackpackItemInfo';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { is } from '../lib/is';
 import { DomButtonId } from '../lib/domTools';
 import { Participant } from './Participant';
-import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
+import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 
 export class BackpackItem
 {
@@ -21,7 +21,7 @@ export class BackpackItem
     private imageElem: HTMLDivElement;
     private textElem: HTMLDivElement;
     private coverElem: HTMLDivElement;
-    private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private pointerEventDispatcher: PointerEventDispatcher;
     private dragElem?: HTMLElement;
     private dragBadgeElem?: HTMLImageElement;
     private dragIsRezable: boolean = false;
@@ -58,40 +58,40 @@ export class BackpackItem
 
         paneElem.append(this.elem);
 
-        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.elem);
+        this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem);
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone');
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragenter', eventData => {
             const dropTargetElem = eventData.dropTarget;
             if (this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this) === true) {
                 dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragleave', eventData => {
             const dropTargetElem = eventData.dropTargetLast;
             dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, eventData => {
+        this.pointerEventDispatcher.setEventListener('buttondown', eventData => {
             this.toFront();
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.click, eventData => {
+        this.pointerEventDispatcher.setEventListener('click', eventData => {
             this.onMouseClick(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.doubleclick, eventData => {
+        this.pointerEventDispatcher.setEventListener('doubleclick', eventData => {
             this.onMouseDoubleClick(eventData);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragstart', eventData => {
             this.onDragStart(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragmove', eventData => {
             this.onDragMove(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragdrop', eventData => {
             this.onDragDrop(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, eventData => {
+        this.pointerEventDispatcher.setEventListener('dragend', eventData => {
             this.onDragEnd();
         });
 
@@ -141,8 +141,8 @@ export class BackpackItem
     {
         // fix position
         // const bounds = {
-        //     left: this.getWidth() / 2, 
-        //     top: this.getHeight() / 2, 
+        //     left: this.getWidth() / 2,
+        //     top: this.getHeight() / 2,
         //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
         //     bottom: this.backpackWindow.getHeight() - this.getHeight() / 2
         // };

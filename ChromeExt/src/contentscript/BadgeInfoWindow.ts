@@ -1,7 +1,7 @@
 import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
-import { DomModifierKeyId, PointerEventType } from '../lib/PointerEventData';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
+import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 import { Badge } from './Badge';
 import { is } from '../lib/is';
@@ -73,15 +73,15 @@ export class BadgeInfoWindow
         this.rootElem = document.createElement('div');
         this.rootElem.classList.add('n3q-base', 'n3q-badgeInfoWindow', 'n3q-hidden');
 
-        const eventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.rootElem);
+        const eventDispatcher = new PointerEventDispatcher(this.app, this.rootElem);
 
-        eventDispatcher.setEventListener(PointerEventType.buttondown, ev => {
+        eventDispatcher.setEventListener('buttondown', ev => {
             if (this.state === 'visible') {
                 this.riseToFront();
             }
         });
 
-        eventDispatcher.setEventListener(PointerEventType.dragmove, ev => {
+        eventDispatcher.setEventListener('dragmove', ev => {
             if (this.state === 'visible') {
                 const clientX = ev.clientX - ev.startDomElementOffsetX;
                 const clientY = ev.clientY - ev.startDomElementOffsetY;
@@ -142,8 +142,8 @@ export class BadgeInfoWindow
             elem.classList.add('n3q-base', 'n3q-badgeInfoWindow-link');
             this.makeTextElems(elem, linkLabel.length === 0 ? linkUrl : linkLabel);
 
-            const eventdispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, elem);
-            eventdispatcher.setEventListener(PointerEventType.click, eventData => {
+            const eventdispatcher = new PointerEventDispatcher(this.app, elem);
+            eventdispatcher.setEventListener('click', eventData => {
                 if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
                     window.open(linkUrl, '_blank');
                 }
