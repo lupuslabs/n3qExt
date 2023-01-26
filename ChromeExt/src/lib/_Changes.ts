@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.5', 'x', [
+            ['Add', 'Support for translated item properties'],
             ['Change', 'Room item popup to adapt to content width'],
             ['Change', 'Points bar title hover to always show all channels'],
             ['Change', 'Backpack item popup spacing and item description'],

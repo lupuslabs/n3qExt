@@ -74,6 +74,7 @@ export class BackgroundApp
     private resource: string = null;
     private isReady: boolean = false;
     private userId: string = null;
+    private language = 'en-US';
     private backpack: Backpack = null;
     private xmppStarted = false;
     private babelfish: Translator;
@@ -90,6 +91,8 @@ export class BackgroundApp
     private readonly stanzaQ: Array<ltx.Element> = [];
     private readonly iqStanzaTabId: Map<string, number> = new Map();
     private readonly tabs: Map<number, BackgroundTabData> = new Map();
+
+    getLanguage(): string { return this.language; }
 
     async start(): Promise<void>
     {
@@ -119,8 +122,9 @@ export class BackgroundApp
         await this.assertThatThereIsAUserId();
         await this.assertThatThereIsAUserToken();
 
-        let language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
-        this.babelfish = new Translator(Config.get('i18n.translations', {})[language], language, Config.get('i18n.serviceUrl', ''));
+        this.language = Client.getUserLanguage()
+        const translationTable = Config.get('i18n.translations', {})[this.language];
+        this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
 
         this.chatHistoryStorage = new ChatHistoryStorage(this);
 
@@ -228,6 +232,10 @@ export class BackgroundApp
 
     private async onConfigUpdated()
     {
+        this.language = Client.getUserLanguage()
+        const translationTable = Config.get('i18n.translations', {})[this.language];
+        this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
+
         if (this.backpack == null) {
             if (Utils.isBackpackEnabled()) {
                 this.backpack = new Backpack(this);

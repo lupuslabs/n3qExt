@@ -1,5 +1,7 @@
+import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
+import { Translator } from './Translator';
 import { _Changes } from './_Changes';
 
 export class Client
@@ -23,5 +25,17 @@ export class Client
     static getVariant(): string
     {
         return Environment.isEmbedded() ? 'embedded' : (Environment.isExtension() ? 'extension' : '');
+    }
+
+    static getUserLanguage(): string
+    {
+        let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
+        if (navLang === '') {
+            navLang = navigator.language;
+        }
+
+        const language = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+
+        return language;
     }
 }

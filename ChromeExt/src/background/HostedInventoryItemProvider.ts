@@ -13,6 +13,7 @@ import { Backpack } from './Backpack';
 import { IItemProvider } from './ItemProvider';
 import { Config } from '../lib/Config';
 import { Client } from '../lib/Client';
+import { BackgroundApp } from './BackgroundApp';
 const Web3Eth = require('web3-eth');
 
 export namespace HostedInventoryItemProvider
@@ -61,7 +62,7 @@ export namespace HostedInventoryItemProvider
         private userId: string;
         private accessToken: string;
 
-        constructor(private backpack: Backpack, private id, private providerDefinition: Definition) { }
+        constructor(private app: BackgroundApp, private backpack: Backpack, private id, private providerDefinition: Definition) { }
 
         config(): Config
         {
@@ -108,7 +109,7 @@ export namespace HostedInventoryItemProvider
         {
             let itemIds = [];
             try {
-                let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.userId);
+                let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.app.getLanguage(), this.userId);
                 const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
                 itemIds = response.items;
             } catch (error) {
@@ -133,7 +134,7 @@ export namespace HostedInventoryItemProvider
             let multiItemProperties = {};
             if (itemIds.length > 0) {
                 try {
-                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, itemIds);
+                    const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.app.getLanguage(), this.userId, itemIds);
                     const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
                     multiItemProperties = response.multiItemProperties;
                 } catch (error) {
@@ -475,6 +476,7 @@ export namespace HostedInventoryItemProvider
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
                     this.accessToken,
+                    this.app.getLanguage(),
                     itemId,
                     this.userId,
                     action,
@@ -510,7 +512,7 @@ export namespace HostedInventoryItemProvider
 
             // if (changedOrCreated.length > 0) {
             //     try {
-            //         const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.userId, changedOrCreated);
+            //         const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.app.getLanguage(), this.userId, changedOrCreated);
             //         const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
             //         multiItemProperties = response.multiItemProperties;
             //     } catch (ex) {
@@ -877,7 +879,7 @@ export namespace HostedInventoryItemProvider
             if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                 log.info('HostedInventoryItemProvider.performInventoryItemsRequest', {inventoryId, itemIds});
             }
-            const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, inventoryId, itemIds);
+            const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, this.app.getLanguage(), inventoryId, itemIds);
             this.rpcClient.call(this.config().itemApiUrl, request)
             .then(response => this.handleInventoryItemsResponse(
                 inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>response

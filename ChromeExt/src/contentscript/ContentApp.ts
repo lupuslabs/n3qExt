@@ -239,11 +239,7 @@ export class ContentApp
 
         await Utils.sleep(as.Float(Config.get('vp.deferPageEnterSec', 1)) * 1000);
 
-        let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
-        if (navLang === '') {
-            navLang = navigator.language;
-        }
-        this.language = Translator.mapLanguage(navLang, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, Config.get('i18n.defaultLanguage', 'en-US'));
+        this.language = Client.getUserLanguage()
         const translationTable = Config.get('i18n.translations', {})[this.language];
         this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
 

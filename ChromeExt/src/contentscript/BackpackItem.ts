@@ -123,8 +123,8 @@ export class BackpackItem
 
     setText(text: string): void
     {
-        $(this.textElem).text(as.Html(text));
-        $(this.coverElem).attr('title', as.Html(text));
+        $(this.textElem).text(text);
+        $(this.elem).attr('title', text);
     }
 
     getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }

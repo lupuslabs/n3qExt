@@ -112,7 +112,7 @@ export class Backpack
                             provider = new LocalStorageItemProvider(this, providerId, providerConfig);
                             break;
                         case HostedInventoryItemProvider.Provider.type:
-                            provider = new HostedInventoryItemProvider.Provider(this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
+                            provider = new HostedInventoryItemProvider.Provider(this.app, this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
                             break;
                         default:
                             break;

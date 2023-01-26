@@ -770,6 +770,7 @@ export class Config
                     'ItemPid.BadgeDescription': 'Description',
                     'ItemPid.BadgeLinkUrl': 'Link',
                     'ItemPid.BadgeLinkLabel': 'Link Text',
+                    'ItemPid.BadgeIsActive': 'Attached',
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
@@ -1075,6 +1076,7 @@ export class Config
                     'ItemPid.BadgeDescription': 'Info',
                     'ItemPid.BadgeLinkUrl': 'Link',
                     'ItemPid.BadgeLinkLabel': 'Linktext',
+                    'ItemPid.BadgeIsActive': 'Angeheftet',
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',

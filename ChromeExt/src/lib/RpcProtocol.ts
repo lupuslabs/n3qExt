@@ -84,6 +84,7 @@ export namespace RpcProtocol
         constructor(
             public user: string,
             public token: string,
+            public lang: string,
         ) { super(); }
     }
 
@@ -93,8 +94,9 @@ export namespace RpcProtocol
         constructor(
             user: string,
             token: string,
+            lang: string,
             public inventory: string,
-        ) { super(user, token); }
+        ) { super(user, token, lang); }
     }
     export class UserGetItemIdsResponse extends ItemApiResponse
     {
@@ -107,9 +109,10 @@ export namespace RpcProtocol
         constructor(
             user: string,
             token: string,
+            lang: string,
             public inventory: string,
             public items: string[],
-            ) { super(user, token); }
+            ) { super(user, token, lang); }
         }
     export class UserGetItemPropertiesResponse extends ItemApiResponse
     {
@@ -123,12 +126,13 @@ export namespace RpcProtocol
         constructor(
             user: string,
             token: string,
+            lang: string,
             public item: string,
             public inventory: string,
             public action: string,
             public args: any,
             public involvedItems: string[],
-            ) { super(user, token); }
+            ) { super(user, token, lang); }
     }
     export class UserItemActionResponse extends ItemApiResponse
     {
