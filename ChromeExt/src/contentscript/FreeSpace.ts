@@ -11,9 +11,9 @@ export class FreeSpace
     getFreeCoordinate(elem: HTMLElement = null): { x: number, y: number }
     {
         $(elem).find('.n3q-testFreeSpace').remove();
-        let n = this.n;
-        let dx = this.contentW / n;
-        let dy = this.contentH / n;
+        let n = Math.max(1, this.n);
+        let dx = Math.max(1, this.contentW) / n;
+        let dy = Math.max(1, this.contentH) / n;
         for (let x = 0; x < n; x++) {
             this.cell[x] = [];
             for (let y = 0; y < n; y++) {
