@@ -2,7 +2,6 @@ import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 
 import log = require('loglevel');
 import * as $ from 'jquery';
-import 'jqueryui';
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Element as XmlElement } from 'ltx';
@@ -14,6 +13,7 @@ import { RoomItem } from './RoomItem';
 import { BackpackItem } from './BackpackItem';
 import { PointerEventData } from '../lib/PointerEventData';
 import { AnimationsDefinition } from './AnimationsXml';
+import { domHtmlElemOfHtml } from '../lib/domTools'
 
 export class Entity
 {
@@ -26,10 +26,10 @@ export class Entity
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-entity" />').get(0);
+        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-entity"></div>');
         this.elem.style.display = 'none';
 
-        $(app.getDisplay()).append(this.elem);
+        app.getDisplay()?.append(this.elem);
     }
 
     getRoom(): Room { return this.room; }
@@ -64,23 +64,24 @@ export class Entity
 
     showEffect(effect: string): void
     {
-        const pulseElem = <HTMLDivElement>$('<div class="n3q-base n3q-pulse" />').get(0);
-        $(this.elem).append(pulseElem);
+        const pulseElem = domHtmlElemOfHtml('<div class="n3q-base n3q-pulse"></div>');
+        this.elem.append(pulseElem);
         window.setTimeout(() => { $(pulseElem).remove(); }, 1000);
     }
 
     setRange(left: number, right: number): void
     {
         this.removeRange();
-        this.rangeElem = <HTMLDivElement>$('<div class="n3q-base n3q-range" />').get(0);
-        $(this.rangeElem).css({ left: left + 'px', width: (right - left)  + 'px' });
-        $(this.elem).prepend(this.rangeElem);
-        $(this.elem).css( { 'z-index': '' });
+        this.rangeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-range"></div>');
+        this.rangeElem.style.left = `${left}px`;
+        this.rangeElem.style.width = `${right - left}px`;
+        this.elem.prepend(this.rangeElem);
+        this.elem.style.zIndex = '';
     }
 
     removeRange(): void
     {
-        if (this.rangeElem) { $(this.rangeElem).remove(); }
+        this.rangeElem?.remove();
     }
 
     public onAvatarAnimationsParsed(avatarAnimations: AnimationsDefinition): void

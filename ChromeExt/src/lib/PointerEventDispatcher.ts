@@ -16,8 +16,13 @@ import { Utils } from './Utils';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
 
+export type PointerEventListener = (ev: PointerEventData) => void;
+export type PointerEventListeners = { [p in PointerEventType]?: PointerEventListener }
+
 export type PointerEventDispatcherOptions = {
     ignoreOpacity?: boolean,
+    dragStartDistance?: number,
+    dragCssCursor?: string,
 };
 
 export class PointerEventDispatcher {
@@ -43,6 +48,8 @@ export class PointerEventDispatcher {
     private clickDoubleMaxDelayMs: number = 0.0;
     private dragStartDistance: number;
     private readonly dragDropTargetUpdateIntervalMs: number;
+
+    private dragCssCursor: null|string;
 
     private inEventHandling: boolean = false; // For infinite recursion prevention.
     private lastMouseEventButtons: number = 0;
@@ -112,7 +119,8 @@ export class PointerEventDispatcher {
 
         this.ignoreOpacity = as.Bool(options?.ignoreOpacity);
         this.opacityMin = this.ignoreOpacity ? 0 : as.Float(Config.get('avatars.pointerOpaqueOpacityMin'), 0.001);
-        this.setDragStartDistance();
+        this.setDragStartDistance(options?.dragStartDistance);
+        this.setDragCssCursor(options?.dragCssCursor);
         const dragUpdateIntervalSecs = as.Float(Config.get('avatars.pointerDropTargetUpdateIntervalSec'), 0.5);
         this.dragDropTargetUpdateIntervalMs = 1000 * dragUpdateIntervalSecs;
 
@@ -135,11 +143,18 @@ export class PointerEventDispatcher {
         this.domElem.addEventListener('contextmenu', mouseHandler); // Singleclick with secondary button.
     }
 
-    public setEventListener(type: PointerEventType, handler: (ev: PointerEventData) => void): void
+    public setEventListener(type: PointerEventType, listener: PointerEventListener): void
     {
-        this.eventListeners.set(type, handler);
+        this.eventListeners.set(type, listener);
         if (type === 'doubleclick') {
             this.clickDoubleMaxDelayMs = 1000 * as.Float(Config.get('avatars.pointerDoubleclickMaxSec'), 0.25);
+        }
+    }
+
+    public setEventListeners(listeners: PointerEventListeners): void
+    {
+        for (const [type, listener] of Object.entries(listeners)) {
+            this.setEventListener(<PointerEventType>type, listener);
         }
     }
 
@@ -147,6 +162,11 @@ export class PointerEventDispatcher {
     {
         startDistance = startDistance ?? as.Float(Config.get('avatars.pointerDragStartDistance'), 3.0);
         this.dragStartDistance = startDistance;
+    }
+
+    public setDragCssCursor(cssCursor?: string): void
+    {
+        this.dragCssCursor = cssCursor ?? null;
     }
 
     public addDropTargetTransparentClass(...classNames: Array<string>): void
@@ -280,15 +300,13 @@ export class PointerEventDispatcher {
         // Reroute to next pointer-enabled element (opaque or not) behind domElem:
         const elemBelow = this.reroutePointerOrMouseEvent(ev);
         if (this.domElem instanceof HTMLElement && elemBelow instanceof HTMLElement) {
-            this.domElem.style.cursor = window.getComputedStyle(elemBelow)['cursor'];
+            const cursor = this.dragOngoing ? this.dragCssCursor : null;
+            this.domElem.style.cursor = cursor ?? window.getComputedStyle(elemBelow)['cursor'];
         }
     }
 
     private handlePointerEventForUs(ev: PointerEvent, isOpaqueAtLoc: boolean, lastButtonsState: ButtonsState): void
     {
-        if (this.domElem instanceof HTMLElement) {
-            this.domElem.style.cursor = '';
-        }
         this.handleRedirectTargetPointerOut(ev, null);
         if (!ev.isPrimary) {
             // Multitouch event - trigger full action reset:
@@ -316,6 +334,10 @@ export class PointerEventDispatcher {
         }
 
         this.handleMoveEvents(ev, isOpaqueAtLoc);
+        if (this.domElem instanceof HTMLElement) {
+            const cursor = this.dragOngoing ? this.dragCssCursor : null;
+            this.domElem.style.cursor = cursor ?? '';
+        }
     }
 
     private handleButtonEvent(ev: PointerEvent, isConcurrent: boolean, lastButtonsState: ButtonsState): void

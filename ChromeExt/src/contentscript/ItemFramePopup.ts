@@ -1,16 +1,20 @@
-import * as $ from 'jquery';
-import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
+import { Pid } from '../lib/ItemProperties';
+import { RoomItem } from './RoomItem'
 import { ContentApp } from './ContentApp';
 import { Popup, PopupOptions } from './Popup';
-import { Pid } from '../lib/ItemProperties';
+import { domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
 
-interface ItemFramePopupOptions extends PopupOptions
-{
-    elem: HTMLElement;
-    url: string;
-    onClose: { (): void };
+export type ItemFramePopupOptions = PopupOptions & {
+    item: RoomItem,
+    elem: HTMLElement,
+    url: string,
+    width?: number,
+    height?: number,
+    left?: number,
+    bottom?: number,
+    hidden?: boolean,
 }
 
 export class ItemFramePopup extends Popup
@@ -18,18 +22,23 @@ export class ItemFramePopup extends Popup
     private iframeElem: HTMLIFrameElement;
     private options: ItemFramePopupOptions;
 
-    constructor(app: ContentApp)
+    public constructor(app: ContentApp)
     {
         super(app);
     }
 
-    getIframeElem(): HTMLIFrameElement { return this.iframeElem; }
+    public getIframeElem(): HTMLIFrameElement
+    {
+        return this.iframeElem;
+    }
 
-    async show(options: ItemFramePopupOptions)
+    public show(options: ItemFramePopupOptions): void
     {
         try {
-            let url: string = options.url;
-            if (!url) { throw 'No url' }
+            let url: string = as.String(options.url);
+            if (!url.length) {
+                throw new Error('ItemFramePopup.show: No url given!');
+            }
 
             let json = as.String(options.item.getProperties()[Pid.IframeOptions], '{}');
             let iframeOptions = JSON.parse(json);
@@ -46,13 +55,15 @@ export class ItemFramePopup extends Popup
             log.debug('ItemFramePopup', url);
             super.show(options);
 
-            $(this.windowElem).addClass('n3q-itemframepopup');
+            this.windowElem.classList.add('n3q-itemframepopup');
 
-            this.iframeElem = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-itemframepopup-content" src="' + url + ' " frameborder="0"></iframe>').get(0);
+            this.iframeElem = <HTMLIFrameElement>domHtmlElemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${url}" frameborder="0"></iframe>`);
 
-            if (options.hidden) { this.setVisibility(false); }
+            if (options.hidden) {
+                this.setVisibility(false);
+            }
 
-            $(this.windowElem).append(this.iframeElem);
+            this.windowElem.append(this.iframeElem);
             this.app.translateElem(this.windowElem);
 
             this.position(options.width, options.height, options.left, options.bottom);
@@ -61,35 +72,31 @@ export class ItemFramePopup extends Popup
 
         } catch (error) {
             log.info('ItemFramePopup', error);
-            if (options.onClose) { options.onClose(); }
+            options.onClose?.();
         }
     }
 
-    isOpen(): boolean
-    {
-        return this.windowElem != null;
-    }
-
-    position(width: number, height: number, left: number, bottom: number, options: any = null): void
+    public position(width: number, height: number, left: number, bottom: number, options: any = null): void
     {
         const offset = this.options.elem.getBoundingClientRect();
         const absLeft = offset.left + left;
-        const absBottom = bottom;
-        if (options != null && as.Bool(options.animate, false)) {
-            $(this.windowElem).animate({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' }, as.Int(options.duration, 200));
-        } else {
-            $(this.windowElem).css({ width: width + 'px', height: height + 'px', left: absLeft + 'px', bottom: absBottom + 'px' });
-        }
+        const delay = as.Bool(options?.animate, false) ? '200ms' : '0ms';
+
+        this.windowElem.style.width = `${width}px`;
+        const heightTrans = { property: 'height', duration: delay };
+        startDomElemTransition(this.windowElem, null, heightTrans, `${height}px`);
+        this.windowElem.style.left = `${absLeft}px`;
+        this.windowElem.style.bottom = `${bottom}px`;
     }
 
-    move(): void
+    public move(): void
     {
         const offset = this.options.elem.getBoundingClientRect();
         const absLeft = offset.left + this.options.left;
-        $(this.windowElem).css({ left: absLeft + 'px' });
+        this.windowElem.style.left = `${absLeft}px`;
     }
 
-    toFront(layer?: undefined | number | string): void
+    public toFront(layer?: undefined | number | string): void
     {
         this.app.toFront(this.windowElem, layer ?? ContentApp.LayerPopup);
     }

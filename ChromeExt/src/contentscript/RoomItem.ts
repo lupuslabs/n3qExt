@@ -20,7 +20,7 @@ import { Avatar } from './Avatar';
 import { RoomItemStats } from './RoomItemStats';
 import { ItemFrameUnderlay } from './ItemFrameUnderlay';
 import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow';
-import { ItemFramePopup } from './ItemFramePopup';
+import { ItemFramePopup, ItemFramePopupOptions } from './ItemFramePopup';
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
 import { Element as XmlElement } from 'ltx';
@@ -408,7 +408,7 @@ export class RoomItem extends Entity
             this.openFrame();
         }
     }
-    
+
     public onMouseDoubleClickAvatar(ev: PointerEventData): void
     {
         super.onMouseDoubleClickAvatar(ev);
@@ -760,17 +760,15 @@ export class RoomItem extends Entity
         if (this.framePopup == null) {
             this.framePopup = new ItemFramePopup(this.app);
 
-            const options: ItemFrameWindowOptions = {
+            const options: ItemFramePopupOptions = {
                 item: this,
                 elem: anchorElem,
                 url: iframeUrl,
-
                 onClose: () => { this.framePopup = null; },
                 width: as.Int(popupOptions.width, 100),
                 height: as.Int(popupOptions.height, 100),
                 left: as.Int(popupOptions.left, -popupOptions.width / 2),
                 bottom: as.Int(popupOptions.bottom, 50),
-                resizable: as.Bool(popupOptions.rezizable, true),
                 transparent: as.Bool(popupOptions.transparent),
                 hidden: as.Bool(popupOptions.hidden),
             };
@@ -782,16 +780,15 @@ export class RoomItem extends Entity
     protected openIframeAsWindow(anchorElem: HTMLElement, iframeUrl: string, windowOptions: any): void
     {
         if (this.frameWindow == null) {
-            this.frameWindow = new ItemFrameWindow(this.app);
+            this.frameWindow = new ItemFrameWindow(this.app, this);
 
             const options: ItemFrameWindowOptions = {
-                item: this,
-                elem: anchorElem,
+                above: anchorElem,
                 url: iframeUrl,
                 onClose: () => { this.frameWindow = null; },
                 width: as.Int(windowOptions.width, 100),
                 height: as.Int(windowOptions.height, 100),
-                left: as.Int(windowOptions.left, -windowOptions.width / 2),
+                left: windowOptions.left,
                 bottom: as.Int(windowOptions.bottom, 50),
                 resizable: as.Bool(windowOptions.rezizable, true),
                 undockable: as.Bool(windowOptions.undockable),
@@ -810,10 +807,10 @@ export class RoomItem extends Entity
         this.frameWindow?.position(width, height, left, bottom);
     }
 
-    public toFrontFrame(layer?: undefined | number | string): void
+    public toFrontFrame(guiLayer?: number|string): void
     {
-        this.framePopup?.toFront(layer);
-        this.frameWindow?.toFront(layer);
+        this.framePopup?.toFront(guiLayer);
+        this.frameWindow?.toFront(guiLayer);
     }
 
     public async setItemProperty(pid: string, value: any): Promise<void>

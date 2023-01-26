@@ -1,23 +1,28 @@
-import * as $ from 'jquery';
-import 'webpack-jquery-ui';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
-import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
+import { domHtmlElemOfHtml } from '../lib/domTools'
+import { is } from '../lib/is'
 
-export type PopupOptions = any;
+export type PopupOptions = {
+    onClose?: () => void,
+    closeIsHide?: boolean,
+    transparent?: boolean,
+    closeButton?: boolean,
+};
 
 export class Popup
 {
-    onClose: { (): void };
+    protected onClose: null|(() => void);
 
     protected windowElem: HTMLElement;
     protected closeIsHide = false;
 
-    constructor(protected app: ContentApp) { }
+    private isClosing: boolean;
 
-    show(options: PopupOptions)
+    public constructor(protected app: ContentApp) {}
+
+    public show(options: PopupOptions): void
     {
         this.onClose = options.onClose;
         this.closeIsHide = options.closeIsHide;
@@ -25,67 +30,60 @@ export class Popup
         if (!this.windowElem) {
             let windowId = Utils.randomString(15);
 
-            let windowElem = <HTMLElement>$('<div id="' + windowId + '" class="n3q-base n3q-window n3q-popupwindow '
-                + (options.transparent ? 'n3q-transparent' : 'n3q-shadow-medium')
-                + '" data-translate="children" />')
-                .get(0);
+            const opacityClass = options.transparent ? 'n3q-transparent' : 'n3q-shadow-medium';
+            this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" class="n3q-base n3q-window n3q-popupwindow ${opacityClass}" data-translate="children"></div>`);
 
             if (as.Bool(options.closeButton, true)) {
-                let closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Close" data-translate="attr:title:Common"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
                 this.isClosing = false;
-                $(closeElem).click(ev =>
-                {
+                const onClose = () => {
                     if (this.closeIsHide) {
                         this.setVisibility(false);
                     } else {
                         this.close();
                     }
-                });
-                $(windowElem).append(closeElem);
+                };
+                this.windowElem.append(this.app.makeWindowCloseButton(onClose, 'popup'));
             }
 
-            this.windowElem = windowElem;
+            this.app.getDisplay()?.append(this.windowElem);
 
-            // $(options.elem).append(windowElem);
-            $(this.app.getDisplay()).append(windowElem);
-
-            $(windowElem).click(ev =>
-            {
-                this.app.toFront(windowElem, ContentApp.LayerWindow);
+            this.windowElem.addEventListener('pointerdown', ev => {
+                this.app.toFront(this.windowElem, ContentApp.LayerWindow);
             });
         }
     }
 
-    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
-
-    isOpen(): boolean
+    public getWindowElem(): null|HTMLElement
     {
-        return this.windowElem != null;
+        return this.windowElem ?? null;
     }
 
-    private isClosing: boolean;
-    close(): void
+    public isOpen(): boolean
+    {
+        return !is.nil(this.windowElem);
+    }
+
+    public close(): void
     {
         if (!this.isClosing) {
             this.isClosing = true;
 
-            $(this.windowElem).remove();
-            if (this.onClose) { this.onClose(); }
+            this.windowElem.remove();
+            this.onClose?.();
         }
     }
 
-    getVisibility(): boolean
+    public getVisibility(): boolean
     {
-        return !$(this.windowElem).hasClass('n3q-hidden');
+        return !this.windowElem.classList.contains('n3q-hidden');
     }
-    setVisibility(visible: boolean): void
+
+    public setVisibility(visible: boolean): void
     {
-        if (visible != this.getVisibility()) {
-            if (visible) {
-                $(this.windowElem).removeClass('n3q-hidden');
-            } else {
-                $(this.windowElem).addClass('n3q-hidden');
-            }
+        if (visible) {
+            this.windowElem.classList.remove('n3q-hidden');
+        } else {
+            this.windowElem.classList.add('n3q-hidden');
         }
     }
 }

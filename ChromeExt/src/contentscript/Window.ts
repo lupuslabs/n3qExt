@@ -1,258 +1,416 @@
-import * as $ from 'jquery';
-import 'webpack-jquery-ui';
 import { is } from '../lib/is';
-import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
-import { ContentApp } from './ContentApp';
+import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils';
+import { ContentApp, WindowStyle } from './ContentApp';
 import { Memory } from '../lib/Memory';
+import { domHtmlElemOfHtml, domWaitForRenderComplete } from '../lib/domTools'
+import { PointerEventDispatcher, PointerEventListeners } from '../lib/PointerEventDispatcher'
+import { PointerEventData } from '../lib/PointerEventData'
+import { as } from '../lib/as'
+import { Config } from '../lib/Config'
 
-export type WindowOptions = {[prop: string]: any};
+export type WindowOptions = {
+    onClose?: () => void,
+    closeIsHide?: string|boolean,
+    above?:  HTMLElement,
+    width?:  string|number,
+    height?: string|number,
+    bottom?: string|number,
+    left?:   string|number,
+};
 
-export class Window
+export abstract class Window<OptionsType extends WindowOptions>
 {
-    onResizeStart: { (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams): void };
-    onResizeStop: { (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams): void };
-    onResize: { (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams): void };
-    onDragStart: { (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams): void };
-    onDrag: { (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams): void };
-    onDragStop: { (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams): void };
-    onClose: { (): void };
+    protected app: ContentApp;
+    protected onClose: null|(() => void) = null;
 
-    protected windowElem: HTMLElement;
-    protected contentElem: HTMLElement;
-    protected closeIsHide = false;
+    protected windowName: string = 'Default';
+    protected style: WindowStyle = 'window';
+    protected closeIsHide:     boolean = false;
+    protected isMovable:       boolean = true;
+    protected isResizable:     boolean = false;
+    protected persistGeometry: boolean = false;
+    protected isUndockable:    boolean = false;
 
-    constructor(protected app: ContentApp) { }
+    protected containerMarginTop:    number = 0;
+    protected containerMarginRight:  number = 0;
+    protected containerMarginBottom: number = 0;
+    protected containerMarginLeft:   number = 0;
+    protected minWidth:  number = 180;
+    protected minHeight: number = 100;
+    protected defaultWidth:  number = 180;
+    protected defaultHeight: number = 100;
+    protected defaultBottom: number = 10;
+    protected defaultLeft:   number = 10;
 
-    show(options: WindowOptions)
+    protected givenOptions: null|OptionsType = null;
+    protected titleText: string = '';
+
+    protected defaultFrameListeners: PointerEventListeners = {};
+    protected containerElem: null|HTMLElement = null;
+    protected windowElem:    null|HTMLElement = null;
+    protected titlebarElem:  null|HTMLElement = null;
+    protected contentElem:   null|HTMLElement = null;
+
+    protected guiLayer: number|string = ContentApp.LayerWindow;
+    protected geometry: LeftBottomRect = dummyLeftBottomRect;
+    protected geometryAtActionStart: LeftBottomRect = dummyLeftBottomRect; // For move and resize.
+    protected isClosing: boolean = false;
+
+    public constructor(app: ContentApp)
     {
-        this.onClose = options.onClose;
-        this.closeIsHide = options.closeIsHide;
+        this.app = app;
+    }
 
-        if (!this.windowElem) {
-            const windowId = Utils.randomString(15);
-            const resizable = as.Bool(options.resizable, false);
-            const undockable = as.Bool(options.undockable, false);
-
-            const windowElem = <HTMLElement>$('<div id="' + windowId + '" class="n3q-base n3q-window n3q-shadow-medium" data-translate="children" />').get(0);
-            const titleBarElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-bar" data-translate="children" />').get(0);
-            const titleElem = <HTMLElement>$('<div class="n3q-base n3q-window-title" data-translate="children" />').get(0);
-            const titleTextElem = <HTMLElement>$('<div class="n3q-base n3q-window-title-text">' + (options.titleText ? options.titleText : '') + '</div>').get(0);
-
-            const undockElem = undockable ? <HTMLElement>$(
-                `<div class="n3q-base n3q-window-button n3q-window-button-2" title="Undock" data-translate="attr:title:Common">
-                    <div class="n3q-base n3q-button-symbol n3q-button-undock" />
-                </div>`
-            ).get(0) : null;
-
-            const closeElem = <HTMLElement>$(
-                `<div class="n3q-base n3q-window-button" title="Close" data-translate="attr:title:Common">
-                    <div class="n3q-base n3q-button-symbol n3q-button-close" />
-                </div>`
-            ).get(0);
-
-            const contentElem = <HTMLElement>$('<div class="n3q-base n3q-window-content" data-translate="children" />').get(0);
-
-            $(titleElem).append(titleTextElem);
-            $(titleBarElem).append(titleElem);
-            if (undockable) { $(titleBarElem).append(undockElem); }
-            $(titleBarElem).append(closeElem);
-            $(windowElem).append(titleBarElem);
-
-            $(windowElem).append(contentElem);
-
-            // if (resizable) {
-            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-se"/>').get(0));
-            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-s"/>').get(0));
-            //     $(windowElem).append(<HTMLElement>$('<div class="n3q-base n3q-window-resize n3q-window-resize-n"/>').get(0));
-            // }
-
-            this.contentElem = contentElem;
-            this.windowElem = windowElem;
-
-            $(this.app.getDisplay()).append(windowElem);
-            this.app.toFront(windowElem, ContentApp.LayerWindow);
-
-            const maskId = Utils.randomString(15);
-
-            if (resizable) {
-                $(windowElem).resizable({
-                    minWidth: 180,
-                    minHeight: 100,
-                    handles: 'n, e, s, w, se, ne, nw, sw',
-                    // handles: {
-                    //     se: '#n3q #' + windowId + ' .n3q-window-resize-se',
-                    //     s: '#n3q #' + windowId + ' .n3q-window-resize-s',
-                    //     n: '#n3q #' + windowId + ' .n3q-window-resize-n',
-                    // },
-                    start: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
-                    {
-                        $(windowElem).append('<div id="' + maskId + '" style="background-color: #ffffff; opacity: 0.001; position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>');
-                        if (this.onResize) { this.onResize(ev, ui); }
-                        this.startPreventingPointerEventLoss();
-                    },
-                    resize: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
-                    {
-                        if (this.onResizeStart) { this.onResizeStart(ev, ui); }
-                    },
-                    stop: (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
-                    {
-                        $('#' + maskId).remove();
-                        if (this.onResizeStop) { this.onResizeStop(ev, ui); }
-                        this.stopPreventingPointerEventLoss();
-                    },
-                });
+    public show(options: OptionsType): void
+    {
+        if (this.isOpen()) {
+            return;
+        }
+        (async () => {
+            this.givenOptions = options;
+            this.onClose = this.givenOptions.onClose;
+            this.containerElem = this.app.getDisplay();
+            if (!this.containerElem) {
+                throw new Error('Window.show: Display not ready!');
             }
-
-            $(undockElem).click(ev =>
-            {
-                this.undock();
-            });
-
-            this.isClosing = false;
-            $(closeElem).click(ev =>
-            {
-                if (this.closeIsHide) {
-                    this.setVisibility(false);
-                } else {
-                    this.close();
-                }
-            });
-
-            $(windowElem).click(ev =>
-            {
-                this.app.toFront(windowElem, ContentApp.LayerWindow);
-            });
-
-            $(windowElem).draggable({
-                handle: '.n3q-window-title',
-                scroll: false,
-                iframeFix: true,
-                stack: '.n3q-entity',
-                // opacity: 0.5,
-                distance: 4,
-                containment: 'document',
-                start: (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-                {
-                    this.app.toFront(windowElem, ContentApp.LayerWindow);
-                    if (this.onDragStart) { this.onDragStart(ev, ui); }
-                    this.startPreventingPointerEventLoss();
-                },
-                drag: (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-                {
-                    if (this.onDrag) { this.onDrag(ev, ui); }
-                },
-                stop: (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-                {
-                    if (this.onDragStop) { this.onDragStop(ev, ui); }
-                    this.stopPreventingPointerEventLoss();
-                },
-            });
-        }
+            this.prepareMakeDom();
+            this.makeWindowFrameAndDecorations();
+            this.app.translateElem(this.windowElem);
+            await this.initGeometry();
+            this.toFront();
+            this.containerElem.append(this.windowElem);
+            await this.makeContent();
+            this.app.translateElem(this.contentElem);
+        })().catch(error => {
+            this.app.onError(error);
+            this.close();
+        });
     }
 
-    protected setPosition(left: number, bottom: number, width: number, height: number) {
-        const displayWidth = this.app.getDisplay().offsetWidth;
-        const displayHeight = this.app.getDisplay().offsetHeight;
-        let top = displayHeight - height - bottom;
-        const [leftFit, topFit, widthFit, heightFit] = Utils.fitDimensions(
-            left, top, width, height, displayWidth, displayHeight,
-            100, 50, 10, 10, 10, 10,
-        );
-        if (this.windowElem) {
-            this.windowElem.style.left   = `${leftFit}px`;
-            this.windowElem.style.top    = `${topFit}px`;
-            this.windowElem.style.width  = `${widthFit}px`;
-            this.windowElem.style.height = `${heightFit}px`;
-        }
-        return [leftFit, displayHeight - heightFit - topFit, widthFit, heightFit];
-    }
-
-    async getSavedOptions(name: string, presetOptions: WindowOptions): Promise<WindowOptions>
+    /**
+     * Called before window DOM elements are created.
+     *
+     * - Fill this.titleText with translated title in inheriting classes.
+     */
+    protected prepareMakeDom(): void
     {
-        const savedOptions = await Memory.getLocal('window.' + name, {});
+        this.closeIsHide = as.Bool(this.givenOptions.closeIsHide, this.closeIsHide);
+        this.containerMarginTop    = as.Int(Config.get('system.windowContainerMarginTop'), 0);
+        this.containerMarginRight  = as.Int(Config.get('system.windowContainerMarginRight'), 0);
+        this.containerMarginBottom = as.Int(Config.get('system.windowContainerMarginBottom'), 0);
+        this.containerMarginLeft   = as.Int(Config.get('system.windowContainerMarginLeft'), 0);
+    }
+
+    protected makeWindowFrameAndDecorations(): void
+    {
+        this.defaultFrameListeners = {
+            'buttondown': (ev) => this.toFront(),
+        };
+        const windowId = Utils.randomString(15);
+
+        this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" class="n3q-base n3q-window n3q-shadow-medium" data-translate="children"></div>`);
+        this.windowElem.addEventListener('pointerdown', ev => this.toFront());
+
+        this.makeTitlebar();
+
+        this.contentElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-content" data-translate="children"></div>');
+        this.windowElem.append(this.contentElem);
+
+        if (this.isMovable) {
+            this.makeUsermovable();
+        }
+        if (this.isResizable) {
+            this.makeUserresizable();
+        }
+    }
+
+    protected makeTitlebar(): void
+    {
+        this.titlebarElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-title-bar" data-translate="children"></div>');
+        const titleElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-title" data-translate="children"></div>');
+        const titleTextElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-window-title-text"></div>`);
+        titleTextElem.innerText = this.titleText;
+        this.windowElem.append(this.titlebarElem);
+        this.titlebarElem.append(titleElem);
+        titleElem.append(titleTextElem);
+
+        this.makeCloseButton();
+
+        if (this.isUndockable) {
+            this.makeUndockButton();
+        }
+    }
+
+    protected makeCloseButton(): void
+    {
+        const onCloseBtnClick = () => {
+            if (this.closeIsHide) {
+                this.setVisibility(false);
+            } else {
+                this.close();
+            }
+        };
+        const closeElem = this.app.makeWindowCloseButton(onCloseBtnClick, this.style, this.defaultFrameListeners);
+        this.titlebarElem.append(closeElem);
+    }
+
+    protected makeUndockButton(): void
+    {
+        const button = domHtmlElemOfHtml(
+            `<div class="n3q-base n3q-window-button n3q-window-button-2" title="Undock" data-translate="attr:title:Common">
+                <div class="n3q-base n3q-button-symbol n3q-button-undock"></div>
+            </div>`
+        );
+        const dispatcher = new PointerEventDispatcher(this.app, button, { ignoreOpacity: true });
+        dispatcher.setEventListeners(this.defaultFrameListeners);
+        dispatcher.setEventListener('click', eventData => this.undock());
+        this.titlebarElem.append(button);
+    }
+
+    protected makeUsermovable(): void
+    {
+        const newGeometryFun = (ev: PointerEventData) => ({
+            ...this.geometryAtActionStart,
+            left: this.geometryAtActionStart.left + ev.distanceX,
+            bottom: this.geometryAtActionStart.bottom - ev.distanceY,
+        });
+        this.makeFrameElemUsermovable(this.titlebarElem, 'move', newGeometryFun);
+        this.titlebarElem.style.pointerEvents = 'auto';
+    }
+
+    protected makeUserresizable(): void
+    {
+        const makeNewGeometryFun = (geoChangeFun: (PointerEventData) => BoxEdgeMovements) => {
+            return (ev: PointerEventData) => {
+                const edgeMovements = geoChangeFun(ev);
+                const containerRect = this.containerElem.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+                const newGeometry = Utils.moveLeftBottomRectEdges(
+                    this.geometryAtActionStart, edgeMovements,
+                    containerWidth, containerHeight, this.minWidth, this.minHeight,
+                    this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+                );
+                return newGeometry;
+            };
+        };
+        const newPropsFunN = (ev) => ({ top: -ev.distanceY });
+        const newPropsFunS = (ev) => ({ bottom: -ev.distanceY });
+        const newPropsFunE = (ev) => ({ right: ev.distanceX });
+        const newPropsFunW = (ev) => ({ left: ev.distanceX });
+        const newPropsFunNW = (ev) => ({ ...newPropsFunN(ev), ...newPropsFunW(ev) });
+        const newPropsFunNE = (ev) => ({ ...newPropsFunN(ev), ...newPropsFunE(ev) });
+        const newPropsFunSW = (ev) => ({ ...newPropsFunS(ev), ...newPropsFunW(ev) });
+        const newPropsFunSE = (ev) => ({ ...newPropsFunS(ev), ...newPropsFunE(ev) });
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-n', 'n-resize', makeNewGeometryFun(newPropsFunN));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-s', 's-resize', makeNewGeometryFun(newPropsFunS));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-e', 'e-resize', makeNewGeometryFun(newPropsFunE));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-w', 'w-resize', makeNewGeometryFun(newPropsFunW));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-nw', 'nw-resize', makeNewGeometryFun(newPropsFunNW));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-ne', 'ne-resize', makeNewGeometryFun(newPropsFunNE));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-sw', 'sw-resize', makeNewGeometryFun(newPropsFunSW));
+        this.makeFrameElemUsermovable('n3q-window-resize-handle-se', 'se-resize', makeNewGeometryFun(newPropsFunSE));
+    }
+
+    protected makeFrameElemUsermovable(
+        elemOrClass: string|HTMLElement, dragCssCursor: string, newGeometryFun: (ev: PointerEventData) => LeftBottomRect,
+    ): void {
+        let elem: HTMLElement;
+        if (is.string(elemOrClass)) {
+            elem = domHtmlElemOfHtml(`<div class="${elemOrClass}"></div>`);
+            this.windowElem.append(elem);
+        } else {
+            elem = elemOrClass;
+        }
+        const dispatcher = new PointerEventDispatcher(this.app, elem, {
+            ignoreOpacity: true,
+            dragStartDistance: 0,
+            dragCssCursor: dragCssCursor,
+        });
+        dispatcher.setEventListeners(this.defaultFrameListeners);
+        dispatcher.setEventListener('buttondown', eventData => this.toFront());
+        dispatcher.setEventListener('dragstart', ev => {
+            this.geometryAtActionStart = this.geometry;
+        });
+        dispatcher.setEventListener('dragmove', ev => {
+            this.setGeometry(newGeometryFun(ev), false);
+        });
+        dispatcher.setEventListener('dragend', ev => {
+            this.triggerSaveCurrentGeometry();
+        });
+    }
+
+    /**
+     * Called after window elements are created.
+     *
+     * - Fill window by appending elements to this.contentElem in inheriting classes.
+     */
+    protected async makeContent(): Promise<void>
+    {
+    }
+
+    protected setGeometry(geometry: LeftBottomRect, persist: boolean = true, mangle: boolean = true): void
+    {
+        const finalGeometry = mangle ? this.mangleGeometry(<Partial<OptionsType>>geometry) : geometry;
+        this.applyGeometry(finalGeometry);
+        if (persist) {
+            this.triggerSaveCurrentGeometry();
+        }
+    }
+
+    protected async initGeometry(): Promise<void>
+    {
+        await domWaitForRenderComplete();
+        const persitedOptions = this.persistGeometry ? await this.getSavedOptions() : {};
+        const mergedGeometry = {...this.givenOptions, ...persitedOptions};
+        const finalGeometry = this.mangleGeometry(mergedGeometry);
+        this.applyGeometry(finalGeometry);
+        if (this.persistGeometry) {
+            this.triggerSaveCurrentGeometry();
+        }
+    }
+
+    protected applyGeometry(geometry: LeftBottomRect): void
+    {
+        this.geometry = geometry;
+        if (this.windowElem) {
+            this.windowElem.style.left   = `${geometry.left}px`;
+            this.windowElem.style.bottom = `${geometry.bottom}px`;
+            this.windowElem.style.width  = `${geometry.width}px`;
+            this.windowElem.style.height = `${geometry.height}px`;
+        }
+    }
+
+    protected mangleGeometry(optionsOrGeometry: Partial<OptionsType>): LeftBottomRect
+    {
+        const containerRect = this.containerElem.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        // Get final dimensions first:
+        const optionsWidth = as.Int(optionsOrGeometry.width, this.defaultWidth);
+        const optionsHeight = as.Int(optionsOrGeometry.height, this.defaultHeight);
+        const dimensions = Utils.fitLeftBottomRect(
+            {left: 0, bottom: 0, width: optionsWidth, height: optionsHeight},
+            containerWidth, containerHeight, this.minWidth, this.minHeight,
+            this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+        );
+
+        // Add position:
+        const anchorElemRect = optionsOrGeometry.above?.getBoundingClientRect() ?? null;
+        let leftRaw = optionsOrGeometry.left;
+        if (is.nil(leftRaw) && anchorElemRect) {
+            const center = anchorElemRect.left + anchorElemRect.width / 2;
+            leftRaw = center - dimensions.width / 2;
+        }
+        const left = as.Int(leftRaw, this.defaultLeft);
+        const bottom = as.Int(optionsOrGeometry.bottom, this.defaultBottom);
+        const geometry = Utils.fitLeftBottomRect(
+            {left, bottom, width: dimensions.width, height: dimensions.height},
+            containerWidth, containerHeight, this.minWidth, this.minHeight,
+            this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+        );
+
+        return geometry;
+    }
+
+    protected async getSavedOptions(presetOptions?: OptionsType): Promise<OptionsType>
+    {
+        const savedOptions = await Memory.getLocal(`window.${this.windowName}`, {});
         const options = presetOptions ?? {};
         for (const key in savedOptions) {
             options[key] = savedOptions[key];
         }
-        return options;
+        return <OptionsType>options;
     }
 
-    async saveOptions(name: string, value: WindowOptions): Promise<void>
+    protected async saveOptions(options: OptionsType): Promise<void>
     {
-        await Memory.setLocal('window.' + name, value);
+        await Memory.setLocal(`window.${this.windowName}`, options);
     }
 
-    getWindowElem(): undefined|HTMLElement { return this.windowElem; }
-
-    isOpen(): boolean
+    protected triggerSaveCurrentGeometry(): void
     {
-        return this.windowElem != null;
+        if (!this.persistGeometry) {
+            return;
+        }
+        (async () => {
+            const oldOptions = await this.getSavedOptions();
+            const newOptions = {...oldOptions, ...this.geometry};
+            await this.saveOptions(newOptions);
+        })().catch(error => this.app.onError(error));
     }
 
-    undock(): void
+    public getWindowElem(): null|HTMLElement
+    {
+        return this.windowElem;
+    }
+
+    public isOpen(): boolean
+    {
+        return !is.nil(this.windowElem);
+    }
+
+    protected undock(): void
     {
         const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=600,height=300,left=100,top=100`;
         const undocked = window.open('about:blank', Utils.randomString(10), params);
         undocked.focus();
-        undocked.onload = () =>
-        {
-            const html = `<div style="font-size:30px">Undocked, but not really. Override Window.undock()</div>`;
+        undocked.onload = () => {
+            const html = `<div style="font-size: 30px;">Undocked, but not really. Override Window.undock()</div>`;
             undocked.document.body.insertAdjacentHTML('afterbegin', html);
         };
     }
 
-    private isClosing: boolean;
-    close(): void
+    public close(): void
     {
         if (!this.isClosing) {
             this.isClosing = true;
-
-            if (this.onClose) { this.onClose(); }
-            $(this.windowElem).remove();
-            this.windowElem = null;
-        }
-    }
-
-    getVisibility(): boolean
-    {
-        return !$(this.windowElem).hasClass('n3q-hidden');
-    }
-    setVisibility(visible: boolean): void
-    {
-        if (as.Bool(visible) !== this.getVisibility()) {
-            if (visible) {
-                $(this.windowElem).removeClass('n3q-hidden');
-            } else {
-                $(this.windowElem).addClass('n3q-hidden');
+            try {
+                this.onBeforeClose();
+            } catch (error) {
+                this.app.onError(error);
             }
+            try {
+                this.onClose?.();
+            } catch (error) {
+                this.app.onError(error);
+            }
+            this.windowElem?.remove();
+            this.containerElem = null;
+            this.windowElem = null;
+            this.titlebarElem = null;
+            this.contentElem = null;
+            this.isClosing = false;
         }
     }
 
-    // Workaround to prevent pointer loss when hovering over anything listening for pointerEvents:
-    // Todo: Remove after switching drag and resize handling from JQuerry to the pointerEvents API.
-    private pointerEventLossPreventionElem: Element|null = null;
-    private startPreventingPointerEventLoss(): void
+    protected onBeforeClose(): void
     {
-        if (is.nil(this.pointerEventLossPreventionElem)) {
-            const elem = document.createElement('div');
-            elem.classList.add('n3q-base');
-            elem.style.position = 'absolute';
-            elem.style.top = '0';
-            elem.style.right = '0';
-            elem.style.bottom = '0';
-            elem.style.left = '0';
-            elem.style.pointerEvents = 'auto';
-            this.app.getDisplay()?.appendChild(elem);
-            this.app.toFront(elem, ContentApp.LayerDrag);
-            this.pointerEventLossPreventionElem = elem;
+    }
+
+    public toFront(layer?: number|string): void
+    {
+        if (this.windowElem) {
+            if (!is.nil(layer)) {
+                this.guiLayer = layer;
+            }
+            this.app.toFront(this.windowElem, this.guiLayer);
         }
     }
-    private stopPreventingPointerEventLoss(): void
+
+    public getVisibility(): boolean
     {
-        if (!is.nil(this.pointerEventLossPreventionElem)) {
-            this.app.getDisplay()?.removeChild(this.pointerEventLossPreventionElem);
-            this.pointerEventLossPreventionElem = null;
+        return !this.windowElem?.classList.contains('n3q-hidden');
+    }
+
+    public setVisibility(visible: boolean): void
+    {
+        if (visible) {
+            this.initGeometry().catch(error => this.app.onError(error));
+            this.windowElem?.classList.remove('n3q-hidden');
+        } else {
+            this.windowElem?.classList.add('n3q-hidden');
         }
     }
 

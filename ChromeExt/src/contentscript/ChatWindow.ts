@@ -1,8 +1,6 @@
 import KeyboardSound from '../assets/keyboard.mp3';
 import { Sound } from './Sound';
 
-import * as $ from 'jquery';
-import 'webpack-jquery-ui';
 import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Environment } from '../lib/Environment';
@@ -20,9 +18,12 @@ import { Config } from '../lib/Config';
 import { OrderedSet } from '../lib/OrderedSet';
 import { domHtmlElemOfHtml } from '../lib/domTools';
 
-export class ChatWindow extends Window
+export type ChatWindowOptions = WindowOptions & {
+    soundEnabled?: boolean,
+};
+
+export class ChatWindow extends Window<ChatWindowOptions>
 {
-    protected windowName: string;
     protected chatoutElem: HTMLElement;
     protected chatoutAutoScroll: boolean = true;
     protected chatinInputElem: HTMLTextAreaElement;
@@ -56,6 +57,8 @@ export class ChatWindow extends Window
         this.chatMessages = new OrderedSet<ChatMessage>([], chatMessageCmpFun, chatMessageIdFun);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
         this.windowName = `Chat${this.chat.type}`;
+        this.isResizable = true;
+        this.persistGeometry = true;
 
         this.sndChat = new Sound(this.app, KeyboardSound);
 
@@ -83,150 +86,101 @@ export class ChatWindow extends Window
         return messageCount;
     }
 
-    public async show(options: WindowOptions)
+    protected prepareMakeDom(): void
     {
-        if (this.isOpen()) {
-            return;
-        }
-        options = await this.getSavedOptions(this.windowName, options);
+        super.prepareMakeDom();
+        this.titleText = this.app.translateText('Chatwindow.Chat History', 'Chat');
+        this.minWidth = 300;
+        this.minHeight = 150;
+        this.defaultWidth = 400;
+        this.defaultHeight = 300;
+        this.defaultBottom = 200;
+        this.defaultLeft = 50;
+    }
 
-        if (options.titleText == null) { options.titleText = this.app.translateText('Chatwindow.Chat History', 'Chat'); }
-        options.resizable = true;
-
-        super.show(options);
-
-        const aboveElem: HTMLElement = options.above;
-        let bottom = as.Int(options.bottom, 200);
-        let width = as.Int(options.width, 400);
-        let height = as.Int(options.height, 300);
-        const onClose = options.onClose;
+    protected async makeContent(): Promise<void>
+    {
+        await super.makeContent();
+        const options = await this.getSavedOptions(this.givenOptions);
         this.soundEnabled = as.Bool(options.soundEnabled, false);
 
-        if (this.windowElem) {
-            const windowElem = this.windowElem;
-            const contentElem = this.contentElem;
-            windowElem.classList.add('n3q-chatwindow');
+        this.windowElem.classList.add('n3q-chatwindow');
+        const contentElem = this.contentElem;
 
-            let left = as.Int(options.left, 50);
-            if (is.nil(options.left)) {
-                if (aboveElem) {
-                    left = Math.max(aboveElem.offsetLeft - 180, left);
-                }
-            }
-            [left, bottom, width, height] = this.setPosition(left, bottom, width, height);
-            this.saveCoordinates(left, bottom, width, height).catch(error => this.app.onError(error));
+        const chatoutElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
+        const chatinElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
+        const chatinTextElem = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
+        const chatinSendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
 
-            const chatoutElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
-            const chatinElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
-            const chatinTextElem = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
-            const chatinSendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
+        const clearElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
+        const soundCheckboxElem = <HTMLInputElement>domHtmlElemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');
+        const soundcheckElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>');
+        soundcheckElem.appendChild(soundCheckboxElem);
 
-            const clearElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
-            const soundCheckboxElem = domHtmlElemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');
-            const soundcheckElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>');
-            soundcheckElem.appendChild(soundCheckboxElem);
+        // const retentionInfoElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`);
+        // {
+        //     const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
+        //     let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
+        //         seconds, this.app.getLanguage(), {maximumFractionDigits: 0, unitDisplay: 'long'},
+        //     );
+        //     if (unitCount >= 1000) {
+        //         text = this.app.translateText('Chatwindow.RetentionDurationForever', 'forever');
+        //     } else {
+        //         const tpl = this.app.translateText('Chatwindow.RetentionDuration', 'Stored for {duration}');
+        //         text = tpl.replace('{duration}', text);
+        //     }
+        //     retentionInfoElem.innerText = text;
+        // }
 
-            // const retentionInfoElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`);
-            // {
-            //     const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
-            //     let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
-            //         seconds, this.app.getLanguage(), {maximumFractionDigits: 0, unitDisplay: 'long'},
-            //     );
-            //     if (unitCount >= 1000) {
-            //         text = this.app.translateText('Chatwindow.RetentionDurationForever', 'forever');
-            //     } else {
-            //         const tpl = this.app.translateText('Chatwindow.RetentionDuration', 'Stored for {duration}'); 
-            //         text = tpl.replace('{duration}', text);
-            //     }
-            //     retentionInfoElem.innerText = text;
-            // }
+        chatinElem.appendChild(chatinTextElem);
+        chatinElem.appendChild(chatinSendElem);
 
-            chatinElem.appendChild(chatinTextElem);
-            chatinElem.appendChild(chatinSendElem);
+        contentElem.appendChild(chatoutElem);
+        contentElem.appendChild(chatinElem);
+        // contentElem.appendChild(retentionInfoElem);
+        contentElem.appendChild(clearElem);
+        contentElem.appendChild(soundcheckElem);
 
-            contentElem.appendChild(chatoutElem);
-            contentElem.appendChild(chatinElem);
-            // contentElem.appendChild(retentionInfoElem);
-            contentElem.appendChild(clearElem);
-            contentElem.appendChild(soundcheckElem);
+        this.chatinInputElem = chatinTextElem;
+        this.chatoutElem = chatoutElem;
 
-            this.app.translateElem(windowElem);
+        this.chatoutAutoScroll = true;
+        chatoutElem.onscroll = (ev) => {
+            this.chatoutAutoScroll = chatoutElem.scrollTop >= chatoutElem.scrollHeight - chatoutElem.clientHeight;
+        };
 
-            this.chatinInputElem = chatinTextElem;
-            this.chatoutElem = chatoutElem;
+        chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
 
-            this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
-            {
-                const left = ui.position.left;
-                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
-                this.saveCoordinates(left, bottom, ui.size.width, ui.size.height);
-            };
+        chatinSendElem.addEventListener('click', ev =>
+        {
+            this.sendChat();
+            ev.stopPropagation();
+        });
 
-            this.onDragStop = (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-            {
-                const size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() };
-                const left = ui.position.left;
-                const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
-                this.saveCoordinates(left, bottom, size.width, size.height);
-            };
+        clearElem.addEventListener('click', ev =>
+        {
+            this.clear();
+            // this.playSound();
+        });
 
-            this.chatoutAutoScroll = true;
-            chatoutElem.onscroll = (ev) => {
-                this.chatoutAutoScroll = chatoutElem.scrollTop >= chatoutElem.scrollHeight - chatoutElem.clientHeight;
-            };
+        soundCheckboxElem.checked = this.soundEnabled;
+        soundCheckboxElem.addEventListener('change', ev => { (async () => {
+            this.soundEnabled = soundCheckboxElem.checked;
+            const options = await this.getSavedOptions();
+            options['soundEnabled'] = this.soundEnabled;
+            await this.saveOptions(options);
+        })().catch(error => this.app.onError(error)); });
 
-            $(chatinTextElem).on('keydown', ev =>
-            {
-                return this.onChatinKeydown(ev);
-            });
+        this.drawChatMessages();
 
-            $(chatinSendElem).click(ev =>
-            {
-                this.sendChat();
-                ev.stopPropagation();
-            });
-
-            $(clearElem).on('click', ev =>
-            {
-                this.clear();
-                // this.playSound();
-            });
-
-            $(soundCheckboxElem).prop('checked', this.soundEnabled);
-            $(soundCheckboxElem).on('change', async ev =>
-            {
-                this.soundEnabled = $(soundCheckboxElem).is(':checked');
-                const options = await this.getSavedOptions(this.windowName, {});
-                options['soundEnabled'] = this.soundEnabled;
-                await this.saveOptions(this.windowName, options);
-            });
-
-            this.onClose = () =>
-            {
-                this.chatoutElem = null;
-                this.chatinInputElem = null;
-                if (onClose) { onClose(); }
-            };
-
-            this.drawChatMessages();
-
-            chatinTextElem.focus();
-        }
+        chatinTextElem.focus();
     }
 
-    protected async saveCoordinates(left: number, bottom: number, width: number, height: number)
+    protected onBeforeClose(): void
     {
-        const options = await this.getSavedOptions(this.windowName, {});
-        options['left'] = left;
-        options['bottom'] = bottom;
-        options['width'] = width;
-        options['height'] = height;
-        await this.saveOptions(this.windowName, options);
-    }
-
-    public isOpen(): boolean
-    {
-        return this.windowElem != null;
+        super.onBeforeClose();
+        this.chatoutElem = null;
+        this.chatinInputElem = null;
     }
 
     public addLine(id: string|null, type: ChatMessageType, nick: string, text: string): void
@@ -346,7 +300,7 @@ export class ChatWindow extends Window
         this.drawChatMessage(chatMessage, index, replacedExisting);
         this.giveMessageToChatOut(chatMessage);
     }
-    
+
     protected giveMessageToChatOut(chatMessage: ChatMessage): void
     {
         this.room.getParticipantByDisplayName(chatMessage.nick)?.getChatout()?.displayChatMessage(chatMessage);
@@ -377,21 +331,24 @@ export class ChatWindow extends Window
         this.sndChat.play();
     }
 
-    private onChatinKeydown(ev: JQuery.KeyDownEvent): boolean
+    private onChatinKeydown(ev: KeyboardEvent): void
     {
+        let isHandled = false;
         switch (ev.key) {
-            case 'Enter':
+            case 'Enter': {
                 if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
                     this.sendChat();
-                    return false;
+                    isHandled = true;
                 }
-                return true;
-            case 'Escape':
+            } break;
+            case 'Escape': {
                 this.close();
-                ev.stopPropagation();
-                return false;
-            default:
-                return true;
+                isHandled = true;
+            } break;
+        }
+        if (isHandled) {
+            ev.preventDefault();
+            ev.stopPropagation();
         }
     }
 

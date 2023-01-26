@@ -1035,7 +1035,7 @@
             margin-left: 4px;
         }
     }
-    
+
     div.n3q-itemprops {
         position: absolute;
         max-width: 150px;
@@ -1076,7 +1076,7 @@
             //     margin: 0 0.5em;
             //     padding: 4px 0;
             // }
-    
+
             // input[type="text"].n3q-itemprops-value {
             //     width: 100%;
             //     padding: 4px;
@@ -1087,7 +1087,7 @@
             //     margin: 2px 4px 2px 0px;
             //     padding: 2px;
             // }
-    
+
         }
     }
 
@@ -1170,7 +1170,7 @@
     div.n3q-window {
         position: absolute;
         background-color: #ffffff;
-        pointer-events: auto;
+        pointer-events: none;
         touch-action: none;
 
         div.n3q-window-title-bar {
@@ -1189,6 +1189,7 @@
             right: 22px;
             top: 0;
             bottom: 0;
+            overflow: hidden;
             // height: 28px;
         }
 
@@ -1200,7 +1201,7 @@
             height: 16px;
             font-size: 14px;
             font-weight: bold;
-            // white-space: nowrap;
+            white-space: nowrap;
             // text-overflow: ellipsis;
             // overflow: hidden;
             user-select: none;
@@ -1215,12 +1216,12 @@
             right: 4px;
             top: 4px;
             user-select: none;
+            pointer-events: auto;
 
             div.n3q-button-close {
                 background: url(../assets/icons/carbon_close-outline.svg) no-repeat center center / contain;
                 width: 20px;
                 height: 20px;
-                // right: 30px;
             }
 
             div.n3q-button-undock {
@@ -1245,11 +1246,18 @@
         div.n3q-window-content {
             display: block;
             position: absolute;
-            top: 28px;
+            top: 27px;
             left: 0;
             bottom: 0;
             right: 0;
             box-shadow: inset 0 4px 5px -4px #404040;
+            pointer-events: auto;
+            touch-action: pan-x pan-y;
+        }
+
+        iframe {
+            pointer-events: auto;
+            touch-action: pan-x pan-y;
         }
 
         div.n3q-window-resize {
@@ -1257,16 +1265,77 @@
             z-index: 1000000000;
         }
 
-        .ui-resizable-se {
-            right: 0;
-            bottom: 0;
-            width: 13px;
-            height: 13px;
-            background: url(../assets/icons/resize-se.png) no-repeat center center / contain;
+        .n3q-window-resizable-handle {
+            position: absolute;
+            font-size: 0.1px;
+            display: block;
+            pointer-events: auto;
+            touch-action: none;
         }
-
-        .ui-resizable-e { width: 10px; }
-        .ui-resizable-s { height: 10px; }
+        .n3q-window-resize-handle-h {
+            @extend .n3q-window-resizable-handle;
+            left: 0;
+            width: 100%;
+            height: 8px;
+        }
+        .n3q-window-resize-handle-n {
+            @extend .n3q-window-resize-handle-h;
+            cursor: n-resize;
+            top: -3px;
+        }
+        .n3q-window-resize-handle-s {
+            @extend .n3q-window-resize-handle-h;
+            cursor: s-resize;
+            bottom: -3px;
+        }
+        .n3q-window-resize-handle-v {
+            @extend .n3q-window-resizable-handle;
+            top: 0;
+            width: 8px;
+            height: 100%;
+        }
+        .n3q-window-resize-handle-e {
+            @extend .n3q-window-resize-handle-v;
+            cursor: e-resize;
+            right: -3px;
+        }
+        .n3q-window-resize-handle-w {
+            @extend .n3q-window-resize-handle-v;
+            cursor: w-resize;
+            left: -3px;
+        }
+        .n3q-window-resize-handle-corner {
+            @extend .n3q-window-resizable-handle;
+            width: 10px;
+            height: 10px;
+        }
+        .n3q-window-resize-handle-se {
+            @extend .n3q-window-resize-handle-corner;
+            cursor: se-resize;
+            right: -3px;
+            bottom: -3px;
+            background: url(../assets/icons/resize-se.png) top left no-repeat;
+            width: 16px;
+            height: 16px;
+        }
+        .n3q-window-resize-handle-ne {
+            @extend .n3q-window-resize-handle-corner;
+            cursor: ne-resize;
+            right: -3px;
+            top: -3px;
+        }
+        .n3q-window-resize-handle-nw {
+            @extend .n3q-window-resize-handle-corner;
+            cursor: nw-resize;
+            left: -3px;
+            top: -3px;
+        }
+        .n3q-window-resize-handle-sw {
+            @extend .n3q-window-resize-handle-corner;
+            cursor: sw-resize;
+            left: -3px;
+            bottom: -3px;
+        }
     }
 
     //  div.n3q-testwindow {}
@@ -1314,7 +1383,6 @@
     div.n3q-testwindow div.n3q-testwindow-run { right: 30px; top: 8px; }
 
     div.n3q-vidconfwindow {
-        min-height: 180px;
     }
 
     div.n3q-vidconfwindow iframe.n3q-vidconfwindow-content {
@@ -1364,22 +1432,17 @@
     }
 
     div.n3q-xmppwindow-out {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        right: 8px;
-        bottom: 314px;
+        margin: 8px;
         overflow-y: scroll;
+        flex: 5;
     }
 
     div.n3q-xmppwindow-in {
-        position: absolute;
-        height: 300px;
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
+        margin:  0 8px 8px;
         border: 1px solid #808080;
         border-radius: 4px;
+        min-height: 5em;
+        flex: 3;
     }
 
     div.n3q-xmppwindow-line span.n3q-xmppwindow-label {
@@ -1406,13 +1469,13 @@
     textarea.n3q-xmppwindow-in-input,
     input[type=text].n3q-xmppwindow-in-input
     {
-        position: absolute;
-        left: 8px;
-        right: 8px;
-        top: 4px;
-        bottom: 4px;
+        resize: none;
         box-sizing: border-box;
         border-width: 0;
+        background: transparent;
+        padding: 0.5em;
+        width: 100%;
+        height: 100%;
     }
 
     textarea.n3q-xmppwindow-in-input:focus,
@@ -1549,9 +1612,6 @@
     }
 
     div.n3q-chatwindow {
-        min-height: 150px;
-        min-width: 300px;
-
         // div.n3q-window-content div.n3q-button {
         //     position: absolute;
         //     width: 40px;

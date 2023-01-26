@@ -5,7 +5,7 @@ import { Config } from '../lib/Config';
 import { as } from '../lib/as';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomModifierKeyId } from '../lib/PointerEventData';
-import { DomButtonId } from '../lib/domTools';
+import { DomButtonId, domOnNextRenderComplete } from '../lib/domTools';
 
 abstract class MenuItem
 {
@@ -384,7 +384,7 @@ abstract class Menu
             return;
         }
         this.render();
-        this.applyPositionWhenReady(clientX, clientY);
+        domOnNextRenderComplete(() => this.applyPosition(clientX, clientY))
     }
 
     public close(): void
@@ -443,36 +443,19 @@ abstract class Menu
         this.menuElem = menuElem;
     }
 
-    protected applyPositionWhenReady(clientX: number, clientY: number): void
-    {
-        if (is.nil(this.menuElem)) {
-            return;
-        }
-        const {width} = this.menuElem.getBoundingClientRect();
-        if (is.nil(width) || width === 0) {
-            const pollIntervalMs = 1000 * as.Float(Config.get('system.domUpdatePollIntervalSec'), 1);
-            window.setTimeout(() => this.applyPositionWhenReady(clientX, clientY), pollIntervalMs);
-        } else {
-            this.applyPosition(clientX, clientY);
-        }
-    }
-
     protected applyPosition(clientX: number, clientY: number): void
     {
         this.app.toFront(this.menuElem, ContentApp.LayerMenu);
         const displayElemRect = this.app.getDisplay().getBoundingClientRect();
-        const left = clientX - displayElemRect.left;
-        const bottom = clientY - displayElemRect.top;
+        let localX = clientX - displayElemRect.left;
+        let localYBottom = displayElemRect.height - clientY - displayElemRect.top;
         const {width, height} = this.menuElem.getBoundingClientRect();
-        const top = bottom - height;
-        const [leftM, topM] = Utils.fitDimensions(
-            left, top, width, height,
+        const {left, bottom} = Utils.fitLeftBottomRect(
+            {left: localX, bottom: localYBottom, width, height},
             displayElemRect.width, displayElemRect.height,
-            width, height, 0, 0, 0, 0
         );
-        const bottomM = displayElemRect.height - height - topM;
-        this.menuElem.style.left = `${leftM}px`;
-        this.menuElem.style.bottom  = `${bottomM}px`;
+        this.menuElem.style.left = `${left}px`;
+        this.menuElem.style.bottom  = `${bottom}px`;
         this.menuElem.classList.remove('n3q-menu-hidden');
     }
 

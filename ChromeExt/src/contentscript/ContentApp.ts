@@ -32,7 +32,7 @@ import { ItemException } from '../lib/ItemException';
 import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
-import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
+import { PointerEventDispatcher, PointerEventListeners } from '../lib/PointerEventDispatcher';
 import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
@@ -56,6 +56,8 @@ export class ContentAppNotification
 
 interface ContentAppNotificationCallback { (msg: any): void }
 interface StanzaResponseHandler { (stanza: ltx.Element): void }
+
+export type WindowStyle = 'window' | 'popup' | 'overlay';
 
 export class ContentApp
 {
@@ -484,7 +486,7 @@ export class ContentApp
     {
         if (!this.settingsWindow) {
             this.settingsWindow = new SettingsWindow(this);
-            /* await */ this.settingsWindow.show({ 'above': aboveElem, onClose: () => { this.settingsWindow = null; } });
+            this.settingsWindow.show({ 'above': aboveElem, onClose: () => { this.settingsWindow = null; } });
         }
     }
 
@@ -1384,8 +1386,7 @@ export class ContentApp
         return data;
     }
 
-    public makeWindowCloseButton(onClose: () => void, style: 'window' | 'popup' | 'overlay'): HTMLElement
-    {
+    public makeWindowCloseButton(onClose: () => void, style: WindowStyle, eventHandlers: PointerEventListeners = {}): HTMLElement {
         const button = document.createElement('div');
         if (style === 'window') {
             button.classList.add('n3q-base', 'n3q-window-button');
@@ -1394,12 +1395,15 @@ export class ContentApp
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
         const eventdispatcher = new PointerEventDispatcher(this, button, { ignoreOpacity: true });
-        eventdispatcher.setEventListener('click', eventData =>
-        {
+        const fallbackListener = eventHandlers?.click;
+        const eventHandlersNew = {...eventHandlers, click: eventData => {
             if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
                 onClose();
+            } else {
+                fallbackListener?.(eventData);
             }
-        });
+        }};
+        eventdispatcher.setEventListeners(eventHandlersNew);
         const btnIcon = document.createElement('div');
         if (style === 'window') {
             btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');
