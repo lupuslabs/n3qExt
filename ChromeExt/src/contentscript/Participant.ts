@@ -1063,7 +1063,7 @@ export class Participant extends Entity
 
     openPrivateChat(): void
     {
-        this.privateChatWindow.show({above: this.elem}).catch(error => this.app.onError(error));
+        this.privateChatWindow.show({ above: this.elem });
     }
 
     togglePrivateChatWindow(): void

@@ -3,7 +3,6 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { ChatWindow } from './ChatWindow';
-import { WindowOptions } from './Window';
 import { Participant } from './Participant';
 import { domHtmlElemOfHtml } from '../lib/domTools';
 import { ChatMessage } from '../lib/ChatMessage';
@@ -16,17 +15,15 @@ export class PrivateChatWindow extends ChatWindow
         super(app, participant);
     }
 
-    public async show(options: WindowOptions)
+    protected prepareMakeDom(): void
     {
-        if (this.isOpen()) {
-            return;
-        }
-        if (options.titleText == null) {
-            options.titleText = this.app.translateText('PrivateChat.Private Chat with', 'Private Chat with') + ' ' + this.participant.getDisplayName();
-        }
+        super.prepareMakeDom();
+        this.titleText = this.app.translateText('PrivateChat.Private Chat with', 'Private Chat with') + ' ' + this.participant.getDisplayName();
+    }
 
-        await super.show(options);
-
+    protected async makeContent(): Promise<void>
+    {
+        await super.makeContent();
         if (Config.get('room.showPrivateChatInfoButton', false)) {
             const infoElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Info" data-translate="attr:title:Chatwindow text:Chatwindow">Info</div>');
             this.contentElem.appendChild(infoElem);
@@ -44,9 +41,9 @@ export class PrivateChatWindow extends ChatWindow
             const name = this.room.getMyParticipant()?.getDisplayName();
             if (!is.nil(name)) {
                 this.room.sendPrivateChat(text, nick);
-    
+
                 this.addLine(nick + Date.now(), 'chat', name, text);
-    
+
                 this.chatinInputElem.value = '';
                 this.chatinInputElem.focus();
             }

@@ -1,5 +1,4 @@
 import * as $ from 'jquery';
-import 'webpack-jquery-ui';
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { ErrorWithData, Utils } from '../lib/Utils';
@@ -10,21 +9,21 @@ import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { BackpackItem as BackpackItem } from './BackpackItem';
-import { Environment } from '../lib/Environment';
 import { ItemException } from '../lib/ItemException';
-import { ItemExceptionToast, SimpleToast } from './Toast';
-import { Avatar } from './Avatar';
 import { FreeSpace } from './FreeSpace';
-import { is } from '../lib/is';
+import { domHtmlElemOfHtml } from '../lib/domTools'
 
-export class BackpackWindow extends Window
+export class BackpackWindow extends Window<WindowOptions>
 {
     private paneElem: HTMLElement;
     private items: { [id: string]: BackpackItem; } = {};
 
-    constructor(app: ContentApp)
+    public constructor(app: ContentApp)
     {
         super(app);
+        this.windowName = 'Backpack';
+        this.isResizable = true;
+        this.persistGeometry = true;
     }
 
     getPane() { return this.paneElem; }
@@ -33,101 +32,25 @@ export class BackpackWindow extends Window
     getItem(itemId: string) { return this.items[itemId]; }
     getItems(): { [id: string]: BackpackItem; } { return this.items; }
 
-    async show(options: WindowOptions)
+    protected prepareMakeDom(): void
     {
-        options = await this.getSavedOptions('Backpack', options);
+        super.prepareMakeDom();
+        this.titleText = this.app.translateText('BackpackWindow.Inventory', 'Local Stuff');
+        this.defaultWidth = 600;
+        this.defaultHeight = 400;
+        this.defaultBottom = 200;
+        this.defaultLeft = 50;
+    }
 
-        options.titleText = this.app.translateText('BackpackWindow.Inventory', 'Local Stuff');
-        options.resizable = true;
-
-        super.show(options);
-
-        const aboveElem: HTMLElement = options.above;
-        let bottom = as.Int(options.bottom, 200);
-        let width = as.Int(options.width, 600);
-        let height = as.Int(options.height, 400);
-        const onClose = options.onClose;
-
+    protected async makeContent(): Promise<void>
+    {
+        await super.makeContent();
         const windowElem = this.windowElem;
         const contentElem = this.contentElem;
-        $(windowElem).addClass('n3q-backpackwindow');
+        windowElem.classList.add('n3q-backpackwindow');
 
-        let left = as.Int(options.left, 50);
-        if (is.nil(options.left)) {
-            if (aboveElem) {
-                left = Math.max(aboveElem.offsetLeft - 120, left);
-            }
-        }
-        [left, bottom, width, height] = this.setPosition(left, bottom, width, height);
-        this.saveCoordinates(left, bottom, width, height).catch(error => this.app.onError(error));
-
-        const paneElem = <HTMLElement>$('<div class="n3q-base n3q-backpack-pane" data-translate="children" />').get(0);
-        $(contentElem).append(paneElem);
-
-        // if (Environment.isDevelopment()) {
-        //     const inElem = <HTMLElement>$('<textarea class="n3q-base n3q-backpack-in n3q-input n3q-text" />').get(0);
-        //     $(inElem).hide();
-        //     $(contentElem).append(inElem);
-
-        //     const toggleElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-toggle">Input</div>').get(0);
-        //     $(contentElem).append(toggleElem);
-        //     $(toggleElem).on('click', () =>
-        //     {
-        //         if ($(inElem).is(':hidden')) {
-        //             $(inElem).show();
-        //             this.app.toFront(inElem, ContentApp.LayerWindowContent);
-        //         } else {
-        //             $(inElem).hide();
-        //         }
-        //     });
-
-        //     const addElem = <HTMLElement>$('<div class="n3q-base n3q-absolutebutton n3q-backpack-add">Add</div>').get(0);
-        //     $(contentElem).append(addElem);
-        //     $(addElem).on('click', () =>
-        //     {
-        //         let text = as.String($(inElem).val());
-        //         text = text.replace(/'/g, '"');
-        //         if (text !== '') {
-        //             const json = JSON.parse(text);
-        //             const itemId = Utils.randomString(30);
-        //             json.Id = itemId;
-        //             this.createItem(itemId, json, {});
-        //         }
-        //     });
-        // }
-
-        this.app.translateElem(windowElem);
-
-        this.onResizeStop = (ev: JQueryEventObject, ui: JQueryUI.ResizableUIParams) =>
-        {
-            const left = ui.position.left;
-            const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + ui.size.height);
-            this.saveCoordinates(left, bottom, ui.size.width, ui.size.height);
-        };
-
-        this.onDragStop = (ev: JQueryEventObject, ui: JQueryUI.DraggableEventUIParams) =>
-        {
-            const size = { width: $(this.windowElem).width(), height: $(this.windowElem).height() };
-            const left = ui.position.left;
-            const bottom = this.app.getDisplay().offsetHeight - (ui.position.top + size.height);
-            this.saveCoordinates(left, bottom, size.width, size.height);
-        };
-
-        this.onClose = () =>
-        {
-            const ids = [];
-            for (let id in this.items) {
-                ids.push(id);
-            }
-            for (let i = 0; i < ids.length; i++) {
-                const id = ids[i];
-                let backpackItem = this.items[id];
-                backpackItem.destroy();
-                delete this.items[id];
-            }
-
-            if (onClose) { onClose(); }
-        };
+        const paneElem = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>');
+        contentElem.append(paneElem);
 
         this.paneElem = paneElem;
 
@@ -140,7 +63,22 @@ export class BackpackWindow extends Window
             // let pos = this.getFreeCoordinate();
 
         } catch (ex) {
-            // Ignored.
+            this.app.onError(ex);
+        }
+    }
+
+    protected onBeforeClose(): void
+    {
+        super.onBeforeClose();
+        const ids = [];
+        for (let id in this.items) {
+            ids.push(id);
+        }
+        for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            let backpackItem = this.items[id];
+            backpackItem.destroy();
+            delete this.items[id];
         }
     }
 
@@ -167,16 +105,6 @@ export class BackpackWindow extends Window
         for (const id in items) {
             this.onShowItem(id, items[id]);
         }
-    }
-
-    async saveCoordinates(left: number, bottom: number, width: number, height: number)
-    {
-        await this.saveOptions('Backpack', { 'left': left, 'bottom': bottom, 'width': width, 'height': height });
-    }
-
-    isOpen(): boolean
-    {
-        return this.windowElem != null;
     }
 
     onShowItem(itemId: string, properties: ItemProperties)

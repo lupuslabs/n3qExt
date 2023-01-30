@@ -41,9 +41,12 @@ export class Config
             activateBackgroundPageProbeDelayMaxSec: 8,
             activateBackgroundPageProbeDelayFactor: 2,
             activateBackgroundPageProbeTotalSec: 120,
-            domUpdatePollIntervalSec: 0.05,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
+            windowContainerMarginTop:    3, // [px]
+            windowContainerMarginRight:  3, // [px]
+            windowContainerMarginBottom: 3, // [px]
+            windowContainerMarginLeft:   3, // [px]
             sendTabStatsToBackgroundPageDelaySec: 0.1,
             tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
         },

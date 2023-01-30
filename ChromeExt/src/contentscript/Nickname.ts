@@ -3,8 +3,8 @@ import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
-import { DomModifierKeyId, getDataFromPointerEvent, PointerEventData, PointerEventType } from '../lib/PointerEventData';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { DomModifierKeyId, getDataFromPointerEvent, PointerEventData } from '../lib/PointerEventData';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 
 export class Nickname implements IObserver
@@ -26,13 +26,13 @@ export class Nickname implements IObserver
             this.participant.select();
         });
         this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hoverenter, ev, this.elem));
+            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hoverenter', ev, this.elem));
         });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
+            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hovermove', ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.lastLeaveEvent = getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem);
+            this.lastLeaveEvent = getDataFromPointerEvent('hoverleave', ev, this.elem);
             if (!this.isMenuOpen) {
                 this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
             }
@@ -41,8 +41,8 @@ export class Nickname implements IObserver
         let menuElem = document.createElement('span');
         this.menuElem = menuElem;
         menuElem.classList.add('n3q-base', 'n3q-menu-open-button', 'n3q-menu-open-button-closed');
-        let menuEventdispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, menuElem);
-        menuEventdispatcher.setEventListener(PointerEventType.buttondown, ev => {
+        let menuEventdispatcher = new PointerEventDispatcher(this.app, menuElem);
+        menuEventdispatcher.setEventListener('buttondown', ev => {
             if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
                 this.participant.openMenu();
             }

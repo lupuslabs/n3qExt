@@ -8,7 +8,7 @@ import { PointsGenerator } from './PointsGenerator';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Pid } from '../lib/ItemProperties';
-import { getDataFromPointerEvent, PointerEventType } from '../lib/PointerEventData';
+import { getDataFromPointerEvent } from '../lib/PointerEventData';
 
 export class PointsBar implements IObserver
 {
@@ -26,13 +26,13 @@ export class PointsBar implements IObserver
             this.participant?.select();
         });
         this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hoverenter, ev, this.elem));
+            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hoverenter', ev, this.elem));
         });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
-            this.participant?.onMouseEnterAvatar(getDataFromPointerEvent(PointerEventType.hovermove, ev, this.elem));
+            this.participant?.onMouseEnterAvatar(getDataFromPointerEvent('hovermove', ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.participant?.onMouseLeaveAvatar(getDataFromPointerEvent(PointerEventType.hoverleave, ev, this.elem));
+            this.participant?.onMouseLeaveAvatar(getDataFromPointerEvent('hoverleave', ev, this.elem));
         });
 
         display.appendChild(this.elem);
@@ -47,7 +47,7 @@ export class PointsBar implements IObserver
     {
         if (name == 'Points') {
             this.setPoints(as.Int(value, 0));
-    
+
             if (this.participant.getIsSelf()) {
                 /*await*/ this.showTitleWithActivities();
             }

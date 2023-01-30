@@ -12,7 +12,7 @@ import { ContentApp } from './ContentApp';
 import { Entity } from './Entity';
 import { Participant } from './Participant';
 import { RoomItem } from './RoomItem';
-import { ChatWindow } from './ChatWindow'; // Wants to be after Participant and Item otherwise $().resizable does not work
+import { ChatWindow } from './ChatWindow';
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
 import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
@@ -505,7 +505,7 @@ export class Room
             this.chatWindow.show({
                 'above': aboveElem,
                 onClose: () => this.app.setChatIsOpen(false),
-            }).catch(error => this.app.onError(error));
+            });
         }
     }
 

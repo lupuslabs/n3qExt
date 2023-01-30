@@ -56,7 +56,7 @@ export function getTopmostOpaqueDomElemAtViewportPos(
 ): Element|null {
     for (const elem of getDomElemsAtViewportPos(document, vpX, vpY, null, false)) {
         if (!domElementHasAnyClass(elem, transparentClasses)
-        && getDomElemOpacityAtPos(elem, vpX, vpY)[0] >= opacityMin) {
+        && (opacityMin === 0 || getDomElemOpacityAtPos(elem, vpX, vpY)[0] >= opacityMin)) {
             return elem;
         }
     }
@@ -185,7 +185,7 @@ export function capturePointer(domElem: Element, pointerId: number): void
         // Ignore pointer devices that have gone away.
     }
 }
-    
+
 export function releasePointer(domElem: Element, pointerId: number): void
 {
     try {
@@ -212,6 +212,15 @@ export function domOnNextRenderComplete(fun: (timestamp: number) => void): void
     window.requestAnimationFrame(() => window.requestAnimationFrame(fun));
 }
 
+export function domWaitForRenderComplete(): Promise<void>
+{
+    // Wait for start of any animation frame (might be the first after DOM manipulations),
+    // then wait to start of next animation frame (guaranteed to be after DOM has been rendered at least once):
+    return new Promise(resolve => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+    });
+}
+
 export type DomElemTransition = {property: string, delay?: string, duration?: string, timingFun?: string};
 
 export function startDomElemTransition(
@@ -221,7 +230,17 @@ export function startDomElemTransition(
     if (!guard()) {
         return;
     }
-    stopDomElemTransition(elem, transition.property, null);
+
+    const completedurationSecs
+        = domTransitionDurationAsSeconds(transition.delay)
+        + domTransitionDurationAsSeconds(transition.duration);
+
+    if (completedurationSecs === 0) {
+        stopDomElemTransition(elem, transition.property, finalVal);
+        onComplete?.();
+        return;
+    }
+
     domOnNextRenderComplete(() => {
         if (!guard()) {
             return;
@@ -231,10 +250,7 @@ export function startDomElemTransition(
         setDomElemTransitions(elem, transitions.values());
         elem.style[transition.property] = finalVal;
 
-        if (!is.nil(onComplete)) {
-            const completedurationSecs
-                = domTransitionDurationAsSeconds(transition.delay ?? '0s')
-                + domTransitionDurationAsSeconds(transition.duration ?? '0s');
+        if (onComplete) {
             window.setTimeout(onComplete, 1000 * completedurationSecs);
         }
     });
@@ -263,7 +279,7 @@ export function getDomElemTransitions(elem: HTMLElement): Map<string,DomElemTran
     for (let i = 0; i < properties.length; i++) {
         const property = properties[i];
         transitions.set(property, {
-            property: property, 
+            property: property,
             delay: getAt(delays, i, '0s'),
             duration: getAt(durations, i, '0s'),
             timingFun: getAt(timingFuns, i, 'ease'),
@@ -281,9 +297,9 @@ export function setDomElemTransitions(elem: HTMLElement, transitions: Iterable<D
     elem.style.transition = transitionStrings.join(', ');
 }
 
-export function domTransitionDurationAsSeconds(duration: string): number
+export function domTransitionDurationAsSeconds(duration?: string): number
 {
-    duration = duration.trim().toLowerCase();
+    duration = (duration ?? '0s').trim().toLowerCase();
     if (duration[0] === '+') {
         duration = duration.substr(1);
     }

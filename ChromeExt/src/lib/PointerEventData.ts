@@ -1,24 +1,24 @@
 ﻿// Generalized PointerEventData type and utilities
 
-export enum PointerEventType {
-    hoverenter  = 'hoverenter',  // Pointer hovers into opaque area
-    hovermove   = 'hovermove',   // Pointer hovers over opaque area
-    hoverleave  = 'hoverleave',  // Pointer hovers outside opaque area
+export type PointerEventType =
+    | 'hoverenter'  // Pointer hovers into opaque area
+    | 'hovermove'   // Pointer hovers over opaque area
+    | 'hoverleave'  // Pointer hovers outside opaque area
 
-    buttondown  = 'buttondown',  // Pointer button down or touch
-    buttonup    = 'buttonup',    // Pointer button up or touch release
+    | 'buttondown'  // Pointer button down or touch
+    | 'buttonup'    // Pointer button up or touch release
 
-    click       = 'click',       // Single click or tap
-    doubleclick = 'doubleclick', // Double click or tap
+    | 'click'       // Single click or tap
+    | 'doubleclick' // Double click or tap
 
-    dragstart   = 'dragstart',   // Start dragging or swiping
-    dragmove    = 'dragmove',    // Still dragging or swiping
-    dragenter   = 'dragenter',   // Dragging over the opaque area of an element
-    dragleave   = 'dragleave',   // Dragging outside the opaque area of an element
-    dragdrop    = 'dragdrop',    // Completed drag or swipe
-    dragcancel  = 'dragcancel',  // Drag or swipe canceled
-    dragend     = 'dragend',     // Drag or swipe completed or canceled
-}
+    | 'dragstart'   // Start dragging or swiping
+    | 'dragmove'    // Still dragging or swiping
+    | 'dragenter'   // Dragging over the opaque area of an element
+    | 'dragleave'   // Dragging outside the opaque area of an element
+    | 'dragdrop'    // Completed drag or swipe
+    | 'dragcancel'  // Drag or swipe canceled
+    | 'dragend'     // Drag or swipe completed or canceled
+;
 
 export enum DomModifierKeyId {
     none    = 0,

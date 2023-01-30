@@ -12,6 +12,23 @@ export interface NumberFormatOptions extends Intl.NumberFormatOptions {
     unitDisplay?: 'long'|'short'|'narrow',
 }
 
+export type LeftBottomRect = {
+    readonly left: number,
+    readonly bottom: number,
+    readonly width: number,
+    readonly height: number,
+}
+export const dummyLeftBottomRect: LeftBottomRect = { left: 0, bottom: 0, width: 1, height: 1 };
+
+export type BoxEdges = {
+    readonly top: number,
+    readonly right: number,
+    readonly bottom: number,
+    readonly left: number,
+}
+
+export type BoxEdgeMovements = Partial<BoxEdges>
+
 export class ErrorWithData extends ErrorWithDataBase
 {
     constructor(msg: string, data?: {[p: string]: unknown}) {
@@ -259,16 +276,56 @@ export class Utils
         return [durationText, unitCount, unit];
     }
 
-    static fitDimensions(
-        left: number, top: number, width: number, height: number,
-        containerWidth: number, containerHeight: number,
-        widthMin: number, heightMin: number, leftMin: number, rightMin: number, topMin: number, bottomMin: number,
-    ): [number, number, number, number] {
-        width = Math.max(widthMin, Math.min(containerWidth - leftMin - rightMin, width));
-        height = Math.max(heightMin, Math.min(containerHeight - topMin - bottomMin, height));
-        left = Math.min(containerWidth - rightMin - width, Math.max(leftMin, left));
-        top = Math.min(containerHeight - bottomMin - height, Math.max(topMin, top));
-        return [left, top, width, height];
+    /**
+     * Coordinate system origin is bottom left.
+     */
+    static fitLeftBottomRect(
+        preferredGeometry: LeftBottomRect,
+        containerWidth: number, containerHeight: number, widthMin: number = 1, heightMin: number = 1,
+        leftMargin: number = 0, rightMargin: number = 0, topMargin: number = 0, bottomMargin: number = 0,
+    ): LeftBottomRect {
+        let {left, bottom, width, height} = preferredGeometry;
+        width = Math.max(widthMin, Math.min(containerWidth - leftMargin - rightMargin, width));
+        height = Math.max(heightMin, Math.min(containerHeight - topMargin - bottomMargin, height));
+        left = Math.min(containerWidth - rightMargin - width, Math.max(leftMargin, left));
+        bottom = Math.min(containerHeight - topMargin - height, Math.max(bottomMargin, bottom));
+        return {left, bottom, width, height};
+    }
+
+    /**
+     * Coordinate system origin is bottom left.
+     */
+    static moveLeftBottomRectEdges(
+        oldGeometry: LeftBottomRect, edgeMovements: BoxEdgeMovements,
+        containerWidth: number, containerHeight: number, widthMin: number = 1, heightMin: number = 1,
+        leftMargin: number = 0, rightMargin: number = 0, topMargin: number = 0, bottomMargin: number = 0,
+    ): LeftBottomRect {
+        let {left, bottom, width, height} = oldGeometry;
+        let top = bottom + height;
+        let right = left + width;
+
+        const edgeMinima: BoxEdges = {
+            top:    bottom + heightMin,
+            right:  left   + widthMin,
+            bottom: bottomMargin,
+            left:   leftMargin,
+        };
+        const edgeMaxima: BoxEdges = {
+            top:    containerHeight - topMargin,
+            right:  containerWidth  - rightMargin,
+            bottom: top   - heightMin,
+            left:   right - widthMin,
+        };
+
+        top    = Math.min(edgeMaxima.top,    Math.max(edgeMinima.top,    top    + (edgeMovements.top    ?? 0)));
+        right  = Math.min(edgeMaxima.right,  Math.max(edgeMinima.right,  right  + (edgeMovements.right  ?? 0)));
+        bottom = Math.min(edgeMaxima.bottom, Math.max(edgeMinima.bottom, bottom + (edgeMovements.bottom ?? 0)));
+        left   = Math.min(edgeMaxima.left,   Math.max(edgeMinima.left,   left   + (edgeMovements.left   ?? 0)));
+        width = right - left;
+        height = top - bottom;
+
+        const newGeometry = { left, bottom, width, height };
+        return newGeometry;
     }
 
 }

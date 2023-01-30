@@ -9,10 +9,10 @@ import { Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
 import { AnimationsXml, AnimationsDefinition } from './AnimationsXml';
 import { RoomItem } from './RoomItem';
-import { DomOpacityAwarePointerEventDispatcher } from '../lib/DomOpacityAwarePointerEventDispatcher';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { SimpleToast } from './Toast';
 import { DomButtonId } from '../lib/domTools';
-import { DomModifierKeyId, PointerEventData, PointerEventType } from '../lib/PointerEventData';
+import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 
 class AvatarGetAnimationResult
 {
@@ -29,7 +29,7 @@ export class Avatar implements IObserver
 {
     private elem: HTMLDivElement;
     private imageElem: HTMLImageElement;
-    private pointerEventDispatcher: DomOpacityAwarePointerEventDispatcher;
+    private pointerEventDispatcher: PointerEventDispatcher;
     private dragElem?: HTMLElement;
     private dragBadgeElem?: HTMLImageElement;
     private hasAnimation = false;
@@ -65,27 +65,27 @@ export class Avatar implements IObserver
 
         entity.getElem().append(this.elem);
 
-        this.pointerEventDispatcher = new DomOpacityAwarePointerEventDispatcher(this.app, this.imageElem);
+        this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.imageElem);
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverenter, eventData => {
+        this.pointerEventDispatcher.setEventListener('hoverenter', eventData => {
             this.entity.onMouseEnterAvatar(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.hoverleave, eventData => {
+        this.pointerEventDispatcher.setEventListener('hoverleave', eventData => {
             this.entity.onMouseLeaveAvatar(eventData);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.buttondown, eventData => {
+        this.pointerEventDispatcher.setEventListener('buttondown', eventData => {
             this.entity.select();
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.click, eventData => {
+        this.pointerEventDispatcher.setEventListener('click', eventData => {
             this.entity.onMouseClickAvatar(eventData);
         });
-        this.pointerEventDispatcher.setEventListener(PointerEventType.doubleclick, eventData => {
+        this.pointerEventDispatcher.setEventListener('doubleclick', eventData => {
             this.entity.onMouseDoubleClickAvatar(eventData);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragstart, ev => {
+        this.pointerEventDispatcher.setEventListener('dragstart', ev => {
             const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
             dragElem.classList.add('n3q-dragging');
             this.dragElem = dragElem;
@@ -100,7 +100,7 @@ export class Avatar implements IObserver
             this.entity.onDragAvatarStart(ev);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragmove, ev => {
+        this.pointerEventDispatcher.setEventListener('dragmove', ev => {
             if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
                 this.pointerEventDispatcher.cancelDrag();
             }
@@ -123,20 +123,20 @@ export class Avatar implements IObserver
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragenter, ev => {
+        this.pointerEventDispatcher.setEventListener('dragenter', ev => {
             const dropTargetElem = ev.dropTarget;
-            if (this.entity instanceof RoomItem 
+            if (this.entity instanceof RoomItem
             && this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
                 dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragleave, ev => {
+        this.pointerEventDispatcher.setEventListener('dragleave', ev => {
             const dropTargetElem = ev.dropTargetLast;
             dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragdrop, ev => {
+        this.pointerEventDispatcher.setEventListener('dragdrop', ev => {
             if (this.entity instanceof RoomItem && ev.dropTarget instanceof HTMLElement
             && ev.dropTarget.classList.contains('n3q-backpack-pane')) {
                 this.onRoomItemDropOnBackpack(ev, this.entity, ev.dropTarget);
@@ -163,7 +163,7 @@ export class Avatar implements IObserver
             this.entity.onDraggedTo(newX);
         });
 
-        this.pointerEventDispatcher.setEventListener(PointerEventType.dragend, ev => this.onDragEnd());
+        this.pointerEventDispatcher.setEventListener('dragend', ev => this.onDragEnd());
 
     }
 
