@@ -15,6 +15,7 @@ export class _Changes
             ['Fix', 'Competing tabs'],
             ['Fix', 'JQuery-UI negatively interacts with CSS of some pages'],
             ['Fix', 'Miscellaneous UI glitches on touch devices'],
+            ['Fix', 'Badge menu visible although items disabled'],
         ]],
         ['1.2.4', 'AvatarMenu', [
             ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],
