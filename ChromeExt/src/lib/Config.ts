@@ -78,14 +78,25 @@ export class Config
             items: false,
             badges: false,
             SimpleItemTransfer: false,
-            // Disabled in code: DomOpacityAwarePointerEventDispatcher.ctor
-            // pointerEventHandlingIncommingPointer: false, // pointermove omitted when pointerEventHandlingWithMove = false.
-            // pointerEventHandlingIncommingMouse: false, // pointermove omitted when pointerEventHandlingWithMove = false.
-            // pointerEventHandlingButtons: false,
-            // pointerEventHandlingDrag: false, // dragmove omitted when pointerEventHandlingWithMove = false.
-            // pointerEventHandlingHover: false, // hovermove omitted when pointerEventHandlingWithMove = false.
-            // pointerEventHandlingWithMove: false, // Includes corresponding move events for drag and hover.
             chatHistory: false,
+        },
+        pointerEventDispatcher: {
+            pointerOpaqueOpacityMin: 0.1,
+            pointerLongclickMinSec: 0.5,
+            pointerDoubleclickMaxSec: 0.25,
+            pointerDragStartDistance: 3.0,
+            pointerDropTargetUpdateIntervalSec: 0.5,
+
+            // these are here to avoid them being affected by log.all:
+            logIncommingPointer: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
+            logIncommingMouse: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
+            logOutgoingPointer: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
+            logOutgoingMouse: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
+            logButtons: false,
+            logDrag: false, // Enter/leave excluded if logWithEnterLeave is false.
+            logHover: false, // Does nothing without also enabling logWithEnterLeave or logWithMove.
+            logWithEnterLeave: false, // Enable to add enter/leave event logging when logIncomming*/logDrag/logHover is enabled.
+            logWithMove: false, // Enable to add move event logging when logIncomming*/logDrag/logHover is enabled.
         },
         client: {
             name: 'weblin.io',
@@ -276,11 +287,6 @@ export class Config
                 'rpm/1/Ut3fHJTcjg', 'rpm/1/bj6x4GMtsE', 'rpm/1/KOuogLdiWK', 'rpm/1/704RAc2PhE', 'rpm/1/34xnWG8zks',
                 'rpm/1/eyauvBd1x7', 'rpm/1/79zDaE6MER',
             ],
-
-            pointerOpaqueOpacityMin: 0.1,
-            pointerDoubleclickMaxSec: 0.25,
-            pointerDragStartDistance: 3.0,
-            pointerDropTargetUpdateIntervalSec: 0.5,
 
             inactiveDecorationsHideDelaySec: 0.3,
         },

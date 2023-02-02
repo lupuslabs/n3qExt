@@ -4,6 +4,7 @@ import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
+import { App } from '../lib/App'
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { BackgroundMessage, TabRoomPresenceData, TabStats } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
@@ -59,7 +60,7 @@ interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
 export type WindowStyle = 'window' | 'popup' | 'overlay';
 
-export class ContentApp
+export class ContentApp extends App
 {
     private debugUtils: DebugUtils;
     private display: HTMLElement;
@@ -119,6 +120,7 @@ export class ContentApp
 
     constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
     {
+        super();
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
     }
@@ -973,7 +975,7 @@ export class ContentApp
 
     // Error handling
 
-    public onError(error: Error): void
+    public onError(error: unknown): void
     {
         log.info({ error: prepareValueForLog(error) }); // Log to info channel only so it doesn't appear on extensions page.
         if (ItemException.isInstance(error)) {
@@ -1386,7 +1388,7 @@ export class ContentApp
         return data;
     }
 
-    public makeWindowCloseButton(onClose: () => void, style: WindowStyle, eventHandlers: PointerEventListeners = {}): HTMLElement {
+    public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
         const button = document.createElement('div');
         if (style === 'window') {
             button.classList.add('n3q-base', 'n3q-window-button');
@@ -1394,16 +1396,17 @@ export class ContentApp
             button.classList.add('n3q-base', 'n3q-overlay-button');
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        const eventdispatcher = new PointerEventDispatcher(this, button, { ignoreOpacity: true });
-        const fallbackListener = eventHandlers?.click;
-        const eventHandlersNew = {...eventHandlers, click: eventData => {
-            if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
-                onClose();
-            } else {
-                fallbackListener?.(eventData);
-            }
-        }};
-        eventdispatcher.setEventListeners(eventHandlersNew);
+        const eventDispatcher = new PointerEventDispatcher(this, button, {
+            ignoreOpacity: true,
+            eventListeners: {
+                click: eventData => {
+                    if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
+console.log('1', {eventData, eventDispatcher, onClose})
+                        onClose();
+                    }
+                }
+            },
+        });
         const btnIcon = document.createElement('div');
         if (style === 'window') {
             btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');
