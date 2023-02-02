@@ -7,10 +7,13 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.5', 'x', [
+            ['Add', 'Long click as hover alternative'],
             ['Add', 'Support for translated item properties'],
             ['Change', 'Room item popup to adapt to content width'],
             ['Change', 'Points bar title hover to always show all channels'],
             ['Change', 'Backpack item popup spacing and item description'],
+            ['Fix', 'JQuery-UI negatively interacts with CSS of some pages'],
+            ['Fix', 'Miscellaneous UI glitches on touch devices'],
         ]],
         ['1.2.4', 'AvatarMenu', [
             ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],
