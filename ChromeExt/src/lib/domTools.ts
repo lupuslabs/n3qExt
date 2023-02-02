@@ -2,7 +2,7 @@
 
 import { is } from './is';
 import { as } from './as';
-import { ErrorWithData } from './Utils';
+import { ErrorWithData, LeftBottomRect } from './Utils';
 
 //------------------------------------------------------------------------------
 // Element creation
@@ -143,6 +143,19 @@ export function domElementHasAnyClass(elem: Element, classNames: Set<string>): b
         }
     }
     return false;
+}
+
+export function getDomElementLeftBottomRect(container: Element, content: Element): LeftBottomRect
+{
+    const containerRect: DOMRect = container.getBoundingClientRect();
+    const contentRect: DOMRect = content.getBoundingClientRect();
+    const contentLocalRect: LeftBottomRect = {
+        left: contentRect.left - containerRect.left,
+        bottom: containerRect.bottom - contentRect.bottom,
+        width: contentRect.width,
+        height: contentRect.height,
+    };
+    return contentLocalRect;
 }
 
 //------------------------------------------------------------------------------

@@ -94,11 +94,6 @@ abstract class MenuItem
                 }
             }
         });
-        eventDispatcher.setEventListener('doubleclick', ev => {
-            if (!is.nil(this.itemElem)) {
-                this.onUserDone();
-            }
-        });
         eventDispatcher.setEventListener('hoverenter', ev => {
             if (!is.nil(this.itemElem)) {
                 this.onHoverEnter();

@@ -2,8 +2,8 @@ import { is } from '../lib/is';
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils';
 import { ContentApp, WindowStyle } from './ContentApp';
 import { Memory } from '../lib/Memory';
-import { domHtmlElemOfHtml, domWaitForRenderComplete } from '../lib/domTools'
-import { PointerEventDispatcher, PointerEventListeners } from '../lib/PointerEventDispatcher'
+import { domHtmlElemOfHtml, domWaitForRenderComplete, getDomElementLeftBottomRect } from '../lib/domTools'
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
@@ -25,11 +25,15 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected windowName: string = 'Default';
     protected style: WindowStyle = 'window';
-    protected closeIsHide:     boolean = false;
-    protected isMovable:       boolean = true;
-    protected isResizable:     boolean = false;
-    protected persistGeometry: boolean = false;
-    protected isUndockable:    boolean = false;
+    protected windowCssClasses: string[] = ['n3q-base', 'n3q-window', 'n3q-shadow-medium'];
+    protected contentCssClasses: string[] = ['n3q-base', 'n3q-window-content'];
+    protected withTitlebar:     boolean = true;
+    protected closeIsHide:      boolean = false;
+    protected isMovable:        boolean = true;
+    protected isResizable:      boolean = false;
+    protected skipInitGeometry: boolean = false;
+    protected persistGeometry:  boolean = false;
+    protected isUndockable:     boolean = false;
 
     protected containerMarginTop:    number = 0;
     protected containerMarginRight:  number = 0;
@@ -45,7 +49,6 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected givenOptions: null|OptionsType = null;
     protected titleText: string = '';
 
-    protected defaultFrameListeners: PointerEventListeners = {};
     protected containerElem: null|HTMLElement = null;
     protected windowElem:    null|HTMLElement = null;
     protected titlebarElem:  null|HTMLElement = null;
@@ -75,12 +78,20 @@ export abstract class Window<OptionsType extends WindowOptions>
             }
             this.prepareMakeDom();
             this.makeWindowFrameAndDecorations();
+            this.windowElem.classList.add('n3q-hidden');
             this.app.translateElem(this.windowElem);
-            await this.initGeometry();
+            if (!this.skipInitGeometry) {
+                await this.initGeometry();
+            }
             this.toFront();
             this.containerElem.append(this.windowElem);
             await this.makeContent();
-            this.app.translateElem(this.contentElem);
+            await domWaitForRenderComplete();
+            if (this.windowElem) {
+                this.readGeometryFromDom();
+                this.app.translateElem(this.contentElem);
+                this.windowElem.classList.remove('n3q-hidden');
+            }
         })().catch(error => {
             this.app.onError(error);
             this.close();
@@ -103,18 +114,25 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeWindowFrameAndDecorations(): void
     {
-        this.defaultFrameListeners = {
-            'buttondown': (ev) => this.toFront(),
-        };
         const windowId = Utils.randomString(15);
 
-        this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" class="n3q-base n3q-window n3q-shadow-medium" data-translate="children"></div>`);
-        this.windowElem.addEventListener('pointerdown', ev => this.toFront());
+        this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
+        this.windowElem.classList.add(...this.windowCssClasses);
+        this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
 
-        this.makeTitlebar();
+        if (this.withTitlebar) {
+            this.makeTitlebar();
+        }
 
         this.contentElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-content" data-translate="children"></div>');
+        this.contentElem.classList.add(...this.contentCssClasses);
         this.windowElem.append(this.contentElem);
+
+        this.makeCloseButton();
+
+        if (this.isUndockable) {
+            this.makeUndockButton();
+        }
 
         if (this.isMovable) {
             this.makeUsermovable();
@@ -133,12 +151,6 @@ export abstract class Window<OptionsType extends WindowOptions>
         this.windowElem.append(this.titlebarElem);
         this.titlebarElem.append(titleElem);
         titleElem.append(titleTextElem);
-
-        this.makeCloseButton();
-
-        if (this.isUndockable) {
-            this.makeUndockButton();
-        }
     }
 
     protected makeCloseButton(): void
@@ -150,8 +162,8 @@ export abstract class Window<OptionsType extends WindowOptions>
                 this.close();
             }
         };
-        const closeElem = this.app.makeWindowCloseButton(onCloseBtnClick, this.style, this.defaultFrameListeners);
-        this.titlebarElem.append(closeElem);
+        const closeElem = this.app.makeWindowCloseButton(onCloseBtnClick, this.style);
+        (this.titlebarElem ?? this.contentElem).append(closeElem);
     }
 
     protected makeUndockButton(): void
@@ -162,20 +174,20 @@ export abstract class Window<OptionsType extends WindowOptions>
             </div>`
         );
         const dispatcher = new PointerEventDispatcher(this.app, button, { ignoreOpacity: true });
-        dispatcher.setEventListeners(this.defaultFrameListeners);
         dispatcher.setEventListener('click', eventData => this.undock());
-        this.titlebarElem.append(button);
+        (this.titlebarElem ?? this.contentElem).append(button);
     }
 
     protected makeUsermovable(): void
     {
+        const interactableElem = this.titlebarElem ?? this.contentElem;
         const newGeometryFun = (ev: PointerEventData) => ({
             ...this.geometryAtActionStart,
             left: this.geometryAtActionStart.left + ev.distanceX,
             bottom: this.geometryAtActionStart.bottom - ev.distanceY,
         });
-        this.makeFrameElemUsermovable(this.titlebarElem, 'move', newGeometryFun);
-        this.titlebarElem.style.pointerEvents = 'auto';
+        this.makeFrameElemUsermovable(interactableElem, 'move', newGeometryFun);
+        interactableElem.style.pointerEvents = 'auto';
     }
 
     protected makeUserresizable(): void
@@ -226,17 +238,14 @@ export abstract class Window<OptionsType extends WindowOptions>
             ignoreOpacity: true,
             dragStartDistance: 0,
             dragCssCursor: dragCssCursor,
-        });
-        dispatcher.setEventListeners(this.defaultFrameListeners);
-        dispatcher.setEventListener('buttondown', eventData => this.toFront());
-        dispatcher.setEventListener('dragstart', ev => {
-            this.geometryAtActionStart = this.geometry;
-        });
-        dispatcher.setEventListener('dragmove', ev => {
-            this.setGeometry(newGeometryFun(ev), false);
-        });
-        dispatcher.setEventListener('dragend', ev => {
-            this.triggerSaveCurrentGeometry();
+            eventListeners: {
+                dragstart: ev => {
+                    this.readGeometryFromDom();
+                    this.geometryAtActionStart = this.geometry;
+                },
+                dragmove: ev => this.setGeometry(newGeometryFun(ev), false),
+                dragend: ev => this.triggerSaveCurrentGeometry(),
+            },
         });
     }
 
@@ -278,6 +287,13 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.windowElem.style.bottom = `${geometry.bottom}px`;
             this.windowElem.style.width  = `${geometry.width}px`;
             this.windowElem.style.height = `${geometry.height}px`;
+        }
+    }
+
+    protected readGeometryFromDom(): void
+    {
+        if (this.windowElem) {
+            this.geometry = getDomElementLeftBottomRect(this.containerElem, this.windowElem);
         }
     }
 
@@ -387,6 +403,16 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected onBeforeClose(): void
     {
+    }
+
+    /**
+     * Called for a pointer down event on the window or any of its content elements in the capture phase.
+     *
+     * Don't cancel propagation or prevent default actions here.
+     */
+    protected onCapturePhasePointerDownInside(ev: PointerEvent): void
+    {
+        this.toFront();
     }
 
     public toFront(layer?: number|string): void

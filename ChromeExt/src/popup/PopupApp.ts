@@ -10,9 +10,12 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
 import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
 import { RandomNames } from '../lib/RandomNames';
-import { domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
+import { DomButtonId, domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { App } from '../lib/App'
+import { DomModifierKeyId } from '../lib/PointerEventData'
 
-export class PopupApp
+export class PopupApp extends App
 {
     private display: HTMLElement;
     private babelfish: Translator;
@@ -24,6 +27,7 @@ export class PopupApp
 
     public constructor(protected appendToMe: HTMLElement)
     {
+        super();
         let navLang = as.String(Config.get('i18n.overrideBrowserLanguage', ''));
         if (navLang === '') {
             navLang = navigator.language;
@@ -33,6 +37,11 @@ export class PopupApp
         const language: string = Translator.mapLanguage(navLang, langMapper, defaultLandg);
         const translationTable = Config.get('i18n.translations', {})[language];
         this.babelfish = new Translator(translationTable, language, Config.get('i18n.serviceUrl', ''));
+    }
+
+    public onError(error: unknown): void
+    {
+        log.warn(error);
     }
 
     public dev_start(): void
@@ -87,13 +96,16 @@ export class PopupApp
         const description = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-description" data-translate="text:Popup.description">Change name and avatar, then reload the page.</div>');
         group.append(description);
 
-        icon.addEventListener('click', ev => {
-            if (ev.ctrlKey) {
-                this.devConfig(group);
-            }
+        const iconEventDispatcher = new PointerEventDispatcher(this, icon, {
+            eventListeners: {
+                click: ev => {
+                    if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
+                        this.devConfig(group);
+                    }
+                },
+                doubleclick: ev => this.devConfig(group),
+            },
         });
-
-        icon.addEventListener('dblclick', ev => this.devConfig(group));
 
         return group;
     }

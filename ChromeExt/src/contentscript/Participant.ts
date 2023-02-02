@@ -29,7 +29,7 @@ import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
-import { DomButtonId } from '../lib/domTools';
+import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
 import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
 import { RootMenu, } from './Menu';
@@ -103,7 +103,7 @@ export class Participant extends Entity
                 countIntroYou++;
                 await Memory.setLocal('client.introYou', countIntroYou);
 
-                const introYouElem = $(''
+                const introYouElem = domHtmlElemOfHtml(''
                     + '<div class="n3q-base n3q-intro-you n3q-bounce" data-translate="children">'
                     + '  <svg class="n3q-base n3q-shadow-small" width="72" height="48" xmlns="http://www.w3.org/2000/svg">'
                     + '    <g>'
@@ -111,16 +111,15 @@ export class Participant extends Entity
                     + '    </g>'
                     + '  </svg>'
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
-                    + '</div>').get(0);
-                const closeElem = <HTMLElement>$('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small" />').get(0);
-                $(closeElem).on('click', async ev =>
-                {
-                    await Memory.setLocal('client.introYou', maxShowIntroYou + 1);
-                    $(introYouElem).remove();
+                    + '</div>');
+                const closeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
+                closeElem.addEventListener('click', ev => {
+                    Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
+                    introYouElem.remove();
                 });
-                $(introYouElem).append(closeElem);
+                introYouElem.append(closeElem);
                 this.app.translateElem(introYouElem);
-                $(this.getElem()).append(introYouElem);
+                this.getElem().append(introYouElem);
             }
         }
     }

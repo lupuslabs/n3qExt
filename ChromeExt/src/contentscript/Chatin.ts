@@ -1,4 +1,3 @@
-import * as $ from 'jquery';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { domHtmlElemOfHtml } from '../lib/domTools';
@@ -18,13 +17,14 @@ export class Chatin
         this.setVisibility(false);
 
         this.chatinInputElem = <HTMLInputElement> domHtmlElemOfHtml('<input type="text" class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin" />');
-        $(this.chatinInputElem).on('keydown', ev => { this.onKeydown(ev); });
+        this.chatinInputElem.addEventListener('keydown', ev => this.onKeydown(ev));
         this.elem.appendChild(this.chatinInputElem);
 
         this.sendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
-        $(this.sendElem).click(ev =>
-        {
+        this.sendElem.addEventListener('click', ev => {
             this.sendChat();
+            ev.preventDefault();
+            ev.stopPropagation();
         });
         this.elem.appendChild(this.sendElem);
 
@@ -46,19 +46,24 @@ export class Chatin
         this.positionContainerElem(avatarAnimations.params.chatinBottom);
     }
 
-    onKeydown(ev: JQuery.Event)
+    onKeydown(ev: KeyboardEvent): void
     {
-        const keycode = (ev.keyCode ? ev.keyCode : (ev.which ? ev.which : ev.charCode));
-        switch (keycode) {
-            case 13: // Enter
-                this.sendChat();
-                return false;
-            case 27: // Esc
+        let isHandled = false;
+        switch (ev.key) {
+            case 'Enter': {
+                if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+                    this.sendChat();
+                    isHandled = true;
+                }
+            } break;
+            case 'Escape': {
                 this.setVisibility(false);
-                ev.stopPropagation();
-                return false;
-            default:
-                return true;
+                isHandled = true;
+            } break;
+        }
+        if (isHandled) {
+            ev.preventDefault();
+            ev.stopPropagation();
         }
     }
 
