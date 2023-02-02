@@ -318,17 +318,7 @@ export class RoomItem extends Entity
     public onMouseEnterAvatar(ev: PointerEventData): void
     {
         super.onMouseEnterAvatar(ev);
-
-        if (Utils.isBackpackEnabled()) {
-            if (!is.nil(this.statsDisplayCloseTimeout)) {
-                window.clearTimeout(this.statsDisplayCloseTimeout);
-                this.statsDisplayCloseTimeout = null;
-            }
-            if (is.nil(this.statsDisplay)) {
-                this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
-                this.statsDisplay.show();
-            }
-        }
+        this.showStatsDisplay();
     }
 
     public onMouseLeaveAvatar(ev: PointerEventData): void
@@ -339,9 +329,7 @@ export class RoomItem extends Entity
             // When mouse moves from own avatar to transparent area of an avatar above our avatar,
             // an onMouseEnterAvatar might follow immediately after handling this event.
             // So delay actual closing slightly:
-            this.statsDisplayCloseTimeout = window.setTimeout(() => {
-                this.statsDisplay?.close();
-            }, 50);
+            this.statsDisplayCloseTimeout = window.setTimeout(() => this.hideStatsDisplay(), 50);
         }
     }
 
@@ -364,7 +352,19 @@ export class RoomItem extends Entity
                 }
             } break;
         }
-        this.statsDisplay?.close();
+        this.hideStatsDisplay();
+    }
+
+    onMouseLongClickAvatar(ev: PointerEventData): void
+    {
+        super.onMouseLongClickAvatar(ev);
+        if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
+            if (this.statsDisplay) {
+                this.hideStatsDisplay();
+            } else {
+                this.showStatsDisplay();
+            }
+        }
     }
 
     private handleUnmodifiedClickForIframeAspect(): void
@@ -868,6 +868,23 @@ export class RoomItem extends Entity
     {
         message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
         this.getScriptWindow()?.postMessage(message, '*');
+    }
+
+    private showStatsDisplay(): void
+    {
+        window.clearTimeout(this.statsDisplayCloseTimeout);
+        this.statsDisplayCloseTimeout = null;
+        if (Utils.isBackpackEnabled() && !this.statsDisplay) {
+            this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
+            this.statsDisplay.show();
+        }
+    }
+
+    private hideStatsDisplay(): void
+    {
+        window.clearTimeout(this.statsDisplayCloseTimeout);
+        this.statsDisplayCloseTimeout = null;
+        this.statsDisplay?.close();
     }
 
 }

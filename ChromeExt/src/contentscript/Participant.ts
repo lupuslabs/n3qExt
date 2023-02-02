@@ -50,11 +50,13 @@ export class Participant extends Entity
     private userId: string;
     private privateChatWindow: PrivateChatWindow;
     private privateVidconfWindow: PrivateVidconfWindow;
+    private decorationsVisible: boolean;
     private hideDecorationsTimeoutHandle: number|null = null;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
         super(app, room, roomNick, isSelf);
+        this.decorationsVisible = isSelf;
 
         this.elem.classList.add('n3q-participant');
         this.elem.setAttribute('data-nick', roomNick);
@@ -782,20 +784,8 @@ export class Participant extends Entity
             this.fetchVcardImage(this.avatarDisplay);
         }
 
-        if (!is.nil(this.hideDecorationsTimeoutHandle)) {
-            window.clearTimeout(this.hideDecorationsTimeoutHandle);
-            this.hideDecorationsTimeoutHandle = null;
-        }
         if (!this.isSelf) {
-            if (!is.nil(this.nicknameDisplay)) {
-                $(this.nicknameDisplay.getElem()).stop().fadeIn('fast');
-            }
-            if (!is.nil(this.pointsDisplay)) {
-                $(this.pointsDisplay.getElem()).stop().fadeIn('fast');
-            }
-            if (!is.nil(this.activityDisplay)) {
-                $(this.activityDisplay.getElem()).stop().fadeIn('fast');
-            }
+            this.showDecorations();
         }
     }
 
@@ -804,19 +794,7 @@ export class Participant extends Entity
         super.onMouseLeaveAvatar(ev);
 
         if (!this.isSelf) {
-            if (is.nil(this.hideDecorationsTimeoutHandle)) {
-                this.hideDecorationsTimeoutHandle = window.setTimeout(() => {
-                    if (!is.nil(this.nicknameDisplay)) {
-                        $(this.nicknameDisplay.getElem()).stop().fadeOut();
-                    }
-                    if (!is.nil(this.pointsDisplay)) {
-                        $(this.pointsDisplay.getElem()).stop().fadeOut();
-                    }
-                    if (!is.nil(this.activityDisplay)) {
-                        $(this.activityDisplay.getElem()).stop().fadeOut();
-                    }
-                }, 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3));
-            }
+            this.hideDecorations();
         }
     }
 
@@ -846,6 +824,18 @@ export class Participant extends Entity
                         } break;
                     }
                 } break;
+            }
+        }
+    }
+
+    onMouseLongClickAvatar(ev: PointerEventData): void
+    {
+        super.onMouseLongClickAvatar(ev);
+        if (!this.isSelf && ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
+            if (this.decorationsVisible) {
+                this.hideDecorations();
+            } else {
+                this.showDecorations();
             }
         }
     }
@@ -1184,6 +1174,40 @@ export class Participant extends Entity
             const clientRect = alignmentElem.getBoundingClientRect();
             this.menuDisplay.open(clientRect.left, clientRect.top);
             this.nicknameDisplay?.onMenuOpen();
+        }
+    }
+
+    private showDecorations(): void
+    {
+        window.clearTimeout(this.hideDecorationsTimeoutHandle);
+        this.hideDecorationsTimeoutHandle = null;
+        this.decorationsVisible = true;
+        if (!is.nil(this.nicknameDisplay)) {
+            $(this.nicknameDisplay.getElem()).stop().fadeIn('fast');
+        }
+        if (!is.nil(this.pointsDisplay)) {
+            $(this.pointsDisplay.getElem()).stop().fadeIn('fast');
+        }
+        if (!is.nil(this.activityDisplay)) {
+            $(this.activityDisplay.getElem()).stop().fadeIn('fast');
+        }
+    }
+
+    private hideDecorations(): void
+    {
+        if (is.nil(this.hideDecorationsTimeoutHandle)) {
+            this.hideDecorationsTimeoutHandle = window.setTimeout(() => {
+                this.decorationsVisible = false;
+                if (!is.nil(this.nicknameDisplay)) {
+                    $(this.nicknameDisplay.getElem()).stop().fadeOut();
+                }
+                if (!is.nil(this.pointsDisplay)) {
+                    $(this.pointsDisplay.getElem()).stop().fadeOut();
+                }
+                if (!is.nil(this.activityDisplay)) {
+                    $(this.activityDisplay.getElem()).stop().fadeOut();
+                }
+            }, 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3));
         }
     }
 

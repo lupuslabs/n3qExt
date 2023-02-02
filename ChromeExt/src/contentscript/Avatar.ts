@@ -81,6 +81,9 @@ export class Avatar implements IObserver
         this.pointerEventDispatcher.setEventListener('click', eventData => {
             this.entity.onMouseClickAvatar(eventData);
         });
+        this.pointerEventDispatcher.setEventListener('longclick', eventData => {
+            this.entity.onMouseLongClickAvatar(eventData);
+        });
         this.pointerEventDispatcher.setEventListener('doubleclick', eventData => {
             this.entity.onMouseDoubleClickAvatar(eventData);
         });

@@ -193,6 +193,11 @@ export class Entity
         this.select();
     }
 
+    onMouseLongClickAvatar(ev: PointerEventData): void
+    {
+        this.select();
+    }
+
     onMouseDoubleClickAvatar(ev: PointerEventData): void
     {
         this.select();
