@@ -1040,7 +1040,6 @@
         position: absolute;
         max-width: 150px;
         background-color: #ffffff;
-        //border: 1px solid #888;
         padding: 8px;
 
         div.n3q-button-list {
@@ -1060,34 +1059,14 @@
             overflow: hidden;
             text-overflow: ellipsis;
             margin-top: 4px;
-            // display: flex;
-            // margin-bottom: 2px;
 
             span.n3q-itemprops-key {
                 font-weight: bold;
-                // padding: 4px 0px;
             }
 
             span.n3q-itemprops-key:after {
                 content: ': ';
             }
-
-            // .n3q-itemprops-value {
-            //     margin: 0 0.5em;
-            //     padding: 4px 0;
-            // }
-
-            // input[type="text"].n3q-itemprops-value {
-            //     width: 100%;
-            //     padding: 4px;
-            //     box-shadow: #404040 1px 1px 3px inset;
-            // }
-
-            // div.n3q-itemprops-save {
-            //     margin: 2px 4px 2px 0px;
-            //     padding: 2px;
-            // }
-
         }
     }
 
@@ -1106,12 +1085,9 @@
     div.n3q-roomitemstats {
         position: absolute;
         left: -60px;
-        // bottom: 70px;
-        // width: 130px;
         width: auto;
         max-width: 300px;
         min-width: 130px;
-        //opacity: 0.9;
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -1125,8 +1101,6 @@
 
     div.n3q-backpackiteminfo {
         position: absolute;
-        // left: 10px;
-        // top: 10px;
         min-width: 140px;
         max-width: 220px;
         pointer-events: auto;

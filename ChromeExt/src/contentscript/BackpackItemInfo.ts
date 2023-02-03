@@ -84,12 +84,6 @@ export class BackpackItemInfo
         }
 
 
-        // const hasEditableAspect = as.Bool(props[Pid.EditablePropertiesAspect], false);
-        // let editablePropertiesList = [];
-        // if (hasEditableAspect) {
-        //     editablePropertiesList = as.String(props[Pid.EditableProperties], '').split(' ').map(propertyName => Pid[propertyName]).filter(pid => !is.nil(pid));
-        // }
-
         const listElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
         let hasStats = false;
         for (const pid in display) {
@@ -103,47 +97,12 @@ export class BackpackItemInfo
                     if (value.startsWith('www.')) { value = value.substr('www.'.length); }
                 }
 
-                // let isEditable = hasEditableAspect && editablePropertiesList.includes(pid);
-
                 let lineElem = null;
-                // if (isEditable) {
-                //     const originalValue = value;
-                //     lineElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-line" data-translate="children" ></div>');
-                //     let labelElem = domHtmlElemOfHtml(`<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">${pid}</span>`);
-                //     let inputElem = <HTMLInputElement>domHtmlElemOfHtml(`<input type="text" class="n3q-base n3q-input n3q-text n3q-itemprops-value" data-translate="text:ItemValue" title="${as.Html(value)}" value="${as.Html(value)}"/>`);
-                //     lineElem.append(labelElem);
-                //     lineElem.append(inputElem);
-                //     const saveElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-itemprops-save" title="Save" data-translate="attr:title:Backpack.Itemprops text:Backpack.Itemprops">Save</div>');
-                //     saveElem.addEventListener('click', ev => {
-                //         let value = inputElem.value;
-                //         if (value !== originalValue) {
-                //             let itemId = this.backpackItem.getItemId();
-                //             (async () => {
-                //                 await BackgroundMessage.executeBackpackItemAction(
-                //                     itemId,
-                //                     'EditableProperties.SetProperty',
-                //                     {
-                //                         Key: pid,
-                //                         Value: value,
-                //                     },
-                //                     [itemId]
-                //                 );
-                //             })().catch(ex => {
-                //                 const fact = ItemException.factFrom(ex.fact);
-                //                 const reason = ItemException.reasonFrom(ex.reason);
-                //                 const detail = ex.detail;
-                //                 new SimpleErrorToast(this.app, 'Warning-' + fact + '-' + reason, Config.get('room.applyItemErrorToastDurationSec', 5), 'warning', ItemException.fact2String(fact), ItemException.reason2String(reason), detail).show();
-                //             });
-                //         }
-                //     });
-                //     lineElem.append(saveElem);
-                // } else {
-                    lineElem = domHtmlElemOfHtml(''
-                        + '<div class="n3q-base n3q-itemprops-line" data-translate="children" > '
-                        + `<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">${as.Html(pid)}</span>`
-                        + `<span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`
-                        + '</div>');
-                // }
+                lineElem = domHtmlElemOfHtml(''
+                    + '<div class="n3q-base n3q-itemprops-line" data-translate="children" > '
+                    + `<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">${as.Html(pid)}</span>`
+                    + `<span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`
+                    + '</div>');
                 listElem.append(lineElem);
             }
         }
@@ -158,9 +117,11 @@ export class BackpackItemInfo
             const activateGroup = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-activate" data-translate="children"></div>');
             const activateLabel = domHtmlElemOfHtml('<span class="n3q-base " data-translate="text:Backpack">Active</div>');
             const activateCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack"${as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : ''}/>`); // Active
-            activateCheckbox.addEventListener('change', ev => {
+            activateCheckbox.addEventListener('change', ev =>
+            {
                 ev.stopPropagation();
-                (async () => {
+                (async () =>
+                {
                     const isChecked = activateCheckbox.checked;
                     await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value': isChecked }, [this.backpackItem.getItemId()]);
 
@@ -176,7 +137,8 @@ export class BackpackItemInfo
 
         if (as.Bool(props[Pid.IsRezzed])) {
             const derezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>');
-            derezBtn.addEventListener('click', (ev) => {
+            derezBtn.addEventListener('click', (ev) =>
+            {
                 ev.stopPropagation();
                 this.app.derezItem(this.backpackItem.getItemId());
                 this.close();
@@ -186,7 +148,8 @@ export class BackpackItemInfo
             const destination = as.String(props[Pid.RezzedDestination]);
             if (destination) {
                 const goBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>');
-                goBtn.addEventListener('click', (ev) => {
+                goBtn.addEventListener('click', (ev) =>
+                {
                     ev.stopPropagation();
                     window.location.assign(destination);
                 });
@@ -195,7 +158,8 @@ export class BackpackItemInfo
         } else {
             if (as.Bool(props[Pid.IsRezable], true)) {
                 const rezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>');
-                rezBtn.addEventListener('click', (ev) => {
+                rezBtn.addEventListener('click', (ev) =>
+                {
                     ev.stopPropagation();
                     const rezzedX = as.Int(props[Pid.RezzedX], -1);
                     this.backpackItem.rezItem(rezzedX);
@@ -207,7 +171,8 @@ export class BackpackItemInfo
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>');
-            delBtn.addEventListener('click', (ev) => {
+            delBtn.addEventListener('click', (ev) =>
+            {
                 ev.stopPropagation();
                 this.app.deleteItemAsk(this.backpackItem.getItemId());
                 this.close();
