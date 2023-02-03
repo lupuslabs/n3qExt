@@ -20,8 +20,9 @@ export type WindowOptions = {
 
 export abstract class Window<OptionsType extends WindowOptions>
 {
-    protected app: ContentApp;
+    protected readonly app: ContentApp;
     protected onClose: null|(() => void) = null;
+    protected readonly viewportResizeListener: () => void;
 
     protected windowName: string = 'Default';
     protected style: WindowStyle = 'window';
@@ -62,6 +63,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     public constructor(app: ContentApp)
     {
         this.app = app;
+        this.viewportResizeListener = () => this.onViewportResize();
     }
 
     public show(options: OptionsType): void
@@ -81,16 +83,16 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.windowElem.classList.add('n3q-hidden');
             this.app.translateElem(this.windowElem);
             if (!this.skipInitGeometry) {
-                await this.initGeometry();
+                await this.initGeometry(); // Need to wait for it so makeContent can use geometry.
             }
             this.toFront();
             this.containerElem.append(this.windowElem);
             await this.makeContent();
             await domWaitForRenderComplete();
             if (this.windowElem) {
-                this.readGeometryFromDom();
+                this.readGeometryFromDom(); // Needed in case makeContent alters geometry or geometry is partially browser-defined.
                 this.app.translateElem(this.contentElem);
-                this.windowElem.classList.remove('n3q-hidden');
+                this.setVisibility(true);
             }
         })().catch(error => {
             this.app.onError(error);
@@ -243,7 +245,7 @@ export abstract class Window<OptionsType extends WindowOptions>
                     this.readGeometryFromDom();
                     this.geometryAtActionStart = this.geometry;
                 },
-                dragmove: ev => this.setGeometry(newGeometryFun(ev), false),
+                dragmove: ev => this.setGeometry(newGeometryFun(ev)),
                 dragend: ev => this.triggerSaveCurrentGeometry(),
             },
         });
@@ -258,12 +260,15 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
     }
 
-    protected setGeometry(geometry: LeftBottomRect, persist: boolean = true, mangle: boolean = true): void
+    protected setGeometry(geometry: LeftBottomRect|Partial<OptionsType>): void
     {
-        const finalGeometry = mangle ? this.mangleGeometry(<Partial<OptionsType>>geometry) : geometry;
-        this.applyGeometry(finalGeometry);
-        if (persist) {
-            this.triggerSaveCurrentGeometry();
+        const mangledGeometry = this.mangleGeometry(geometry);
+        this.geometry = mangledGeometry;
+        if (this.windowElem) {
+            this.windowElem.style.left   = `${mangledGeometry.left}px`;
+            this.windowElem.style.bottom = `${mangledGeometry.bottom}px`;
+            this.windowElem.style.width  = `${mangledGeometry.width}px`;
+            this.windowElem.style.height = `${mangledGeometry.height}px`;
         }
     }
 
@@ -272,22 +277,7 @@ export abstract class Window<OptionsType extends WindowOptions>
         await domWaitForRenderComplete();
         const persitedOptions = this.persistGeometry ? await this.getSavedOptions() : {};
         const mergedGeometry = {...this.givenOptions, ...persitedOptions};
-        const finalGeometry = this.mangleGeometry(mergedGeometry);
-        this.applyGeometry(finalGeometry);
-        if (this.persistGeometry) {
-            this.triggerSaveCurrentGeometry();
-        }
-    }
-
-    protected applyGeometry(geometry: LeftBottomRect): void
-    {
-        this.geometry = geometry;
-        if (this.windowElem) {
-            this.windowElem.style.left   = `${geometry.left}px`;
-            this.windowElem.style.bottom = `${geometry.bottom}px`;
-            this.windowElem.style.width  = `${geometry.width}px`;
-            this.windowElem.style.height = `${geometry.height}px`;
-        }
+        this.setGeometry(mergedGeometry);
     }
 
     protected readGeometryFromDom(): void
@@ -297,7 +287,7 @@ export abstract class Window<OptionsType extends WindowOptions>
         }
     }
 
-    protected mangleGeometry(optionsOrGeometry: Partial<OptionsType>): LeftBottomRect
+    protected mangleGeometry(optionsOrGeometry: LeftBottomRect|Partial<OptionsType>): LeftBottomRect
     {
         const containerRect = this.containerElem.getBoundingClientRect();
         const containerWidth = containerRect.width;
@@ -313,7 +303,7 @@ export abstract class Window<OptionsType extends WindowOptions>
         );
 
         // Add position:
-        const anchorElemRect = optionsOrGeometry.above?.getBoundingClientRect() ?? null;
+        const anchorElemRect = (<Partial<OptionsType>>optionsOrGeometry).above?.getBoundingClientRect() ?? null;
         let leftRaw = optionsOrGeometry.left;
         if (is.nil(leftRaw) && anchorElemRect) {
             const center = anchorElemRect.left + anchorElemRect.width / 2;
@@ -382,6 +372,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
         if (!this.isClosing) {
             this.isClosing = true;
+            this.setVisibility(false);
             try {
                 this.onBeforeClose();
             } catch (error) {
@@ -403,6 +394,11 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected onBeforeClose(): void
     {
+    }
+
+    protected onViewportResize(): void
+    {
+        this.setGeometry(this.geometry);
     }
 
     /**
@@ -433,9 +429,11 @@ export abstract class Window<OptionsType extends WindowOptions>
     public setVisibility(visible: boolean): void
     {
         if (visible) {
-            this.initGeometry().catch(error => this.app.onError(error));
+            this.app.getViewPortEventDispatcher().addResizeListener(this.viewportResizeListener);
+            this.onViewportResize();
             this.windowElem?.classList.remove('n3q-hidden');
         } else {
+            this.app.getViewPortEventDispatcher().removeResizeListener(this.viewportResizeListener);
             this.windowElem?.classList.add('n3q-hidden');
         }
     }

@@ -70,11 +70,10 @@ export class Toast extends Window<ToastOptions>
 
     public setVisibility(visible: boolean): void
     {
+        super.setVisibility(visible);
         if (visible) {
-            this.windowElem?.classList.remove('n3q-hidden');
             this.app.onToastVisible(this);
         } else {
-            this.windowElem?.classList.add('n3q-hidden');
             this.app.onToastInvisible(this);
         }
     }

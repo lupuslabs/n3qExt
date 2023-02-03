@@ -40,6 +40,7 @@ import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
 import { userChatMessageTypes } from '../lib/ChatMessage';
+import { ViewportEventDispatcher } from '../lib/ViewportEventDispatcher'
 
 interface ILocationMapperResponse
 {
@@ -64,6 +65,7 @@ export class ContentApp extends App
 {
     private debugUtils: DebugUtils;
     private display: HTMLElement;
+    private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
     private pageUrl: string;
     private presetPageUrl: string;
@@ -96,6 +98,7 @@ export class ContentApp extends App
     getDebugUtils(): DebugUtils { return this.debugUtils; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getDisplay(): HTMLElement { return this.display; }
+    getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
     getRoom(): Room|null { return this.room; }
     getLanguage(): string { return this.language; }
 
@@ -123,6 +126,7 @@ export class ContentApp extends App
         super();
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
+        this.viewportEventDispatcher = new ViewportEventDispatcher(this);
     }
 
     activateBackgroundPageProbeDelaySec = 0;
@@ -314,6 +318,7 @@ export class ContentApp extends App
     stop()
     {
         this.statusToPageSender.sendClientInactive();
+        this.viewportEventDispatcher.stop();
         this.iframeApi?.stop();
         this.stop_pingBackgroundToKeepConnectionAlive();
         this.stopCheckPageUrl();
