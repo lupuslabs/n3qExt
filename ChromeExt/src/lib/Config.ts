@@ -81,7 +81,7 @@ export class Config
             chatHistory: false,
         },
         pointerEventDispatcher: {
-            pointerOpaqueOpacityMin: 0.1,
+            pointerOpaqueOpacityMin: 0.03, // works with Photoshop 3% Opacity (e.g. Screen item)
             pointerLongclickMinSec: 0.5,
             pointerDoubleclickMaxSec: 0.25,
             pointerDragStartDistance: 3.0,
