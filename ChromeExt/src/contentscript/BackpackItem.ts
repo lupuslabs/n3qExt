@@ -190,8 +190,7 @@ export class BackpackItem
                         if (!infoOpen) {
                             const onClose = () => { this.info = null; };
                             this.info = new BackpackItemInfo(this.app, this, onClose);
-                            this.info.show(ev.clientX, ev.clientY);
-                            this.app.toFront(this.info.getElem(), ContentApp.LayerWindowContent);
+                            this.info.show({ left: ev.clientX, top: ev.clientY });
                         }
                     } break;
                     case DomModifierKeyId.control: {

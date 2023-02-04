@@ -83,14 +83,15 @@ export class Toast extends Window<ToastOptions>
         super.prepareMakeDom();
         this.style = 'overlay';
         this.guiLayer = ContentApp.LayerToast;
-        this.windowCssClasses = ['n3q-base', 'n3q-toast'];
+        this.windowCssClasses = ['n3q-base', 'n3q-toast']; // Todo: Rebase own style on window base classes.
         this.contentCssClasses = ['n3q-base', 'n3q-toast-pane', 'n3q-shadow-small'];
+        this.showHidden = true;
         if (this.isModal) {
             this.windowCssClasses.push('n3q-toast-modal');
         }
         this.withTitlebar = false;
         this.isMovable = !this.isModal;
-        this.skipInitGeometry = true;
+        this.geometryInitstrategy = 'none'; // CSS decides.
         this.minWidth  = 1; // CSS decides.
         this.minHeight = 1; // CSS decides.
     }
@@ -113,20 +114,22 @@ export class Toast extends Window<ToastOptions>
         bodyContainerElem.append(this.bodyElem);
         this.contentElem.append(bodyContainerElem);
 
-        const footerElem = domHtmlElemOfHtml('<div class="n3q-base n3q-toast-footer" data-translate="children"></div>');
         if (this.hasDontShowAgainOption) {
+            const footerElem = domHtmlElemOfHtml('<div class="n3q-base n3q-toast-footer" data-translate="children"></div>');
             const dontShowElem = <HTMLInputElement>domHtmlElemOfHtml(`<input class="n3q-base" type="checkbox" name="checkbox" id="${checkboxId}" />`);
             const dontShowLabelElem = domHtmlElemOfHtml(`<label class="n3q-base" for="${checkboxId}" data-translate="text:Toast">Do not show this message again</label>`);
             dontShowElem.addEventListener('change', ev => {
                 this.app.setDontShowNoticeType(this.messageType, dontShowElem.checked);
             });
-            const dispatcherOptions = { ignoreOpacity: true, allowDefaultActions: true };
-            const dontShowDispatcher = new PointerEventDispatcher(this.app, dontShowElem, dispatcherOptions);
-            const dontShowLabelDispatcher = new PointerEventDispatcher(this.app, dontShowLabelElem, dispatcherOptions);
+
+            // Makes default pointer click functionality work on checkbox and label (prevents events from getting eaten):
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, dontShowElem);
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, dontShowLabelElem);
+
             footerElem.append(dontShowElem);
             footerElem.append(dontShowLabelElem);
+            this.contentElem.append(footerElem);
         }
-        this.contentElem.append(footerElem);
 
         const newStatus = 'fadingIn';
         this.status = newStatus;
@@ -153,6 +156,8 @@ export class Toast extends Window<ToastOptions>
                 timingFun: 'linear',
             }, '10px', onComplete);
         }
+
+        this.windowElem?.classList.remove('n3q-hidden');
     }
 
     protected onCapturePhasePointerDownInside(ev: PointerEvent): void
@@ -232,7 +237,7 @@ export class SimpleToast extends Toast
         const buttonElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">${as.Html(text)}</div>`);
         this.bodyElem.append(buttonElem);
         this.app.translateElem(buttonElem);
-        const buttonDispatcher = new PointerEventDispatcher(this.app, buttonElem, {
+        PointerEventDispatcher.makeDispatcher(this.app, buttonElem, {
             ignoreOpacity: true,
             eventListeners: {
                 click: ev => { action?.(); },
@@ -240,10 +245,9 @@ export class SimpleToast extends Toast
         });
     }
 
-    public show(onClose: () => void = null): void
+    protected prepareMakeDom(): void
     {
-        super.show(onClose);
-
+        super.prepareMakeDom();
         const chatlogName = this.app.translateText('Chatwindow.Toast.' + this.iconType, this.iconType);
         let chatlogText = this.title + ': ' + this.text;
         this.buttonTexts.forEach(buttonText => {

@@ -58,7 +58,7 @@ export class Badge
     {
         this.isStopping = true;
         this.onDragEnd();
-        this.infoWindow.hide();
+        this.infoWindow.close();
         this.iconElem?.parentElement?.removeChild(this.iconElem);
     }
 

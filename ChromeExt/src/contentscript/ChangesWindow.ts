@@ -3,6 +3,7 @@ import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { _Changes } from '../lib/_Changes';
 import { domHtmlElemOfHtml } from '../lib/domTools'
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class ChangesWindow extends Window<WindowOptions>
 {
@@ -19,6 +20,7 @@ export class ChangesWindow extends Window<WindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
+        this.windowCssClasses.push('n3q-changeswindow');
         this.titleText = this.app.translateText('ChangesWindow.Changes', 'Change History');
         this.defaultWidth = 600;
         this.defaultHeight = 600;
@@ -29,12 +31,10 @@ export class ChangesWindow extends Window<WindowOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
-        const windowElem = this.windowElem;
         const contentElem = this.contentElem;
-        windowElem.classList.add('n3q-changeswindow');
-        const outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
-        contentElem.append(outElem);
-        this.outElem = outElem;
+        this.outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
+        contentElem.append(this.outElem);
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.outElem);
         this.showHistory();
     }
 

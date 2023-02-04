@@ -12,6 +12,7 @@ import { BackpackItem as BackpackItem } from './BackpackItem';
 import { ItemException } from '../lib/ItemException';
 import { FreeSpace } from './FreeSpace';
 import { domHtmlElemOfHtml } from '../lib/domTools'
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class BackpackWindow extends Window<WindowOptions>
 {
@@ -35,6 +36,7 @@ export class BackpackWindow extends Window<WindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
+        this.windowCssClasses.push('n3q-backpackwindow');
         this.titleText = this.app.translateText('BackpackWindow.Inventory', 'Local Stuff');
         this.defaultWidth = 600;
         this.defaultHeight = 400;
@@ -45,14 +47,10 @@ export class BackpackWindow extends Window<WindowOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
-        const windowElem = this.windowElem;
-        const contentElem = this.contentElem;
-        windowElem.classList.add('n3q-backpackwindow');
 
-        const paneElem = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>');
-        contentElem.append(paneElem);
-
-        this.paneElem = paneElem;
+        this.paneElem = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>');
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.paneElem);
+        this.contentElem.append(this.paneElem);
 
         try {
             const response = await BackgroundMessage.getBackpackState();

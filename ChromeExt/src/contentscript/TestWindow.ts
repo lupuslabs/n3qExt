@@ -5,6 +5,7 @@ import { ContentApp } from './ContentApp';
 import { LiveTestPayload } from './LiveTestPayload';
 import { LiveTestSimpleRpc } from './LiveTestSimpleRpc';
 import { domHtmlElemOfHtml } from '../lib/domTools'
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class TestWindow extends Window<WindowOptions>
 {
@@ -19,6 +20,7 @@ export class TestWindow extends Window<WindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
+        this.windowCssClasses.push('n3q-testwindow');
         this.titleText = this.app.translateText('TestWindow.Tests', 'Integration Tests');
         this.defaultWidth = 800;
         this.defaultHeight = 600;
@@ -29,9 +31,7 @@ export class TestWindow extends Window<WindowOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
-        const windowElem = this.windowElem;
         const contentElem = this.contentElem;
-        windowElem.classList.add('n3q-testwindow');
 
         const outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-testwindow-out" data-translate="children"></div>');
         const runElem = domHtmlElemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-testwindow-run" title="Run">Run</div>');
@@ -39,10 +39,9 @@ export class TestWindow extends Window<WindowOptions>
         contentElem.append(outElem);
         contentElem.append(runElem);
 
-        this.app.translateElem(windowElem);
-
         this.outElem = outElem;
 
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
         runElem.addEventListener('click', ev =>
         {
             outElem.innerHTML = '';

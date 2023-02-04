@@ -1,76 +1,58 @@
-import * as $ from 'jquery';
-import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { RoomItem } from './RoomItem';
+import { domHtmlElemOfHtml, domWaitForRenderComplete, startDomElemTransition } from '../lib/domTools'
+import { Utils } from '../lib/Utils'
 
-export class RoomItemStats
+export class RoomItemStats // Todo: Convert to Window.
 {
     private elem: HTMLElement = null;
 
-    constructor(protected app: ContentApp, protected roomItem: RoomItem, protected onClose: () => void)
+    public constructor(protected app: ContentApp, protected roomItem: RoomItem, protected onClose: () => void)
     {
     }
 
-    show(): void
+    public show(): void
     {
-        if (this.elem == null) {
-            this.setup();
-
-            let bottom = 70;
-            let left = 0;
-            if (this.roomItem) {
-                let itemHeight = $(this.roomItem.getAvatar().getElem()).height();
-                bottom = itemHeight + Config.get('roomItem.statsPopupOffset', 0);
-                const itemCenterX = this.roomItem.getElem().offsetLeft;
-                left = itemCenterX - 60;
-            }
-            $(this.elem).css({ bottom: bottom + 'px', left: `${left}px` });
+        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops n3q-roomitemstats n3q-shadow-small" data-translate="children"></div>');
+        const hasStats = this.update();
+        if (!hasStats) {
+            return;
         }
-
+        this.app.getDisplay().append(this.elem);
         this.app.toFront(this.elem, ContentApp.LayerEntityTooltip);
-        $(this.elem).stop().delay(Config.get('room.itemStatsTooltipDelay', 500)).fadeIn('fast');
+        this.elem.style.opacity = '0';
+        const transition = { property: 'opacity', duration: '200ms' };
+        startDomElemTransition(this.elem, null, transition, '1');
     }
 
-    close(): void
+    public close(): void
     {
-        $(this.elem).remove();
-        if (this.onClose) { this.onClose(); }
+        this.elem?.remove();
+        this.onClose?.();
     }
 
-    setup(): void
+    public update(): boolean
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops n3q-roomitemstats n3q-shadow-small" data-translate="children" />').get(0);
-        $(this.elem).css({ display: 'none' });
-
-        let hasStats = this.update();
-
-        if (hasStats) {
-            $(this.app.getDisplay()).append(this.elem);
-        }
-    }
-
-    update(): boolean
-    {
-        $(this.elem).empty();
+        this.elem.innerHTML = '';
 
         let props = this.roomItem.getProperties();
 
-        let label = as.String(props[Pid.Label], null);
-        if (label == null) {
-            let label = as.String(props[Pid.Template], null);
+        let label = as.String(props[Pid.Label]);
+        if (!label.length) {
+            label = as.String(props[Pid.Template]);
         }
         if (label) {
-            let labelElem = <HTMLDivElement>$('<div class="n3q-base n3q-title" data-translate="text:ItemLabel">' + label + '</div>').get(0);
-            $(this.elem).append(labelElem);
+            let labelElem = domHtmlElemOfHtml('<div class="n3q-base n3q-title" data-translate="text:ItemLabel">' + label + '</div>');
+            this.elem.append(labelElem);
         }
 
         let description = as.String(props[Pid.Description], '');
-        if (description != '') {
-            let descriptionElem = <HTMLDivElement>$('<div class="n3q-base n3q-description">' + description + '</div>').get(0);
-            $(this.elem).append(descriptionElem);
+        if (description.length) {
+            let descriptionElem = domHtmlElemOfHtml('<div class="n3q-base n3q-description">' + description + '</div>');
+            this.elem.append(descriptionElem);
         }
 
         let display = ItemProperties.getDisplay(props);
@@ -84,30 +66,61 @@ export class RoomItemStats
             display[Pid.OwnerName] = 'You';
         } else {
             display[Pid.OwnerName] = this.roomItem.getOwnerName();
-
         }
 
-        let listElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-list" data-translate="children" />').get(0);
-        let hasStats = false;
+        let listElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
+        let hasStats = description !== '';
         for (let pid in display) {
             let value = display[pid];
             if (value) {
                 hasStats = true;
-                let lineElem = <HTMLDivElement>$('<div class="n3q-base n3q-itemprops-line" data-translate="children">'
+                let lineElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-line" data-translate="children">'
                     + '<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">'
                     + pid + '</span><span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="'
                     + as.Html(value) + '">'
                     + as.Html(value) + '</span>'
-                    + '</div>').get(0);
-                $(listElem).append(lineElem);
+                    + '</div>');
+                listElem.append(lineElem);
             }
         }
         if (hasStats) {
-            $(this.elem).append(listElem);
+            this.elem.append(listElem);
         }
 
         this.app.translateElem(this.elem);
 
-        return hasStats || description != '';
+        if (hasStats) {
+            this.updateGeometry();
+        }
+        return hasStats;
     }
+
+    public updateGeometry(): void
+    {
+        (async () => {
+            await domWaitForRenderComplete();
+            const container = this.app.getDisplay();
+            const roomItemElem = this.roomItem.getElem();
+            if (!container || !roomItemElem || !this.elem) {
+                return;
+            }
+            const containerMarginTop    = as.Int(Config.get('system.windowContainerMarginTop'), 0);
+            const containerMarginRight  = as.Int(Config.get('system.windowContainerMarginRight'), 0);
+            const containerMarginBottom = as.Int(Config.get('system.windowContainerMarginBottom'), 0);
+            const containerMarginLeft   = as.Int(Config.get('system.windowContainerMarginLeft'), 0);
+            const containerRect = container.getBoundingClientRect();
+            const itemRect = roomItemElem.getBoundingClientRect();
+            const ourRect = this.elem.getBoundingClientRect();
+            const bottom = itemRect.height + as.Int(Config.get('roomItem.statsPopupOffset', 0));
+            const left = as.Int(itemRect.left - ourRect.width / 2);
+            const geometry = Utils.fitLeftBottomRect(
+                { left, bottom, width: ourRect.width, height: ourRect.height },
+                containerRect.width, containerRect.height, 1, 1,
+                containerMarginLeft, containerMarginRight, containerMarginTop, containerMarginBottom,
+            );
+            this.elem.style.bottom = `${geometry.bottom}px`;
+            this.elem.style.left = `${geometry.left}px`;
+        })().catch(error => this.app.onError(error));
+    }
+
 }

@@ -5,6 +5,7 @@ import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { Memory } from '../lib/Memory';
 import { domHtmlElemOfHtml } from '../lib/domTools';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class XmppWindow extends Window<WindowOptions>
 {
@@ -23,6 +24,7 @@ export class XmppWindow extends Window<WindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
+        this.windowCssClasses.push('n3q-xmppwindow');
         this.titleText = this.app.translateText('XmppWindow.Xmpp', 'XMPP');
         this.minWidth = 180;
         this.minHeight = 160;
@@ -35,10 +37,7 @@ export class XmppWindow extends Window<WindowOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
-        const windowElem = this.windowElem;
         const contentElem = this.contentElem;
-        windowElem.classList.add('n3q-xmppwindow');
-
 
         this.outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-xmppwindow-out" data-translate="children"></div>');
         const inElem = domHtmlElemOfHtml('<div class="n3q-base n3q-xmppwindow-in" data-translate="children"></div>');
@@ -55,6 +54,8 @@ export class XmppWindow extends Window<WindowOptions>
         contentElem.append(inSaveElem);
         contentElem.append(outClearElem);
 
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.inInputElem);
         inSendElem.addEventListener('click', ev => this.sendText());
         inSaveElem.addEventListener('click', ev => this.saveText());
         outClearElem.addEventListener('click', ev => { this.outElem.innerHTML = ''; });

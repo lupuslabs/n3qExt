@@ -612,13 +612,18 @@
     }
 
     div.n3q-badgeInfoWindow {
+        @extend .n3q-base;
         @extend .n3q-shadow-small;
         position: absolute;
         min-width: 100px;
         min-height: 50px;
         max-width: 500px;
-        background-color: #ffffff;
-        pointer-events: auto;
+
+        .n3q-badgeInfoWindow-base {
+            @extend .n3q-base;
+            pointer-events: none;
+            user-select: none;
+        }
 
         span.n3q-badgeInfoWindow-paragraph {
             display: block;
@@ -629,7 +634,8 @@
             display: block;
         }
 
-        div.n3q-badgeInfoWindow-content {
+        div.n3q-badgeInfoWindow-columns {
+            @extend .n3q-badgeInfoWindow-base;
             padding: 1em 2em 1em 1em;
             display: flex;
             flex-direction: row;
@@ -637,12 +643,19 @@
             column-gap: 1em;
             align-items: flex-start;
             pointer-events: none;
+            user-select: none;
 
-            // img.n3q-badgeInfoWindow-image {
-            // }
+            .n3q-badgeInfoWindow-image {
+                @extend .n3q-badgeInfoWindow-base;
+            }
 
             div.n3q-badgeInfoWindow-descriptionColumn {
+                @extend .n3q-badgeInfoWindow-base;
                 margin-bottom: -0.5em;
+
+                div.n3q-badgeInfoWindow-title {
+                    @extend .n3q-badgeInfoWindow-base;
+                }
 
                 div.n3q-badgeInfoWindow-title .n3q-badgeInfoWindow-line {
                     @extend div.n3q-title;
@@ -651,11 +664,13 @@
                 }
 
                 div.n3q-badgeInfoWindow-description {
+                    @extend .n3q-badgeInfoWindow-base;
                     font-size: 1.1em;
                     line-height: 1.25em;
                 }
 
                 a.n3q-badgeInfoWindow-link {
+                    @extend .n3q-badgeInfoWindow-base;
                     display: inline-block;
                     pointer-events: auto;
                     background: #FFFFFF; /* Transparency hint for pointer event dispatcher */
@@ -841,6 +856,7 @@
                     padding: 4px;
                     max-height: 5em;
                     overflow-y: auto;
+                    touch-action: pan-y;
                     pointer-events: auto;
                     text-align: center;
                     line-break: loose;
@@ -906,6 +922,7 @@
     div.n3q-toast {
         position: absolute;
         left: 10px;
+        bottom: 10px;
         width: 250px;
         height: fit-content;
         max-height: 200px;
@@ -1103,8 +1120,10 @@
         position: absolute;
         min-width: 140px;
         max-width: 220px;
-        pointer-events: auto;
-        touch-action: none;
+
+        div.n3q-itemprops {
+            padding: 8px;
+        }
 
         div.n3q-title {
             text-align: center;
@@ -1142,16 +1161,18 @@
     }
 
     div.n3q-window {
+        @extend .n3q-base;
+        display: flex;
+        flex-direction: column;
         position: absolute;
         background-color: #ffffff;
-        pointer-events: none;
+        pointer-events: auto;
         touch-action: none;
 
         div.n3q-window-title-bar {
-            display: block;
             position: relative;
             height: 27px;
-            // width: 400px;
+            min-height: 27px; /* Prevents flex slot from shrinking smaller than this. */
             background-color: #ffffff;
             //border-bottom: 1px solid #808080;
         }
@@ -1218,20 +1239,16 @@
         }
 
         div.n3q-window-content {
+            @extend .n3q-base;
+            flex-grow: 1;
             display: block;
-            position: absolute;
-            top: 27px;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            box-shadow: inset 0 4px 5px -4px #404040;
-            pointer-events: auto;
-            touch-action: pan-x pan-y;
+            position: relative;
+            overflow: hidden;
+            pointer-events: none;
+            touch-action: none;
         }
-
-        div.n3q-window-resize {
-            position: absolute;
-            z-index: 1000000000;
+        div.n3q-window-content * {
+            pointer-events: auto;
         }
 
         .n3q-window-resizable-handle {
@@ -1251,6 +1268,7 @@
             @extend .n3q-window-resize-handle-h;
             cursor: n-resize;
             top: -3px;
+            height: 4px;
         }
         .n3q-window-resize-handle-s {
             @extend .n3q-window-resize-handle-h;
@@ -1307,6 +1325,22 @@
         }
     }
 
+    div.n3q-window.n3q-window-style-window {
+        @extend div.n3q-shadow-medium;
+
+        div.n3q-window-content {
+            box-shadow: inset 0 4px 5px -4px #404040;
+        }
+    }
+
+    div.n3q-window.n3q-window-style-popup {
+        @extend div.n3q-shadow-small;
+    }
+
+    div.n3q-window.n3q-window-style-overlay {
+        @extend div.n3q-shadow-small;
+    }
+
     //  div.n3q-testwindow {}
 
     div.n3q-testwindow-out {
@@ -1316,6 +1350,7 @@
         right: 8px;
         bottom: 8px;
         overflow-y: scroll;
+        touch-action: pan-y;
 
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
 
@@ -1391,18 +1426,21 @@
         right: 8px;
         bottom: 8px;
         overflow-y: scroll;
+        touch-action: pan-y;
     }
 
     //  div.n3q-xmppwindow {}
 
     div.n3q-xmppwindow div.n3q-window-content {
         display: flex;
+        position: relative;
         flex-direction: column;
     }
 
     div.n3q-xmppwindow-out {
         margin: 8px;
         overflow-y: scroll;
+        touch-action: pan-y;
         flex: 5;
     }
 
@@ -1507,12 +1545,11 @@
     // }
 
     div.n3q-backpack-pane {
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
-        bottom: 0;
+        position: relative;
+        width: 100%;
+        height: 100%;
         overflow: auto;
+        touch-action: pan-x pan-y;
         background: #FFFFFF; // Makes it opaque for drag and drop handling.
         box-shadow: inset 0 4px 5px -4px #404040;
     }
@@ -1534,7 +1571,7 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            pointer-events: none;
+            pointer-events: none !important;
         }
 
         .n3q-backpack-item-label {
@@ -1548,7 +1585,7 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             padding: 2px 2px;
-            pointer-events: none;
+            pointer-events: none !important;
         }
 
         .n3q-backpack-item-cover {
@@ -1558,7 +1595,7 @@
             bottom: 0;
             right: 0;
             background-color: rgba(255, 255, 255, 0);
-            pointer-events: none;
+            pointer-events: none !important;
         }
     }
 
@@ -1622,6 +1659,7 @@
         right: 8px;
         bottom: 44px;
         overflow-y: scroll;
+        touch-action: pan-y;
     }
 
     div.n3q-chatwindow-line {

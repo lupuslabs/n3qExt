@@ -16,7 +16,7 @@ export class SettingsWindow extends Window<WindowOptions>
         super.prepareMakeDom();
         this.titleText = this.app.translateText('Settingswindow.Settings', 'Settings');
         this.defaultWidth = 420;
-        this.defaultHeight = 490;
+        this.defaultHeight = 495;
         this.defaultBottom = 150;
         this.defaultLeft = 50;
     }

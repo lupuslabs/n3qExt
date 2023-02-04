@@ -9,55 +9,63 @@ import { BackpackItem } from './BackpackItem';
 import { ContentApp } from './ContentApp';
 import { SimpleErrorToast } from './Toast';
 import { domHtmlElemOfHtml } from '../lib/domTools'
+import { Window, WindowOptions } from './Window'
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
-export class BackpackItemInfo
+export type BackpackItemInfoOptions = WindowOptions & {
+    top: number,
+    left: number,
+}
+
+export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 {
-    private elem: HTMLElement = null;
+    protected backpackItem: BackpackItem;
 
-    public getElem(): HTMLElement { return this.elem; }
+    public getElem(): HTMLElement { return this.contentElem; }
 
-    public constructor(protected app: ContentApp, protected backpackItem: BackpackItem, protected onClose: () => void)
+    public constructor(app: ContentApp, backpackItem: BackpackItem, onClose: () => void)
     {
+        super(app);
+        this.backpackItem = backpackItem;
+        this.onClose = onClose;
     }
 
-    public show(x: number, y: number): void
+    protected prepareMakeDom(): void
     {
-        if (this.elem == null) {
-            this.setup();
-        }
+        super.prepareMakeDom();
+        this.style = 'overlay';
+        this.guiLayer = ContentApp.LayerWindowContent;
+        this.windowCssClasses.push('n3q-backpackiteminfo');
+        this.contentCssClasses.push('n3q-itemprops');
+        this.withTitlebar = false;
+        this.geometryInitstrategy = 'afterContent';
 
         const offset = Config.get('backpack.itemInfoOffset', { x: 4, y: 4 });
-        x = x + offset.x;
-        y = y + offset.y;
-
-        this.elem.style.top = `${y}px`;
-        this.elem.style.left = `${x}px`;
-        this.app.toFront(this.elem, ContentApp.LayerWindowContent);
+        this.givenOptions.left += offset.x;
+        this.givenOptions.top += offset.y;
+        this.givenOptions.width = 'content';
+        this.givenOptions.height = 'content';
     }
 
-    public close(): void
+    protected async makeContent(): Promise<void>
     {
-        this.elem?.remove();
-        this.onClose?.();
-    }
-
-    private setup(): void
-    {
-        let windowId = Utils.randomString(15);
-        this.elem = domHtmlElemOfHtml(`<div id="${windowId}" class="n3q-base n3q-itemprops n3q-backpackiteminfo n3q-shadow-small" data-translate="children"></div>`);
+        await super.makeContent();
         this.update();
-        this.app.getDisplay()?.append(this.elem);
+    }
+
+    protected onBeforeClose(): void
+    {
+        super.onBeforeClose();
+        this.contentElem?.remove();
+        this.contentElem = null;
     }
 
     public update(): void
     {
-        if (!this.elem) {
+        if (!this.isOpen()) {
             return;
         }
-        this.elem.innerHTML = '';
-
-        const closeElem = this.app.makeWindowCloseButton(() => this.close(), 'overlay');
-        this.elem.append(closeElem);
+        this.contentElem.innerHTML = '';
 
         const props = this.backpackItem.getProperties();
 
@@ -67,13 +75,13 @@ export class BackpackItemInfo
         }
         if (label) {
             const labelElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-title" data-translate="text:ItemLabel">${as.Html(label)}</div>`);
-            this.elem.append(labelElem);
+            this.contentElem.append(labelElem);
         }
 
         const description = as.String(props[Pid.Description]);
         if (description) {
             const descriptionElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-description">${as.Html(description)}</div>`);
-            this.elem.append(descriptionElem);
+            this.contentElem.append(descriptionElem);
         }
 
         const display = ItemProperties.getDisplay(props);
@@ -108,7 +116,7 @@ export class BackpackItemInfo
         }
 
         if (hasStats) {
-            this.elem.append(listElem);
+            this.contentElem.append(listElem);
         }
 
         const buttonListElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button-list" data-translate="children"></div>');
@@ -117,6 +125,7 @@ export class BackpackItemInfo
             const activateGroup = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-activate" data-translate="children"></div>');
             const activateLabel = domHtmlElemOfHtml('<span class="n3q-base " data-translate="text:Backpack">Active</div>');
             const activateCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack"${as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : ''}/>`); // Active
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, activateCheckbox);
             activateCheckbox.addEventListener('change', ev =>
             {
                 ev.stopPropagation();
@@ -181,18 +190,19 @@ export class BackpackItemInfo
         }
 
         if (buttonListElem.children.length > 0) {
-            this.elem.append(buttonListElem);
+            this.contentElem.append(buttonListElem);
         }
 
         if (Config.get('backpack.itemInfoExtended', false)) {
             this.extend();
         }
 
-        this.app.translateElem(this.elem);
+        this.app.translateElem(this.contentElem);
     }
 
     private extend(): void
     {
+        this.windowElem.style.maxWidth = '400px';
         const props = this.backpackItem.getProperties();
 
         let keys = [];
@@ -208,9 +218,7 @@ export class BackpackItemInfo
                 + `<span class="n3q-base n3q-itemprops-value" title="${as.Html(value)}">${as.Html(value)}</span>`
                 + '</div>');
             completeListElem.append(lineElem);
-            this.elem.style.maxWidth = '400px';
-            this.elem.style.width = '400px';
         }
-        this.elem.append(completeListElem);
+        this.contentElem.append(completeListElem);
     }
 }

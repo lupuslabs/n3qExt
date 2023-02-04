@@ -33,7 +33,7 @@ import { ItemException } from '../lib/ItemException';
 import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
-import { PointerEventDispatcher, PointerEventListeners } from '../lib/PointerEventDispatcher';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
@@ -1401,12 +1401,11 @@ export class ContentApp extends App
             button.classList.add('n3q-base', 'n3q-overlay-button');
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        const eventDispatcher = new PointerEventDispatcher(this, button, {
+        PointerEventDispatcher.makeDispatcher(this, button, {
             ignoreOpacity: true,
             eventListeners: {
                 click: eventData => {
                     if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
-console.log('1', {eventData, eventDispatcher, onClose})
                         onClose();
                     }
                 }

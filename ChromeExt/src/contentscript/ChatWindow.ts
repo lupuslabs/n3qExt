@@ -9,14 +9,21 @@ import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { Entity } from './Entity';
 import {
-    Chat, areChatsEqual,
-    ChatMessage, makeChatMessageId, chatMessageCmpFun, chatMessageIdFun, ChatMessageType, isUserChatMessageType,
+    areChatsEqual,
+    Chat,
+    ChatMessage,
+    chatMessageCmpFun,
+    chatMessageIdFun,
+    ChatMessageType,
+    isUserChatMessageType,
+    makeChatMessageId,
 } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { Config } from '../lib/Config';
 import { OrderedSet } from '../lib/OrderedSet';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { DomModifierKeyId } from '../lib/PointerEventData'
 
 export type ChatWindowOptions = WindowOptions & {
     soundEnabled?: boolean,
@@ -144,26 +151,28 @@ export class ChatWindow extends Window<ChatWindowOptions>
         this.chatinInputElem = chatinTextElem;
         this.chatoutElem = chatoutElem;
 
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatoutElem);
         this.chatoutAutoScroll = true;
         chatoutElem.onscroll = (ev) => {
             this.chatoutAutoScroll = chatoutElem.scrollTop >= chatoutElem.scrollHeight - chatoutElem.clientHeight;
         };
 
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatinTextElem);
         chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
 
-        chatinSendElem.addEventListener('click', ev =>
-        {
+        const chatinSendElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, chatinSendElem);
+        chatinSendElemDispatcher.addSpecificListener('click', DomButtonId.first, DomModifierKeyId.none, ev => {
             this.sendChat();
-            ev.stopPropagation();
         });
 
-        clearElem.addEventListener('click', ev =>
-        {
+        const clearElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, clearElem);
+        clearElemDispatcher.addSpecificListener('click', DomButtonId.first, DomModifierKeyId.none, ev => {
             this.clear();
             // this.playSound();
         });
 
         soundCheckboxElem.checked = this.soundEnabled;
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, soundCheckboxElem);
         soundCheckboxElem.addEventListener('change', ev => { (async () => {
             this.soundEnabled = soundCheckboxElem.checked;
             const options = await this.getSavedOptions();

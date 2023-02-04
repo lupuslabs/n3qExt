@@ -13,9 +13,7 @@ export type ItemFrameWindowOptions = WindowOptions & {
     url: string,
     resizable?: boolean,
     undockable?: boolean,
-    hidden?: boolean,
     transparent?: boolean, // Not implemented on ItemFrameWindow.
-    onClose?: () => void,
     titleText: string,
 }
 
@@ -40,6 +38,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
+        this.windowCssClasses.push('n3q-itemframewindow');
         this.titleText = this.givenOptions.titleText;
         this.isResizable = as.Bool(this.givenOptions.resizable);
         this.minWidth = 180;
@@ -67,13 +66,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
             log.info('ItemFrameWindow.makeContent', this.url);
         }
 
-        this.windowElem.classList.add('n3q-itemframewindow');
-
         this.iframeElem = <HTMLIFrameElement>domHtmlElemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
-
-        if (this.givenOptions.hidden) {
-            this.setVisibility(false);
-        }
 
         this.contentElem.append(this.iframeElem);
     }

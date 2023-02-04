@@ -67,6 +67,7 @@ export class PopupApp extends App
         }
 
         this.display = domHtmlElemOfHtml('<div id="n3q-id-popup" class="n3q-base" data-translate="children"/>');
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this, this.display);
 
         const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), 'Your name'));
         const avatars = new AvatarGallery();
@@ -79,7 +80,6 @@ export class PopupApp extends App
 
         this.babelfish.translateElem(this.display);
         this.appendToMe.append(this.display);
-        this.appendToMe.style.overflow = 'auto';
     }
 
     private makeHeaderGroupHtml(): HTMLElement
@@ -96,7 +96,7 @@ export class PopupApp extends App
         const description = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-description" data-translate="text:Popup.description">Change name and avatar, then reload the page.</div>');
         group.append(description);
 
-        const iconEventDispatcher = new PointerEventDispatcher(this, icon, {
+        PointerEventDispatcher.makeDispatcher(this, icon, {
             eventListeners: {
                 click: ev => {
                     if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
@@ -211,6 +211,7 @@ export class PopupApp extends App
         if (is.nil(dev)) {
             dev = domHtmlElemOfHtml('<div id="n3q-popup-dev" class="n3q-base n3q-popup-hidden"/>');
             const text = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;"/>');
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this, text);
             Memory.getLocal(customCfgStorageKey, this.defaultDevConfig).then(data => {
                 text.value = data;
                 dev.append(text);

@@ -9,14 +9,20 @@ import { as } from '../lib/as'
 import { Config } from '../lib/Config'
 
 export type WindowOptions = {
-    onClose?: () => void,
-    closeIsHide?: string|boolean,
-    above?:  HTMLElement,
-    width?:  string|number,
-    height?: string|number,
-    bottom?: string|number,
-    left?:   string|number,
+    onClose?:      () => void,
+    closeIsHide?:  string|boolean,
+    hidden?:       boolean,
+    above?:        DOMRect|HTMLElement, // Used when left and center and/or bottom unset.
+    aboveYOffset?: string|number, // Added to above's top when bottom unset.
+    width?:        'content'|string|number,
+    height?:       'content'|string|number,
+    top?:          string|number,
+    bottom?:       string|number,
+    left?:         string|number,
+    center?:       string|number, // Used when left unset.
 };
+
+type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none';
 
 export abstract class Window<OptionsType extends WindowOptions>
 {
@@ -26,13 +32,14 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected windowName: string = 'Default';
     protected style: WindowStyle = 'window';
-    protected windowCssClasses: string[] = ['n3q-base', 'n3q-window', 'n3q-shadow-medium'];
-    protected contentCssClasses: string[] = ['n3q-base', 'n3q-window-content'];
+    protected windowCssClasses: string[] = ['n3q-window'];
+    protected contentCssClasses: string[] = ['n3q-window-content'];
+    protected showHidden:       boolean = false;
     protected withTitlebar:     boolean = true;
     protected closeIsHide:      boolean = false;
     protected isMovable:        boolean = true;
     protected isResizable:      boolean = false;
-    protected skipInitGeometry: boolean = false;
+    protected geometryInitstrategy: WindowGeometryInitStrategy = 'beforeContent';
     protected persistGeometry:  boolean = false;
     protected isUndockable:     boolean = false;
 
@@ -45,19 +52,22 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected defaultWidth:  number = 180;
     protected defaultHeight: number = 100;
     protected defaultBottom: number = 10;
+    protected defaultAboveBottomOffset: number = 10; // Only used when bottom derived from givenOptions.above and givenOptions.bottomOffset not given.
     protected defaultLeft:   number = 10;
 
     protected givenOptions: null|OptionsType = null;
     protected titleText: string = '';
 
     protected containerElem: null|HTMLElement = null;
-    protected windowElem:    null|HTMLElement = null;
-    protected titlebarElem:  null|HTMLElement = null;
-    protected contentElem:   null|HTMLElement = null;
+    protected windowElem: null|HTMLElement = null;
+    protected windowElemPointerDispatcher: null|PointerEventDispatcher = null;
+    protected titlebarElem: null|HTMLElement = null;
+    protected contentElem: null|HTMLElement = null;
 
     protected guiLayer: number|string = ContentApp.LayerWindow;
     protected geometry: LeftBottomRect = dummyLeftBottomRect;
     protected geometryAtActionStart: LeftBottomRect = dummyLeftBottomRect; // For move and resize.
+    protected isShowing: boolean = false;
     protected isClosing: boolean = false;
 
     public constructor(app: ContentApp)
@@ -71,9 +81,10 @@ export abstract class Window<OptionsType extends WindowOptions>
         if (this.isOpen()) {
             return;
         }
+        this.isShowing = true;
         (async () => {
             this.givenOptions = options;
-            this.onClose = this.givenOptions.onClose;
+            this.onClose = this.givenOptions.onClose ?? this.onClose;
             this.containerElem = this.app.getDisplay();
             if (!this.containerElem) {
                 throw new Error('Window.show: Display not ready!');
@@ -82,21 +93,30 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.makeWindowFrameAndDecorations();
             this.windowElem.classList.add('n3q-hidden');
             this.app.translateElem(this.windowElem);
-            if (!this.skipInitGeometry) {
+            if (this.geometryInitstrategy === 'beforeContent') {
+                await domWaitForRenderComplete(); // Wait for frame having dimensions in DOM.
                 await this.initGeometry(); // Need to wait for it so makeContent can use geometry.
             }
             this.toFront();
             this.containerElem.append(this.windowElem);
             await this.makeContent();
-            await domWaitForRenderComplete();
-            if (this.windowElem) {
-                this.readGeometryFromDom(); // Needed in case makeContent alters geometry or geometry is partially browser-defined.
-                this.app.translateElem(this.contentElem);
+            this.app.translateElem(this.contentElem);
+            await domWaitForRenderComplete(); // Wait for window content having dimensions in DOM.
+            if (this.geometryInitstrategy === 'afterContent') {
+                await this.initGeometry();
+            }
+            if (!this.isClosing && !(this.givenOptions.hidden ?? this.showHidden)) {
                 this.setVisibility(true);
             }
         })().catch(error => {
             this.app.onError(error);
-            this.close();
+            this.isClosing = true;
+        }).then(() => {
+            this.isShowing = false;
+            if (this.isClosing) {
+                this.isClosing = false;
+                this.close();
+            }
         });
     }
 
@@ -119,14 +139,16 @@ export abstract class Window<OptionsType extends WindowOptions>
         const windowId = Utils.randomString(15);
 
         this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
-        this.windowElem.classList.add(...this.windowCssClasses);
+        this.windowElem.classList.add(...this.windowCssClasses, `n3q-window-style-${this.style}`);
         this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
+        const options = { ignoreOpacity: true };
+        this.windowElemPointerDispatcher = new PointerEventDispatcher(this.app, this.windowElem, options);
 
         if (this.withTitlebar) {
             this.makeTitlebar();
         }
 
-        this.contentElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-content" data-translate="children"></div>');
+        this.contentElem = domHtmlElemOfHtml('<div data-translate="children"></div>');
         this.contentElem.classList.add(...this.contentCssClasses);
         this.windowElem.append(this.contentElem);
 
@@ -165,7 +187,7 @@ export abstract class Window<OptionsType extends WindowOptions>
             }
         };
         const closeElem = this.app.makeWindowCloseButton(onCloseBtnClick, this.style);
-        (this.titlebarElem ?? this.contentElem).append(closeElem);
+        (this.titlebarElem ?? this.windowElem).append(closeElem);
     }
 
     protected makeUndockButton(): void
@@ -182,14 +204,12 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeUsermovable(): void
     {
-        const interactableElem = this.titlebarElem ?? this.contentElem;
         const newGeometryFun = (ev: PointerEventData) => ({
             ...this.geometryAtActionStart,
             left: this.geometryAtActionStart.left + ev.distanceX,
             bottom: this.geometryAtActionStart.bottom - ev.distanceY,
         });
-        this.makeFrameElemUsermovable(interactableElem, 'move', newGeometryFun);
-        interactableElem.style.pointerEvents = 'auto';
+        this.makeFrameElemUsermovable(this.windowElem, 'move', newGeometryFun);
     }
 
     protected makeUserresizable(): void
@@ -236,23 +256,24 @@ export abstract class Window<OptionsType extends WindowOptions>
         } else {
             elem = elemOrClass;
         }
-        const dispatcher = new PointerEventDispatcher(this.app, elem, {
-            ignoreOpacity: true,
-            dragStartDistance: 0,
-            dragCssCursor: dragCssCursor,
-            eventListeners: {
-                dragstart: ev => {
-                    this.readGeometryFromDom();
-                    this.geometryAtActionStart = this.geometry;
-                },
-                dragmove: ev => this.setGeometry(newGeometryFun(ev)),
-                dragend: ev => this.triggerSaveCurrentGeometry(),
+        const eventListeners = {
+            dragstart: ev => {
+                if (this.isOpen()) {
+                    this.geometryAtActionStart = this.readGeometryFromDom();
+                }
             },
-        });
+            dragmove: ev => this.setGeometry(newGeometryFun(ev)),
+            dragend: ev => this.triggerSaveCurrentGeometry(),
+        };
+        const dispatcher = elem === this.windowElem ? this.windowElemPointerDispatcher : new PointerEventDispatcher(this.app, elem);
+        dispatcher.setIgnoreOpacity(true);
+        dispatcher.setDragCssCursor(dragCssCursor);
+        dispatcher.setDragStartDistance(0);
+        dispatcher.setEventListeners(eventListeners);
     }
 
     /**
-     * Called after window elements are created.
+     * Called after window decorations and content pane are created.
      *
      * - Fill window by appending elements to this.contentElem in inheriting classes.
      */
@@ -280,43 +301,74 @@ export abstract class Window<OptionsType extends WindowOptions>
         this.setGeometry(mergedGeometry);
     }
 
-    protected readGeometryFromDom(): void
+    protected readGeometryFromDom(): LeftBottomRect
     {
-        if (this.windowElem) {
-            this.geometry = getDomElementLeftBottomRect(this.containerElem, this.windowElem);
-        }
+        return getDomElementLeftBottomRect(this.containerElem, this.windowElem);
     }
 
     protected mangleGeometry(optionsOrGeometry: LeftBottomRect|Partial<OptionsType>): LeftBottomRect
     {
+        const options = <Partial<OptionsType>>optionsOrGeometry; // Partial<OptionsType> is a superset of LeftBottomRect.
         const containerRect = this.containerElem.getBoundingClientRect();
         const containerWidth = containerRect.width;
         const containerHeight = containerRect.height;
 
         // Get final dimensions first:
-        const optionsWidth = as.Int(optionsOrGeometry.width, this.defaultWidth);
-        const optionsHeight = as.Int(optionsOrGeometry.height, this.defaultHeight);
-        const dimensions = Utils.fitLeftBottomRect(
+        const windowRect = this.windowElem.getBoundingClientRect();
+        let optionsWidthRaw: 'content'|string|number = options.width ?? this.defaultWidth;
+        if (optionsWidthRaw === 'content') {
+            optionsWidthRaw = windowRect.width;
+        }
+        const optionsWidth = as.Int(optionsWidthRaw);
+        let optionsHeightRaw: 'content'|string|number = options.height ?? this.defaultHeight;
+        if (optionsHeightRaw === 'content') {
+            optionsHeightRaw = windowRect.height;
+        }
+        const optionsHeight = as.Int(optionsHeightRaw);
+        const {width, height} = Utils.fitLeftBottomRect(
             {left: 0, bottom: 0, width: optionsWidth, height: optionsHeight},
             containerWidth, containerHeight, this.minWidth, this.minHeight,
             this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
         );
 
-        // Add position:
-        const anchorElemRect = (<Partial<OptionsType>>optionsOrGeometry).above?.getBoundingClientRect() ?? null;
-        let leftRaw = optionsOrGeometry.left;
-        if (is.nil(leftRaw) && anchorElemRect) {
-            const center = anchorElemRect.left + anchorElemRect.width / 2;
-            leftRaw = center - dimensions.width / 2;
+        const anchorElemRectRaw = options.above;
+        let anchorElemRect: null|DOMRect = null;
+        if (anchorElemRectRaw instanceof DOMRect) {
+            anchorElemRect = anchorElemRectRaw;
+        } else if (anchorElemRectRaw instanceof HTMLElement) {
+            anchorElemRect = anchorElemRectRaw.getBoundingClientRect();
+        }
+
+        // Find desired left:
+        let leftRaw: null|string|number = options.left;
+        if (is.nil(leftRaw)) {
+            let center: null|string|number = options.center ?? null;
+            if (is.nil(center) && anchorElemRect) {
+                center = anchorElemRect.left + anchorElemRect.width / 2;
+            }
+            if (!is.nil(center)) {
+                leftRaw = as.Float(center) - width / 2;
+            }
         }
         const left = as.Int(leftRaw, this.defaultLeft);
-        const bottom = as.Int(optionsOrGeometry.bottom, this.defaultBottom);
+
+        // Find desired bottom:
+        let bottomRaw: null|string|number = options.bottom;
+        let bottomOffsetRaw: null|string|number = null;
+        if (is.nil(bottomRaw) && !is.nil(options.top)) {
+            bottomRaw = containerHeight - as.Int(options.top) - height;
+        }
+        if (is.nil(bottomRaw) && anchorElemRect) {
+            bottomRaw = containerHeight - anchorElemRect.top;
+            bottomOffsetRaw = options.aboveYOffset ?? this.defaultAboveBottomOffset;
+        }
+        const bottom = as.Int(bottomRaw, this.defaultBottom) + as.Int(bottomOffsetRaw);
+
         const geometry = Utils.fitLeftBottomRect(
-            {left, bottom, width: dimensions.width, height: dimensions.height},
+            { left, bottom, width, height },
             containerWidth, containerHeight, this.minWidth, this.minHeight,
             this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
         );
-
         return geometry;
     }
 
@@ -372,6 +424,9 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
         if (!this.isClosing) {
             this.isClosing = true;
+            if (this.isShowing) {
+                return; // Show will call close when done.
+            }
             this.setVisibility(false);
             try {
                 this.onBeforeClose();
@@ -398,7 +453,9 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected onViewportResize(): void
     {
-        this.setGeometry(this.geometry);
+        if (this.isOpen()) {
+            this.setGeometry(this.readGeometryFromDom());
+        }
     }
 
     /**
@@ -423,7 +480,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     public getVisibility(): boolean
     {
-        return !this.windowElem?.classList.contains('n3q-hidden');
+        return this.windowElem && !this.windowElem.classList.contains('n3q-hidden');
     }
 
     public setVisibility(visible: boolean): void

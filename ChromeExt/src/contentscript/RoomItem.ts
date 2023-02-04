@@ -38,6 +38,7 @@ export class RoomItem extends Entity
     protected myItem: boolean = false;
     protected state = '';
     protected ownerName = 'unknown';
+    private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
@@ -318,19 +319,18 @@ export class RoomItem extends Entity
     public onMouseEnterAvatar(ev: PointerEventData): void
     {
         super.onMouseEnterAvatar(ev);
-        this.showStatsDisplay();
+        const delaySecs = Config.get('room.itemStatsTooltipDelay', 500) / 1000;
+        this.showStatsDisplay(delaySecs);
     }
 
     public onMouseLeaveAvatar(ev: PointerEventData): void
     {
         super.onMouseLeaveAvatar(ev);
 
-        if (is.nil(this.statsDisplayCloseTimeout)) {
-            // When mouse moves from own avatar to transparent area of an avatar above our avatar,
-            // an onMouseEnterAvatar might follow immediately after handling this event.
-            // So delay actual closing slightly:
-            this.statsDisplayCloseTimeout = window.setTimeout(() => this.hideStatsDisplay(), 50);
-        }
+        // When mouse moves from own avatar to transparent area of an avatar above our avatar,
+        // an onMouseEnterAvatar might follow immediately after handling this event.
+        // So delay actual closing slightly:
+        this.hideStatsDisplay(0.05);
     }
 
     public onMouseClickAvatar(ev: PointerEventData): void
@@ -352,7 +352,7 @@ export class RoomItem extends Entity
                 }
             } break;
         }
-        this.hideStatsDisplay();
+        this.hideStatsDisplay(0);
     }
 
     onMouseLongClickAvatar(ev: PointerEventData): void
@@ -360,9 +360,9 @@ export class RoomItem extends Entity
         super.onMouseLongClickAvatar(ev);
         if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
             if (this.statsDisplay) {
-                this.hideStatsDisplay();
+                this.hideStatsDisplay(0);
             } else {
-                this.showStatsDisplay();
+                this.showStatsDisplay(0);
             }
         }
     }
@@ -760,17 +760,20 @@ export class RoomItem extends Entity
         if (this.elem && this.framePopup == null) {
             this.framePopup = new ItemFramePopup(this.app);
 
+            const width = as.Int(popupOptions.width, 100);
             const options: ItemFramePopupOptions = {
                 item: this,
                 elem: anchorElem,
                 url: iframeUrl,
                 onClose: () => { this.framePopup = null; },
-                width: as.Int(popupOptions.width, 100),
-                height: as.Int(popupOptions.height, 100),
-                left: as.Int(popupOptions.left, -popupOptions.width / 2),
-                bottom: as.Int(popupOptions.bottom, 50),
-                transparent: as.Bool(popupOptions.transparent),
                 hidden: as.Bool(popupOptions.hidden),
+                width: width,
+                height: as.Int(popupOptions.height, 100),
+                left: as.Int(popupOptions.left, -width / 2),
+                bottom: as.Int(popupOptions.bottom, 50),
+                closeButton: as.Bool(popupOptions.closeButton, true),
+                transparent: as.Bool(popupOptions.transparent, false),
+                closeIsHide: as.Bool(popupOptions.closeIsHide, false),
             };
 
             this.framePopup.show(options);
@@ -870,21 +873,31 @@ export class RoomItem extends Entity
         this.getScriptWindow()?.postMessage(message, '*');
     }
 
-    private showStatsDisplay(): void
+    private showStatsDisplay(delaySecs: number): void
     {
         window.clearTimeout(this.statsDisplayCloseTimeout);
         this.statsDisplayCloseTimeout = null;
-        if (Utils.isBackpackEnabled() && !this.statsDisplay) {
-            this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
-            this.statsDisplay.show();
+        if (Utils.isBackpackEnabled() && !this.statsDisplay && is.nil(this.statsDisplayOpenTimeout)) {
+            const action = () => {
+                this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
+                this.statsDisplay.show();
+            };
+            this.statsDisplayOpenTimeout = window.setTimeout(action, 1000 * delaySecs);
         }
     }
 
-    private hideStatsDisplay(): void
+    private hideStatsDisplay(delaySecs: number): void
     {
-        window.clearTimeout(this.statsDisplayCloseTimeout);
-        this.statsDisplayCloseTimeout = null;
-        this.statsDisplay?.close();
+        window.clearTimeout(this.statsDisplayOpenTimeout);
+        this.statsDisplayOpenTimeout = null;
+        if (this.statsDisplay && is.nil(this.statsDisplayCloseTimeout)) {
+            const action = () => {
+                this.statsDisplayCloseTimeout = null;
+                this.statsDisplay?.close();
+            };
+            this.statsDisplayCloseTimeout = window.setTimeout(action, 1000 * delaySecs);
+        }
+
     }
 
 }

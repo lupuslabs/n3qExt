@@ -10,7 +10,7 @@ import {
 import {
     getDataFromPointerEvent, makeDummyPointerEventData, hasMovedDragDistance,
     PointerEventData, PointerEventType, setButtonsOnPointerEventData,
-    setClientPosOnPointerEventData, setDistanceOnPointerEventData, setModifierKeysOnPointerEventData
+    setClientPosOnPointerEventData, setDistanceOnPointerEventData, setModifierKeysOnPointerEventData, DomModifierKeyId
 } from './PointerEventData';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
@@ -25,6 +25,12 @@ export type PointerEventDispatcherOptions = {
     dragTransparentClasses?: string[],
     allowDefaultActions?: boolean,
     eventListeners?: PointerEventListeners,
+};
+
+type EventListenerRecord = {
+    buttons:      null|DomButtonId,
+    modifierKeys: null|DomModifierKeyId,
+    listener:     PointerEventListener,
 };
 
 export class PointerEventDispatcher {
@@ -45,9 +51,9 @@ export class PointerEventDispatcher {
     private readonly logEventsOut: Set<string> = new Set();
     private readonly logListenerCalls: Set<PointerEventType> = new Set();
 
-    private readonly eventListeners: Map<PointerEventType, PointerEventListener[]> = new Map();
-    private readonly ignoreOpacity: boolean;
-    private readonly allowDefaultActions: boolean;
+    private readonly eventListeners: Map<PointerEventType, EventListenerRecord[]> = new Map();
+    private ignoreOpacity: boolean;
+    private allowDefaultActions: boolean;
     private readonly opacityMin: number;
     private clickLongMinDelayMs: number = 0.0;
     private clickDoubleMaxDelayMs: number = 0.0;
@@ -90,6 +96,29 @@ export class PointerEventDispatcher {
     private clickDownEventLast: PointerEvent|null = null;
     private clickMoveEventLast: PointerEvent|null = null;
     private clickTimeoutHandle: number|null = null;
+
+    public static makeDispatcher(
+        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+    ): PointerEventDispatcher {
+        return new PointerEventDispatcher(app, domElem, options);
+    }
+
+    public static makeOpaqueDispatcher(
+        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+    ): PointerEventDispatcher {
+        options = options ?? {};
+        options.ignoreOpacity = options.ignoreOpacity ?? true;
+        return new PointerEventDispatcher(app, domElem, options);
+    }
+
+    public static makeOpaqueDefaultActionsDispatcher(
+        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+    ): PointerEventDispatcher {
+        options = options ?? {};
+        options.ignoreOpacity = options.ignoreOpacity ?? true;
+        options.allowDefaultActions = options.allowDefaultActions ?? true;
+        return new PointerEventDispatcher(app, domElem, options);
+    }
 
     public constructor(app: App, domElem: Element, options?: PointerEventDispatcherOptions)
     {
@@ -207,8 +236,8 @@ export class PointerEventDispatcher {
         this.clickLongMinDelayMs            = 1000 * as.Float(Config.get('pointerEventDispatcher.pointerLongclickMinSec'), 1);
         this.clickDoubleMaxDelayMs          = 1000 * as.Float(Config.get('pointerEventDispatcher.pointerDoubleclickMaxSec'), 0.25);
 
-        this.ignoreOpacity = as.Bool(options?.ignoreOpacity);
-        this.allowDefaultActions = as.Bool(options?.allowDefaultActions);
+        this.setIgnoreOpacity(options?.ignoreOpacity);
+        this.setAllowDefaultActions(options?.allowDefaultActions);
 
         this.setDragStartDistance(options?.dragStartDistance);
         this.setDragCssCursor(options?.dragCssCursor);
@@ -248,10 +277,15 @@ export class PointerEventDispatcher {
         this.setEventListeners(options?.eventListeners ?? {});
     }
 
-    public setEventListener(type: PointerEventType, ...listeners: PointerEventListener[]): void
-    {
+    public addSpecificListener(
+        type:         PointerEventType,
+        buttons:      null|DomButtonId,
+        modifierKeys: null|DomModifierKeyId,
+        listener:     PointerEventListener
+    ): void {
+        const record: EventListenerRecord = { buttons, modifierKeys, listener };
         const typeListeners = this.eventListeners.get(type) ?? [];
-        typeListeners.push(...listeners);
+        typeListeners.push(record);
         this.eventListeners.set(type, typeListeners);
         switch (type) {
             case 'longclick': {
@@ -272,11 +306,16 @@ export class PointerEventDispatcher {
         }
     }
 
-    public setEventListeners(listeners: PointerEventListeners): void
+    public setEventListener(type: PointerEventType, listener: PointerEventListener): void // Todo: Rename to addGenericListener.
+    {
+        this.addSpecificListener(type, null, null, listener);
+    }
+
+    public setEventListeners(listeners: PointerEventListeners): void // Todo: Rename to addListeners.
     {
         for (const [type, listenerOrListeners] of Object.entries(listeners)) {
             const listenersListeners = is.array(listenerOrListeners) ? listenerOrListeners : [listenerOrListeners];
-            this.setEventListener(<PointerEventType>type, ...listenersListeners);
+            listenersListeners.forEach(listener => this.setEventListener(<PointerEventType>type, listener));
         }
     }
 
@@ -284,6 +323,16 @@ export class PointerEventDispatcher {
     {
         startDistance = startDistance ?? as.Float(Config.get('pointerEventDispatcher.pointerDragStartDistance'), 3.0);
         this.dragStartDistance = startDistance;
+    }
+
+    public setIgnoreOpacity(ignoreOpacity?: boolean): void
+    {
+        this.ignoreOpacity = ignoreOpacity ?? false;
+    }
+
+    public setAllowDefaultActions(allowDefaultActions?: boolean): void
+    {
+        this.allowDefaultActions = allowDefaultActions ?? false;
     }
 
     public setDragCssCursor(cssCursor?: string): void
@@ -394,8 +443,8 @@ export class PointerEventDispatcher {
 
         // Clean up any action-in-progress state:
         const isInvolvedInAction
-            =  ev.pointerId === (this.buttonsDownEventStart.pointerId ?? null)
-            || ev.pointerId === (this.clickDownEventStart.pointerId ?? null);
+            =  ev.pointerId === (this.buttonsDownEventStart?.pointerId ?? null)
+            || ev.pointerId === (this.clickDownEventStart?.pointerId ?? null);
         if (isInvolvedInAction) {
             this.cancelAllActions();
         }
@@ -906,16 +955,19 @@ export class PointerEventDispatcher {
 
     private callEventListener(data: PointerEventData): void
     {
+        const {type, buttons, modifierKeys} = data;
         if (this.logListenerCalls.has(data.type)) {
             const msg = `DomOpacityAwarePointerEventDispatcher.callEventListeners`;
-            const {type, buttons, modifierKeys} = data;
             log.info(msg, {type, buttons, modifierKeys, domElement: this.domElem, data, this: {...this}});
         }
-        for (const listener of this.eventListeners.get(data.type) ?? []) {
-            try {
-                listener(data);
-            } catch (error) {
-                this.app.onError(error);
+        for (const listenerRecord of this.eventListeners.get(type) ?? []) {
+            if ((is.nil(listenerRecord.buttons) || listenerRecord.buttons === buttons)
+            && (is.nil(listenerRecord.modifierKeys) || listenerRecord.modifierKeys === modifierKeys)) {
+                try {
+                    listenerRecord.listener(data);
+                } catch (error) {
+                    this.app.onError(error);
+                }
             }
         }
     }
