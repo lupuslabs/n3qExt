@@ -31,7 +31,6 @@ export enum Pid
     InventoryY = 'InventoryY',
     State = 'State',
     Provider = 'Provider',
-    Stats = 'Stats',
     Display = 'Display',
     IframeAspect = 'IframeAspect',
     IframeOptions = 'IframeOptions',
@@ -130,16 +129,6 @@ export class ItemProperties
         const displayJson = as.String(props[Pid.Display]);
         if (as.String(displayJson) !== '') {
             display = JSON.parse(displayJson);
-        } else {
-            const stats = as.String(props[Pid.Stats]);
-            const statsPids = stats.split(' ');
-            for (let i = 0; i < statsPids.length; i++) {
-                const pid = statsPids[i];
-                const value = props[pid];
-                if (value) {
-                    display[pid] = value;
-                }
-            }
         }
 
         const provider = as.String(props[Pid.Provider]);
