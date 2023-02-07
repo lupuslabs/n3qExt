@@ -33,6 +33,7 @@ export class Badge
         this.iconElem.classList.add('n3q-base', 'n3q-badge');
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.iconElem);
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-badge');
         this.initEventHandling();
         this.onPropertiesLoaded(item);
     }
