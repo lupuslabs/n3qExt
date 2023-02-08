@@ -757,7 +757,7 @@ export class RoomItem extends Entity
 
     protected openIframeAsPopup(anchorElem: HTMLElement, iframeUrl: string, popupOptions: any): void
     {
-        if (this.framePopup == null) {
+        if (this.elem && this.framePopup == null) {
             this.framePopup = new ItemFramePopup(this.app);
 
             const options: ItemFramePopupOptions = {
@@ -779,7 +779,7 @@ export class RoomItem extends Entity
 
     protected openIframeAsWindow(anchorElem: HTMLElement, iframeUrl: string, windowOptions: any): void
     {
-        if (this.frameWindow == null) {
+        if (this.elem && this.frameWindow == null) {
             this.frameWindow = new ItemFrameWindow(this.app, this);
 
             const options: ItemFrameWindowOptions = {
