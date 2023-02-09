@@ -34,7 +34,7 @@ export class Config
             clusterName: 'prod',
         },
         test: {
-            itemServiceRpcUrl: 'http://localhost:5000/rpc',
+            itemServiceRpcUrl: 'http://localhost:5000/ItemApi',
         },
         system: {
             activateBackgroundPageProbeDelayMinSec: 0.1,

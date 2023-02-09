@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import log = require('loglevel');
-import { Payload } from '../lib/Payload';
 import { SimpleRpc } from './SimpleRpc';
 import { Config } from '../lib/Config';
 
@@ -8,7 +7,7 @@ export class LiveTestSimpleRpc
 {
     async SimpleRpc_echo()
     {
-        let response = await new SimpleRpc('echo')
+        let response = await new SimpleRpc('Echo')
             .param('aString', 'Hello World')
             .param('aNumber', 3.14159265358979323)
             .param('aBool', true)
