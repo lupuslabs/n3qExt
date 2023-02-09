@@ -59,7 +59,7 @@ export class BackpackItem
         paneElem.append(this.elem);
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem);
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone');
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone', 'n3q-badge');
 
         this.pointerEventDispatcher.setEventListener('dragenter', eventData => {
             const dropTargetElem = eventData.dropTarget;
