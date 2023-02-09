@@ -72,11 +72,12 @@ export type PointerEventData = {
     dropTargetChanged: boolean,   // dropTarget !== dropTargetLast.
 };
 
-export function hasMovedDragDistance(eventStart: PointerEvent, eventMove: PointerEvent, dragStartDistance: number): boolean
+export function hasMovedDragDistance(eventStart: null|PointerEvent, eventMove: null|PointerEvent, dragStartDistance: number): boolean
 {
-    return false
-    || Math.abs(eventStart.clientX - eventMove.clientX) >= dragStartDistance
-    || Math.abs(eventStart.clientY - eventMove.clientY) >= dragStartDistance
+    return eventStart && eventMove && (false
+        || Math.abs(eventStart.clientX - eventMove.clientX) >= dragStartDistance
+        || Math.abs(eventStart.clientY - eventMove.clientY) >= dragStartDistance
+    );
 }
 
 export function getDataFromPointerEvent(type: PointerEventType, event: PointerEvent, domElement: Element): PointerEventData {

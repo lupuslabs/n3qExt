@@ -666,8 +666,11 @@ export class PointerEventDispatcher {
                     this.clickIsLong = false;
                     if (this.longClickEnabled) {
                         const handler = () => {
+                            this.clickCount = 1;
                             this.clickIsLong = true;
                             this.swallowContextmenuEvent = true; // Long clicks trigger contextmenu in tablet mode on Chrome.
+                            this.clickEnd(false);
+                            this.handleButtonsReset();
                         };
                         this.clickTimeoutHandle = window.setTimeout(handler, this.clickLongMinDelayMs);
                     }
