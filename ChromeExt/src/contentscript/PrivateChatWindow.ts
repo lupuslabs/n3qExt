@@ -6,6 +6,7 @@ import { ChatWindow } from './ChatWindow';
 import { Participant } from './Participant';
 import { domHtmlElemOfHtml } from '../lib/domTools';
 import { ChatMessage } from '../lib/ChatMessage';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class PrivateChatWindow extends ChatWindow
 {
@@ -27,7 +28,7 @@ export class PrivateChatWindow extends ChatWindow
         if (Config.get('room.showPrivateChatInfoButton', false)) {
             const infoElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Info" data-translate="attr:title:Chatwindow text:Chatwindow">Info</div>');
             this.contentElem.appendChild(infoElem);
-            infoElem.onclick = ev => this.sendVersionQuery();
+            PointerEventDispatcher.makeOpaqueDispatcher(this.app, infoElem).addUnmodifiedLeftclickListener(ev => this.sendVersionQuery());
         }
     }
 

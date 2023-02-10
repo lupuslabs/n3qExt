@@ -121,14 +121,10 @@ export class Toast extends Window<ToastOptions>
             dontShowElem.addEventListener('change', ev => {
                 this.app.setDontShowNoticeType(this.messageType, dontShowElem.checked);
             });
-
-            // Makes default pointer click functionality work on checkbox and label (prevents events from getting eaten):
-            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, dontShowElem);
-            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, dontShowLabelElem);
-
             footerElem.append(dontShowElem);
             footerElem.append(dontShowLabelElem);
             this.contentElem.append(footerElem);
+            PointerEventDispatcher.protectElementsWithDefaultActions(this.app, footerElem);
         }
 
         const newStatus = 'fadingIn';
@@ -237,12 +233,7 @@ export class SimpleToast extends Toast
         const buttonElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">${as.Html(text)}</div>`);
         this.bodyElem.append(buttonElem);
         this.app.translateElem(buttonElem);
-        PointerEventDispatcher.makeDispatcher(this.app, buttonElem, {
-            ignoreOpacity: true,
-            eventListeners: {
-                click: ev => { action?.(); },
-            },
-        });
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftclickListener(ev => action?.());
     }
 
     protected prepareMakeDom(): void

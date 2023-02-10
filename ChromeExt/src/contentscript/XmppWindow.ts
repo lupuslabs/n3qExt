@@ -56,9 +56,11 @@ export class XmppWindow extends Window<WindowOptions>
 
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.inInputElem);
-        inSendElem.addEventListener('click', ev => this.sendText());
-        inSaveElem.addEventListener('click', ev => this.saveText());
-        outClearElem.addEventListener('click', ev => { this.outElem.innerHTML = ''; });
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, inSendElem).addUnmodifiedLeftclickListener(ev => this.sendText());
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, inSaveElem).addUnmodifiedLeftclickListener(ev => this.saveText());
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, outClearElem).addUnmodifiedLeftclickListener(ev => {
+            this.outElem.innerHTML = '';
+        });
 
         this.getStoredText().then(text => this.setText(text)).catch(error => this.app.onError(error));
 

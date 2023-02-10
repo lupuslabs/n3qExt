@@ -2,9 +2,9 @@ import { is } from '../lib/is';
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils';
 import { ContentApp, WindowStyle } from './ContentApp';
 import { Memory } from '../lib/Memory';
-import { domHtmlElemOfHtml, domWaitForRenderComplete, getDomElementLeftBottomRect } from '../lib/domTools'
+import { DomButtonId, domHtmlElemOfHtml, domWaitForRenderComplete, getDomElementLeftBottomRect } from '../lib/domTools'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { PointerEventData } from '../lib/PointerEventData'
+import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
 
@@ -197,8 +197,7 @@ export abstract class Window<OptionsType extends WindowOptions>
                 <div class="n3q-base n3q-button-symbol n3q-button-undock"></div>
             </div>`
         );
-        const dispatcher = new PointerEventDispatcher(this.app, button, { ignoreOpacity: true });
-        dispatcher.setEventListener('click', eventData => this.undock());
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, button).addUnmodifiedLeftclickListener(ev => this.undock());
         (this.titlebarElem ?? this.contentElem).append(button);
     }
 
@@ -256,20 +255,25 @@ export abstract class Window<OptionsType extends WindowOptions>
         } else {
             elem = elemOrClass;
         }
-        const eventListeners = {
-            dragstart: ev => {
-                if (this.isOpen()) {
-                    this.geometryAtActionStart = this.readGeometryFromDom();
-                }
-            },
-            dragmove: ev => this.setGeometry(newGeometryFun(ev)),
-            dragend: ev => this.triggerSaveCurrentGeometry(),
-        };
         const dispatcher = elem === this.windowElem ? this.windowElemPointerDispatcher : new PointerEventDispatcher(this.app, elem);
+        dispatcher.addListener('dragstart', DomButtonId.first, DomModifierKeyId.none, ev => {
+            if (this.isOpen()) {
+                this.geometryAtActionStart = this.readGeometryFromDom();
+            }
+        });
+        dispatcher.addListener('dragmove', null, null, ev => {
+            if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
+                this.setGeometry(newGeometryFun(ev));
+            } else {
+                dispatcher.cancelDrag();
+            }
+        });
+        dispatcher.addListener('dragend', null, null, ev => {
+            this.triggerSaveCurrentGeometry();
+        });
         dispatcher.setIgnoreOpacity(true);
         dispatcher.setDragCssCursor(dragCssCursor);
         dispatcher.setDragStartDistance(0);
-        dispatcher.setEventListeners(eventListeners);
     }
 
     /**

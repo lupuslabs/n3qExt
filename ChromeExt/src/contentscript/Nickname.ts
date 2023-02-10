@@ -42,10 +42,8 @@ export class Nickname implements IObserver
         this.menuElem = menuElem;
         menuElem.classList.add('n3q-base', 'n3q-menu-open-button', 'n3q-menu-open-button-closed');
         let menuEventdispatcher = new PointerEventDispatcher(this.app, menuElem);
-        menuEventdispatcher.setEventListener('buttondown', ev => {
-            if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
-                this.participant.openMenu();
-            }
+        menuEventdispatcher.addListener('buttondown', DomButtonId.first, DomModifierKeyId.none, ev => {
+            this.participant.openMenu();
         });
         this.elem.appendChild(menuElem);
 

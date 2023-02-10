@@ -161,12 +161,10 @@ export class ChatWindow extends Window<ChatWindowOptions>
         chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
 
         const chatinSendElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, chatinSendElem);
-        chatinSendElemDispatcher.addSpecificListener('click', DomButtonId.first, DomModifierKeyId.none, ev => {
-            this.sendChat();
-        });
+        chatinSendElemDispatcher.addUnmodifiedLeftclickListener(ev => this.sendChat());
 
         const clearElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, clearElem);
-        clearElemDispatcher.addSpecificListener('click', DomButtonId.first, DomModifierKeyId.none, ev => {
+        clearElemDispatcher.addUnmodifiedLeftclickListener(ev => {
             this.clear();
             // this.playSound();
         });
@@ -270,6 +268,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
             const textHtml = as.HtmlWithClickableLinks(message.text);
             innerHtmls.push(`<span class="n3q-base n3q-text n3q-chat">${textHtml}</span>`);
             lineElem.innerHTML = innerHtmls.join('');
+            PointerEventDispatcher.protectElementsWithDefaultActions(this.app, lineElem);
 
             const oldElem = this.chatoutElem.children.item(index);
             this.chatoutElem.insertBefore(lineElem, oldElem);

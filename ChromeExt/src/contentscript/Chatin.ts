@@ -3,6 +3,7 @@ import { Participant } from './Participant';
 import { domHtmlElemOfHtml } from '../lib/domTools';
 import { AnimationsDefinition } from './AnimationsXml';
 import { Config } from '../lib/Config';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class Chatin
 {
@@ -21,10 +22,8 @@ export class Chatin
         this.elem.appendChild(this.chatinInputElem);
 
         this.sendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
-        this.sendElem.addEventListener('click', ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftclickListener(ev => {
             this.sendChat();
-            ev.preventDefault();
-            ev.stopPropagation();
         });
         this.elem.appendChild(this.sendElem);
 

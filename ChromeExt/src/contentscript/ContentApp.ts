@@ -1,4 +1,4 @@
-import log = require('loglevel');
+import log = require('loglevel')
 import * as $ from 'jquery';
 import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
@@ -34,8 +34,7 @@ import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { DomModifierKeyId } from '../lib/PointerEventData';
-import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
+import { domHtmlElemOfHtml } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -1401,16 +1400,7 @@ export class ContentApp extends App
             button.classList.add('n3q-base', 'n3q-overlay-button');
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        PointerEventDispatcher.makeDispatcher(this, button, {
-            ignoreOpacity: true,
-            eventListeners: {
-                click: eventData => {
-                    if (eventData.buttons === DomButtonId.first && eventData.modifierKeys === DomModifierKeyId.none) {
-                        onClose();
-                    }
-                }
-            },
-        });
+        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftclickListener(ev => onClose());
         const btnIcon = document.createElement('div');
         if (style === 'window') {
             btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');

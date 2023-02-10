@@ -64,6 +64,7 @@ export class ChangesWindow extends Window<WindowOptions>
                 <span class="n3q-base n3q-text n3q-changeswindow-text">${as.HtmlWithClickableLinks(text)}</span>
             <div>`
         );
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, lineElem);
         this.outElem?.append(lineElem);
     }
 }

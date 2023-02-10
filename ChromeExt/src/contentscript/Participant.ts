@@ -36,6 +36,7 @@ import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { AnimationsDefinition } from './AnimationsXml';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class Participant extends Entity
 {
@@ -115,7 +116,7 @@ export class Participant extends Entity
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
                     + '</div>');
                 const closeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
-                closeElem.addEventListener('click', ev => {
+                PointerEventDispatcher.makeOpaqueDispatcher(this.app, closeElem).addUnmodifiedLeftclickListener(ev => {
                     Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
                     introYouElem.remove();
                 });

@@ -6,6 +6,7 @@ import { ChatMessage, chatMessageCmpFun, chatMessageIdFun, isUserChatMessageType
 import { Utils } from '../lib/Utils';
 import { OrderedSet } from '../lib/OrderedSet';
 import { AnimationsDefinition } from './AnimationsXml';
+import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast'|'closed';
 type BubbleInfo = ChatMessage & {
@@ -126,6 +127,7 @@ export class Chatout
 
         const textElem = domHtmlElemOfHtml('<div class="n3q-text"></div>');
         textElem.innerHTML = as.HtmlWithClickableLinks(chatMessage.text);
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, textElem);
         bubbleBubbleElem.appendChild(textElem);
 
         const onCloseClick = () => this.closeBubble(bubble);
