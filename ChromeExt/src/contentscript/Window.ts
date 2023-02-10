@@ -208,7 +208,8 @@ export abstract class Window<OptionsType extends WindowOptions>
             left: this.geometryAtActionStart.left + ev.distanceX,
             bottom: this.geometryAtActionStart.bottom - ev.distanceY,
         });
-        this.makeFrameElemUsermovable(this.windowElem, 'move', newGeometryFun);
+        const elem = this.titlebarElem ?? this.windowElem;
+        this.makeFrameElemUsermovable(elem, 'move', newGeometryFun);
     }
 
     protected makeUserresizable(): void
