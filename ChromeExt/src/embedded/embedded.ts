@@ -3,16 +3,16 @@ import { Environment } from '../lib/Environment';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentMessage } from '../lib/ContentMessage';
 import { BackgroundApp } from '../background/BackgroundApp';
-import { ContentApp, ContentAppNotification } from '../contentscript/ContentApp';
+import { ContentApp, ContentAppNotification, ContentAppParams } from '../contentscript/ContentApp';
 import '../contentscript/contentscript.scss';
 import * as $ from 'jquery';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
-import { link } from 'fs';
+import { is } from '../lib/is';
 
-declare var n3q: any;
+declare var n3q: any; // This tells the compiler to assume that the variable exists. It doesn't actually declare it.
 
 $(async function ()
 {
@@ -25,18 +25,22 @@ $(async function ()
         preferredClient = n3q.preferredClient;
     }
 
-    if (preferredClient == 'extension') {
+    removeEmbeddedStyle(); // Always remove pre-shadow-DOM global style.
+    if (preferredClient === 'extension') {
         let extensionId = Config.get('extension.id', 'cgfkfhdinajjhfeghebnljbanpcjdlkm');
-        fetch('chrome-extension://' + extensionId + '/manifest.json')
-            .then(function (response) { 
-                removeEmbeddedStyle()
-            })
-            .catch(function (error)
-            {
-                activateAll();
-            });
+        fetch('chrome-extension://' + extensionId + '/manifest.json').catch((error) => activateAll());
     } else {
         activateAll();
+    }
+
+    function parseScriptOrStyleUrl(scriptOrStyleUrl: string): null|{folderUrl: string, baseName: string, query: string}
+    {
+        const re = /^(https?:\/\/cdn\.weblin\.io(?::[0-9]+)?\/v1\/|https?:\/\/localhost(?::[0-9]+)?\/extdist\/)(embedded)(\.(?:js|css))((?:\?.*)?)$/;
+        const parts: string[] = re.exec(scriptOrStyleUrl) ?? [];
+        if (!parts.length) {
+            return null;
+        }
+        return {folderUrl: parts[1], baseName: parts[2], query: parts[4]};
     }
 
     function removeEmbeddedStyle()
@@ -46,13 +50,24 @@ $(async function ()
             const linkTag = linkTags[i];
             if (linkTag.getAttribute('type') === 'text/css' && linkTag.getAttribute('rel') === 'stylesheet') {
                 const linkHref = linkTag.getAttribute('href');
-                const re = new RegExp('^(https?://cdn.weblin.io(:[0-9]+)?/v1/embedded.css|https?://localhost(:[0-9]+)?/extdist/embedded.css)');
-                if (re.test(linkHref)) {
+                if (!is.nil(parseScriptOrStyleUrl(linkHref))) {
                     console.log('cdn.weblin.io removing embedded stylesheet');
                     linkTag.remove();
                 }
             }
-        } 
+        }
+    }
+
+    function getStyleUrl(): null|string
+    {
+        for (const elem of document.getElementsByTagName('script')[Symbol.iterator]()) {
+            const elemSrcUrl = (<HTMLScriptElement>elem).src ?? '';
+            const ownAssetFolderUrl = parseScriptOrStyleUrl(elemSrcUrl);
+            if (!is.nil(ownAssetFolderUrl)) {
+                return `${ownAssetFolderUrl.folderUrl}${ownAssetFolderUrl.baseName}.css${ownAssetFolderUrl.query}`;
+            }
+        }
+        return null;
     }
 
     function activateAll()
@@ -116,7 +131,7 @@ $(async function ()
             {
                 if (appContent == null) {
                     log.debug('Contentscript.activate');
-                    appContent = new ContentApp($('body').get(0), msg =>
+                    appContent = new ContentApp(document.querySelector('body'), msg =>
                     {
                         log.debug('Contentscript msg', msg.type);
                         switch (msg.type) {
@@ -137,7 +152,9 @@ $(async function ()
                         }
                     });
                     ContentMessage.content = appContent;
-                    appContent.start(typeof n3q == 'undefined' ? {} : n3q);
+                    let params: ContentAppParams = typeof n3q === 'undefined' ? {} : n3q;
+                    params.styleUrl = params.styleUrl ?? getStyleUrl();
+                    appContent.start(params);
                 }
             }
 

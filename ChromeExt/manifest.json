@@ -18,9 +18,7 @@
             "js": [
                 "contentscript.js"
             ],
-            "css": [
-                "contentscript.css"
-            ],
+            "css": [],
             "matches": [
                 "http://*/*",
                 "https://*/*"
@@ -34,6 +32,7 @@
         "persistent": true
     },
     "web_accessible_resources": [
+        "contentscript.css",
         "assets/*",
         "popup.*",
         "manifest.json"

@@ -12,10 +12,10 @@ import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
 import { RandomNames } from '../lib/RandomNames';
 import { DomButtonId, domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { App } from '../lib/App'
+import { AppWithDom } from '../lib/App'
 import { DomModifierKeyId } from '../lib/PointerEventData'
 
-export class PopupApp extends App
+export class PopupApp extends AppWithDom
 {
     private display: HTMLElement;
     private babelfish: Translator;
@@ -234,4 +234,9 @@ export class PopupApp extends App
         this.display?.remove();
         this.display = null;
     }
+
+    public getShadowDomRoot(): DocumentOrShadowRoot {
+        return document;
+    }
+
 }

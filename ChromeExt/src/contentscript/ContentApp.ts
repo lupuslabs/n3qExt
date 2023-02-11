@@ -4,7 +4,7 @@ import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
-import { App } from '../lib/App'
+import { AppWithDom } from '../lib/App'
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { BackgroundMessage, TabRoomPresenceData, TabStats } from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
@@ -60,9 +60,18 @@ interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
 export type WindowStyle = 'window' | 'popup' | 'overlay';
 
-export class ContentApp extends App
+export type ContentAppParams = {
+    nickname?: string,
+    avatar?: string,
+    pageUrl?: string,
+    x?: number,
+    styleUrl?: string,
+};
+
+export class ContentApp extends AppWithDom
 {
     private debugUtils: DebugUtils;
+    private shadowDomRoot: ShadowRoot;
     private display: HTMLElement;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
@@ -96,6 +105,7 @@ export class ContentApp extends App
 
     getDebugUtils(): DebugUtils { return this.debugUtils; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
+    getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }
     getDisplay(): HTMLElement { return this.display; }
     getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
     getRoom(): Room|null { return this.room; }
@@ -184,7 +194,7 @@ export class ContentApp extends App
         // });
     }
 
-    async start(params: any)
+    async start(params: ContentAppParams)
     {
         if (params && params.nickname) { await Memory.setLocal(Utils.localStorageKey_Nickname(), params.nickname); }
         if (params && params.avatar) { await Memory.setLocal(Utils.localStorageKey_Avatar(), params.avatar); }
@@ -264,14 +274,7 @@ export class ContentApp extends App
         await this.assertSavedPosition();
         if (Panic.isOn) { return; }
 
-        const variant = Client.getVariant();
-        // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
-        document.querySelector('div#n3q')?.remove();
-        const page = domHtmlElemOfHtml(`<div id="n3q" class="n3q-base n3q-hidden-print" data-client-variant="${variant}"></div>`);
-
-        this.display = domHtmlElemOfHtml('<div class="n3q-base n3q-display"></div>');
-        $(page).append(this.display);
-        this.appendToMe.append(page);
+        await this.initDisplay(params);
 
         if (Environment.isExtension()) {
             this.onRuntimeMessageClosure = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => this.onRuntimeMessage(message, sender, sendResponse);
@@ -300,6 +303,25 @@ export class ContentApp extends App
 
         this.debugUtils.onAppStartComplete();
         this.statusToPageSender.sendClientActive();
+    }
+
+    private async initDisplay(params: ContentAppParams): Promise<void>
+    {
+        const variant = Client.getVariant();
+        // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
+        document.querySelector('div#n3q')?.remove();
+        const shadowDomAnchor = domHtmlElemOfHtml(`<div id="n3q" data-client-variant="${variant}" style="width: 0; height: 0; overflow: hidden;"></div>`);
+        this.shadowDomRoot = shadowDomAnchor.attachShadow({mode: 'closed'});
+
+        if (params.styleUrl) {
+            const styleDataUrl = await this.fetchUrlAsDataUrl(params.styleUrl);
+            const styleElem = this.shadowDomRoot.appendChild(document.createElement('style'));
+            styleElem.innerText = `@import "${styleDataUrl}";`;
+        }
+
+        this.display = domHtmlElemOfHtml('<div id="n3q-display"></div>');
+        this.shadowDomRoot.append(this.display);
+        this.appendToMe.append(shadowDomAnchor);
     }
 
     sleep(statusMessage: string)

@@ -27,14 +27,16 @@ export function domElemsOfHtml(html: string): Element[] {
 //------------------------------------------------------------------------------
 // Element discovery
 
-export function getNextDomElemBehindElemAtViewportPos(elemTop: Element, vpX: number, vpY: number): Element|null {
-    const elems = getDomElemsAtViewportPos(elemTop.ownerDocument, vpX, vpY, elemTop, true);
+export function getNextDomElemBehindElemAtViewportPos(
+    document: DocumentOrShadowRoot, elemTop: Element, vpX: number, vpY: number,
+): Element|null {
+    const elems = getDomElemsAtViewportPos(document, vpX, vpY, elemTop, true);
     const elem = elems[0] ?? null;
     return elem;
 }
 
 export function getDomElemsAtViewportPos(
-    document: Document, vpX: number, vpY: number, elemTop: Element|null, excludeElemTop: boolean,
+    document: DocumentOrShadowRoot, vpX: number, vpY: number, elemTop: Element|null, excludeElemTop: boolean,
 ): Element[] {
     const elems = document.elementsFromPoint(vpX, vpY);
     if (!is.nil(elemTop) && elems.includes(elemTop)) {
@@ -52,7 +54,7 @@ export function getDomElemsAtViewportPos(
 }
 
 export function getTopmostOpaqueDomElemAtViewportPos(
-    document: Document, vpX: number, vpY: number, opacityMin: number, transparentClasses: Set<string>
+    document: DocumentOrShadowRoot, vpX: number, vpY: number, opacityMin: number, transparentClasses: Set<string>
 ): Element|null {
     for (const elem of getDomElemsAtViewportPos(document, vpX, vpY, null, false)) {
         if (!domElementHasAnyClass(elem, transparentClasses)

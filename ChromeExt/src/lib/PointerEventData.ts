@@ -32,6 +32,7 @@ export enum DomModifierKeyId {
 export type PointerEventData = {
     type: PointerEventType,
     domElement: Element,
+    domElementRect: DOMRect,
 
     // Last raw event related to this event for debugging purposes:
     rawEvent: PointerEvent,
@@ -92,6 +93,7 @@ export function makeDummyPointerEventData(
     const data: PointerEventData = {
         type: type,
         domElement: domElement,
+        domElementRect: domElement.getBoundingClientRect(),
         rawEvent: event,
         clientX: 0,
         clientY: 0,
@@ -118,20 +120,21 @@ export function setClientPosOnPointerEventData(data: PointerEventData, event: Po
 {
     data.clientX = event.clientX;
     data.clientY = event.clientY;
-    data.domElementOffsetX = event.offsetX;
-    data.domElementOffsetY = event.offsetY;
-    data.startClientX = event.clientX;
-    data.startClientY = event.clientY;
-    data.startDomElementOffsetX = event.offsetX;
-    data.startDomElementOffsetY = event.offsetY;
+    // Calculated manually because event.offset* isn't based on actual target inside shadow DOM:
+    data.domElementOffsetX = event.clientX - data.domElementRect.left;
+    data.domElementOffsetY = event.clientY - data.domElementRect.top;
+    data.startClientX = data.clientX;
+    data.startClientY = data.clientY;
+    data.startDomElementOffsetX = data.domElementOffsetX;
+    data.startDomElementOffsetY = data.domElementOffsetY;
 }
 
 export function setDistanceOnPointerEventData(data: PointerEventData, startEvent: PointerEvent): void
 {
     data.startClientX = startEvent.clientX;
     data.startClientY = startEvent.clientY;
-    data.startDomElementOffsetX = startEvent.offsetX;
-    data.startDomElementOffsetY = startEvent.offsetY;
+    data.startDomElementOffsetX = data.startClientX - data.domElementRect.left;
+    data.startDomElementOffsetY = data.startClientY - data.domElementRect.top;
     data.distanceX = data.clientX - startEvent.clientX;
     data.distanceY = data.clientY - startEvent.clientY;
 }

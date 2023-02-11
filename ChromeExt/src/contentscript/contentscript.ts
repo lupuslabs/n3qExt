@@ -23,13 +23,13 @@ $(function ()
 
     try {
 
-        var app = null;
+        var app: ContentApp = null;
         let onTabChangeStay = false;
 
         let runtimeMessageHandlerWhileDeactivated: (message: any, sender: any, sendResponse: any) => any;
         function onRuntimeMessage(message, sender, sendResponse): any
         {
-            if (message.type == ContentMessage.type_extensionActiveChanged && message.data && message.data.state) {
+            if (message.type === ContentMessage.type_extensionActiveChanged && message.data && message.data.state) {
                 activate();
             }
             sendResponse();
@@ -44,7 +44,7 @@ $(function ()
                 }
 
                 log.debug('Contentscript.activate');
-                app = new ContentApp($('body').get(0), msg =>
+                app = new ContentApp(document.querySelector('body'), msg =>
                 {
                     log.debug('Contentscript msg', msg.type);
                     switch (msg.type) {
@@ -65,7 +65,8 @@ $(function ()
                         } break;
                     }
                 });
-                app.start();
+                const styleUrl = chrome.runtime.getURL('contentscript.css');
+                app.start({ styleUrl }).catch(error => log.error(error));
             } else {
                 app.wakeup();
             }
@@ -111,7 +112,7 @@ $(function ()
         Panic.onNow(() =>
         {
             if (app != null) {
-                if (Config.get('environment.reloadPageOnPanic', false)) { 
+                if (Config.get('environment.reloadPageOnPanic', false)) {
                     document.location.reload();
                 } else {
                     log.debug('Contentscript.onUnload');

@@ -1,7 +1,7 @@
 ﻿import { is } from './is';
 import { as } from './as';
 import log = require('loglevel');
-import { App } from './App';
+import { AppWithDom } from './App';
 import { Config } from './Config';
 import {
     getDomElemOpacityAtPos, getNextDomElemBehindElemAtViewportPos, getTopmostOpaqueDomElemAtViewportPos,
@@ -42,7 +42,8 @@ export class PointerEventDispatcher {
         'LABEL', 'INPUT', 'TEXTAREA', 'SELECT',
     ]);
 
-    private readonly app: App;
+    private readonly app: AppWithDom;
+    private readonly shadowDomRoot: DocumentOrShadowRoot;
     private readonly domElem: Element;
 
     private readonly logButtons: boolean;
@@ -101,13 +102,13 @@ export class PointerEventDispatcher {
     private clickTimeoutHandle: number|null = null;
 
     public static makeDispatcher(
-        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+        app: AppWithDom, domElem: Element, options?: PointerEventDispatcherOptions,
     ): PointerEventDispatcher {
         return new PointerEventDispatcher(app, domElem, options);
     }
 
     public static makeOpaqueDispatcher(
-        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+        app: AppWithDom, domElem: Element, options?: PointerEventDispatcherOptions,
     ): PointerEventDispatcher {
         options = options ?? {};
         options.ignoreOpacity = options.ignoreOpacity ?? true;
@@ -115,7 +116,7 @@ export class PointerEventDispatcher {
     }
 
     public static makeOpaqueDefaultActionsDispatcher(
-        app: App, domElem: Element, options?: PointerEventDispatcherOptions,
+        app: AppWithDom, domElem: Element, options?: PointerEventDispatcherOptions,
     ): PointerEventDispatcher {
         options = options ?? {};
         options.ignoreOpacity = options.ignoreOpacity ?? true;
@@ -126,7 +127,7 @@ export class PointerEventDispatcher {
     /**
      * Use to prevent PointerEventDispatchers from preventing default pointer actions happening on element or its children.
      */
-    public static protectElementsWithDefaultActions(app: App, element: Element): void
+    public static protectElementsWithDefaultActions(app: AppWithDom, element: Element): void
     {
         if (this.elementsWithDefaultActions.has(element.tagName)) {
             this.makeOpaqueDefaultActionsDispatcher(app, element);
@@ -137,9 +138,10 @@ export class PointerEventDispatcher {
         }
     }
 
-    public constructor(app: App, domElem: Element, options?: PointerEventDispatcherOptions)
+    public constructor(app: AppWithDom, domElem: Element, options?: PointerEventDispatcherOptions)
     {
         this.app = app;
+        this.shadowDomRoot = app.getShadowDomRoot();
         this.domElem = domElem;
 
         const logIncommingPointer = as.Bool(Config.get('pointerEventDispatcher.logIncommingPointer'));
@@ -896,7 +898,7 @@ export class PointerEventDispatcher {
 
         const opacityMin = this.ignoreOpacity ? 0 : this.opacityMin;
         const dropTarget = getTopmostOpaqueDomElemAtViewportPos(
-            document, clientX, clientY, opacityMin, this.dragTransparentClasses);
+            this.shadowDomRoot, clientX, clientY, opacityMin, this.dragTransparentClasses);
 
         const moveData = getDataFromPointerEvent('dragmove', eventMove, this.domElem);
         setDistanceOnPointerEventData(moveData, this.dragDownEventStart);
@@ -994,7 +996,7 @@ export class PointerEventDispatcher {
 
     private reroutePointerOrMouseEvent(ev: MouseEvent): Element|null
     {
-        const elemBelow = getNextDomElemBehindElemAtViewportPos(this.domElem, ev.clientX, ev.clientY);
+        const elemBelow = getNextDomElemBehindElemAtViewportPos(this.shadowDomRoot, this.domElem, ev.clientX, ev.clientY);
         const isOutEvent = ev.type === 'pointerout' || ev.type === 'pointerleave';
 
         // Create artificial enter/leave and move events for new and former target element:

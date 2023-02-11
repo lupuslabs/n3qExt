@@ -6,6 +6,7 @@ import { ParticipantMenu } from './ParticipantMenu';
 import { MenuColumn } from './Menu';
 import { AnimationsDefinition } from './AnimationsXml';
 import { as } from '../lib/as';
+import { TestWindow } from './TestWindow'
 
 export class OwnParticipantMenu extends ParticipantMenu
 {
@@ -77,16 +78,9 @@ export class OwnParticipantMenu extends ParticipantMenu
     {
         const actionsMenu = column.addSubmenuItem('debug', 'Debug');
         const debugColumn = actionsMenu.addColumn('debug');
-        const debugUtils = this.app.getDebugUtils();
 
+        debugColumn.addActionItem(null, 'Integration tests...', () => new TestWindow(this.app).show({}));
         debugColumn.addActionItem(null, 'Avatar Effect Test', () => this.app.test());
-
-        {
-            const isEnabled = debugUtils.getIframeTestBoxEnabled();
-            const iconId = isEnabled ? 'checkbox-checked' : 'checkbox-unchecked';
-            const action = () => debugUtils.toggleIframeTestBoxEnabled();
-            debugColumn.addActionItem(iconId, 'iFrame & Shadow-DOM Test', action);
-        }
     }
 
 }
