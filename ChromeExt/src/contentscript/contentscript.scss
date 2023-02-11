@@ -588,12 +588,13 @@
             color: hsl(81, 100%, 20%);
             filter: drop-shadow(0px 0px 0.5px rgba(255, 255, 255, 1.0));
             pointer-events: none;
+            text-align: center;
         }
     }
     div.n3q-participant div.n3q-badgesEditModeBackground {
         position: absolute;
         z-index: 1;
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(7px);
         user-select: none;
         pointer-events: none;
     }
