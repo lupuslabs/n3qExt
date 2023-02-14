@@ -6,7 +6,7 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.5', 'PresenceFight', [
+        ['1.2.5', 'PresenceFightShadowDom', [
             ['Add', 'Long click as hover alternative'],
             ['Add', 'Support for translated item properties'],
             ['Change', 'Room item popup to adapt to content width'],
@@ -16,6 +16,7 @@ export class _Changes
             ['Fix', 'JQuery-UI negatively interacts with CSS of some pages'],
             ['Fix', 'Miscellaneous UI glitches on touch devices'],
             ['Fix', 'Badge menu visible although items disabled'],
+            ['Fix', 'Style collisions'],
         ]],
         ['1.2.4', 'AvatarMenu', [
             ['Add', 'Client sends active status to web site to allow for easy detection of an interactable client'],
