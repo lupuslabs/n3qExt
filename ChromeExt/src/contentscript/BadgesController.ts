@@ -498,8 +498,11 @@ export class BadgesController
 
         // Regular asynchronous update delaying badge construction until icon data has been retrieved:
         const iconUrl = ItemProperties.getBadgeIconUrl(item);
-        this.app.fetchUrlAsDataUrl(iconUrl)
-        .then(iconDataUrl => this.addOrUpdateBadgeWithKnownIconDataUrl(badgeKey, item, iconDataUrl));
+        this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
+            if (!is.nil(this.containerElem)) {
+                this.addOrUpdateBadgeWithKnownIconDataUrl(badgeKey, item, iconDataUrl);
+            }
+        });
         if (this.debugLogEnabled) {
             const msg = 'BadgesDisplay.addOrUpdateBadge: Triggered iconDataUrl fetch.';
             log.info(msg, {item});
