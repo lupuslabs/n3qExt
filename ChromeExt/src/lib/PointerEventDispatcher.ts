@@ -41,6 +41,7 @@ export class PointerEventDispatcher {
         'A', 'BUTTON',
         'LABEL', 'INPUT', 'TEXTAREA', 'SELECT',
     ]);
+    private static readonly mouseclickEventTypes: Set<string> = new Set(['click', 'dblclick', 'contextmenu']);
 
     private readonly app: AppWithDom;
     private readonly shadowDomRoot: DocumentOrShadowRoot;
@@ -69,7 +70,7 @@ export class PointerEventDispatcher {
     private inEventHandling: boolean = false; // For infinite recursion prevention.
     private lastMouseEventButtons: number = 0;
     private lastPointerEventWasForUs: boolean = false;
-    private swallowContextmenuEvent: boolean = false;
+    private swallowNextMouseclickEvent: boolean = false;
 
     private hoverEventsLast: Map<number,PointerEvent> = new Map<number, PointerEvent>();
     private hoverRedirectTargetsLast: Map<number,Element> = new Map<number, Element>();
@@ -388,7 +389,7 @@ export class PointerEventDispatcher {
         this.clickEnd(true);
         this.dragCancel(true);
         this.buttonsResetOngoing = true; // Triggers cleaning of this.buttons* by handleButtonsReset.
-        this.swallowContextmenuEvent = false;
+        this.swallowNextMouseclickEvent = false;
     }
 
     private handleEventLogOnly(ev: MouseEvent): void
@@ -424,11 +425,13 @@ export class PointerEventDispatcher {
         this.inEventHandling = true;
         this.lastMouseEventButtons = ev.buttons;
 
-        if (ev.type === 'contextmenu') {
-            if (this.swallowContextmenuEvent) {
-                ev.stopImmediatePropagation();
-                ev.preventDefault();
-            }
+        const isClick = PointerEventDispatcher.mouseclickEventTypes.has(ev.type);
+        if (isClick && this.swallowNextMouseclickEvent) {
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+            this.swallowNextMouseclickEvent = false;
+        } else if (ev.type === 'contextmenu') {
+            // Don't touch the event lest it won't become untrusted and not make the browser display the context menu.
         } else if (this.isOpaqueAtEventLocation(ev)) {
             ev.stopImmediatePropagation();
             if (!this.allowDefaultActions || this.dragOngoing) {
@@ -550,13 +553,13 @@ export class PointerEventDispatcher {
             && hasMovedDragDistance(this.buttonsDownEventStart, ev, this.dragStartDistance)) {
                 this.clickEnd(true); // Prevent click or doubleclick.
                 this.buttonsResetOngoing = false; // Has been set by clickEnd.
-                this.swallowContextmenuEvent = true;
+                this.swallowNextMouseclickEvent = true;
                 this.dragHandleStart(this.buttonsDownEventStart, ev);
             }
 
         }
         if (this.buttonsResetOngoing) {
-            this.swallowContextmenuEvent = true;
+            this.swallowNextMouseclickEvent = true;
             this.handleButtonsReset();
         }
 
@@ -739,7 +742,7 @@ export class PointerEventDispatcher {
                         const handler = () => {
                             this.clickCount = 1;
                             this.clickIsLong = true;
-                            this.swallowContextmenuEvent = true; // Long clicks trigger contextmenu in tablet mode on Chrome.
+                            this.swallowNextMouseclickEvent = true; // Long clicks trigger contextmenu in tablet mode on Chrome.
                             this.clickEnd(false);
                             this.handleButtonsReset();
                         };
@@ -790,21 +793,21 @@ export class PointerEventDispatcher {
     {
         window.clearTimeout(this.clickTimeoutHandle);
         this.clickTimeoutHandle = null;
-        if (this.clickOngoing) {
-            this.clickOngoing = false;
-            if (this.clickCount !== 0) {
-                if (!discard
-                && !hasMovedDragDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
-                    const type = this.clickCount === 1 ? (this.clickIsLong ? 'longclick' : 'click') : 'doubleclick';
-                    const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
-                    setClientPosOnPointerEventData(data, this.clickDownEventStart);
-                    setModifierKeysOnPointerEventData(data, this.clickMoveEventLast);
-                    this.callEventListener(data);
-                }
-            }
-            this.clickIsLong = false;
-            this.clickCount = 0;
+        if (true
+            && this.clickOngoing
+            && this.clickCount !== 0
+            && !discard
+            && !hasMovedDragDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
+        ) {
+            const type = this.clickCount === 1 ? (this.clickIsLong ? 'longclick' : 'click') : 'doubleclick';
+            const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
+            setClientPosOnPointerEventData(data, this.clickDownEventStart);
+            setModifierKeysOnPointerEventData(data, this.clickMoveEventLast);
+            this.callEventListener(data);
         }
+        this.clickOngoing = false;
+        this.clickIsLong = false;
+        this.clickCount = 0;
         this.clickDownEventStart = null;
         this.clickDownEventLast = null;
         this.clickMoveEventLast = null;
