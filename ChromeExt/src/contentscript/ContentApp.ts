@@ -70,6 +70,7 @@ export type ContentAppParams = {
 
 export class ContentApp extends AppWithDom
 {
+    private isStopped: boolean = false;
     private debugUtils: DebugUtils;
     private shadowDomRoot: ShadowRoot;
     private display: HTMLElement;
@@ -303,6 +304,14 @@ export class ContentApp extends AppWithDom
 
         this.debugUtils.onAppStartComplete();
         this.statusToPageSender.sendClientActive();
+
+        if (false
+            || this.isStopped // stop has been called while still starting.
+            || is.nil(this.shadowDomRoot?.host?.parentElement) // another instance has removed our div#n3q element.
+        ) {
+            log.debug('ContentApp.start: Stopped while starting.', {this: {...this}});
+            this.stop(); // Redo the stopping to fix the race.
+        }
     }
 
     private async initDisplay(params: ContentAppParams): Promise<void>
@@ -339,6 +348,7 @@ export class ContentApp extends AppWithDom
 
     stop()
     {
+        this.isStopped = true;
         this.statusToPageSender.sendClientInactive();
         this.viewportEventDispatcher.stop();
         this.iframeApi?.stop();
@@ -363,9 +373,7 @@ export class ContentApp extends AppWithDom
         }
 
         // Remove our own top element
-        const variant = Client.getVariant();
-        // $('div#n3q[data-client-variant=' + variant + ']').remove();
-        $('div#n3q').remove();
+        this.shadowDomRoot?.host?.remove(); // Only remove our own tag. Another instance might have started already.
 
         this.display = null;
     }
