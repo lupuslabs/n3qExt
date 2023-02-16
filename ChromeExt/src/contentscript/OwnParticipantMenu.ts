@@ -81,6 +81,15 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         debugColumn.addActionItem(null, 'Integration tests...', () => new TestWindow(this.app).show({}));
         debugColumn.addActionItem(null, 'Avatar Effect Test', () => this.app.test());
+
+        let popupWindow: Window = null;
+        debugColumn.addActionItem(null, 'Open or focus test popup', () => {
+            if (popupWindow && !popupWindow.closed) {
+                popupWindow.focus();
+            } else {
+                popupWindow = window.open('https://openai.com/blog/chatgpt/', 'testPopupWindow', 'popup=1,left=30,top=30,width=400,height=300');
+            }
+        });
     }
 
 }
