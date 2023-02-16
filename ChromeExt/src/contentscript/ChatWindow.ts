@@ -179,8 +179,11 @@ export class ChatWindow extends Window<ChatWindowOptions>
         })().catch(error => this.app.onError(error)); });
 
         this.drawChatMessages();
+    }
 
-        chatinTextElem.focus();
+    protected onVisible() {
+        super.onVisible();
+        this.chatinInputElem.focus();
     }
 
     protected onBeforeClose(): void

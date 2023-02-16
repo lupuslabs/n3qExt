@@ -456,6 +456,14 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
     }
 
+    protected onVisible(): void
+    {
+    }
+
+    protected onInvisible(): void
+    {
+    }
+
     protected onViewportResize(): void
     {
         if (this.isOpen()) {
@@ -490,13 +498,22 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     public setVisibility(visible: boolean): void
     {
+        if (!this.windowElem) {
+            return;
+        }
+        const isVisible = this.getVisibility();
+        if (isVisible === visible) {
+            return;
+        }
         if (visible) {
             this.app.getViewPortEventDispatcher().addResizeListener(this.viewportResizeListener);
             this.onViewportResize();
-            this.windowElem?.classList.remove('n3q-hidden');
+            this.windowElem.classList.remove('n3q-hidden');
+            this.onVisible();
         } else {
             this.app.getViewPortEventDispatcher().removeResizeListener(this.viewportResizeListener);
-            this.windowElem?.classList.add('n3q-hidden');
+            this.windowElem.classList.add('n3q-hidden');
+            this.onInvisible();
         }
     }
 
