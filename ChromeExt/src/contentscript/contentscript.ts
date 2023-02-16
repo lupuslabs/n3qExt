@@ -65,7 +65,13 @@ $(function ()
                         } break;
                     }
                 });
-                const styleUrl = chrome.runtime.getURL('contentscript.css');
+                let styleUrl;
+                try {
+                    styleUrl = chrome.runtime.getURL('contentscript.css');
+                } catch(error) {
+                    log.debug('Contentscript.activate: Extension gone.');
+                    return;
+                }
                 app.start({ styleUrl }).catch(error => log.error(error));
             } else {
                 app.wakeup();
