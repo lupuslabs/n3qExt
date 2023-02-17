@@ -21,6 +21,9 @@ $(function ()
         // log.setLevel(log.levels.TRACE);
     }
 
+    const visibilityState = document.visibilityState;
+    log.debug('Contentscript.init', { visibilityState });
+
     try {
 
         var app: ContentApp = null;
@@ -135,7 +138,9 @@ $(function ()
 
         window.addEventListener('visibilitychange', function ()
         {
-            if (document.visibilityState === 'visible') {
+            const visibilityState = document.visibilityState;
+            log.debug('Contentscript.onVisibilitychange', { visibilityState });
+            if (visibilityState !== 'hidden') {
                 activate();
             } else {
                 if (onTabChangeStay) {
@@ -146,7 +151,7 @@ $(function ()
             }
         });
 
-        if (document.visibilityState === 'visible') {
+        if (visibilityState !== 'hidden') {
             activate();
         }
 
