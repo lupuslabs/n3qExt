@@ -26,7 +26,7 @@ import
     GetChatHistoryResponse,
     NewChatMessageResponse,
     TabStats, MakeZeroTabStats,
-    TabRoomPresenceData,
+    TabRoomPresenceData, PopupDefinition,
 } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage } from '../lib/ContentMessage';
@@ -45,6 +45,7 @@ import { Chat, ChatMessage, isChat, isChatMessage } from '../lib/ChatMessage';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
 import { BrowserActionGui } from './BrowserActionGui';
+import { PopupManager } from './PopupManger'
 
 interface ILocationMapperResponse
 {
@@ -80,6 +81,7 @@ export class BackgroundApp
     private babelfish: Translator;
     private chatHistoryStorage: ChatHistoryStorage;
     private browserActionGui: BrowserActionGui;
+    private popupManager: PopupManager;
 
     private startupTime = Date.now();
     private waitReadyCount = 0;
@@ -127,6 +129,7 @@ export class BackgroundApp
         this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
 
         this.chatHistoryStorage = new ChatHistoryStorage(this);
+        this.popupManager = new PopupManager(this);
 
         if (Environment.isExtension() && chrome.runtime.onMessage) {
             chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
@@ -276,6 +279,7 @@ export class BackgroundApp
         this.roomPresenceManager?.stop();
         this.roomPresenceManager = null;
         this.stopXmpp();
+        this.popupManager.stop();
     }
 
     public translateText(key: string, defaultText: string = null): string
@@ -513,6 +517,10 @@ export class BackgroundApp
 
             case BackgroundMessage.deleteChatHistory.name: {
                 return this.handle_deleteChatHistory(message.chat, message.olderThanTime, sendResponse);
+            } break;
+
+            case BackgroundMessage.openOrFocusPopup.name: {
+                return this.handle_openOrFocusPopup(message.popupDefinition, sendResponse);
             } break;
 
             default: {
@@ -1157,6 +1165,17 @@ export class BackgroundApp
                 sendResponse(new BackgroundSuccessResponse());
             })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
             return true;
+        }
+        return false;
+    }
+
+    private handle_openOrFocusPopup(popupDefinition: PopupDefinition, sendResponse: (response: any) => void): boolean
+    {
+        try {
+            this.popupManager.openOrFocusPopup(popupDefinition);
+            sendResponse(new BackgroundSuccessResponse());
+        } catch (error) {
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupDefinition})});
         }
         return false;
     }

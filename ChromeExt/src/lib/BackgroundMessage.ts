@@ -32,6 +32,15 @@ export type TabRoomPresenceData = {
     statusMessage: string,
 };
 
+export type PopupDefinition = {
+    id: string,
+    url: string,
+    left?: number,
+    top?: number,
+    width?: number,
+    height?: number,
+}
+
 export class BackgroundResponse
 {
     constructor(public ok: boolean, public status?: string, public statusText?: string, public ex?: ItemException) { }
@@ -465,6 +474,13 @@ export class BackgroundMessage
     {
         return BackgroundMessage.sendMessageCheckOk({
             'type': BackgroundMessage.deleteChatHistory.name, chat, olderThanTime,
+        });
+    }
+
+    static openOrFocusPopup(popupDefinition: PopupDefinition): Promise<void>
+    {
+        return BackgroundMessage.sendMessageCheckOk({
+            'type': BackgroundMessage.openOrFocusPopup.name, popupDefinition,
         });
     }
 

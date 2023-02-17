@@ -4,9 +4,9 @@ import { Config } from '../lib/Config';
 import { is } from '../lib/is';
 import { ParticipantMenu } from './ParticipantMenu';
 import { MenuColumn } from './Menu';
-import { AnimationsDefinition } from './AnimationsXml';
 import { as } from '../lib/as';
 import { TestWindow } from './TestWindow'
+import { BackgroundMessage } from '../lib/BackgroundMessage'
 
 export class OwnParticipantMenu extends ParticipantMenu
 {
@@ -74,7 +74,6 @@ export class OwnParticipantMenu extends ParticipantMenu
         }
     }
 
-    static popupWindow: Window = null;
     protected makeDebugMenuAndItem(column: MenuColumn): void
     {
         const actionsMenu = column.addSubmenuItem('debug', 'Debug');
@@ -82,15 +81,15 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         debugColumn.addActionItem(null, 'Integration tests...', () => new TestWindow(this.app).show({}));
         debugColumn.addActionItem(null, 'Avatar Effect Test', () => this.app.test());
-
         debugColumn.addActionItem(null, 'Open or focus test popup', () => {
-            let popupWindow = OwnParticipantMenu.popupWindow;
-            if (popupWindow && !popupWindow.closed) {
-                popupWindow.focus();
-            } else {
-                popupWindow = window.open('https://chat.openai.com/chat', 'testPopupWindow', 'popup=1,left=30,top=30,width=400,height=300');
-            }
-            OwnParticipantMenu.popupWindow = popupWindow;
+            BackgroundMessage.openOrFocusPopup({
+                id: 'testPopupWindow',
+                url: 'https://chat.openai.com/chat',
+                left: 30,
+                top: 50,
+                width: 400,
+                height: 300,
+            }).catch(error => this.app.onError(error));
         });
     }
 
