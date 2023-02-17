@@ -574,7 +574,7 @@ export class Config
 
                     'PrivateChat.Private Chat with': 'Private Chat with',
 
-                    'PrivateVidconf.Private Videoconference with': 'PrivateVidconf.Private Videoconference with',
+                    'PrivateVidconf.Private Videoconference with': 'Private Videoconference with',
 
                     'Vidconfwindow.Video Conference': 'Video Conference',
                     'Settingswindow.Settings': 'Settings',
@@ -877,7 +877,7 @@ export class Config
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit',
 
-                    'PrivateVidconf.Private Videoconference with': 'PrivateVidconf.Private Videokonferenz mit',
+                    'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit',
 
                     'Vidconfwindow.Video Conference': 'Videokonferenz',
                     'Settingswindow.Settings': 'Einstellungen',
