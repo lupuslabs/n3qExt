@@ -205,7 +205,7 @@ export class PopupApp extends AppWithDom
     private devConfig(group: HTMLElement): void
     {
         const customCfgStorageKey = Utils.localStorageKey_CustomConfig();
-        let dev = document.getElementById('n3q-popup-dev');
+        let dev = this.display.querySelector('#n3q-popup-dev');
         if (is.nil(dev)) {
             dev = domHtmlElemOfHtml('<div id="n3q-popup-dev" class="n3q-base n3q-popup-hidden"/>');
             const text = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;"/>');
