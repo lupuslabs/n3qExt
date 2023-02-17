@@ -9,6 +9,10 @@ div#n3q {
     color: #FF0000; // For style isolation debugging (if you can see it in devtools, styles are applied to root document).
 }
 
+div#n3q-display.n3q-hidden, div#n3q-display .n3q-hidden {
+    visibility: hidden !important;
+}
+
 div#n3q-display {
     color-scheme: light;
     position: fixed;
@@ -120,11 +124,6 @@ div#n3q-display {
     // zeit.de
     input.n3q-base:focus {
         background-color: white;
-    }
-
-    div.n3q-hidden, img.n3q-hidden {
-        // display: none!important;
-        visibility: hidden;
     }
 
     div.n3q-ghost {
