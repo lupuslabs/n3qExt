@@ -9,6 +9,7 @@ export class _Changes
         ['1.2.5', 'PresenceFightShadowDom', [
             ['Add', 'Long click as hover alternative'],
             ['Add', 'Support for translated item properties'],
+            ['Add', 'Support for tools (as badges)'],
             ['Change', 'Room item popup to adapt to content width'],
             ['Change', 'Points bar title hover to always show all channels'],
             ['Change', 'Backpack item popup spacing and item description'],

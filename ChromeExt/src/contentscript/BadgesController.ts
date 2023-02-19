@@ -315,9 +315,9 @@ export class BadgesController
         const badgeKey = this.makeBadgeKey(item);
         if (this.badges.size >= this.badgesEnabledMax && !this.badges.has(badgeKey)) {
             const toast = new SimpleToast(
-                this.app, 'badges-TooMuchBadges',
+                this.app, 'badges-TooManyBadges',
                 Config.get('room.errorToastDurationSec', 8),
-                'warning', 'BadgeNotEnabled', 'TooMuchBadgesEnabled',
+                'warning', 'BadgeNotEnabled', 'TooManyBadgesEnabled',
             );
             toast.show();
             if (this.debugLogEnabled) {
