@@ -677,7 +677,7 @@ export class Config
                     'Toast.NotDerezzed': 'Failed to Pick Up Item',
                     'Toast.NotYourItem': 'This is not your item.',
                     'Toast.BadgeNotEnabled': 'Failed to enable badge',
-                    'Toast.TooMuchBadgesEnabled': 'You already have the maximum count of badges enabled.',
+                    'Toast.TooManyBadgesEnabled': 'You already have the maximum count of badges enabled.',
 
                     'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
@@ -982,7 +982,7 @@ export class Config
                     'Toast.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
                     'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
                     'Toast.BadgeNotEnabled': 'Sticker aktivieren fehlgeschlagen',
-                    'Toast.TooMuchBadgesEnabled': 'Du hast bereits die maximale Anzahl an Stickern aktiviert.',
+                    'Toast.TooManyBadgesEnabled': 'Du hast bereits die maximale Anzahl an Stickern aktiviert.',
 
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',
