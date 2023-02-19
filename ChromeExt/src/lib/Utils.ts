@@ -4,6 +4,7 @@ import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
 import { ErrorWithDataBase } from './debugUtils';
+import * as crypto from 'crypto';
 
 export interface NumberFormatOptions extends Intl.NumberFormatOptions {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options
@@ -146,13 +147,21 @@ export class Utils
 
     static pseudoRandomInt(min: number, max: number, key: string, suffix: string, mod: number): number
     {
-        const hash = Utils.hash(key + suffix) % mod;
+        const hash = Utils.hashNumber(key + suffix) % mod;
         const f = min + (max - min) / mod * hash;
         const i = Math.trunc(f);
         return i;
     }
 
-    static hash(s: string): number
+    static hashString(s: string): string
+    {
+        let hasher = crypto.createHash('SHA1'.toLowerCase());
+        hasher.update(s);
+        const hash = hasher.digest('hex');
+        return hash;
+    }
+
+    static hashNumber(s: string): number
     {
         let hash = 0;
         if (s.length === 0) { return 0; }

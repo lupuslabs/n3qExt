@@ -33,17 +33,24 @@ export class TestUtils
         expect(x.children[0].children[0]).to.equal('sdfsf');
     }
 
-    hash()
+    hashString()
     {
-        expect(Utils.hash('')).to.equal(0);
-        expect(Utils.hash('a')).not.to.be.null;
-        expect(Utils.hash('a')).not.to.equal(0);
-        expect(Utils.hash('a')).not.to.equal('');
-        expect(Utils.hash('a')).to.equal(Utils.hash('a'));
-        expect(Utils.hash('a')).not.to.equal(Utils.hash('b'));
-        expect(Utils.hash('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal(0);
-        expect(Utils.hash('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.be.null;
-        expect(Utils.hash('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal('');
+        expect(Utils.hashString('a')).not.to.equal(Utils.hashString('b'));
+        expect(Utils.hashString('https://www.galactic-developments.de/')).not.to.equal(Utils.hashString('https://www.galactic-developments.de/X'));
+        expect(Utils.hashString('https://www.galactic-developments.de/')).to.equal(Utils.hashString('https://www.galactic-developments.de/'));
+    }
+
+    hashNumber()
+    {
+        expect(Utils.hashNumber('')).to.equal(0);
+        expect(Utils.hashNumber('a')).not.to.be.null;
+        expect(Utils.hashNumber('a')).not.to.equal(0);
+        expect(Utils.hashNumber('a')).not.to.equal('');
+        expect(Utils.hashNumber('a')).to.equal(Utils.hashNumber('a'));
+        expect(Utils.hashNumber('a')).not.to.equal(Utils.hashNumber('b'));
+        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal(0);
+        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.be.null;
+        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal('');
 
         // console.log(Utils.hash('a'));
         // console.log(Utils.hash('ab'));

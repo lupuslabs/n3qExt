@@ -70,7 +70,7 @@ export function areChatsEqual(chatA: Chat, chatB: Chat): boolean
 
 export function makeChatMessageId(time: Date, nick: string): string
 {
-    return `${time.getTime()}_${Utils.hash(nick)}_${Utils.randomString(4)}`;
+    return `${time.getTime()}_${Utils.hashNumber(nick)}_${Utils.randomString(4)}`;
 }
 
 export function chatMessageCmpFun(msgA: ChatMessage, msgB: ChatMessage): number
