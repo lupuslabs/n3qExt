@@ -148,6 +148,8 @@ export class BadgesController
         for (const badgeDisplay of this.badges.values()) {
             const {Provider, InventoryId, Id, Version, IsBadgeTool} = badgeDisplay.getProperties();
             if (IsBadgeTool) {
+                // keep private
+            } else {
                 const ids: string[] = [];
                 if (Provider !== lastProviderId) {
                     ids.push(Provider);
