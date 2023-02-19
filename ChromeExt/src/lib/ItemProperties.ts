@@ -114,6 +114,8 @@ export enum Pid
     BadgeIconHeight = 'BadgeIconHeight',
     BadgeIconX = 'BadgeIconX',
     BadgeIconY = 'BadgeIconY',
+    BadgeIsTool = 'BadgeIsTool',
+    BadgeToolOptions = 'BadgeToolOptions',
     EditablePropertiesAspect = 'EditablePropertiesAspect',
     EditableProperties = 'EditableProperties',
 }
@@ -231,6 +233,21 @@ export class ItemProperties
     static getIsBadge(itemProperties: ItemProperties): boolean
     {
         return as.Bool(itemProperties[Pid.BadgeAspect]);
+    }
+
+    static getIsToolBadge(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.BadgeIsTool]) && as.Bool(itemProperties[Pid.BadgeAspect]);
+    }
+
+    static getBadgeToolOptions(itemProperties: ItemProperties): { left: number, top: number, width: number, height: number }
+    {
+        let options = { left: 40, top: 40, width: 400, height: 400 };
+        try { 
+            const parsed = JSON.parse(itemProperties[Pid.BadgeToolOptions]);
+            Object.assign(options, parsed);
+        } catch {}
+        return options;
     }
 
     static getBadgeIconDimensions(itemProperties: ItemProperties): {iconWidth: number, iconHeight: number}

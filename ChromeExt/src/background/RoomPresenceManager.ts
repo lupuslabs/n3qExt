@@ -464,7 +464,7 @@ export class RoomPresenceManager
         let identityUrl = as.String(Config.get('identity.url'), '')
         let identityDigest = as.String(Config.get('identity.digest'), '1')
         if (identityUrl === '') {
-            identityDigest = as.String(Utils.hash(`${this.app.getXmppResource()}${avatarUrl}`))
+            identityDigest = as.String(Utils.hashNumber(`${this.app.getXmppResource()}${avatarUrl}`))
             identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
                 .replace('{nickname}', encodeURIComponent(ownResourceInRoom))
                 .replace('{avatarUrl}', encodeURIComponent(avatarUrl))

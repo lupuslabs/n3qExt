@@ -146,18 +146,20 @@ export class BadgesController
         let lastProviderId: string|null = null;
         let lastInventoryId: string|null = null;
         for (const badgeDisplay of this.badges.values()) {
-            const {Provider, InventoryId, Id, Version} = badgeDisplay.getProperties();
-            const ids: string[] = [];
-            if (Provider !== lastProviderId) {
-                ids.push(Provider);
+            const {Provider, InventoryId, Id, Version, IsBadgeTool} = badgeDisplay.getProperties();
+            if (IsBadgeTool) {
+                const ids: string[] = [];
+                if (Provider !== lastProviderId) {
+                    ids.push(Provider);
+                }
+                if (InventoryId !== lastInventoryId) {
+                    ids.push(InventoryId);
+                }
+                ids.push(Id);
+                ids.push(Version);
+                badgeStrs.push(ids.join(':'));
+                [lastProviderId, lastInventoryId] = [Provider, InventoryId];
             }
-            if (InventoryId !== lastInventoryId) {
-                ids.push(InventoryId);
-            }
-            ids.push(Id);
-            ids.push(Version);
-            badgeStrs.push(ids.join(':'));
-            [lastProviderId, lastInventoryId] = [Provider, InventoryId];
         }
         const badgeStr = badgeStrs.join(' ');
         return badgeStr;

@@ -5,6 +5,9 @@ import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomModifierKeyId } from '../lib/PointerEventData';
 import { DomButtonId } from '../lib/domTools';
 import { BadgeInfoWindow } from './BadgeInfoWindow';
+import { BackgroundMessage } from '../lib/BackgroundMessage';
+import { as } from '../lib/as';
+import { Utils } from '../lib/Utils';
 
 export class Badge
 {
@@ -96,6 +99,22 @@ export class Badge
         }
     }
 
+    private openOrFocusPopup()
+    {
+        const linkData = ItemProperties.getBadgeLinkData(this.item);
+        const popupId = String(Utils.hashString(linkData.linkUrl));
+        const popupLink = linkData.linkUrl + '#n3qdisable'
+        const popupOptions = ItemProperties.getBadgeToolOptions(this.item);
+        BackgroundMessage.openOrFocusPopup({
+            id: popupId,
+            url: popupLink,
+            left: as.Int(popupOptions.left, 40),
+            top: as.Int(popupOptions.top, 40),
+            width: as.Int(popupOptions.width, 400),
+            height: as.Int(popupOptions.height, 400),
+        }).catch(error => this.app.onError(error));
+    }
+
     private initEventHandling(): void
     {
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
@@ -109,10 +128,20 @@ export class Badge
                 this.infoWindow.toggleVisibility();
             }
         });
-        this.pointerEventDispatcher.addCtrlLeftClickListener(ev => {
-            if (!this.isStopping && this.badgesDisplay.getIsInEditMode()) {
-                const display = this.badgesDisplay;
-                display.onBadgeDropOutside(this.item);
+        this.pointerEventDispatcher.setEventListener('click', ev => {
+            if (!this.isStopping) {
+                if (this.badgesDisplay.getIsInEditMode()) {
+                    if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
+                        const display = this.badgesDisplay;
+                        display.onBadgeDropOutside(this.item);
+                    }
+                } else {
+                    if (ItemProperties.getIsToolBadge(this.item)) {
+                        this.openOrFocusPopup();
+                    } else {
+                        this.infoWindow.toggleVisibility();
+                    }
+                }
             }
         });
 
