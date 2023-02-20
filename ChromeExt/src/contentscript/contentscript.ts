@@ -141,6 +141,9 @@ $(function ()
             const visibilityState = document.visibilityState;
             log.debug('Contentscript.onVisibilitychange', { visibilityState });
             if (visibilityState !== 'hidden') {
+                if (visibilityState !== 'visible') {
+                    $('body').append($('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"></div>'));
+                }
                 activate();
             } else {
                 if (onTabChangeStay) {
@@ -152,6 +155,9 @@ $(function ()
         });
 
         if (visibilityState !== 'hidden') {
+            if (visibilityState !== 'visible') {
+                $('body').append($('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"></div>'));
+            }
             activate();
         }
 
