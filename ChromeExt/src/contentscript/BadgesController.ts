@@ -146,8 +146,8 @@ export class BadgesController
         let lastProviderId: string|null = null;
         let lastInventoryId: string|null = null;
         for (const badgeDisplay of this.badges.values()) {
-            const {Provider, InventoryId, Id, Version, IsBadgeTool} = badgeDisplay.getProperties();
-            if (IsBadgeTool) {
+            const {Provider, InventoryId, Id, Version} = badgeDisplay.getProperties();
+            if (as.Bool(badgeDisplay.getProperties()[Pid.BadgeIsTool])) {
                 // keep private
             } else {
                 const ids: string[] = [];
@@ -313,7 +313,7 @@ export class BadgesController
         eventData: PointerEventData, item: ItemProperties, correctPointerOffset: boolean = false,
     ): void {
         const badgeKey = this.makeBadgeKey(item);
-        if (this.badges.size >= this.badgesEnabledMax && !this.badges.has(badgeKey)) {
+        if (!this.badges.has(badgeKey) && !this.mayAddBadge(item)) {
             const toast = new SimpleToast(
                 this.app, 'badges-TooManyBadges',
                 Config.get('room.errorToastDurationSec', 8),
@@ -519,7 +519,7 @@ export class BadgesController
         item.iconDataUrl = iconDataUrl;
         const badge = this.badges.get(badgeKey);
         if (is.nil(badge)) {
-            if (this.badges.size >= this.badgesEnabledMax) {
+            if (!this.mayAddBadge(item)) {
                 if (this.isLocal) {
                     if (this.debugLogEnabled) {
                         const msg = 'BadgesDisplay.addOrUpdateBadge: Disabling own badge - limit reached.';
@@ -616,6 +616,12 @@ export class BadgesController
     private makeBadgeKey(item: ItemProperties): string
     {
         return `${item[Pid.Id]}:${item[Pid.InventoryId]}:${item[Pid.Provider]}`;
+    }
+
+    private mayAddBadge(badgeProperties: ItemProperties): boolean
+    {
+       const publicBadgesCount = [...this.badges.values()].filter(b => !as.Bool(b.getProperties()[Pid.BadgeIsTool])).length;
+       return as.Bool(badgeProperties[Pid.BadgeIsTool]) || publicBadgesCount < this.badgesEnabledMax;
     }
 
     //--------------------------------------------------------------------------
