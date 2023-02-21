@@ -136,6 +136,11 @@ export class GetChatHistoryResponse extends BackgroundSuccessResponse
     constructor(public chatHistory: ChatMessage[]) { super(); }
 }
 
+export class IsTabDisabledResponse extends BackgroundSuccessResponse
+{
+    constructor(public isDisabled: boolean) { super(); }
+}
+
 export class BackgroundMessage
 {
     static background: BackgroundApp;
@@ -481,6 +486,19 @@ export class BackgroundMessage
     {
         return BackgroundMessage.sendMessageCheckOk({
             'type': BackgroundMessage.openOrFocusPopup.name, popupDefinition,
+        });
+    }
+
+    static isTabDisabled(pageUrl: string): Promise<boolean>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                let response = await BackgroundMessage.sendMessageCheckOk({ 'type': BackgroundMessage.isTabDisabled.name, 'pageUrl': pageUrl });
+                resolve((<IsTabDisabledResponse>response).isDisabled);
+            } catch (error) {
+                reject(error);
+            }
         });
     }
 
