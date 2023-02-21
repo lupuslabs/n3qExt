@@ -24,6 +24,7 @@ import
     BackpackTransferAuthorizeResponse,
     BackpackIsItemStillInRepoResponse,
     GetChatHistoryResponse,
+    IsTabDisabledResponse,
     NewChatMessageResponse,
     TabStats, MakeZeroTabStats,
     TabRoomPresenceData, PopupDefinition,
@@ -521,6 +522,10 @@ export class BackgroundApp
 
             case BackgroundMessage.openOrFocusPopup.name: {
                 return this.handle_openOrFocusPopup(message.popupDefinition, sendResponse);
+            } break;
+
+            case BackgroundMessage.isTabDisabled.name: {
+                return this.handle_isTabDisabled(sender.tab.id, message.pageUrl, sendResponse);
             } break;
 
             default: {
@@ -1176,6 +1181,17 @@ export class BackgroundApp
             sendResponse(new BackgroundSuccessResponse());
         } catch (error) {
             sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupDefinition})});
+        }
+        return false;
+    }
+
+    private handle_isTabDisabled(tabId: number, pageUrl: string, sendResponse: (response: any) => void): boolean
+    {
+        try {
+            const isDisabled = this.popupManager.isTabDisabled(tabId);
+            sendResponse(new IsTabDisabledResponse(isDisabled));
+        } catch (error) {
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, pageUrl})});
         }
         return false;
     }

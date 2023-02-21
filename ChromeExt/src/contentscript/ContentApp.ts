@@ -241,18 +241,18 @@ export class ContentApp extends AppWithDom
 
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
-        {
-            const pageUrl = Browser.getCurrentPageUrl();
-            const parsedUrl = new URL(pageUrl);
-            if (parsedUrl.hash.search('#n3qdisable') >= 0) {
-                return;
-            }
-            const ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
-            for (const ignoredDomain of ignoredDomains) {
-                if (parsedUrl.host.endsWith(ignoredDomain)) {
-                    return;
-                }
-            }
+        const pageUrl = Browser.getCurrentPageUrl();
+        if (this.isPageDisabledByUrlHash(pageUrl)) {
+            log.info('ContentApp.start', 'disabled by URL hash');
+            return;
+        }
+        if (this.isPageDisabledByDomainSuffix(pageUrl)) { 
+            log.info('ContentApp.start', 'disabled by domain suffix');
+            return;
+        }
+        if (await this.isPageDisabledByBackgroundCheck(pageUrl)) { 
+            log.info('ContentApp.start', 'disabled by background check');
+            return;
         }
 
         await Utils.sleep(as.Float(Config.get('vp.deferPageEnterSec', 1)) * 1000);
@@ -312,6 +312,33 @@ export class ContentApp extends AppWithDom
             log.debug('ContentApp.start: Stopped while starting.', {this: {...this}});
             this.stop(); // Redo the stopping to fix the race.
         }
+    }
+
+    private isPageDisabledByUrlHash(pageUrl: string): boolean
+    {
+        const parsedUrl = new URL(pageUrl);
+        if (parsedUrl.hash.search('#n3qdisable') >= 0) {
+            return true;
+        }
+        return false;
+    }
+
+    private isPageDisabledByDomainSuffix(pageUrl: string): boolean
+    {
+        const parsedUrl = new URL(pageUrl);
+        const ignoredDomains: Array<string> = Config.get('vp.ignoredDomainSuffixes', []);
+        for (const ignoredDomain of ignoredDomains) {
+            if (parsedUrl.host.endsWith(ignoredDomain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private async isPageDisabledByBackgroundCheck(pageUrl: string): Promise<boolean>
+    {
+        const isDisabled = await BackgroundMessage.isTabDisabled(pageUrl);
+        return isDisabled;
     }
 
     private async initDisplay(params: ContentAppParams): Promise<void>
