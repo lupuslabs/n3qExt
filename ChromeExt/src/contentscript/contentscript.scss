@@ -578,7 +578,8 @@ div#n3q-display {
     div.n3q-participant div.n3q-badgesEditModeBackground {
         position: absolute;
         z-index: 1;
-        backdrop-filter: blur(7px);
+        backdrop-filter: blur(5px);
+        background-color: rgba(255,255,255,0.4);
         user-select: none;
         pointer-events: none;
     }
