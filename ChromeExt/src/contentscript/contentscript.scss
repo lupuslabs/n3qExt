@@ -607,8 +607,6 @@ div#n3q-display {
 
         .n3q-badgeInfoWindow-base {
             @extend .n3q-base;
-            pointer-events: none;
-            user-select: none;
         }
 
         span.n3q-badgeInfoWindow-paragraph {
@@ -621,15 +619,12 @@ div#n3q-display {
         }
 
         div.n3q-badgeInfoWindow-columns {
-            @extend .n3q-badgeInfoWindow-base;
             padding: 1em 2em 1em 1em;
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
             column-gap: 1em;
             align-items: flex-start;
-            pointer-events: none;
-            user-select: none;
 
             .n3q-badgeInfoWindow-image {
                 @extend .n3q-badgeInfoWindow-base;
@@ -658,7 +653,6 @@ div#n3q-display {
                 a.n3q-badgeInfoWindow-link {
                     @extend .n3q-badgeInfoWindow-base;
                     display: inline-block;
-                    pointer-events: auto;
                     background: #FFFFFF; /* Transparency hint for pointer event dispatcher */
                     font-size: 1.25em;
                     font-weight: bold;
