@@ -80,26 +80,22 @@ abstract class MenuItem
 
     protected initEventHandling(): void {
         let eventDispatcher = new PointerEventDispatcher(this.app, this.itemElem);
-        eventDispatcher.setEventListener('buttondown', ev => {
+        eventDispatcher.addAnyButtonDownListener(ev => {
             if (!is.nil(this.itemElem)) {
                 this.onButtondown();
             }
         });
-        eventDispatcher.setEventListener('click', ev => {
+        eventDispatcher.addUnmodifiedLeftClickListener(ev => {
             if (!is.nil(this.itemElem)) {
-                if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
-                    this.onUserAction();
-                } else {
-                    this.onUserDone();
-                }
+                this.onUserAction();
             }
         });
-        eventDispatcher.setEventListener('hoverenter', ev => {
+        eventDispatcher.addHoverEnterListener(ev => {
             if (!is.nil(this.itemElem)) {
                 this.onHoverEnter();
             }
         });
-        eventDispatcher.setEventListener('hoverleave', ev => {
+        eventDispatcher.addHoverLeaveListener(ev => {
             if (!is.nil(this.itemElem)) {
                 this.onHoverLeave();
             }
@@ -201,6 +197,7 @@ class SubmenuMenuItem extends MenuItem
     protected openSubmenu()
     {
         if (!this.menu.isOpen()) {
+            this.column.getMenu().closeSubmenu();
             const thisClientRect = this.itemElem.getBoundingClientRect();
             this.menu.open(thisClientRect.right, thisClientRect.bottom);
         }
@@ -479,7 +476,7 @@ export class RootMenu extends Menu
         let catcherElem = document.createElement('div');
         catcherElem.classList.add('n3q-base', 'n3q-menu-pointer-catcher');
         let eventDispatcher = new PointerEventDispatcher(this.app, catcherElem);
-        eventDispatcher.setEventListener('buttondown', ev => this.onUserDone());
+        eventDispatcher.addAnyButtonDownListener(ev => this.onUserDone());
         this.pointerCatcherElem = catcherElem;
     }
 

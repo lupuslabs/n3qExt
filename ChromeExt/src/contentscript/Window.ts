@@ -197,7 +197,7 @@ export abstract class Window<OptionsType extends WindowOptions>
                 <div class="n3q-base n3q-button-symbol n3q-button-undock"></div>
             </div>`
         );
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, button).addUnmodifiedLeftclickListener(ev => this.undock());
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, button).addUnmodifiedLeftClickListener(ev => this.undock());
         (this.titlebarElem ?? this.contentElem).append(button);
     }
 
@@ -257,21 +257,19 @@ export abstract class Window<OptionsType extends WindowOptions>
             elem = elemOrClass;
         }
         const dispatcher = elem === this.windowElem ? this.windowElemPointerDispatcher : new PointerEventDispatcher(this.app, elem);
-        dispatcher.addListener('dragstart', DomButtonId.first, DomModifierKeyId.none, ev => {
+        dispatcher.addDragStartListener(ev => {
             if (this.isOpen()) {
                 this.geometryAtActionStart = this.readGeometryFromDom();
             }
         });
-        dispatcher.addListener('dragmove', null, null, ev => {
+        dispatcher.addDragMoveListener(ev => {
             if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
                 this.setGeometry(newGeometryFun(ev));
             } else {
                 dispatcher.cancelDrag();
             }
         });
-        dispatcher.addListener('dragend', null, null, ev => {
-            this.triggerSaveCurrentGeometry();
-        });
+        dispatcher.addDragEndListener(ev => this.triggerSaveCurrentGeometry());
         dispatcher.setIgnoreOpacity(true);
         dispatcher.setDragCssCursor(dragCssCursor);
         dispatcher.setDragStartDistance(0);

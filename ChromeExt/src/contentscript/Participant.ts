@@ -116,7 +116,7 @@ export class Participant extends Entity
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
                     + '</div>');
                 const closeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
-                PointerEventDispatcher.makeOpaqueDispatcher(this.app, closeElem).addUnmodifiedLeftclickListener(ev => {
+                PointerEventDispatcher.makeOpaqueDispatcher(this.app, closeElem).addUnmodifiedLeftClickListener(ev => {
                     Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
                     introYouElem.remove();
                 });
@@ -799,77 +799,51 @@ export class Participant extends Entity
         }
     }
 
-    onMouseClickAvatar(ev: PointerEventData): void
+    onUnmodifiedLeftClickAvatar(ev: PointerEventData): void
     {
-        super.onMouseClickAvatar(ev);
+        super.onUnmodifiedLeftClickAvatar(ev);
 
         if (this.isSelf) {
-            switch (ev.buttons) {
-                case DomButtonId.first: {
-                    switch (ev.modifierKeys) {
-                        case DomModifierKeyId.none: {
-                            this.toggleChatin();
-                        } break;
-                        case DomModifierKeyId.control: {
-                            this.showBackpackWindow();
-                        } break;
-                    }
-                } break;
-            }
+            this.toggleChatin();
         } else {
-            switch (ev.buttons) {
-                case DomButtonId.first: {
-                    switch (ev.modifierKeys) {
-                        case DomModifierKeyId.none: {
-                            this.toggleChatout();
-                        } break;
-                    }
-                } break;
-            }
+            this.toggleChatout();
         }
     }
 
-    onMouseLongClickAvatar(ev: PointerEventData): void
-    {
-        super.onMouseLongClickAvatar(ev);
-        if (!this.isSelf && ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
-            if (this.decorationsVisible) {
-                this.hideDecorations();
-            } else {
-                this.showDecorations();
-            }
+    onCtrlLeftClickAvatar(ev: PointerEventData) {
+        super.onCtrlLeftClickAvatar(ev);
+        if (this.isSelf) {
+            this.showBackpackWindow();
         }
     }
 
-    onMouseDoubleClickAvatar(ev: PointerEventData): void
+    onUnmodifiedLeftLongclickAvatar(ev: PointerEventData): void
     {
-        super.onMouseDoubleClickAvatar(ev);
-        if (this.isSelf) {
-            switch (ev.buttons) {
-                case DomButtonId.first: {
-                    switch (ev.modifierKeys) {
-                        case DomModifierKeyId.none: {
-                            this.room?.showChatInWithText('');
-                        } break;
-                        case DomModifierKeyId.control: {
-                            this.toggleChatWindow();
-                        } break;
-                    }
-                } break;
-            }
+        super.onUnmodifiedLeftLongclickAvatar(ev);
+        if (this.decorationsVisible) {
+            this.hideDecorations();
         } else {
-            switch (ev.buttons) {
-                case DomButtonId.first: {
-                    switch (ev.modifierKeys) {
-                        case DomModifierKeyId.none: {
-                            this.room?.showChatInWithText('@' + this.getDisplayName() + ' ');
-                        } break;
-                        case DomModifierKeyId.control: {
-                            this.togglePrivateChatWindow();
-                        } break;
-                    }
-                } break;
-            }
+            this.showDecorations();
+        }
+    }
+
+    onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
+    {
+        super.onUnmodifiedLeftDoubleclickAvatar(ev);
+        if (this.isSelf) {
+            this.room?.showChatInWithText('');
+        } else {
+            this.room?.showChatInWithText('@' + this.getDisplayName() + ' ');
+        }
+    }
+
+    onCtrlLeftDoubleclickAvatar(ev: PointerEventData): void
+    {
+        super.onCtrlLeftDoubleclickAvatar(ev);
+        if (this.isSelf) {
+            this.toggleChatWindow();
+        } else {
+            this.togglePrivateChatWindow();
         }
     }
 

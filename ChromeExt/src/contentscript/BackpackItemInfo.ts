@@ -146,7 +146,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 
         if (as.Bool(props[Pid.IsRezzed])) {
             const derezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>');
-            PointerEventDispatcher.makeOpaqueDispatcher(this.app, derezBtn).addUnmodifiedLeftclickListener(ev => {
+            PointerEventDispatcher.makeOpaqueDispatcher(this.app, derezBtn).addUnmodifiedLeftClickListener(ev => {
                 this.app.derezItem(this.backpackItem.getItemId());
                 this.close();
             });
@@ -155,7 +155,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             const destination = as.String(props[Pid.RezzedDestination]);
             if (destination) {
                 const goBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>');
-                PointerEventDispatcher.makeOpaqueDispatcher(this.app, goBtn).addUnmodifiedLeftclickListener(ev => {
+                PointerEventDispatcher.makeOpaqueDispatcher(this.app, goBtn).addUnmodifiedLeftClickListener(ev => {
                     window.location.assign(destination);
                 });
                 buttonListElem.append(goBtn);
@@ -163,7 +163,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         } else {
             if (as.Bool(props[Pid.IsRezable], true)) {
                 const rezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>');
-                PointerEventDispatcher.makeOpaqueDispatcher(this.app, rezBtn).addUnmodifiedLeftclickListener(ev => {
+                PointerEventDispatcher.makeOpaqueDispatcher(this.app, rezBtn).addUnmodifiedLeftClickListener(ev => {
                     const rezzedX = as.Int(props[Pid.RezzedX], -1);
                     this.backpackItem.rezItem(rezzedX);
                     this.close();
@@ -174,7 +174,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>');
-            PointerEventDispatcher.makeOpaqueDispatcher(this.app, delBtn).addUnmodifiedLeftclickListener(ev => {
+            PointerEventDispatcher.makeOpaqueDispatcher(this.app, delBtn).addUnmodifiedLeftClickListener(ev => {
                 this.app.deleteItemAsk(this.backpackItem.getItemId());
                 this.close();
             });

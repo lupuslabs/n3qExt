@@ -295,16 +295,67 @@ export class PointerEventDispatcher {
         this.domElem.addEventListener('contextmenu', mouseHandler); // Singleclick with secondary button or long tap.
     }
 
-    public addUnmodifiedLeftclickListener(listener: PointerEventListener): PointerEventDispatcher {
+    public addHoverEnterListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('hoverenter', null, null, listener);
+    }
+    public addHoverLeaveListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('hoverleave', null, null, listener);
+    }
+
+    public addAnyButtonDownListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('buttondown', null, null, listener);
+    }
+
+    public addUnmodifiedLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('click', DomButtonId.first, DomModifierKeyId.none, listener);
     }
-
-    public addUnmodifiedLeftlongclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.none, listener);
+    public addShiftLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('click', DomButtonId.first, DomModifierKeyId.shift, listener);
+    }
+    public addCtrlLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('click', DomButtonId.first, DomModifierKeyId.control, listener);
     }
 
-    public addUnmodifiedLeftdoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
+    public addUnmodifiedLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.none, listener);
+    }
+    public addShiftLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.shift, listener);
+    }
+    public addCtrlLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.control, listener);
+    }
+
+    public addUnmodifiedLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.none, listener);
+    }
+    public addShiftLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.shift, listener);
+    }
+    public addCtrlLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.control, listener);
+    }
+
+    public addDragStartListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragstart', null, null, listener);
+    }
+    public addDragMoveListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragmove', null, null, listener);
+    }
+    public addDragEnterListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragenter', null, null, listener);
+    }
+    public addDragLeaveListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragleave', null, null, listener);
+    }
+    public addDragDropListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragdrop', null, null, listener);
+    }
+    public addDragCancelListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragcancel', null, null, listener);
+    }
+    public addDragEndListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('dragend', null, null, listener);
     }
 
     public addListener(
@@ -335,11 +386,6 @@ export class PointerEventDispatcher {
             } break;
         }
         return this;
-    }
-
-    public setEventListener(type: PointerEventType, listener: PointerEventListener): PointerEventDispatcher
-    {
-        return this.addListener(type, null, null, listener);
     }
 
     public setDragStartDistance(startDistance?: number): void

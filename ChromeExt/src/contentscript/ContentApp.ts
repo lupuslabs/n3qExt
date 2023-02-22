@@ -1431,7 +1431,7 @@ export class ContentApp extends AppWithDom
             button.classList.add('n3q-base', 'n3q-overlay-button');
         }
         button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftclickListener(ev => onClose());
+        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftClickListener(ev => onClose());
         const btnIcon = document.createElement('div');
         if (style === 'window') {
             btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');

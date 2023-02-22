@@ -42,7 +42,7 @@ export class TestWindow extends Window<WindowOptions>
         this.outElem = outElem;
 
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, runElem).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, runElem).addUnmodifiedLeftClickListener(ev => {
             outElem.innerHTML = '';
             this.runTests();
         });

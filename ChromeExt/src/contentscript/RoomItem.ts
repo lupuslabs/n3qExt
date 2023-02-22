@@ -333,37 +333,31 @@ export class RoomItem extends Entity
         this.hideStatsDisplay(0.05);
     }
 
-    public onMouseClickAvatar(ev: PointerEventData): void
+    public onUnmodifiedLeftClickAvatar(ev: PointerEventData): void
     {
-        super.onMouseClickAvatar(ev);
-        switch (ev.buttons) {
-            case DomButtonId.first: {
-                switch (ev.modifierKeys) {
-                    case DomModifierKeyId.none: {
-                        if (as.Bool(this.properties[Pid.IframeAspect], false)) {
-                            this.handleUnmodifiedClickForIframeAspect();
-                        }
-                    } break;
-                    case DomModifierKeyId.control: {
-                        if (this.myItem) {
-                            this.app.derezItem(this.properties[Pid.Id]);
-                        }
-                    } break;
-                }
-            } break;
+        super.onUnmodifiedLeftClickAvatar(ev);
+        if (as.Bool(this.properties[Pid.IframeAspect], false)) {
+            this.handleUnmodifiedClickForIframeAspect();
         }
         this.hideStatsDisplay(0);
     }
 
-    onMouseLongClickAvatar(ev: PointerEventData): void
+    public onCtrlLeftClickAvatar(ev: PointerEventData): void
     {
-        super.onMouseLongClickAvatar(ev);
-        if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
-            if (this.statsDisplay) {
-                this.hideStatsDisplay(0);
-            } else {
-                this.showStatsDisplay(0);
-            }
+        super.onCtrlLeftClickAvatar(ev);
+        if (this.myItem) {
+            this.app.derezItem(this.properties[Pid.Id]);
+        }
+        this.hideStatsDisplay(0);
+    }
+
+    onUnmodifiedLeftLongclickAvatar(ev: PointerEventData): void
+    {
+        super.onUnmodifiedLeftLongclickAvatar(ev);
+        if (this.statsDisplay) {
+            this.hideStatsDisplay(0);
+        } else {
+            this.showStatsDisplay(0);
         }
     }
 
@@ -409,9 +403,9 @@ export class RoomItem extends Entity
         }
     }
 
-    public onMouseDoubleClickAvatar(ev: PointerEventData): void
+    public onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
     {
-        super.onMouseDoubleClickAvatar(ev);
+        super.onUnmodifiedLeftDoubleclickAvatar(ev);
         switch (ev.buttons) {
             case DomButtonId.first: {
                 switch (ev.modifierKeys) {

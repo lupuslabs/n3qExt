@@ -233,7 +233,7 @@ export class SimpleToast extends Toast
         const buttonElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">${as.Html(text)}</div>`);
         this.bodyElem.append(buttonElem);
         this.app.translateElem(buttonElem);
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftclickListener(ev => action?.());
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftClickListener(ev => action?.());
     }
 
     protected prepareMakeDom(): void

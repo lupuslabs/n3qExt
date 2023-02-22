@@ -290,7 +290,7 @@ export class BadgesController
     }
 
     public disposeDraggedBadgeIcon(badgeIconElem?: HTMLImageElement): null {
-        badgeIconElem?.parentElement?.removeChild(badgeIconElem);
+        badgeIconElem?.remove();
         return null;
     }
 

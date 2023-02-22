@@ -47,11 +47,11 @@ export class PopupApp extends AppWithDom
     public dev_start(): void
     {
         let start = domHtmlElemOfHtml('<button style="display: inline;">Start</button>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this, start).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this, start).addUnmodifiedLeftClickListener(ev => {
             this.start(null).catch(error => this.onError(error))
         });
         let stop = domHtmlElemOfHtml('<button style="display: inline;">Stop</button>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this, stop).addUnmodifiedLeftclickListener(ev => this.stop());
+        PointerEventDispatcher.makeOpaqueDispatcher(this, stop).addUnmodifiedLeftClickListener(ev => this.stop());
         this.appendToMe.append(start);
         this.appendToMe.append(stop);
         this.appendToMe.style.minWidth = '25em';
@@ -99,8 +99,8 @@ export class PopupApp extends AppWithDom
         group.append(description);
 
         const iconDispatcher = PointerEventDispatcher.makeDispatcher(this, icon);
-        iconDispatcher.addListener('click', DomButtonId.first, DomModifierKeyId.control, ev => this.devConfig(group));
-        iconDispatcher.addUnmodifiedLeftdoubleclickListener(ev => this.devConfig(group));
+        iconDispatcher.addCtrlLeftClickListener(ev => this.devConfig(group));
+        iconDispatcher.addUnmodifiedLeftDoubleclickListener(ev => this.devConfig(group));
 
         return group;
     }
@@ -116,7 +116,7 @@ export class PopupApp extends AppWithDom
         nicknameGroup.append(this.nicknameElem);
 
         const button = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-random" data-translate="text:Popup">Random</button>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftClickListener(ev => {
             this.nicknameElem.value = RandomNames.getRandomNickname();
         });
         nicknameGroup.append(button);
@@ -142,11 +142,11 @@ export class PopupApp extends AppWithDom
         group.append(avatarGallery);
 
         avatarImgElem.src = this.currentAvatar.getPreviewUrl();
-        PointerEventDispatcher.makeOpaqueDispatcher(this, left).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this, left).addUnmodifiedLeftClickListener(ev => {
             this.currentAvatar = this.currentAvatar.getPreviousAvatar();
             avatarImgElem.src = this.currentAvatar.getPreviewUrl();
         });
-        PointerEventDispatcher.makeOpaqueDispatcher(this, right).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this, right).addUnmodifiedLeftClickListener(ev => {
             this.currentAvatar = this.currentAvatar.getNextAvatar();
             avatarImgElem.src = this.currentAvatar.getPreviewUrl();
         });
@@ -174,7 +174,7 @@ export class PopupApp extends AppWithDom
         const saving = domHtmlElemOfHtml('<div class="n3q-base n3q-popup-save-saving" data-translate="text:Popup">Saving</div>');
 
         const save = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-save" data-translate="text:Popup">Save</button>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this, save).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this, save).addUnmodifiedLeftClickListener(ev => {
             const transition = {property: 'opacity', duration: '0.2s'};
             const nickname2Save = this.nicknameElem.value;
             startDomElemTransition(saving, null, transition, '1', () => {
@@ -191,7 +191,7 @@ export class PopupApp extends AppWithDom
         group.append(saving);
 
         const close = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-close" data-translate="text:Common">Close</button>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this, close).addUnmodifiedLeftclickListener(ev => this.close());
+        PointerEventDispatcher.makeOpaqueDispatcher(this, close).addUnmodifiedLeftClickListener(ev => this.close());
         group.append(close);
 
         return group;
@@ -214,7 +214,7 @@ export class PopupApp extends AppWithDom
                 text.value = data;
                 dev.append(text);
                 const apply = domHtmlElemOfHtml('<button class="n3q-base n3q-popup-dev-apply" style="margin-top: 0.5em;">Save</button>');
-                PointerEventDispatcher.makeOpaqueDispatcher(this, apply).addUnmodifiedLeftclickListener(ev => {
+                PointerEventDispatcher.makeOpaqueDispatcher(this, apply).addUnmodifiedLeftClickListener(ev => {
                     Memory.setLocal(customCfgStorageKey, text.value)
                     .catch(error => log.info(error));
                 });

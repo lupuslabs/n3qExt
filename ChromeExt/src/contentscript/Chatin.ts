@@ -22,7 +22,7 @@ export class Chatin
         this.elem.appendChild(this.chatinInputElem);
 
         this.sendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftclickListener(ev => {
+        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftClickListener(ev => {
             this.sendChat();
         });
         this.elem.appendChild(this.sendElem);

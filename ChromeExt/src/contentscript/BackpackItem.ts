@@ -61,39 +61,26 @@ export class BackpackItem
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem);
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone', 'n3q-badge');
 
-        this.pointerEventDispatcher.setEventListener('dragenter', eventData => {
-            const dropTargetElem = eventData.dropTarget;
+        this.pointerEventDispatcher.addAnyButtonDownListener(ev => this.toFront());
+
+        this.pointerEventDispatcher.addUnmodifiedLeftClickListener(ev => this.onUnmodifiedLeftClick(ev));
+        this.pointerEventDispatcher.addCtrlLeftClickListener(ev => this.onCtrlLeftClick(ev));
+        this.pointerEventDispatcher.addUnmodifiedLeftDoubleclickListener(ev => this.onUnmodifiedLeftDoubleclick(ev));
+
+        this.pointerEventDispatcher.addDragStartListener(ev => this.onDragStart(ev));
+        this.pointerEventDispatcher.addDragMoveListener(ev => this.onDragMove(ev));
+        this.pointerEventDispatcher.addDragEnterListener(ev => {
+            const dropTargetElem = ev.dropTarget;
             if (this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this) === true) {
                 dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
-        this.pointerEventDispatcher.setEventListener('dragleave', eventData => {
-            const dropTargetElem = eventData.dropTargetLast;
+        this.pointerEventDispatcher.addDragLeaveListener(ev => {
+            const dropTargetElem = ev.dropTargetLast;
             dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
         });
-
-        this.pointerEventDispatcher.setEventListener('buttondown', eventData => {
-            this.toFront();
-        });
-        this.pointerEventDispatcher.setEventListener('click', eventData => {
-            this.onMouseClick(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('doubleclick', eventData => {
-            this.onMouseDoubleClick(eventData);
-        });
-
-        this.pointerEventDispatcher.setEventListener('dragstart', eventData => {
-            this.onDragStart(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('dragmove', eventData => {
-            this.onDragMove(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('dragdrop', eventData => {
-            this.onDragDrop(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('dragend', eventData => {
-            this.onDragEnd();
-        });
+        this.pointerEventDispatcher.addDragDropListener(ev => this.onDragDrop(ev));
+        this.pointerEventDispatcher.addDragEndListener(ev => this.onDragEnd());
 
     }
 
@@ -178,35 +165,31 @@ export class BackpackItem
         this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
     }
 
-    private onMouseClick(ev: PointerEventData): void
+    private onUnmodifiedLeftClick(ev: PointerEventData): void
     {
         this.toFront();
         const infoOpen = !is.nil(this.info);
         this.info?.close();
-        switch (ev.buttons) {
-            case DomButtonId.first: {
-                switch (ev.modifierKeys) {
-                    case DomModifierKeyId.none: {
-                        if (!infoOpen) {
-                            const onClose = () => { this.info = null; };
-                            this.info = new BackpackItemInfo(this.app, this, onClose);
-                            this.info.show({ left: ev.clientX, top: ev.clientY });
-                        }
-                    } break;
-                    case DomModifierKeyId.control: {
-                        if (as.Bool(this.properties[Pid.IsRezzed], false)) {
-                            this.app.derezItem(this.getItemId());
-                        } else {
-                            const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
-                            this.rezItem(as.Int(rezzedX, ev.clientX));
-                        }
-                    } break;
-                }
-            } break;
+        if (!infoOpen) {
+            const onClose = () => { this.info = null; };
+            this.info = new BackpackItemInfo(this.app, this, onClose);
+            this.info.show({ left: ev.clientX, top: ev.clientY });
         }
     }
 
-    private onMouseDoubleClick(ev: PointerEventData): void
+    private onCtrlLeftClick(ev: PointerEventData): void
+    {
+        this.toFront();
+        this.info?.close();
+        if (as.Bool(this.properties[Pid.IsRezzed], false)) {
+            this.app.derezItem(this.getItemId());
+        } else {
+            const rezzedX = as.Int(this.properties[Pid.RezzedX], -1);
+            this.rezItem(as.Int(rezzedX, ev.clientX));
+        }
+    }
+
+    private onUnmodifiedLeftDoubleclick(ev: PointerEventData): void
     {
         this.toFront();
         this.info?.close();

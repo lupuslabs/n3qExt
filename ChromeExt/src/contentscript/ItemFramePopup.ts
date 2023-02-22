@@ -83,7 +83,7 @@ export class ItemFramePopup
 
             this.windowElem.addEventListener('pointerdown', ev => {
                 this.app.toFront(this.windowElem, ContentApp.LayerWindow);
-            });
+            }, { capture: true });
 
             this.windowElem.classList.add('n3q-itemframepopup');
 

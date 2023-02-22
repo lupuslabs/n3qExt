@@ -28,7 +28,7 @@ export class PrivateChatWindow extends ChatWindow
         if (Config.get('room.showPrivateChatInfoButton', false)) {
             const infoElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Info" data-translate="attr:title:Chatwindow text:Chatwindow">Info</div>');
             this.contentElem.appendChild(infoElem);
-            PointerEventDispatcher.makeOpaqueDispatcher(this.app, infoElem).addUnmodifiedLeftclickListener(ev => this.sendVersionQuery());
+            PointerEventDispatcher.makeOpaqueDispatcher(this.app, infoElem).addUnmodifiedLeftClickListener(ev => this.sendVersionQuery());
         }
     }
 

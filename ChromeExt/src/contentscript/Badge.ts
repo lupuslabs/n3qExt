@@ -100,30 +100,23 @@ export class Badge
     {
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
 
-        this.pointerEventDispatcher.setEventListener('hoverenter', ev => {
-            this.badgesDisplay.onMouseEnterBadge(ev);
-        });
-        this.pointerEventDispatcher.setEventListener('hoverleave', ev => {
-            this.badgesDisplay.onMouseLeaveBadge(ev);
-        });
+        this.pointerEventDispatcher.addHoverEnterListener(ev => this.badgesDisplay.onMouseEnterBadge(ev));
+        this.pointerEventDispatcher.addHoverLeaveListener(ev => this.badgesDisplay.onMouseLeaveBadge(ev));
 
-        this.pointerEventDispatcher.setEventListener('buttondown', ev => {
-            this.badgesDisplay.onBadgePointerDown(ev);
+        this.pointerEventDispatcher.addAnyButtonDownListener(ev => this.badgesDisplay.onBadgePointerDown(ev));
+        this.pointerEventDispatcher.addUnmodifiedLeftClickListener(ev => {
+            if (!this.isStopping && !this.badgesDisplay.getIsInEditMode()) {
+                this.infoWindow.toggleVisibility();
+            }
         });
-        this.pointerEventDispatcher.setEventListener('click', ev => {
-            if (!this.isStopping) {
-                if (this.badgesDisplay.getIsInEditMode()) {
-                    if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
-                        const display = this.badgesDisplay;
-                        display.onBadgeDropOutside(this.item);
-                    }
-                } else {
-                    this.infoWindow.toggleVisibility();
-                }
+        this.pointerEventDispatcher.addCtrlLeftClickListener(ev => {
+            if (!this.isStopping && this.badgesDisplay.getIsInEditMode()) {
+                const display = this.badgesDisplay;
+                display.onBadgeDropOutside(this.item);
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragstart', ev => {
+        this.pointerEventDispatcher.addDragStartListener(ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 this.iconElem.classList.add('n3q-hidden');
                 this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.item.iconDataUrl);
@@ -132,7 +125,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragmove', ev => {
+        this.pointerEventDispatcher.addDragMoveListener(ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
                     this.pointerEventDispatcher.cancelDrag();
@@ -147,7 +140,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragdrop', ev => {
+        this.pointerEventDispatcher.addDragDropListener(ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
                 const display = this.badgesDisplay;
                 if (display.isValidEditModeBadgeDrop(ev, this.item)) {
@@ -158,7 +151,7 @@ export class Badge
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragend', ev => this.onDragEnd());
+        this.pointerEventDispatcher.addDragEndListener(ev => this.onDragEnd());
 
     }
 

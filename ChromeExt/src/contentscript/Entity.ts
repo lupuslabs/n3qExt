@@ -188,17 +188,27 @@ export class Entity
         this.avatarDisplay?.hilite(false);
     }
 
-    onMouseClickAvatar(ev: PointerEventData): void
+    onUnmodifiedLeftClickAvatar(ev: PointerEventData): void
     {
         this.select();
     }
 
-    onMouseLongClickAvatar(ev: PointerEventData): void
+    onCtrlLeftClickAvatar(ev: PointerEventData): void
     {
         this.select();
     }
 
-    onMouseDoubleClickAvatar(ev: PointerEventData): void
+    onUnmodifiedLeftLongclickAvatar(ev: PointerEventData): void
+    {
+        this.select();
+    }
+
+    onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
+    {
+        this.select();
+    }
+
+    onCtrlLeftDoubleclickAvatar(ev: PointerEventData): void
     {
         this.select();
     }

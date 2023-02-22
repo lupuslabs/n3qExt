@@ -26,7 +26,7 @@ export class ActivityBar implements IObserver
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
-        });
+        }, { capture: true });
         this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
             this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hoverenter', ev, this.elem));
         });

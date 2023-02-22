@@ -186,6 +186,10 @@ export function cloneDomEvent<T extends Event>(ev: T, newProps: {[prop: string]:
     return evNew;
 }
 
+/**
+ * Beware: ev.isTrusted becomes false by dispatching.
+ * Dispatched ev will not trigger browser context menu or text selection.
+ */
 export function dispatchDomEvent(ev: MouseEvent, domElem: Element): void
 {
     (async () => domElem.dispatchEvent(ev))( // Do event routing outside current call stack.

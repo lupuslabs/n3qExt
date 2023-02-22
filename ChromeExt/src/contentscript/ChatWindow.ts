@@ -161,10 +161,10 @@ export class ChatWindow extends Window<ChatWindowOptions>
         chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
 
         const chatinSendElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, chatinSendElem);
-        chatinSendElemDispatcher.addUnmodifiedLeftclickListener(ev => this.sendChat());
+        chatinSendElemDispatcher.addUnmodifiedLeftClickListener(ev => this.sendChat());
 
         const clearElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, clearElem);
-        clearElemDispatcher.addUnmodifiedLeftclickListener(ev => {
+        clearElemDispatcher.addUnmodifiedLeftClickListener(ev => {
             this.clear();
             // this.playSound();
         });

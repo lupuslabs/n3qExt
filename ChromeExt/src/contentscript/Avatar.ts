@@ -68,27 +68,18 @@ export class Avatar implements IObserver
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.imageElem);
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
 
-        this.pointerEventDispatcher.setEventListener('hoverenter', eventData => {
-            this.entity.onMouseEnterAvatar(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('hoverleave', eventData => {
-            this.entity.onMouseLeaveAvatar(eventData);
-        });
+        this.pointerEventDispatcher.addHoverEnterListener(ev => this.entity.onMouseEnterAvatar(ev));
+        this.pointerEventDispatcher.addHoverLeaveListener(ev => this.entity.onMouseLeaveAvatar(ev));
 
-        this.pointerEventDispatcher.setEventListener('buttondown', eventData => {
-            this.entity.select();
-        });
-        this.pointerEventDispatcher.setEventListener('click', eventData => {
-            this.entity.onMouseClickAvatar(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('longclick', eventData => {
-            this.entity.onMouseLongClickAvatar(eventData);
-        });
-        this.pointerEventDispatcher.setEventListener('doubleclick', eventData => {
-            this.entity.onMouseDoubleClickAvatar(eventData);
-        });
+        this.pointerEventDispatcher.addAnyButtonDownListener(ev => this.entity.select());
 
-        this.pointerEventDispatcher.setEventListener('dragstart', ev => {
+        this.pointerEventDispatcher.addUnmodifiedLeftClickListener(ev => this.entity.onUnmodifiedLeftClickAvatar(ev));
+        this.pointerEventDispatcher.addCtrlLeftClickListener(ev => this.entity.onCtrlLeftClickAvatar(ev));
+        this.pointerEventDispatcher.addUnmodifiedLeftLongclickListener(ev => this.entity.onUnmodifiedLeftLongclickAvatar(ev));
+        this.pointerEventDispatcher.addUnmodifiedLeftDoubleclickListener(ev => this.entity.onUnmodifiedLeftDoubleclickAvatar(ev));
+        this.pointerEventDispatcher.addCtrlLeftDoubleclickListener(ev => this.entity.onCtrlLeftDoubleclickAvatar(ev));
+
+        this.pointerEventDispatcher.addDragStartListener(ev => {
             const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
             dragElem.classList.add('n3q-dragging');
             this.dragElem = dragElem;
@@ -103,7 +94,7 @@ export class Avatar implements IObserver
             this.entity.onDragAvatarStart(ev);
         });
 
-        this.pointerEventDispatcher.setEventListener('dragmove', ev => {
+        this.pointerEventDispatcher.addDragMoveListener(ev => {
             if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
                 this.pointerEventDispatcher.cancelDrag();
             }
@@ -126,7 +117,7 @@ export class Avatar implements IObserver
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragenter', ev => {
+        this.pointerEventDispatcher.addDragEnterListener(ev => {
             const dropTargetElem = ev.dropTarget;
             if (this.entity instanceof RoomItem
             && this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
@@ -134,12 +125,12 @@ export class Avatar implements IObserver
             }
         });
 
-        this.pointerEventDispatcher.setEventListener('dragleave', ev => {
+        this.pointerEventDispatcher.addDragLeaveListener(ev => {
             const dropTargetElem = ev.dropTargetLast;
             dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
         });
 
-        this.pointerEventDispatcher.setEventListener('dragdrop', ev => {
+        this.pointerEventDispatcher.addDragDropListener(ev => {
             if (this.entity instanceof RoomItem && ev.dropTarget instanceof HTMLElement
             && ev.dropTarget.classList.contains('n3q-backpack-pane')) {
                 this.onRoomItemDropOnBackpack(ev, this.entity, ev.dropTarget);
@@ -166,7 +157,7 @@ export class Avatar implements IObserver
             this.entity.onDraggedTo(newX);
         });
 
-        this.pointerEventDispatcher.setEventListener('dragend', ev => this.onDragEnd());
+        this.pointerEventDispatcher.addDragEndListener(ev => this.onDragEnd());
 
     }
 
