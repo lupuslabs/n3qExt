@@ -389,7 +389,6 @@ export class PointerEventDispatcher {
         this.clickEnd(true);
         this.dragCancel(true);
         this.buttonsResetOngoing = true; // Triggers cleaning of this.buttons* by handleButtonsReset.
-        this.swallowNextMouseclickEvent = false;
     }
 
     private handleEventLogOnly(ev: MouseEvent): void
@@ -417,32 +416,72 @@ export class PointerEventDispatcher {
             return;
         }
 
-        if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.handleMouseEvent: Processing event.`;
-            const {type, buttons} = ev;
-            log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
-        }
         this.inEventHandling = true;
+        this.swallowIgnoreOrRerouteMouseEvent(ev);
+        this.inEventHandling = false;
+    }
+
+    private swallowIgnoreOrRerouteMouseEvent(ev: MouseEvent): void
+    {
         this.lastMouseEventButtons = ev.buttons;
 
+        // Special handling for some click mouse events:
         const isClick = PointerEventDispatcher.mouseclickEventTypes.has(ev.type);
         if (isClick && this.swallowNextMouseclickEvent) {
+            // Event represents already-handled click.
             ev.stopImmediatePropagation();
             ev.preventDefault();
             this.swallowNextMouseclickEvent = false;
-        } else if (ev.type === 'contextmenu') {
-            // Don't touch the event lest it won't become untrusted and not make the browser display the context menu.
-        } else if (this.isOpaqueAtEventLocation(ev)) {
-            ev.stopImmediatePropagation();
-            if (!this.allowDefaultActions || this.dragOngoing) {
-                ev.preventDefault();
+            if (this.logEventsIn.has(ev.type)) {
+                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Swallowing mouse click because swallowNextMouseclickEvent was true.`;
+                const {type, buttons} = ev;
+                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
             }
-        } else {
-            this.reroutePointerOrMouseEvent(ev);
+            return;
+        }
+        if (ev.type === 'contextmenu') {
+            // Don't touch the event lest it won't become untrusted and not make the browser display the context menu.
+            if (this.logEventsIn.has(ev.type)) {
+                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Completely ignoring the contextmenu event (it should just bubble up).`;
+                const {type, buttons} = ev;
+                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+            }
+            return;
+        }
+
+        // Handle remaining events that are for us:
+        const isForUs = this.isOpaqueAtEventLocation(ev);
+        const preventDefaultIfForUs = !this.allowDefaultActions || this.dragOngoing;
+        if (isForUs && preventDefaultIfForUs) {
             ev.stopImmediatePropagation();
             ev.preventDefault();
+            if (this.logEventsIn.has(ev.type)) {
+                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Stopping propagation of event and preventing default.`;
+                const {type, buttons} = ev;
+                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+            }
+            return;
         }
-        this.inEventHandling = false;
+        if (isForUs) {
+            ev.stopImmediatePropagation();
+            if (this.logEventsIn.has(ev.type)) {
+                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Stopping propagation of event (but not preventing default).`;
+                const {type, buttons} = ev;
+                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+            }
+            return;
+        }
+
+        // Reroute remaining events (not special case clicks and not for us):
+        // The event becomes untrusted by this.
+        if (this.logEventsIn.has(ev.type)) {
+            const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Rerouting event.`;
+            const {type, buttons} = ev;
+            log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+        }
+        this.reroutePointerOrMouseEvent(ev);
+        ev.stopImmediatePropagation();
+        ev.preventDefault();
     }
 
     private handlePointerCancelEvent(ev: PointerEvent): void
@@ -559,7 +598,6 @@ export class PointerEventDispatcher {
 
         }
         if (this.buttonsResetOngoing) {
-            this.swallowNextMouseclickEvent = true;
             this.handleButtonsReset();
         }
 
@@ -584,10 +622,17 @@ export class PointerEventDispatcher {
             this.callEventListener(getDataFromPointerEvent('buttonup', ev, this.domElem));
         }
         if (isButtonsDown) {
+            const isPointerDownEvent = ev.type === 'pointerdown';
+
+            // Don't swallow autogenerated mouse click / contextmenu event if it doesn't becoem a drag or a click handled by a listener:
+            if (isInitialDown && !isPointerDownEvent) {
+                this.swallowNextMouseclickEvent = false;
+            }
+
             // Only the first button down for a pointer triggers an actual pointerdown event in chrome.
             // For an uncaptured pointer (lastButtonsState.buttons is zero), the heuristically detected button down
             // might actually have happened outside domElem. So only use heuristics for detecting additional buttons:
-            if (ev.type !== 'pointerdown' && isInitialDown) {
+            if (isInitialDown && !isPointerDownEvent) {
                 // Missed initial pointerdown (likely because it happened outdside domElem's bounding box).
                 this.cancelAllActions();
             } else {
@@ -742,7 +787,6 @@ export class PointerEventDispatcher {
                         const handler = () => {
                             this.clickCount = 1;
                             this.clickIsLong = true;
-                            this.swallowNextMouseclickEvent = true; // Long clicks trigger contextmenu in tablet mode on Chrome.
                             this.clickEnd(false);
                             this.handleButtonsReset();
                         };
@@ -803,7 +847,9 @@ export class PointerEventDispatcher {
             const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
             setClientPosOnPointerEventData(data, this.clickDownEventStart);
             setModifierKeysOnPointerEventData(data, this.clickMoveEventLast);
-            this.callEventListener(data);
+            if (this.callEventListener(data)) {
+                this.swallowNextMouseclickEvent = true; // We handled the click, so swallow the browser generated click event.
+            }
         }
         this.clickOngoing = false;
         this.clickIsLong = false;
@@ -978,23 +1024,25 @@ export class PointerEventDispatcher {
         return isOpaqueAtLoc;
     }
 
-    private callEventListener(data: PointerEventData): void
+    private callEventListener(data: PointerEventData): boolean
     {
         const {type, buttons, modifierKeys} = data;
+        const listeners = (this.eventListeners.get(type) ?? []).filter(record => {
+            return (is.nil(record.buttons) || record.buttons === buttons)
+                && (is.nil(record.modifierKeys) || record.modifierKeys === modifierKeys);
+        });
         if (this.logListenerCalls.has(data.type)) {
             const msg = `DomOpacityAwarePointerEventDispatcher.callEventListeners`;
-            log.info(msg, {type, buttons, modifierKeys, domElement: this.domElem, data, this: {...this}});
+            log.info(msg, {type, buttons, modifierKeys, domElement: this.domElem, data, listeners, this: {...this}});
         }
-        for (const listenerRecord of this.eventListeners.get(type) ?? []) {
-            if ((is.nil(listenerRecord.buttons) || listenerRecord.buttons === buttons)
-            && (is.nil(listenerRecord.modifierKeys) || listenerRecord.modifierKeys === modifierKeys)) {
-                try {
-                    listenerRecord.listener(data);
-                } catch (error) {
-                    this.app.onError(error);
-                }
+        listeners.forEach(listenerRecord => {
+            try {
+                listenerRecord.listener(data);
+            } catch (error) {
+                this.app.onError(error);
             }
-        }
+        });
+        return listeners.length !== 0;
     }
 
     private reroutePointerOrMouseEvent(ev: MouseEvent): Element|null
