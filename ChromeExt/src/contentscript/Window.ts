@@ -141,8 +141,7 @@ export abstract class Window<OptionsType extends WindowOptions>
         this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
         this.windowElem.classList.add(...this.windowCssClasses, `n3q-window-style-${this.style}`);
         this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
-        const options = { ignoreOpacity: true };
-        this.windowElemPointerDispatcher = new PointerEventDispatcher(this.app, this.windowElem, options);
+        this.windowElemPointerDispatcher = PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.windowElem);
 
         if (this.withTitlebar) {
             this.makeTitlebar();
@@ -208,7 +207,7 @@ export abstract class Window<OptionsType extends WindowOptions>
             left: this.geometryAtActionStart.left + ev.distanceX,
             bottom: this.geometryAtActionStart.bottom - ev.distanceY,
         });
-        const elem = this.titlebarElem ?? this.windowElem;
+        const elem = this.titlebarElem ?? 'n3q-window-move-handle-n';
         this.makeFrameElemUsermovable(elem, 'move', newGeometryFun);
     }
 

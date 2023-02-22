@@ -266,6 +266,7 @@ div#n3q-display {
         position: absolute;
         right: -7px;
         top: -7px;
+        z-index: 9999;
         background-color: #FFF;
         color: #000000;
         cursor: default;
@@ -1236,78 +1237,91 @@ div#n3q-display {
             pointer-events: auto;
         }
 
-        .n3q-window-resizable-handle {
-            position: absolute;
-            font-size: 0.1px;
-            display: block;
-            pointer-events: auto;
-            touch-action: none;
-        }
-        .n3q-window-resize-handle-h {
-            @extend .n3q-window-resizable-handle;
-            left: 0;
-            width: 100%;
-            height: 8px;
-        }
-        .n3q-window-resize-handle-n {
-            @extend .n3q-window-resize-handle-h;
-            cursor: n-resize;
-            top: -3px;
-            height: 4px;
-        }
-        .n3q-window-resize-handle-s {
-            @extend .n3q-window-resize-handle-h;
-            cursor: s-resize;
-            bottom: -3px;
-        }
-        .n3q-window-resize-handle-v {
-            @extend .n3q-window-resizable-handle;
-            top: 0;
-            width: 8px;
-            height: 100%;
-        }
-        .n3q-window-resize-handle-e {
-            @extend .n3q-window-resize-handle-v;
-            cursor: e-resize;
-            right: -3px;
-        }
-        .n3q-window-resize-handle-w {
-            @extend .n3q-window-resize-handle-v;
-            cursor: w-resize;
-            left: -3px;
-        }
-        .n3q-window-resize-handle-corner {
-            @extend .n3q-window-resizable-handle;
-            width: 10px;
-            height: 10px;
-        }
-        .n3q-window-resize-handle-se {
-            @extend .n3q-window-resize-handle-corner;
-            cursor: se-resize;
-            right: -3px;
-            bottom: -3px;
-            background: url(../assets/icons/resize-se.png) top left no-repeat;
-            width: 16px;
-            height: 16px;
-        }
-        .n3q-window-resize-handle-ne {
-            @extend .n3q-window-resize-handle-corner;
-            cursor: ne-resize;
-            right: -3px;
-            top: -3px;
-        }
-        .n3q-window-resize-handle-nw {
-            @extend .n3q-window-resize-handle-corner;
-            cursor: nw-resize;
-            left: -3px;
-            top: -3px;
-        }
-        .n3q-window-resize-handle-sw {
-            @extend .n3q-window-resize-handle-corner;
-            cursor: sw-resize;
-            left: -3px;
-            bottom: -3px;
-        }
+    }
+
+    .n3q-window-move-handle-n {
+        position: absolute;
+        font-size: 0.1px;
+        display: block;
+        pointer-events: auto;
+        touch-action: none;
+        top: -3px;
+        left: 0;
+        width: 100%;
+        height: 8px;
+    }
+
+    .n3q-window-resizable-handle {
+        position: absolute;
+        font-size: 0.1px;
+        display: block;
+        pointer-events: auto;
+        touch-action: none;
+    }
+    .n3q-window-resize-handle-h {
+        @extend .n3q-window-resizable-handle;
+        left: 0;
+        width: 100%;
+        height: 8px;
+    }
+    .n3q-window-resize-handle-n {
+        @extend .n3q-window-resize-handle-h;
+        cursor: n-resize;
+        top: -3px;
+        height: 4px;
+    }
+    .n3q-window-resize-handle-s {
+        @extend .n3q-window-resize-handle-h;
+        cursor: s-resize;
+        bottom: -3px;
+    }
+    .n3q-window-resize-handle-v {
+        @extend .n3q-window-resizable-handle;
+        top: 0;
+        width: 8px;
+        height: 100%;
+    }
+    .n3q-window-resize-handle-e {
+        @extend .n3q-window-resize-handle-v;
+        cursor: e-resize;
+        right: -3px;
+    }
+    .n3q-window-resize-handle-w {
+        @extend .n3q-window-resize-handle-v;
+        cursor: w-resize;
+        left: -3px;
+    }
+    .n3q-window-resize-handle-corner {
+        @extend .n3q-window-resizable-handle;
+        width: 10px;
+        height: 10px;
+    }
+    .n3q-window-resize-handle-se {
+        @extend .n3q-window-resize-handle-corner;
+        cursor: se-resize;
+        right: -3px;
+        bottom: -3px;
+        background: url(../assets/icons/resize-se.png) top left no-repeat;
+        width: 16px;
+        height: 16px;
+    }
+    .n3q-window-resize-handle-ne {
+        @extend .n3q-window-resize-handle-corner;
+        cursor: ne-resize;
+        right: -3px;
+        top: -3px;
+    }
+    .n3q-window-resize-handle-nw {
+        @extend .n3q-window-resize-handle-corner;
+        cursor: nw-resize;
+        left: -3px;
+        top: -3px;
+    }
+    .n3q-window-resize-handle-sw {
+        @extend .n3q-window-resize-handle-corner;
+        cursor: sw-resize;
+        left: -3px;
+        bottom: -3px;
     }
 
     div.n3q-window.n3q-window-style-window {
