@@ -489,6 +489,13 @@ export class BackgroundMessage
         });
     }
 
+    static closePopup(popupId: string): Promise<void>
+    {
+        return BackgroundMessage.sendMessageCheckOk({
+            'type': BackgroundMessage.closePopup.name, popupId,
+        });
+    }
+
     static isTabDisabled(pageUrl: string): Promise<boolean>
     {
         return new Promise(async (resolve, reject) =>

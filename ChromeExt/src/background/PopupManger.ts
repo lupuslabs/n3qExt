@@ -45,6 +45,17 @@ export class PopupManager
         }
     }
 
+    public closePopup(popupId: string): void
+    {
+        if (this.isStopped) {
+            return;
+        }
+        let popupInfo = this.popupInfos.get(popupId)
+        if (popupInfo) {
+            chrome.windows.remove(popupInfo.windowId);
+        }
+    }
+
     public isTabDisabled(tabId: number): boolean
     {
         let isPopupTab = false;

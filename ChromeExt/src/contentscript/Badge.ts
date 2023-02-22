@@ -115,6 +115,13 @@ export class Badge
         }).catch(error => this.app.onError(error));
     }
 
+    private closePopup()
+    {
+        const linkData = ItemProperties.getBadgeLinkData(this.item);
+        const popupId = String(Utils.hashString(linkData.linkUrl));
+        BackgroundMessage.closePopup(popupId).catch(error => this.app.onError(error));
+    }
+
     private initEventHandling(): void
     {
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
@@ -125,21 +132,21 @@ export class Badge
         this.pointerEventDispatcher.addAnyButtonDownListener(ev => this.badgesDisplay.onBadgePointerDown(ev));
         this.pointerEventDispatcher.addUnmodifiedLeftClickListener(ev => {
             if (!this.isStopping && !this.badgesDisplay.getIsInEditMode()) {
-                this.infoWindow.toggleVisibility();
+                if (ItemProperties.getIsToolBadge(this.item)) {
+                    this.openOrFocusPopup();
+                } else {
+                    this.infoWindow.toggleVisibility();
+                }
             }
         });
-        this.pointerEventDispatcher.setEventListener('click', ev => {
+        this.pointerEventDispatcher.addCtrlLeftClickListener(ev => {
             if (!this.isStopping) {
                 if (this.badgesDisplay.getIsInEditMode()) {
-                    if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.control) {
-                        const display = this.badgesDisplay;
-                        display.onBadgeDropOutside(this.item);
-                    }
+                    const display = this.badgesDisplay;
+                    display.onBadgeDropOutside(this.item);
                 } else {
                     if (ItemProperties.getIsToolBadge(this.item)) {
-                        this.openOrFocusPopup();
-                    } else {
-                        this.infoWindow.toggleVisibility();
+                        this.closePopup();
                     }
                 }
             }

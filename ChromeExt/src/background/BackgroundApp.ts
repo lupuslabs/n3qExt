@@ -524,6 +524,10 @@ export class BackgroundApp
                 return this.handle_openOrFocusPopup(message.popupDefinition, sendResponse);
             } break;
 
+            case BackgroundMessage.closePopup.name: {
+                return this.handle_closePopup(message.popupId, sendResponse);
+            } break;
+
             case BackgroundMessage.isTabDisabled.name: {
                 return this.handle_isTabDisabled(sender.tab.id, message.pageUrl, sendResponse);
             } break;
@@ -1181,6 +1185,17 @@ export class BackgroundApp
             sendResponse(new BackgroundSuccessResponse());
         } catch (error) {
             sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupDefinition})});
+        }
+        return false;
+    }
+
+    private handle_closePopup(popupId: string, sendResponse: (response: any) => void): boolean
+    {
+        try {
+            this.popupManager.closePopup(popupId);
+            sendResponse(new BackgroundSuccessResponse());
+        } catch (error) {
+            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupId})});
         }
         return false;
     }
