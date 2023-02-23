@@ -121,7 +121,7 @@ export namespace HostedInventoryItemProvider
 
         async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
         {
-            const {itemsLoaded, itemsToLoadByInventory} = this.getItemsLoadedAndInventoryItemIdsToLoad(itemsToGet);
+            const { itemsLoaded, itemsToLoadByInventory } = this.getItemsLoadedAndInventoryItemIdsToLoad(itemsToGet);
             const rermainingItemsPromise = this.requestItemsFromServer(itemsToLoadByInventory);
             itemsLoaded.push(...await rermainingItemsPromise);
             return itemsLoaded;
@@ -201,6 +201,7 @@ export namespace HostedInventoryItemProvider
                     log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                 } else {
                     let httpProvider = Config.get('web3.provider.' + network, '');
+                    if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'network=', network, 'httpProvider=', httpProvider); }
                     let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
                     for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
                         idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
@@ -221,6 +222,7 @@ export namespace HostedInventoryItemProvider
                         log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                     } else {
                         let httpProvider = Config.get('web3.provider.' + network, '');
+                        if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', { network, httpProvider }); }
                         let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
                         for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
                             idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
@@ -241,9 +243,12 @@ export namespace HostedInventoryItemProvider
 
             let web3eth = new Web3Eth(new Web3Eth.providers.HttpProvider(httpProvider));
             let contract = new web3eth.Contract(contractABI, contractAddress);
+            if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'balanceOf', walletAddress, contractAddress }); }
             let numberOfItems = await contract.methods.balanceOf(walletAddress).call();
             for (let i = 0; i < numberOfItems; i++) {
+                if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'tokenOfOwnerByIndex', i, walletAddress, contractAddress }); }
                 let tokenId = await contract.methods.tokenOfOwnerByIndex(walletAddress, i).call();
+                if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'tokenURI', tokenId, walletAddress, contractAddress }); }
                 let tokenUri = await contract.methods.tokenURI(tokenId).call();
 
                 if (Config.get('config.clusterName', 'prod') == 'dev') {
@@ -471,7 +476,7 @@ export namespace HostedInventoryItemProvider
             let deletedIds = [];
             let changedIds = [];
             let result = {};
-            let multiItemProperties: {[prop: string]: ItemProperties} = {};
+            let multiItemProperties: { [prop: string]: ItemProperties } = {};
             try {
                 const request = new RpcProtocol.UserItemActionRequest(
                     this.userId,
@@ -661,7 +666,8 @@ export namespace HostedInventoryItemProvider
                                 const vpNickname = as.String(attrs.Nickname);
                                 if (vpNickname !== '' && vpNickname !== this.nicknameKnownByServer) {
                                     this.nicknameKnownByServer = vpNickname;
-                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname).catch (error => {
+                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname).catch(error =>
+                                    {
                                         log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
                                     });
                                 }
@@ -671,7 +677,8 @@ export namespace HostedInventoryItemProvider
                                 const vpAvatar = as.String(attrs.AvatarUrl);
                                 if (vpAvatar !== '' && vpAvatar != this.avatarKnownByServer) {
                                     this.avatarKnownByServer = vpAvatar;
-                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar).catch (error => {
+                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar).catch(error =>
+                                    {
                                         log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set avatar=', vpAvatar, ' at server failed', error);
                                     });
                                 }
@@ -797,14 +804,15 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        private makeItemCacheKey(inventoryId: string, itemId: string): string { return `${inventoryId}:${itemId}`}
+        private makeItemCacheKey(inventoryId: string, itemId: string): string { return `${inventoryId}:${itemId}` }
 
         // -------------------- Generic item loading ----------------------
 
         private getItemsLoadedAndInventoryItemIdsToLoad(
             itemIds: ItemProperties[]
-        ): {itemsLoaded: ItemProperties[], itemsToLoadByInventory: Map<string,{itemId: string, cacheKey: string}[]>} {
-            const itemsToLoad = new Map<string,{itemId: string, cacheKey: string}[]>(); // Map<inventoryId,itemId[]>
+        ): { itemsLoaded: ItemProperties[], itemsToLoadByInventory: Map<string, { itemId: string, cacheKey: string }[]> }
+        {
+            const itemsToLoad = new Map<string, { itemId: string, cacheKey: string }[]>(); // Map<inventoryId,itemId[]>
             const itemsLoaded: ItemProperties[] = [];
             for (const item of itemIds) {
                 const [providerId, inventoryId, itemId, version]
@@ -831,18 +839,19 @@ export namespace HostedInventoryItemProvider
                         inventoryItemIds = [];
                         itemsToLoad.set(inventoryId, inventoryItemIds);
                     }
-                    inventoryItemIds.push({itemId, cacheKey});
+                    inventoryItemIds.push({ itemId, cacheKey });
                 }
             }
-            return {itemsLoaded, itemsToLoadByInventory: itemsToLoad};
+            return { itemsLoaded, itemsToLoadByInventory: itemsToLoad };
         }
 
         private itemRequests = new Map<string, ((item?: ItemProperties) => void)[]>();
 
         private requestItemsFromServer(
-            itemsToLoadByInventory: Map<string,{itemId: string, cacheKey: string}[]>
-        ): Promise<ItemProperties[]> {
-            const itemPromises: Promise<ItemProperties|null>[] = [];
+            itemsToLoadByInventory: Map<string, { itemId: string, cacheKey: string }[]>
+        ): Promise<ItemProperties[]>
+        {
+            const itemPromises: Promise<ItemProperties | null>[] = [];
             for (const [inventoryId, itemIdCacheKeys] of itemsToLoadByInventory) {
                 const itemIdCacheKeysToRequest
                     = this.generateItemPromisesForInventoryItemsRequest(itemIdCacheKeys, itemPromises);
@@ -851,60 +860,66 @@ export namespace HostedInventoryItemProvider
                 }
             }
             const itemsPromise = Promise.all(itemPromises)
-            .then((items: (ItemProperties|null)[]) => items.filter(item => !is.nil(item)));
+                .then((items: (ItemProperties | null)[]) => items.filter(item => !is.nil(item)));
             return itemsPromise;
         }
 
         private generateItemPromisesForInventoryItemsRequest(
-            itemIdCacheKeys: {itemId: string, cacheKey: string}[], itemPromisesAccu: Promise<ItemProperties|null>[],
-        ): Map<string, string> {
+            itemIdCacheKeys: { itemId: string, cacheKey: string }[], itemPromisesAccu: Promise<ItemProperties | null>[],
+        ): Map<string, string>
+        {
             const itemIdCacheKeysToRequest = new Map<string, string>();
-            for (const {itemId, cacheKey} of itemIdCacheKeys) {
+            for (const { itemId, cacheKey } of itemIdCacheKeys) {
                 let requestItemCallbacks = this.itemRequests.get(cacheKey);
                 if (is.nil(requestItemCallbacks)) {
                     requestItemCallbacks = [];
                     this.itemRequests.set(cacheKey, requestItemCallbacks);
                     itemIdCacheKeysToRequest.set(itemId, cacheKey);
                 }
-                itemPromisesAccu.push(new Promise<ItemProperties|null>(resolve => {
+                itemPromisesAccu.push(new Promise<ItemProperties | null>(resolve =>
+                {
                     requestItemCallbacks.push(resolve);
                 }));
             }
             return itemIdCacheKeysToRequest;
         }
 
-        private performInventoryItemsRequest(inventoryId: string, itemIdCacheKeysToRequest: Map<string, string>): void {
+        private performInventoryItemsRequest(inventoryId: string, itemIdCacheKeysToRequest: Map<string, string>): void
+        {
             const itemIds = [...itemIdCacheKeysToRequest.keys()];
             const [userId, token] = [this.userId, this.accessToken];
             if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
-                log.info('HostedInventoryItemProvider.performInventoryItemsRequest', {inventoryId, itemIds});
+                log.info('HostedInventoryItemProvider.performInventoryItemsRequest', { inventoryId, itemIds });
             }
             const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, this.app.getLanguage(), inventoryId, itemIds);
             this.rpcClient.call(this.config().itemApiUrl, request)
-            .then(response => this.handleInventoryItemsResponse(
-                inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>response
-            )).catch(error => {
-                console.info('HostedInventoryItemProvider.performInventoryItemsRequest', {error});
-            }).finally(() => {
-                // Resolve remaining callbacks for which no item has been returned:
-                for (const cacheKey of itemIdCacheKeysToRequest.values()) {
-                    const callbacks = this.itemRequests.get(cacheKey) ?? [];
-                    this.itemRequests.delete(cacheKey);
-                    callbacks.forEach(resolve => resolve(null));
-                }
-            });
+                .then(response => this.handleInventoryItemsResponse(
+                    inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>response
+                )).catch(error =>
+                {
+                    console.info('HostedInventoryItemProvider.performInventoryItemsRequest', { error });
+                }).finally(() =>
+                {
+                    // Resolve remaining callbacks for which no item has been returned:
+                    for (const cacheKey of itemIdCacheKeysToRequest.values()) {
+                        const callbacks = this.itemRequests.get(cacheKey) ?? [];
+                        this.itemRequests.delete(cacheKey);
+                        callbacks.forEach(resolve => resolve(null));
+                    }
+                });
         }
 
         private handleInventoryItemsResponse(
             inventoryId: string,
-            itemIdCacheKeysToRequest: Map<string,string>,
+            itemIdCacheKeysToRequest: Map<string, string>,
             response: RpcProtocol.UserGetItemPropertiesResponse,
-        ): void {
+        ): void
+        {
             const logEnabled = Utils.logChannel('HostedInventoryItemProviderItemCache', true);
             const items = Object.values(response.multiItemProperties);
             if (logEnabled) {
                 const msg = 'HostedInventoryItemProvider.handleInventoryItemsResponse: Loaded items.';
-                log.info(msg, {inventoryId, items});
+                log.info(msg, { inventoryId, items });
             }
             const isOwnBackpack = inventoryId === this.userId;
 
@@ -931,7 +946,8 @@ export namespace HostedInventoryItemProvider
             }
             changedRooms.forEach(room => this.backpack.requestSendPresenceFromTab(room));
 
-            itemIdCacheKeysToRequest.forEach((cacheKey, itemId) => {
+            itemIdCacheKeysToRequest.forEach((cacheKey, itemId) =>
+            {
                 const callbacks = this.itemRequests.get(cacheKey) ?? [];
                 this.itemRequests.delete(cacheKey);
                 callbacks.forEach(resolve => resolve(null));
@@ -940,7 +956,7 @@ export namespace HostedInventoryItemProvider
             if (logEnabled && itemIdCacheKeysToRequest.size !== 0) {
                 const itemIds = itemIdCacheKeysToRequest.keys();
                 const msg = 'HostedInventoryItemProvider.handleInventoryItemsResponse: Some requested items don\'t exist or are invisible to this user!';
-                log.info(msg, {inventoryId, itemIds});
+                log.info(msg, { inventoryId, itemIds });
             }
         }
 
@@ -1008,7 +1024,8 @@ export namespace HostedInventoryItemProvider
 
         private requestItemPropertiesForDependentPresence(
             itemId: string, inventoryId: string, roomJid: string, participantNick: string,
-        ): void {
+        ): void
+        {
             if (inventoryId === '' || this.itemsRequestedForDependendPresence.has(itemId)) {
                 return;
             }
@@ -1027,8 +1044,9 @@ export namespace HostedInventoryItemProvider
                     if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) { log.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', 'inventory=' + deferredRequest.inventoryId, Array.from(deferredRequest.itemIds).join(' ')); }
 
                     const itemsToGet = [...deferredRequest.itemIds.values()]
-                    .map(itemId => ({[Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId, [Pid.Version]: ''}));
-                    this.getItemsByInventoryItemIds(itemsToGet).then(items => {
+                        .map(itemId => ({ [Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId, [Pid.Version]: '' }));
+                    this.getItemsByInventoryItemIds(itemsToGet).then(items =>
+                    {
                         for (let id of deferredRequest.itemIds) {
                             this.itemsRequestedForDependendPresence.delete(id);
                         }
@@ -1036,17 +1054,17 @@ export namespace HostedInventoryItemProvider
                             this.backpack.replayPresence(roomJid, participantNick);
                             if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
                                 const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: Replayed presence.';
-                                log.info(msg, {items, roomJid, participantNick});
+                                log.info(msg, { items, roomJid, participantNick });
                             }
                         } else {
                             const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: didn\'t get all items.';
-                            console.info(msg, {itemsToGet, items});
+                            console.info(msg, { itemsToGet, items });
                         }
                     })
-                    .catch(error =>
-                    {
-                        console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
-                    });
+                        .catch(error =>
+                        {
+                            console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
+                        });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
                 let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);
                 deferredRequest.itemIds.add(itemId);
