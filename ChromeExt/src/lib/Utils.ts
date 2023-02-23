@@ -337,4 +337,43 @@ export class Utils
         return newGeometry;
     }
 
+    static mangleUserProvidedUrl(url: string): string
+    {
+        const urlTrimmed = url.trim();
+        if (urlTrimmed.length === 0) {
+            return urlTrimmed;
+        }
+
+        // Provide omitted scheme:
+        let urlSchemed = urlTrimmed;
+        if (!/^[a-z]+:/i.test(urlTrimmed)) {
+            urlSchemed = `http://${urlTrimmed}`;
+        }
+
+        // Normalize:
+        let urlNormalized: string;
+        try {
+            urlNormalized = (new URL(urlSchemed)).href; // Normalization.
+        } catch (error) {
+            // Not a valid URL after our corrections.
+            urlNormalized = urlTrimmed;
+        }
+
+        return urlNormalized;
+    }
+
+    static getLabelOfUrl(url: string): string
+    {
+        let label: string;
+        try {
+            label = (new URL(url)).host;
+        } catch (error) {
+            label = url;
+        }
+        if (label.length === 0) {
+            label = url;
+        }
+        return label;
+    }
+
 }

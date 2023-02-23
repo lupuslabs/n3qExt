@@ -1,8 +1,9 @@
 import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { domHtmlElemOfHtml, domWaitForRenderComplete } from '../lib/domTools';
+import { domHtmlElemOfHtml } from '../lib/domTools';
 import { Badge } from './Badge';
+import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config';
 import { Window, WindowOptions } from './Window'
 
@@ -33,8 +34,9 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     public updateDisplay(): void
     {
         if (this.getVisibility()) {
+            const geometry = this.readGeometryFromDom();
             this.close();
-            this.show({});
+            this.show(geometry);
         }
     }
 
@@ -55,7 +57,8 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         this.givenOptions = {
             width: 'content',
             height: 'content',
-            left: aboveRect.left,
+            left: this.givenOptions.left ?? aboveRect.left,
+            bottom: this.givenOptions.bottom,
             above: aboveRect,
             aboveYOffset: Config.get('badges.infoWindowBadgeDistanceY', 0),
         };
@@ -96,11 +99,15 @@ export class BadgeInfoWindow extends Window<WindowOptions>
             descriptionColumnElems.push(elem);
         }
 
-        const {linkUrl, linkLabel} = ItemProperties.getBadgeLinkData(properties);
+        let {linkUrl, linkLabel} = ItemProperties.getBadgeLinkData(properties);
+        linkUrl = Utils.mangleUserProvidedUrl(linkUrl);
         if (linkUrl.length !== 0) {
+            if (linkLabel.length === 0) {
+                linkLabel = Utils.getLabelOfUrl(linkUrl);
+            }
             const elem = domHtmlElemOfHtml('<a class="n3q-badgeInfoWindow-link" target="_blank"></a>');
             elem.setAttribute('href', linkUrl);
-            this.makeTextElems(elem, linkLabel.length === 0 ? linkUrl : linkLabel);
+            this.makeTextElems(elem, linkLabel);
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, elem);
             descriptionColumnElems.push(elem);
         }
