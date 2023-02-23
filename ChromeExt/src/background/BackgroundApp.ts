@@ -406,6 +406,11 @@ export class BackgroundApp
                 return false;
             } break;
 
+            case BackgroundMessage.sendRoomPos.name: {
+                sendResponse(this.handle_sendRoomPos(message.roomJid, message.posX));
+                return false;
+            } break;
+
             case BackgroundMessage.sendRoomPresence.name: {
                 sendResponse(this.handle_sendRoomPresence(sender.tab.id, message.presenceData));
                 return false;
@@ -1263,6 +1268,16 @@ export class BackgroundApp
 
         } catch (error) {
             log.debug('BackgroundApp.handle_sendStanza', error);
+        }
+    }
+
+    private handle_sendRoomPos(roomJid: string, posX: number): BackgroundResponse
+    {
+        try {
+            this.roomPresenceManager?.updateRoomPos(roomJid, posX);
+            return new BackgroundSuccessResponse();
+        } catch (error) {
+            return new BackgroundErrorResponse('error', error);
         }
     }
 

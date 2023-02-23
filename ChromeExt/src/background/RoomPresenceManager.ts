@@ -18,6 +18,7 @@ import { AvatarGallery } from '../lib/AvatarGallery'
 class RoomData
 {
     public readonly roomJid: string
+    public posX: number
 
     public desiredNick: null|string // Initially tried nick set before entering the room.
     public confirmedNick: null|string = null // Set when entered the room.
@@ -34,9 +35,10 @@ class RoomData
     public sendPresenceTimeoutHandle: null|number = null
     public sheduledPresenceCountSinceLastSend: Map<string,number> = new Map()
 
-    public constructor(roomJid)
+    public constructor(roomJid: string, posX: number)
     {
         this.roomJid = roomJid
+        this.posX = posX
     }
 }
 
@@ -79,6 +81,19 @@ export class RoomPresenceManager
         return [...(this.rooms.get(roomJid)?.tabIds.values() ?? [])]
     }
 
+    public updateRoomPos(roomJid: string, posX: number): void
+    {
+        if (this.isStopped) {
+            return
+        }
+        this.settingsPosX = posX
+        const roomData = this.rooms.get(roomJid)
+        if (roomData) {
+            roomData.posX = posX
+            this.scheduleSendRoomPresence(roomData, null)
+        }
+    }
+
     public onUserSettingsChanged(): void
     {
         if (this.isStopped) {
@@ -111,10 +126,7 @@ export class RoomPresenceManager
             }
 
             try {
-                const oldPosX = this.settingsPosX
                 this.settingsPosX = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), 100), 100)
-                settingsChanged = settingsChanged || this.settingsPosX !== oldPosX
-                delaySecs = null
             } catch (error) {
                 log.info('RoomPresenceManager.onUserSettingsChanged: Position retrieval failed!', { error })
             }
@@ -450,7 +462,7 @@ export class RoomPresenceManager
             presence.attrs.type = 'unavailable'
         }
 
-        presence.c('x', { xmlns: 'firebat:avatar:state', }).c('position', { x: this.settingsPosX })
+        presence.c('x', { xmlns: 'firebat:avatar:state', }).c('position', { x: roomData.posX })
 
         if (showAvailability !== '') {
             presence.c('show').t(showAvailability)
@@ -504,7 +516,7 @@ export class RoomPresenceManager
         const roomJid = tabPresenceData.roomJid
         let roomData = this.rooms.get(roomJid) ?? null
         if (!roomData) {
-            roomData = new RoomData(roomJid)
+            roomData = new RoomData(roomJid, this.settingsPosX)
             this.rooms.set(roomJid, roomData)
         }
         this.tabPresences.set(tabId, tabPresenceData)

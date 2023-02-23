@@ -851,9 +851,7 @@ export class Participant extends Entity
     {
         if (this.getPosition() !== newX) {
             if (this.isSelf) {
-                (async () => {
-                    await this.app.savePosition(newX);
-                })().catch(error => this.app.onError(error));
+                this.room.saveOwnPosition(newX);
             } else {
                 this.quickSlide(newX);
             }

@@ -246,11 +246,11 @@ export class ContentApp extends AppWithDom
             log.info('ContentApp.start', 'disabled by URL hash');
             return;
         }
-        if (this.isPageDisabledByDomainSuffix(pageUrl)) { 
+        if (this.isPageDisabledByDomainSuffix(pageUrl)) {
             log.info('ContentApp.start', 'disabled by domain suffix');
             return;
         }
-        if (await this.isPageDisabledByBackgroundCheck(pageUrl)) { 
+        if (await this.isPageDisabledByBackgroundCheck(pageUrl)) {
             log.info('ContentApp.start', 'disabled by background check');
             return;
         }
@@ -1247,7 +1247,6 @@ export class ContentApp extends AppWithDom
     {
         try {
             await Memory.setLocal(Utils.localStorageKey_X(), x);
-            await BackgroundMessage.userSettingsChanged()
         } catch (error) {
             log.info(error);
         }

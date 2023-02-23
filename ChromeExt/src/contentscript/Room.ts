@@ -176,6 +176,12 @@ export class Room
         }
     }
 
+    saveOwnPosition(posX: number): void
+    {
+        this.app.savePosition(posX).catch(error => log.info(error));
+        BackgroundMessage.sendRoomPos(this.jid, posX).catch(error => log.info(error));
+    }
+
     public sendPresence(): void
     {
         (async () => {

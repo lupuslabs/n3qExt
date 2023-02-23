@@ -261,6 +261,11 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendStanza.name, 'stanza': stanza });
     }
 
+    static sendRoomPos(roomJid: string, posX: number): Promise<void>
+    {
+        return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendRoomPos.name, roomJid, posX });
+    }
+
     static sendRoomPresence(presenceData: TabRoomPresenceData): Promise<void>
     {
         return BackgroundMessage.sendMessage({ 'type': BackgroundMessage.sendRoomPresence.name, presenceData });
