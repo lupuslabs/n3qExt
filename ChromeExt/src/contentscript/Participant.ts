@@ -29,8 +29,8 @@ import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
-import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
-import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
+import { domHtmlElemOfHtml } from '../lib/domTools';
+import { PointerEventData } from '../lib/PointerEventData';
 import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
 import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
@@ -472,12 +472,12 @@ export class Participant extends Entity
             case 'away':
             case 'xa':
             case 'dnd':
-                $(this.elem).attr('title', this.app.translateText('StatusMessage.' + status));
-                $(this.elem).addClass('n3q-ghost');
+                this.elem.setAttribute('title', this.app.translateText('StatusMessage.' + status));
+                this.elem.classList.add('n3q-ghost');
                 break;
             default:
-                $(this.elem).removeAttr('title');
-                $(this.elem).removeClass('n3q-ghost');
+                this.elem.removeAttribute('title');
+                this.elem.classList.remove('n3q-ghost');
                 break;
         }
     }
@@ -858,7 +858,7 @@ export class Participant extends Entity
         }
     }
 
-    onMoveDestinationReached(newX: number): void
+    protected onMoveDestinationReached(newX: number): void
     {
         super.onMoveDestinationReached(newX);
         this.sendParticipantMovedToAllScriptFrames();

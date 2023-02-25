@@ -1,8 +1,6 @@
 import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 
 import log = require('loglevel');
-import * as $ from 'jquery';
-import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Element as XmlElement } from 'ltx';
 import { Config } from '../lib/Config';
@@ -13,7 +11,7 @@ import { RoomItem } from './RoomItem';
 import { BackpackItem } from './BackpackItem';
 import { PointerEventData } from '../lib/PointerEventData';
 import { AnimationsDefinition } from './AnimationsXml';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomElemTransition, domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools'
 
 export class Entity
 {
@@ -21,14 +19,12 @@ export class Entity
     protected rangeElem: HTMLElement;
     protected visible: boolean = false;
     protected avatarDisplay: Avatar;
-    protected positionX: number = -1;
     protected defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
+    protected onMoveTransitionEndHandler: null|((ev: TransitionEvent) => void) = null;
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
-        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-entity"></div>');
-        this.elem.style.display = 'none';
-
+        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-entity n3q-hidden"></div>');
         app.getDisplay()?.append(this.elem);
     }
 
@@ -43,13 +39,12 @@ export class Entity
     {
         if (visible !== this.visible) {
             if (visible) {
-                if (durationSec > 0) {
-                    $(this.elem).fadeIn(durationSec * 1000);
-                } else {
-                    this.elem.style.display = 'block';
-                }
+                this.elem.classList.remove('n3q-hidden');
+                this.elem.style.opacity = '0';
+                const transition = { property: 'opacity', duration: `${durationSec}s` };
+                startDomElemTransition(this.elem, null, transition, '1');
             } else {
-                this.elem.style.display = 'none';
+                this.elem.classList.add('n3q-hidden');
             }
             this.visible = visible;
         }
@@ -58,15 +53,14 @@ export class Entity
     remove(): void
     {
         this.show(false);
-        $(this.elem).remove();
-        delete this.elem;
+        this.elem?.remove();
     }
 
     showEffect(effect: string): void
     {
         const pulseElem = domHtmlElemOfHtml('<div class="n3q-base n3q-pulse"></div>');
         this.elem.append(pulseElem);
-        window.setTimeout(() => { $(pulseElem).remove(); }, 1000);
+        window.setTimeout(() => { pulseElem?.remove(); }, 1000);
     }
 
     setRange(left: number, right: number): void
@@ -89,20 +83,20 @@ export class Entity
         // Nothing to do if not having a Chatout.
     }
 
-    setPosition(x: number): void
+    protected setPosition(x: number): void
     {
-        this.positionX = x;
-        if (!is.nil(this.elem)) {
-            this.elem.style.left = x + 'px';
-        }
+        this.elem.style.left = `${x}px`;
     }
 
-    move(newX: number): void
+    protected move(newX: number): void
     {
         if (newX < 0) { newX = 0; }
 
         const oldX = this.getPosition();
-        this.setPosition(oldX);
+        if (newX === oldX) {
+            this.setPosition(newX);
+            this.onMoveDestinationReached(newX);
+        }
         const diffX = newX - oldX;
 
         this.avatarDisplay?.setActivity(diffX < 0 ? 'moveleft' : 'moveright'); // Also sets speed.
@@ -113,60 +107,57 @@ export class Entity
             return;
         }
         const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
-        const durationSec = Math.abs(diffX) / speedPixelPerSec;
-        $(this.getElem())
-            .stop(true)
-            .animate(
-                { left: newX + 'px' },
-                {
-                    duration: durationSec * 1000,
-                    step: (x) => { this.positionX = x; },
-                    easing: 'linear',
-                    complete: () => this.onMoveDestinationReached(newX)
-                }
-            );
+        const durationSecs = Math.abs(diffX) / speedPixelPerSec;
+        const transition: DomElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
+        const onMoveComplete = ev => {
+            if (ev.propertyName === 'left') {
+                this.onMoveDestinationReached(newX);
+            }
+        }
+        this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.onMoveTransitionEndHandler = onMoveComplete;
+        this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
+        startDomElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
-    onMoveDestinationReached(newX: number): void
+    protected onMoveDestinationReached(newX: number): void
     {
-        this.setPosition(newX);
         this.avatarDisplay?.setActivity('');
     }
 
-    getPosition(): number
+    public getPosition(): number
     {
-        return this.positionX;
+        return this.elem.offsetLeft;
     }
 
     /**
      * Returns avatar bottom center viewport coordinates.
      */
-    getClientPos(): {avatarOriginClientX: number, avatarOriginClientY: number}
+    public getClientPos(): {avatarOriginClientX: number, avatarOriginClientY: number}
     {
         const clientRect = this.elem.getBoundingClientRect();
         return {avatarOriginClientX: clientRect.left, avatarOriginClientY: clientRect.bottom};
     }
 
-    quickSlide(newX: number): void
+    protected quickSlide(newX: number): void
     {
         if (newX < 0) { newX = 0; }
 
-        $(this.elem)
-            .stop(true)
-            .animate(
-                { left: newX + 'px' },
-                {
-                    duration: as.Float(Config.get('room.quickSlideSec'), 0.1) * 1000,
-                    step: (x) => { this.positionX = x; },
-                    easing: 'linear',
-                    complete: () => this.onQuickSlideReached(newX)
-                }
-            );
+        const durationSecs = as.Float(Config.get('room.quickSlideSec'), 0.1);
+        const transition: DomElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
+        const onMoveComplete = ev => {
+            if (ev.propertyName === 'left') {
+                this.onQuickSlideReached(newX);
+            }
+        }
+        this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.onMoveTransitionEndHandler = onMoveComplete;
+        this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
+        startDomElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
-    onQuickSlideReached(newX: number): void
+    protected onQuickSlideReached(newX: number): void
     {
-        this.positionX = newX;
     }
 
     // Xmpp

@@ -524,7 +524,7 @@ export class RoomItem extends Entity
         this.onMoved(newX);
     }
 
-    public onQuickSlideReached(newX: number): void
+    protected onQuickSlideReached(newX: number): void
     {
         super.onQuickSlideReached(newX);
 
