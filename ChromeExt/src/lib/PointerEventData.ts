@@ -129,12 +129,12 @@ export function setClientPosOnPointerEventData(data: PointerEventData, event: Po
     data.startDomElementOffsetY = data.domElementOffsetY;
 }
 
-export function setDistanceOnPointerEventData(data: PointerEventData, startEvent: PointerEvent): void
+export function setDistanceOnPointerEventData(data: PointerEventData, startEvent: PointerEventData): void
 {
     data.startClientX = startEvent.clientX;
     data.startClientY = startEvent.clientY;
-    data.startDomElementOffsetX = data.startClientX - data.domElementRect.left;
-    data.startDomElementOffsetY = data.startClientY - data.domElementRect.top;
+    data.startDomElementOffsetX = startEvent.startDomElementOffsetX;
+    data.startDomElementOffsetY = startEvent.startDomElementOffsetY;
     data.distanceX = data.clientX - startEvent.clientX;
     data.distanceY = data.clientY - startEvent.clientY;
 }

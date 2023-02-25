@@ -84,7 +84,7 @@ export class PointerEventDispatcher {
     private dragOngoing: boolean = false;
     private dragUserCanceled: boolean = false;
     private dragStartPossible: boolean = false;
-    private dragDownEventStart: PointerEvent|null = null;
+    private dragDownEventStart: PointerEventData|null = null;
     private dragDownEventLast: PointerEvent|null = null;
     private dragMoveEventLast: PointerEvent|null = null;
     private dragDropTargetLast: Element|null = null;
@@ -919,7 +919,7 @@ export class PointerEventDispatcher {
         this.dragUserCanceled = false;
         this.dragStartPossible = false;
         this.dragDropTargetLast = null;
-        this.dragDownEventStart = eventStart;
+        this.dragDownEventStart = getDataFromPointerEvent('dragstart', eventStart, this.domElem);
         this.dragDownEventLast = eventStart;
         this.dragMoveEventLast = null;
         this.dragMoveEventDataLast = null;

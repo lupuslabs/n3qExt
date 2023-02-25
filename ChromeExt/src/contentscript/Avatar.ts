@@ -152,7 +152,7 @@ export class Avatar implements IObserver
                 }
 
             }
-            let newX = this.entity.getPosition() + ev.distanceX;
+            let newX = as.Int(ev.clientX - ev.startDomElementOffsetX + this.elem.offsetWidth / 2);
             newX = Math.max(0, Math.min(document.documentElement.offsetWidth - 1, newX));
             this.entity.onDraggedTo(newX);
         });
