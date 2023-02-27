@@ -347,7 +347,7 @@ export class Utils
         // Provide omitted scheme:
         let urlSchemed = urlTrimmed;
         if (!/^[a-z]+:/i.test(urlTrimmed)) {
-            urlSchemed = `http://${urlTrimmed}`;
+            urlSchemed = `https://${urlTrimmed}`;
         }
 
         // Normalize:
