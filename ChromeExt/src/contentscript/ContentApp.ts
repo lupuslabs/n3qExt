@@ -546,9 +546,10 @@ export class ContentApp extends AppWithDom
         new ChangesWindow(this).show({});
     }
 
-    showSettings(aboveElem: HTMLElement)
+    showSettings(aboveElem?: HTMLElement)
     {
         if (!this.settingsWindow) {
+            aboveElem = aboveElem ?? this.getMyParticipantELem();
             this.settingsWindow = new SettingsWindow(this);
             this.settingsWindow.show({ 'above': aboveElem, onClose: () => { this.settingsWindow = null; } });
         }
@@ -782,8 +783,10 @@ export class ContentApp extends AppWithDom
         if (durationSecs === 0) {
             durationSecs = as.Float(Config.get('client.notificationToastDurationSec'), 30);
         }
+        const hasDontShowAgainOption = as.Bool(Config.get(`toast.hasDontShowAgainOptionByType.${type}`, true));
         const links = request.links;
         const toast = new SimpleToast(this, type, durationSecs, iconType, title, text);
+        toast.setDontShow(hasDontShowAgainOption);
         if (links) {
             links.forEach(link =>
             {
@@ -791,8 +794,13 @@ export class ContentApp extends AppWithDom
                 {
                     if (link.href.startsWith('client:')) {
                         const cmd = link.href.substring('client:'.length);
-                        if (cmd === 'toggleBackpack') {
-                            this.showBackpackWindow();
+                        switch (cmd) {
+                            case 'toggleBackpack': {
+                                this.showBackpackWindow();
+                            } break;
+                            case 'openSettings': {
+                                this.showSettings();
+                            } break;
                         }
                     } else {
                         document.location.href = link.href;

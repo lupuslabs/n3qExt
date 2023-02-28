@@ -13,6 +13,7 @@ export class _Changes
             ['Change', 'Room item popup to adapt to content width'],
             ['Change', 'Points bar title hover to always show all channels'],
             ['Change', 'Backpack item popup spacing and item description'],
+            ['Fix', 'Eternal lockout after setting a nickname containing code points deemed illegal by XMPP server'],
             ['Fix', 'Competing tabs'],
             ['Fix', 'JQuery-UI negatively interacts with CSS of some pages'],
             ['Fix', 'Miscellaneous UI glitches on touch devices'],

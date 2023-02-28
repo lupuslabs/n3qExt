@@ -107,6 +107,10 @@ export class Config
             durationSecByType: {
                 PointsAutoClaimed: 5,
                 PointsClaimReminder: 30,
+                FallenBackToOldNickname: 600,
+            },
+            hasDontShowAgainOptionByType: {
+                FallenBackToOldNickname: false,
             },
         },
         settings: {
@@ -210,6 +214,7 @@ export class Config
             deferUnavailableSec: 3.0,
             deferAwaySec: 0.2,
             deferAwailable: 0.05,
+            detectServerCompletelyIgnoredPresenceMaybeBecauseOfInvalidNicknameTimeoutSec: 30,
             resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec: 1.0,
             versionQueryShareOs: true,
             verboseVersionQuery: false,
@@ -678,6 +683,9 @@ export class Config
                     'Toast.NotYourItem': 'This is not your item.',
                     'Toast.BadgeNotEnabled': 'Failed to enable badge',
                     'Toast.TooManyBadgesEnabled': 'You already have the maximum count of badges enabled.',
+                    'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceTitle': 'New name refused',
+                    'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceText': 'The server doesn\'t like your new name. Please use another name.',
+                    'Toast.Open settings': 'Open settings',
 
                     'Activity.TotalPoints': 'Total activity points',
                     'Activity.PointsChannelChat': 'Chat',
@@ -983,6 +991,9 @@ export class Config
                     'Toast.NotYourItem': 'Das ist nicht dein Gegenstand.',
                     'Toast.BadgeNotEnabled': 'Sticker aktivieren fehlgeschlagen',
                     'Toast.TooManyBadgesEnabled': 'Du hast bereits die maximale Anzahl an Stickern aktiviert.',
+                    'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceTitle': 'Neuer Name nicht akzeptiert',
+                    'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceText': 'Der Server mag deinen neuen Namen nicht. Bitte wähle einen anderen Namen.',
+                    'Toast.Open settings': 'Einstellungen öffnen',
 
                     'Activity.TotalPoints': 'Alle Aktivitätspunkte',
                     'Activity.PointsChannelChat': 'Chat',

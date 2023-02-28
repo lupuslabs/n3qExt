@@ -1721,7 +1721,7 @@ export class BackgroundApp
         }
     }
 
-    private showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
+    public showToastInAllTabs(title: string, text: string, type: string, iconType: string, links: any): void
     {
         let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
         data.title = title;

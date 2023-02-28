@@ -12,6 +12,7 @@ import { BackgroundApp } from './BackgroundApp'
 import { ContentMessage } from '../lib/ContentMessage'
 import { TabRoomPresenceData } from '../lib/BackgroundMessage'
 import { AvatarGallery } from '../lib/AvatarGallery'
+import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 // XMPP MUC extension docs: https://xmpp.org/extensions/xep-0045.html
 
@@ -23,6 +24,8 @@ class RoomData
     public desiredNick: null|string // Initially tried nick set before entering the room.
     public confirmedNick: null|string = null // Set when entered the room.
     public pendingNick: null|string = null // Set while entering the room.
+    public roomEnterTimeoutForNicknameProblemDetection: null|number = null
+    public fallenBackToLastWorkingNick: boolean = false
     public enterRetryCount: number = 0
 
     public readonly tabIds: Set<number> = new Set()
@@ -46,6 +49,7 @@ export class RoomPresenceManager
 {
 
     private settingsNick: string = 'new-user'
+    private lastWorkingNick: string = ''
     private settingsAvatarUrl: string = ''
     private settingsPosX: number = 0
 
@@ -104,10 +108,18 @@ export class RoomPresenceManager
             let delaySecs = as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1)
 
             try {
+                this.lastWorkingNick = as.String(await Memory.getLocal(Utils.localStorageKey_LastWorkingNickname(), ''))
+            } catch (error) {
+                log.info('RoomPresenceManager.onUserSettingsChanged: Retrieval of last working nickname failed!', { error })
+            }
+            try {
                 const oldNick = this.settingsNick
                 const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''))
                 if (nickname.length === 0) {
-                    this.settingsNick = RandomNames.getRandomNickname()
+                    this.settingsNick = this.lastWorkingNick
+                    if (this.settingsNick.length === 0) {
+                        this.settingsNick = RandomNames.getRandomNickname()
+                    }
                     await Memory.setLocal(Utils.localStorageKey_Nickname(), this.settingsNick)
                 } else {
                     this.settingsNick = nickname
@@ -189,7 +201,8 @@ export class RoomPresenceManager
                 log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Too many room enter retries!', { roomPresenceStanza, roomData })
                 return
             }
-            roomData.pendingNick = `${roomData.desiredNick}_${roomData.enterRetryCount}`
+            const desiredNick = roomData.fallenBackToLastWorkingNick ? this.lastWorkingNick : roomData.desiredNick
+            roomData.pendingNick = `${desiredNick}_${roomData.enterRetryCount}`
             if (Utils.logChannel('backgroundPresenceManagement', true)) {
                 log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Nick is already taken, trying a variation.', { roomPresenceStanza, roomData })
             }
@@ -220,6 +233,25 @@ export class RoomPresenceManager
         if (isOwnEnter) {
             roomData.confirmedNick = participantResource
             roomData.pendingNick = null
+
+            window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+            roomData.roomEnterTimeoutForNicknameProblemDetection = null
+            if (roomData.fallenBackToLastWorkingNick) {
+                // Got into the room only after falling back to last working nickname right after a nickname change.
+                this.app.showToastInAllTabs(
+                    'FallenBackToOldNickBecauseServerIgbnoredPresenceTitle',
+                    'FallenBackToOldNickBecauseServerIgbnoredPresenceText',
+                    'FallenBackToOldNickname',
+                    WeblinClientApi.ClientNotificationRequest.iconType_warning,
+                    [{ text: 'Open settings', 'href': 'client:openSettings' }],
+                );
+            } else {
+                // Only set last working nick if not using fallback because of possible race with other rooms.
+                this.lastWorkingNick = roomData.desiredNick
+                Memory.setLocal(Utils.localStorageKey_LastWorkingNickname(), this.lastWorkingNick).catch(error => {
+                    log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Failed saving lastWorkingNick in local memory!', { error })
+                })
+            }
         }
 
         const isAvailable = (roomPresenceStanza.attrs.type ?? 'available') === 'available'
@@ -284,18 +316,9 @@ export class RoomPresenceManager
         if (!roomData.tabIds.size) {
             return
         }
-        const roomPresenceData = this.getMergedRoomPresenceData(roomData)
-
-        let logPresenceType: string
-        if (roomPresenceData.isAvailable) {
-            const isAway = roomPresenceData.showAvailability.length !== 0
-            logPresenceType = isAway ? 'away' : 'available'
-            const configKey = isAway ? 'xmpp.deferAwaySec' : 'xmpp.deferAwailable'
-            delaySecs = delaySecs ?? as.Float(Config.get(configKey))
-        } else {
-            logPresenceType = 'unavailable'
-            delaySecs = delaySecs ?? as.Float(Config.get('xmpp.deferUnavailableSec'))
-        }
+        roomData.presenceDataToSend = this.getMergedRoomPresenceData(roomData)
+        const { logPresenceType, defaultDelaySecs } = this.getLogPresenceTypeAndDelayOfRoomData(roomData)
+        delaySecs = delaySecs ?? defaultDelaySecs
 
         const nowDate = new Date()
         if (roomData.sendPresenceTimeoutHandle === null) {
@@ -305,7 +328,6 @@ export class RoomPresenceManager
             roomData.sendPresenceTimeoutHandle = null
             roomData.sendPresenceTimeoutStart = null
         }
-        roomData.presenceDataToSend = roomPresenceData
         const oldSheduledCount = roomData.sheduledPresenceCountSinceLastSend.get(logPresenceType) ?? 0
         roomData.sheduledPresenceCountSinceLastSend.set(logPresenceType, oldSheduledCount + 1)
         const startDate = roomData.sendPresenceTimeoutStart ?? nowDate
@@ -314,12 +336,28 @@ export class RoomPresenceManager
 
         if (Utils.logChannel('backgroundPresenceManagement', true)) {
             log.info('RoomPresenceManager.scheduleSendRoomPresence: Scheduling sending a room presence.', {
-                logPresenceType, deferDelaySecs: delaySecs, roomPresenceData,
+                logPresenceType, deferDelaySecs: delaySecs, roomPresenceData: roomData.presenceDataToSend,
             })
         }
         roomData.sendPresenceTimeoutStart = nowDate
         const sender = () => this.doSendRoomPresence(roomData.roomJid, logPresenceType)
         roomData.sendPresenceTimeoutHandle = window.setTimeout(sender, 1000 * deferDelaySecsFinal)
+    }
+
+    private getLogPresenceTypeAndDelayOfRoomData(roomData: RoomData): { logPresenceType: string, defaultDelaySecs: number }
+    {
+        let logPresenceType: string
+        let defaultDelaySecs: number
+        if (roomData.presenceDataToSend.isAvailable) {
+            const isAway = roomData.presenceDataToSend.showAvailability.length !== 0
+            logPresenceType = isAway ? 'away' : 'available'
+            const configKey = isAway ? 'xmpp.deferAwaySec' : 'xmpp.deferAwailable'
+            defaultDelaySecs = as.Float(Config.get(configKey))
+        } else {
+            logPresenceType = 'unavailable'
+            defaultDelaySecs = as.Float(Config.get('xmpp.deferUnavailableSec'))
+        }
+        return { logPresenceType, defaultDelaySecs }
     }
 
     private doSendRoomPresence(roomJid: string, logPresenceType: string): void
@@ -336,12 +374,9 @@ export class RoomPresenceManager
             }
             return
         }
-        const desiredNick = this.getDesiredNick()
-        if (desiredNick !== roomData.desiredNick) {
-            roomData.desiredNick = desiredNick
-            roomData.pendingNick = desiredNick
-            roomData.enterRetryCount = 0
-        }
+
+        this.detectNicknameChangeAndUpdateRoomDataAccordinglyBeforeSendingNewPresence(roomData)
+
         const ownResourceInRoom = roomData.pendingNick ?? roomData.confirmedNick
         const presenceData = roomData.presenceDataToSend
         if (!presenceData) {
@@ -372,6 +407,32 @@ export class RoomPresenceManager
         roomData.presenceDataToSend = null
         if (!roomData.tabIds.size) {
             this.rooms.delete(roomJid)
+        }
+    }
+
+    private detectNicknameChangeAndUpdateRoomDataAccordinglyBeforeSendingNewPresence(roomData: RoomData): void
+    {
+        if (!roomData.presenceDataToSend?.isAvailable) {
+            return;
+        }
+        const desiredNick = this.getDesiredNick()
+        if (desiredNick === roomData.desiredNick) {
+            return;
+        }
+
+        roomData.desiredNick = desiredNick
+        roomData.pendingNick = desiredNick
+        roomData.enterRetryCount = 0
+        roomData.fallenBackToLastWorkingNick = false
+
+        window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+        roomData.roomEnterTimeoutForNicknameProblemDetection = null
+
+        // Detection of server completely ignoring the room (re)enter presence if the nick isn't known to be working:
+        if (desiredNick !== this.lastWorkingNick) {
+            const handler = () => this.onFailedToEnterRoomWithNewNicknameBecauseServerIgnoredPresence(roomData.roomJid)
+            const timeoutSecs = as.Float(Config.get('xmpp.detectServerCompletelyIgnoredPresenceMaybeBecauseOfInvalidNicknameTimeoutSec'), 60)
+            roomData.roomEnterTimeoutForNicknameProblemDetection = window.setTimeout(handler, 1000 * timeoutSecs)
         }
     }
 
@@ -535,7 +596,7 @@ export class RoomPresenceManager
         const roomData = this.rooms.get(roomJid) ?? null
         const hasBeenRemoved = roomData?.tabIds.delete(tabId)
         if (hasBeenRemoved && Utils.logChannel('room2tab', true)) {
-            log.info('RoomPresenceManager.deleteTab: Remved room2tab mapping.', { roomJid, tabId })
+            log.info('RoomPresenceManager.deleteTab: Removed room2tab mapping.', { roomJid, tabId })
         }
         if (!roomData?.tabIds.size && !roomData?.sendPresenceTimeoutHandle) {
             this.rooms.delete(roomJid)
@@ -568,6 +629,27 @@ export class RoomPresenceManager
     {
         const message = { 'type': ContentMessage.type_recvStanza, 'stanza': roomPresenceStanza }
         this.app.sendToTabsForRoom(roomJid, message)
+    }
+
+    private onFailedToEnterRoomWithNewNicknameBecauseServerIgnoredPresence(roomJid: string): void
+    {
+        const roomData = this.rooms.get(roomJid) ?? null
+        if (roomData) {
+            roomData.presenceDataToSend = this.getMergedRoomPresenceData(roomData)
+        }
+        if (!roomData?.presenceDataToSend?.isAvailable) {
+            return
+        }
+        log.info('RoomPresenceManager.onFailedToEnterRoomWithNewNickname: Entering room with new nick failed because server completely ignored the presence!', { roomData })
+
+        window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+        roomData.roomEnterTimeoutForNicknameProblemDetection = null
+
+        roomData.pendingNick = this.lastWorkingNick
+        roomData.enterRetryCount = 0
+        roomData.fallenBackToLastWorkingNick = true
+        const { logPresenceType } = this.getLogPresenceTypeAndDelayOfRoomData(roomData)
+        this.doSendRoomPresence(roomJid, logPresenceType)
     }
 
 }
