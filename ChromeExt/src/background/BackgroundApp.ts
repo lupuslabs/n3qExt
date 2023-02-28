@@ -1314,7 +1314,7 @@ export class BackgroundApp
     private sendStanzaUnbuffered(stanza: ltx.Element): void
     {
         try {
-            this.logStanzaButNotBasicConnectionPresence(stanza);
+            this.logStanzaButNotBasicConnectionPresence(stanza, false);
 
             this.xmpp.send(stanza);
         } catch (error) {
@@ -1322,7 +1322,7 @@ export class BackgroundApp
         }
     }
 
-    private logStanzaButNotBasicConnectionPresence(stanza: ltx.Element)
+    private logStanzaButNotBasicConnectionPresence(stanza: ltx.Element, isIncomming: boolean)
     {
         const toJid = as.String(stanza.attrs.to);
         let isConnectionPresence = false;
@@ -1333,9 +1333,10 @@ export class BackgroundApp
         }
         if (!isConnectionPresence) {
             if (Utils.logChannel('backgroundTraffic', true)) {
-                log.info('BackgroundApp.sendStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', toJid);
+                const msg = isIncomming ? 'Received stanza' : 'Send stanza';
+                log.info(msg, stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', toJid);
             }
-            this.logStanzaToRelevantTabs(false, stanza);
+            this.logStanzaToRelevantTabs(isIncomming, stanza);
 
             // if (stanza.name == 'presence' && as.String(stanza.type, 'available') == 'available') {
             //     let vpNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
@@ -1381,7 +1382,7 @@ export class BackgroundApp
     private recvStanza(xmlStanza: ltx.Element)
     {
         this.stanzasInCount++;
-        this.logStanzaToRelevantTabs(true, xmlStanza);
+        this.logStanzaButNotBasicConnectionPresence(xmlStanza, true);
 
         const isError = xmlStanza.attrs.type === 'error';
         if (isError) {
