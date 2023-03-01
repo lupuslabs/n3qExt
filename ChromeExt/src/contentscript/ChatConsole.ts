@@ -26,7 +26,7 @@ export class ChatConsole
 
     public static chatCommand(text: string, context: ChatConsoleContext)
     {
-        this.out(context, text);
+        this.out(context, ['[in]', text]);
 
         const parts: string[] = text.split(' ');
         const cmd: string = parts[0];
@@ -40,18 +40,18 @@ export class ChatConsole
             case '/help':
             case '/?':
                 this.out(context, [
-                    ['help', '/clear # empty chat window'],
-                    ['help', '/xmpp # show xmpp console'],
-                    ['help', '/room # show room info'],
-                    ['help', '/changes # show versions and changes'],
-                    ['help', '/i /items /inventory /backpack # toggle backpack window'],
-                    ['help', '/b /badges # toggle badges edit mode'],
-                    ['help', '/v /video /vid /vidconf /conf # toggle video conf window'],
-                    ['help', '/c /chat # toggle chat window'],
-                    ['help', '/info # show client info'],
-                    ['help', '/who # show participants'],
-                    ['help', '/what # show items'],
-                    ['help', '/map <URL> # show URL mapping for url'],
+                    ['[help]', '/clear # empty chat window'],
+                    ['[help]', '/xmpp # show xmpp console'],
+                    ['[help]', '/room # show room info'],
+                    ['[help]', '/changes # show versions and changes'],
+                    ['[help]', '/i /items /inventory /backpack # toggle backpack window'],
+                    ['[help]', '/b /badges # toggle badges edit mode'],
+                    ['[help]', '/v /video /vid /vidconf /conf # toggle video conf window'],
+                    ['[help]', '/c /chat # toggle chat window'],
+                    ['[help]', '/info # show client info'],
+                    ['[help]', '/who # show participants'],
+                    ['[help]', '/what # show items'],
+                    ['[help]', '/map <URL> # show URL mapping for url'],
                 ]);
                 break;
             case '/clear':
