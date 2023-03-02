@@ -54,10 +54,12 @@ export function getDomElemsAtViewportPos(
 }
 
 export function getTopmostOpaqueDomElemAtViewportPos(
-    document: DocumentOrShadowRoot, vpX: number, vpY: number, opacityMin: number, transparentClasses: Set<string>
+    document: DocumentOrShadowRoot, vpX: number, vpY: number, opacityMin: number, transparentClasses: Set<string>, transparentElems: Set<Element>
 ): Element|null {
     for (const elem of getDomElemsAtViewportPos(document, vpX, vpY, null, false)) {
-        if (!domElementHasAnyClass(elem, transparentClasses)
+        if (true
+        && !transparentElems.has(elem)
+        && !domElementHasAnyClass(elem, transparentClasses)
         && (opacityMin === 0 || getDomElemOpacityAtPos(elem, vpX, vpY)[0] >= opacityMin)) {
             return elem;
         }

@@ -90,7 +90,8 @@ export class PointerEventDispatcher {
     private dragDropTargetLast: Element|null = null;
     private dragMoveEventDataLast: PointerEventData|null = null;
     private dragUpdateTimeoutHandle: number|null = null;
-    private dragTransparentClasses: Set<string> = new Set<string>();
+    private dragTransparentClasses: Set<string> = new Set();
+    private dragTransparentElements: Set<Element> = new Set();
 
     private longClickEnabled: boolean = false;
     private doubleClickEnabled: boolean = false;
@@ -144,6 +145,7 @@ export class PointerEventDispatcher {
         this.app = app;
         this.shadowDomRoot = app.getShadowDomRoot();
         this.domElem = domElem;
+        this.dragTransparentElements.add(domElem);
 
         const logIncommingPointer = as.Bool(Config.get('pointerEventDispatcher.logIncommingPointer'));
         const logIncommingMouse   = as.Bool(Config.get('pointerEventDispatcher.logIncommingMouse'));
@@ -993,7 +995,7 @@ export class PointerEventDispatcher {
 
         const opacityMin = this.ignoreOpacity ? 0 : this.opacityMin;
         const dropTarget = getTopmostOpaqueDomElemAtViewportPos(
-            this.shadowDomRoot, clientX, clientY, opacityMin, this.dragTransparentClasses);
+            this.shadowDomRoot, clientX, clientY, opacityMin, this.dragTransparentClasses, this.dragTransparentElements);
 
         const moveData = getDataFromPointerEvent('dragmove', eventMove, this.domElem);
         setDistanceOnPointerEventData(moveData, this.dragDownEventStart);
