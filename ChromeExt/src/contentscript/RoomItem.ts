@@ -91,7 +91,7 @@ export class RoomItem extends Entity
     public remove(): void
     {
         this.avatarDisplay?.stop();
-        this.statsDisplay?.close();
+        this.hideStatsDisplay(0);
         this.closeFrame();
         super.remove();
     }
@@ -884,7 +884,7 @@ export class RoomItem extends Entity
     {
         window.clearTimeout(this.statsDisplayOpenTimeout);
         this.statsDisplayOpenTimeout = null;
-        if (this.statsDisplay && is.nil(this.statsDisplayCloseTimeout)) {
+        if (this.statsDisplay && (delaySecs === 0 || is.nil(this.statsDisplayCloseTimeout))) {
             const action = () => {
                 this.statsDisplayCloseTimeout = null;
                 this.statsDisplay?.close();
