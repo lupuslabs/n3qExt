@@ -1031,8 +1031,8 @@ export class ContentApp extends AppWithDom
             await BackgroundMessage.sendStanza(stanza);
         })().catch(error =>
         {
-            this.onCriticalError(ErrorWithData.ofError(
-                error, 'BackgroundMessage.sendStanza failed!', { stanza: stanza }));
+            error.stanza = stanza;
+            this.onCriticalError(error);
         });
     }
 
@@ -1048,7 +1048,7 @@ export class ContentApp extends AppWithDom
 
     public onError(error: unknown): void
     {
-        log.info({ error: prepareValueForLog(error) }); // Log to info channel only so it doesn't appear on extensions page.
+        log.info(error); // Log to info channel only so it doesn't appear on extensions page.
         if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();

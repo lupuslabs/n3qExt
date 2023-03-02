@@ -515,7 +515,9 @@ export class Participant extends Entity
                 if (children) {
                     for (let i = 0; i < children.length; i++) {
                         const child = children[i];
-                        info[child.name] = child.text();
+                        if (child instanceof ltx.Element) {
+                            info[child.name] = child.text();
+                        }
                     }
                 }
             }

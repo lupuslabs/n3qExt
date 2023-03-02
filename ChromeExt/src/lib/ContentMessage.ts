@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { ItemProperties } from './ItemProperties';
 import { ContentApp } from '../contentscript/ContentApp';
+import { Utils } from './Utils'
 
 export class BackpackShowItemData
 {
@@ -41,6 +42,7 @@ export class ContentMessage
 
     static sendMessage(tabId: number, message: any): void
     {
+        message = Utils.prepareValForMessage(message);
         if (ContentMessage.content) {
             ContentMessage.content.onDirectRuntimeMessage(message);
         } else {

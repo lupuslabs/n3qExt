@@ -35,7 +35,7 @@ $(async function ()
 
     function parseScriptOrStyleUrl(scriptOrStyleUrl: string): null|{folderUrl: string, baseName: string, query: string}
     {
-        const re = /^(https?:\/\/cdn\.weblin\.io(?::[0-9]+)?\/v1\/|https?:\/\/localhost(?::[0-9]+)?\/extdist\/)(embedded)(\.(?:js|css))((?:\?.*)?)$/;
+        const re = /^(https?:\/\/(?:cdn\.weblin\.io|localhost)(?::[0-9]+)?\/(?:v1|extdist)\/)(embedded)(\.(?:js|css))((?:\?.*)?)$/;
         const parts: string[] = re.exec(scriptOrStyleUrl) ?? [];
         if (!parts.length) {
             return null;

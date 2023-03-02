@@ -1,5 +1,5 @@
 # === build js
-FROM node:15.14-stretch AS build
+FROM node:lts-alpine3.17 AS build
 
 WORKDIR /app
 COPY ./ChromeExt ./
@@ -12,7 +12,7 @@ RUN npm install
 RUN npm run release-embedded
 
 # === setup webserver
-FROM nginx:1.19.0-alpine
+FROM nginx:1.23.3-alpine
 
 WORKDIR /app
 RUN sed -i "s|#gzip|gzip_types text/css application/javascript;\ngzip|g" /etc/nginx/nginx.conf

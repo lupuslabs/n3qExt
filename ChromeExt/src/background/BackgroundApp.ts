@@ -349,8 +349,21 @@ export class BackgroundApp
         this.onRuntimeMessage(message, sender, sendResponse);
     }
 
-    private onRuntimeMessage(message, sender/*: chrome.runtime.MessageSender*/, sendResponse: (response?: any) => void): boolean
+    private onRuntimeMessage(message, sender/*: chrome.runtime.MessageSender*/, sendSerializableResponse: (response?: any) => void): boolean
     {
+        const sendResponse = (response?: any) => {
+            let serializableResponse: any;
+            try {
+                serializableResponse = Utils.prepareValForMessage(response);
+            } catch (error) {
+                log.info('BackgroundApp.onRuntimeMessage: Making the response serializable failed!', error, { response });
+            }
+            try {
+                sendSerializableResponse(serializableResponse);
+            } catch (error) {
+                log.info('BackgroundApp.onRuntimeMessage: Sending the serializable response failed!', error, { response, serializableResponse });
+            }
+        };
         switch (message.type) {
             case BackgroundMessage.test.name: {
                 sendResponse(this.handle_test());
@@ -985,11 +998,11 @@ export class BackgroundApp
             this.backpack.getItemsByInventoryItemIds(itemsToGet)
             .then(items => sendResponse({ok: true, items}))
             .catch(error => {
-                sendResponse({ok: false, 'ex': Utils.prepareValForMessage({error, itemsToGet})});
+                sendResponse({ok: false, 'ex': {error, itemsToGet}});
             });
         } else {
             const error = new Error('Items subsystem diabled!');
-            sendResponse({ok: false, 'ex': Utils.prepareValForMessage({error, itemsToGet})});
+            sendResponse({ok: false, 'ex': {error, itemsToGet}});
         }
         return true;
     }
@@ -1119,15 +1132,15 @@ export class BackgroundApp
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
             sendResponse({'ok': false,
-                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
+                'ex': {error, chat, chatMessage, deduplicate}});
         } else if (!isChatMessage(chatMessage)) {
             const error = new Error('chatMessage is not a ChatMesage object!');
             sendResponse({'ok': false,
-                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
+                'ex': {error, chat, chatMessage, deduplicate}});
         } else if (!is.boolean(deduplicate)) {
             const error = new Error('deduplicate is not a boolean!');
             sendResponse({'ok': false,
-                'ex': Utils.prepareValForMessage({error, chat, chatMessage, deduplicate})});
+                'ex': {error, chat, chatMessage, deduplicate}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
@@ -1137,7 +1150,7 @@ export class BackgroundApp
                 if (keepChatMessage) {
                     this.sendPersistedChatMessageToTabs(chat, chatMessage);
                 }
-            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            })().catch(error => sendResponse({'ok': false, 'ex': error}));
             return true;
         }
         return false;
@@ -1147,14 +1160,14 @@ export class BackgroundApp
     {
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat})});
+            sendResponse({'ok': false, 'ex': {error, chat}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
                 const chatMessages = await this.chatHistoryStorage.getChatHistoryByChat(chat);
                 sendResponse(new GetChatHistoryResponse(chatMessages));
-            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            })().catch(error => sendResponse({'ok': false, 'ex': error}));
             return true;
         }
         return false;
@@ -1164,10 +1177,10 @@ export class BackgroundApp
     {
         if (!isChat(chat)) {
             const error = new Error('chat is not a Chat object!');
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, olderThanTime})});
+            sendResponse({'ok': false, 'ex': {error, chat, olderThanTime}});
         } else if (!is.string(olderThanTime)) {
             const error = new Error('olderThan is not a UTC datetime string!');
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, chat, olderThanTime})});
+            sendResponse({'ok': false, 'ex': {error, chat, olderThanTime}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
@@ -1177,7 +1190,7 @@ export class BackgroundApp
                 deletionsByRoomJid.set(chat.roomJid, jidEntries);
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
                 sendResponse(new BackgroundSuccessResponse());
-            })().catch(error => sendResponse({'ok': false, 'ex': Utils.prepareValForMessage(error)}));
+            })().catch(error => sendResponse({'ok': false, 'ex': error}));
             return true;
         }
         return false;
@@ -1189,7 +1202,7 @@ export class BackgroundApp
             this.popupManager.openOrFocusPopup(popupDefinition);
             sendResponse(new BackgroundSuccessResponse());
         } catch (error) {
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupDefinition})});
+            sendResponse({'ok': false, 'ex': {error, popupDefinition}});
         }
         return false;
     }
@@ -1200,7 +1213,7 @@ export class BackgroundApp
             this.popupManager.closePopup(popupId);
             sendResponse(new BackgroundSuccessResponse());
         } catch (error) {
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, popupId})});
+            sendResponse({'ok': false, 'ex': {error, popupId}});
         }
         return false;
     }
@@ -1211,7 +1224,7 @@ export class BackgroundApp
             const isDisabled = this.popupManager.isTabDisabled(tabId);
             sendResponse(new IsTabDisabledResponse(isDisabled));
         } catch (error) {
-            sendResponse({'ok': false, 'ex': Utils.prepareValForMessage({error, pageUrl})});
+            sendResponse({'ok': false, 'ex': {error, pageUrl}});
         }
         return false;
     }
@@ -1472,17 +1485,17 @@ export class BackgroundApp
                         queryResponse.c('Language').t(navigator.language);
                         queryResponse.c('IsDevelopment').t(as.String(Environment.isDevelopment()));
                         queryResponse.c('Id').t(userId);
-                        queryResponse.c('SecSinceFirstStart').t(Math.round((now - firstStart) / 1000));
-                        queryResponse.c('SecSinceStart').t(Math.round((now - this.startupTime) / 1000));
-                        queryResponse.c('SecSincePage').t(Math.round((now - this.waitReadyTime) / 1000));
+                        queryResponse.c('SecSinceFirstStart').t(as.String(Math.round((now - firstStart) / 1000)));
+                        queryResponse.c('SecSinceStart').t(as.String(Math.round((now - this.startupTime) / 1000)));
+                        queryResponse.c('SecSincePage').t(as.String(Math.round((now - this.waitReadyTime) / 1000)));
                         queryResponse.c('Startups').t(startCount);
-                        queryResponse.c('ContentStartups').t(this.waitReadyCount);
-                        queryResponse.c('XmppConnects').t(this.xmppConnectCount);
-                        queryResponse.c('StanzasOut').t(this.stanzasOutCount);
-                        queryResponse.c('StanzasIn').t(this.stanzasInCount);
-                        queryResponse.c('ItemCount').t(itemCount);
-                        queryResponse.c('RezzedItemCount').t(rezzedItemCount);
-                        queryResponse.c('Points').t(points);
+                        queryResponse.c('ContentStartups').t(as.String(this.waitReadyCount));
+                        queryResponse.c('XmppConnects').t(as.String(this.xmppConnectCount));
+                        queryResponse.c('StanzasOut').t(as.String(this.stanzasOutCount));
+                        queryResponse.c('StanzasIn').t(as.String(this.stanzasInCount));
+                        queryResponse.c('ItemCount').t(as.String(itemCount));
+                        queryResponse.c('RezzedItemCount').t(as.String(rezzedItemCount));
+                        queryResponse.c('Points').t(as.String(points));
                         queryResponse.c('OldPoints').t(JSON.stringify(await this.getOldPoints()));
                     }
 

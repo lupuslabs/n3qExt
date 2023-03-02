@@ -82,7 +82,7 @@ export function hasMovedDragDistance(eventStart: null|PointerEvent, eventMove: n
 }
 
 export function getDataFromPointerEvent(type: PointerEventType, event: PointerEvent, domElement: Element): PointerEventData {
-    const data = this.makeDummyPointerEventData(type, event, domElement);
+    const data = makeDummyPointerEventData(type, event, domElement);
     data.rawEvent = event;
     return data;
 }
@@ -111,8 +111,8 @@ export function makeDummyPointerEventData(
         dropTargetLast: null,
         dropTargetChanged: false,
     };
-    this.setClientPosOnPointerEventData(data, event);
-    this.setButtonsOnPointerEventData(data, event);
+    setClientPosOnPointerEventData(data, event);
+    setButtonsOnPointerEventData(data, event);
     return data;
 }
 

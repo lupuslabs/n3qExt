@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 
 export interface NumberFormatOptions extends Intl.NumberFormatOptions {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options
-    signDisplay?: 'auto'|'always'|'exceptZero'|'never',
+    signDisplay?: 'auto'|'always'|'never',
     unit?:        string,
     unitDisplay?: 'long'|'short'|'narrow',
 }
@@ -244,12 +244,23 @@ export class Utils
 
     static prepareValForMessage(val: unknown, stack: Array<{}> = []): any
     {
-        if (is.object(val) && !is.array(val) && !is.fun(val)) {
+        if (is.fun(val)) {
+            return undefined; // Can't serialize functions.
+        }
+        if (is.array(val)) {
+            return val.map(element => Utils.prepareValForMessage(element, [...stack, val]));
+        }
+        if (is.object(val)) {
             const mangled = {};
             for (const prop of Object.getOwnPropertyNames(val)) {
                 const pVal = val[prop];
-                if (!is.array(pVal) && !is.fun(pVal) && !stack.includes(pVal)) {
-                    mangled[prop] = Utils.prepareValForMessage(pVal, [...stack, val]);
+                if (stack.includes(pVal)) {
+                    // Igniore because can't serialize circular references.
+                } else {
+                    const pValMangled = Utils.prepareValForMessage(pVal, [...stack, val]);
+                    if (pValMangled !== undefined) {
+                        mangled[prop] = pValMangled;
+                    }
                 }
             }
             return mangled;

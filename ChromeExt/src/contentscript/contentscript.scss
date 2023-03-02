@@ -639,7 +639,7 @@ div#n3q-display {
                 }
 
                 div.n3q-badgeInfoWindow-title .n3q-badgeInfoWindow-line {
-                    @extend div.n3q-title;
+                    @extend .n3q-title;
                     font-size: 1.25em;
                     line-height: 1.25em;
                 }
@@ -1319,7 +1319,7 @@ div#n3q-display {
     }
 
     div.n3q-window.n3q-window-style-window {
-        @extend div.n3q-shadow-medium;
+        @extend .n3q-shadow-medium;
 
         div.n3q-window-content {
             box-shadow: inset 0 4px 5px -4px #404040;
@@ -1327,11 +1327,11 @@ div#n3q-display {
     }
 
     div.n3q-window.n3q-window-style-popup {
-        @extend div.n3q-shadow-small;
+        @extend .n3q-shadow-small;
     }
 
     div.n3q-window.n3q-window-style-overlay {
-        @extend div.n3q-shadow-small;
+        @extend .n3q-shadow-small;
     }
 
     //  div.n3q-testwindow {}

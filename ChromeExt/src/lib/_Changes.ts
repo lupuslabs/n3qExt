@@ -6,6 +6,9 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.2.6', 'Dependencies', [
+            ['Change', 'Update dependencies and tools'],
+        ]],
         ['1.2.5', 'PresenceFightShadowDom', [
             ['Add', 'Long click as hover alternative'],
             ['Add', 'Support for translated item properties'],

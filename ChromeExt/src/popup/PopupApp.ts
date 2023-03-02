@@ -1,4 +1,4 @@
-import imgPopupIcon from '../assets/PopupIcon.png';
+import * as imgPopupIcon from '../assets/PopupIcon.png';
 
 import log = require('loglevel');
 import { is } from '../lib/is';

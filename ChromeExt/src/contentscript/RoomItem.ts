@@ -1,4 +1,4 @@
-import imgDefaultItem from '../assets/DefaultItem.png';
+import * as imgDefaultItem from '../assets/DefaultItem.png';
 
 import * as $ from 'jquery';
 import log = require('loglevel');

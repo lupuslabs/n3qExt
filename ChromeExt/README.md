@@ -2,6 +2,8 @@
 
 ## Install
 
+Get node.js from https://nodejs.org/ and install it.
+
 ```sh
 npm install
 ```

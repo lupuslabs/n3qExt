@@ -1113,10 +1113,10 @@ function isItemWithId(item: ItemProperties): item is ItemWithId
 
 function isSimpleItemTransferMsgType(type: unknown): type is SimpleItemTransferMsgType
 {
-    return type in SimpleItemTransferMsgType;
+    return is.string(type) && type in SimpleItemTransferMsgType;
 }
 
 function isSimpleItemTransferRejectCause(type: unknown): type is SimpleItemTransferCancelCause
 {
-    return type in SimpleItemTransferCancelCause;
+    return is.string(type) && type in SimpleItemTransferCancelCause;
 }

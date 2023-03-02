@@ -62,7 +62,6 @@ ob_start();
             margin-top: 200px;
         }
     </style>
-    <link href="/v1/embedded.css" rel="stylesheet">
 </head>
 <body>
 <?php if ($isDenied) { ?>

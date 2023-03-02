@@ -137,7 +137,7 @@ export class BrowserActionGui
         }
         const title = this.app.translateText(titleKey);
 
-        chrome.browserAction.setIcon({ tabId, path });
+        chrome.browserAction.setIcon({ tabId, path }, () => {});
         chrome.browserAction.setTitle({ tabId, title });
         chrome.browserAction.setBadgeBackgroundColor({ tabId, color });
         chrome.browserAction.setBadgeText({ tabId, text });

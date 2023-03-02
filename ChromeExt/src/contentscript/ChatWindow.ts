@@ -1,4 +1,4 @@
-import KeyboardSound from '../assets/keyboard.mp3';
+import * as KeyboardSound from '../assets/keyboard.mp3';
 import { Sound } from './Sound';
 
 import { is } from '../lib/is';

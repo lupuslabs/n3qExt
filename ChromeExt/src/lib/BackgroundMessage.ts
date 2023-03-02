@@ -5,6 +5,7 @@ import { ItemProperties, ItemPropertiesSet } from './ItemProperties';
 import { BackgroundApp } from '../background/BackgroundApp';
 import { Environment } from './Environment';
 import { Chat, ChatMessage } from './ChatMessage';
+import { Utils } from './Utils'
 
 export type TabStats = {
     participantCount:  number, // Other participants present in the same room.
@@ -150,6 +151,7 @@ export class BackgroundMessage
         return new Promise((resolve, reject) =>
         {
             try {
+                message = Utils.prepareValForMessage(message);
                 if (Environment.isEmbedded()) {
                     if (BackgroundMessage.background) {
                         BackgroundMessage.background.onDirectRuntimeMessage(message, response =>
@@ -177,6 +179,7 @@ export class BackgroundMessage
         return new Promise((resolve, reject) =>
         {
             try {
+                message = Utils.prepareValForMessage(message);
                 if (BackgroundMessage.background) {
                     BackgroundMessage.background.onDirectRuntimeMessage(message, response =>
                     {
