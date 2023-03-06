@@ -359,7 +359,6 @@ export class ChatWindow extends Window<ChatWindowOptions>
         }
         if (isHandled) {
             ev.preventDefault();
-            ev.stopPropagation();
         }
     }
 

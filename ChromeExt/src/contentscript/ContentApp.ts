@@ -34,7 +34,7 @@ import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { domHtmlElemOfHtml, preventKeyboardEventBubbling } from '../lib/domTools';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -357,6 +357,7 @@ export class ContentApp extends AppWithDom
         }
 
         this.display = domHtmlElemOfHtml('<div id="n3q-display"></div>');
+        preventKeyboardEventBubbling(this.display);
         this.shadowDomRoot.append(this.display);
         this.appendToMe.append(shadowDomAnchor);
     }

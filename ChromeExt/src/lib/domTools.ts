@@ -223,6 +223,13 @@ export function calcDomButtonIdsDiff(buttonsOld: number, buttonsNew: number): [n
     return [up, down];
 }
 
+export function preventKeyboardEventBubbling(domElem: Element): void
+{
+    domElem.addEventListener('keydown', ev => ev.stopPropagation());
+    domElem.addEventListener('keyup', ev => ev.stopPropagation());
+    domElem.addEventListener('keypress', ev => ev.stopPropagation());
+}
+
 //------------------------------------------------------------------------------
 // Render- and animation-related
 

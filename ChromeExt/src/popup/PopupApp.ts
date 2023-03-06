@@ -10,10 +10,9 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
 import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
 import { RandomNames } from '../lib/RandomNames';
-import { DomButtonId, domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
+import { domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { AppWithDom } from '../lib/App'
-import { DomModifierKeyId } from '../lib/PointerEventData'
 
 export class PopupApp extends AppWithDom
 {

@@ -62,7 +62,6 @@ export class Chatin
         }
         if (isHandled) {
             ev.preventDefault();
-            ev.stopPropagation();
         }
     }
 
