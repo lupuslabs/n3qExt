@@ -1,6 +1,7 @@
 ﻿import * as log from 'loglevel'
 import { BackgroundApp } from './BackgroundApp'
 import { PopupDefinition } from '../lib/BackgroundMessage'
+import { is } from '../lib/is'
 
 type PopupInfo = {
     readonly popupId: string
@@ -19,12 +20,19 @@ export class PopupManager
     public constructor(app: BackgroundApp)
     {
         this.app = app
+        this.isStopped = is.nil(chrome?.windows);
+        if (this.isStopped) {
+            return;
+        }
         this.onWindowRemovedListener = (windowId: number) => this.onWindowRemoved(windowId)
         chrome.windows.onRemoved.addListener(this.onWindowRemovedListener)
     }
 
     public stop(): void
     {
+        if (this.isStopped) {
+            return;
+        }
         this.isStopped = true;
         chrome.windows.onRemoved.removeListener(this.onWindowRemovedListener)
         this.popupInfos.clear()
