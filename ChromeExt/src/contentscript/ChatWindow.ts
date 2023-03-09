@@ -36,6 +36,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
     protected chatinInputElem: HTMLTextAreaElement;
     protected chat: Chat;
     protected chatMessages: OrderedSet<ChatMessage>;
+    protected lastIncommingChatMessageTimeMs: number = 0;
     protected sessionStartTs: string;
     protected historyLoading: boolean = false;
     protected historyLoadRequired: boolean = false;
@@ -195,7 +196,14 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
     public addLine(id: string|null, type: ChatMessageType, nick: string, text: string): void
     {
-        const time = new Date();
+        // Strictly increasing time to ensure correct order of locally generated messages comming in at the same millisecond:
+        let timeMs = Date.now();
+        if (timeMs <= this.lastIncommingChatMessageTimeMs) {
+            timeMs = this.lastIncommingChatMessageTimeMs + 1;
+        }
+        this.lastIncommingChatMessageTimeMs = timeMs;
+        const time = new Date(timeMs);
+
         let generateId = is.nil(id);
         if (generateId) {
             id = makeChatMessageId(time, nick);
@@ -213,8 +221,10 @@ export class ChatWindow extends Window<ChatWindowOptions>
             return;
         }
 
-        this.storeChatMessage(message);
-        if (type !== 'debug') {
+        // Either display the message immediately or send to background and let onChatMessagePersisted display it:
+        if (type === 'debug') {
+            this.storeChatMessage(message);
+        } else {
             BackgroundMessage.handleNewChatMessage(this.chat, message, generateId)
             .catch(error => this.app.onError(error));
         }
