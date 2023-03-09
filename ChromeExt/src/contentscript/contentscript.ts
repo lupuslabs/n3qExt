@@ -9,6 +9,19 @@ import { ContentMessage } from '../lib/ContentMessage';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { SingleEntryPlugin } from 'webpack';
 
+// This prevents the site and everyone else (including us) from processing focus events directed at our GUI:
+// Listeners need to be registered before listeners of site for maximum reliability.
+function preventAnyEventInterferenceIfEventIsForUs(ev: Event): void
+{
+    if (ev.target instanceof Element && ev.target.id === 'n3q') {
+        ev.stopImmediatePropagation(); // No further event propagation - not to site-registered listener nor our own.
+    }
+}
+window.addEventListener('focusin', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true});
+window.addEventListener('focusout', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true});
+window.addEventListener('focus', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true});
+window.addEventListener('blur', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true});
+
 $(function ()
 {
     let debug = Environment.isDevelopment();
