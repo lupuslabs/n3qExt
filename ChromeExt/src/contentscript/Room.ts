@@ -15,7 +15,7 @@ import { RoomItem } from './RoomItem';
 import { ChatWindow } from './ChatWindow';
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
-import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { is } from '../lib/is';
 import { ChatConsole } from './ChatConsole';
 
@@ -455,7 +455,7 @@ export class Room
                     const text = as.String(message[message.length - 1]);
                     const nick = as.String(message[message.length - 2]);
                     if (text.length !== 0) {
-                        const type: ChatMessageType = outState.msgCount === 0 ? 'cmd' : 'cmdResult';
+                        const type: ChatUtils.ChatMessageType = outState.msgCount === 0 ? 'cmd' : 'cmdResult';
                         this.showChatMessage(null, type, nick, text);
                         outState.msgCount++;
                     }
@@ -532,7 +532,7 @@ export class Room
         }
     }
 
-    showChatMessage(id: string|null, type: ChatMessageType, name: string, text: string)
+    showChatMessage(id: string|null, type: ChatUtils.ChatMessageType, name: string, text: string)
     {
         this.chatWindow.addLine(id, type, name, text);
     }
@@ -542,15 +542,15 @@ export class Room
         this.chatWindow.clear();
     }
 
-    onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
-        this.chatWindow?.onChatMessagePersisted(chat, chatMessage);
+        this.chatWindow?.onChatMessagePersisted(chatChannel, chatMessage);
         for (const prop in this.participants) {
-            this.participants[prop].onChatMessagePersisted(chat, chatMessage);
+            this.participants[prop].onChatMessagePersisted(chatChannel, chatMessage);
         }
     }
 
-    onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
+    onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
     {
         this.chatWindow?.onChatHistoryDeleted(deletions);
         for (const prop in this.participants) {

@@ -3,23 +3,28 @@ import { as } from '../lib/as';
 import { BackgroundApp } from './BackgroundApp';
 import log = require('loglevel');
 import { Config } from '../lib/Config';
-import { Chat, ChatMessage, ChatMessageType, ChatType } from '../lib/ChatMessage';
 import { ErrorWithData, Utils } from '../lib/Utils';
+
+import { ChatUtils } from '../lib/ChatUtils'
+import ChatChannelType = ChatUtils.ChatChannelType
+import ChatChannel = ChatUtils.ChatChannel
+import ChatMessageType = ChatUtils.ChatMessageType
+import ChatMessage = ChatUtils.ChatMessage
 
 // Schema:
 // Chat 1:∞ ChatMessage
 // Meta containing only a single {name: 'lastChatId', value: number} record.
 
-type ChatRecord = {
+type ChatChannelRecord = {
     id:             number; // Autoincrement
-    type:           ChatType;
+    type:           ChatChannelType;
     roomJid:        string;
     roomNick:       string;
     lastMaintained: string;
 }
 
 type ChatMessageRecord = {
-    chatId:    number; // Chat.id
+    chatId:    number; // ChatChannelRecord.id
     timestamp: string;
     id:        string;
     type:      ChatMessageType;
@@ -31,7 +36,7 @@ export class ChatHistoryStorage {
 
     private app: BackgroundApp;
     private debugLogEnabled: boolean = true;
-    private messageMaxAgeSecByType: Map<ChatType,number> = new Map<ChatType, number>();
+    private messageMaxAgeSecByType: Map<ChatChannelType,number> = new Map<ChatChannelType, number>();
     private messageDeduplicationMaxAgeSec: number = 1;
     private maintenanceIntervalSec: number = 10e20;
     private maintenanceCheckIntervalSec: number = 10;
@@ -63,103 +68,103 @@ export class ChatHistoryStorage {
         }
     }
 
-    public async storeChatRecord(chat: Chat, chatMessage: ChatMessage, deduplicate: boolean): Promise<boolean>
+    public async storeChatMessage(chatChannel: ChatChannel, chatMessage: ChatMessage, deduplicate: boolean): Promise<boolean>
     {
         let transaction: IDBTransaction = null;
         let transactionPromise: Promise<void> = null;
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction();
-            const {type, roomJid, roomNick} = chat;
+            const {type, roomJid, roomNick} = chatChannel;
             const timestamp = chatMessage.timestamp;
-            const chatRecord = await this.getOrCreateChatRecord(transaction, type, roomJid, roomNick, timestamp);
+            const chatRecord = await this.getOrCreateChatChannelRecord(transaction, type, roomJid, roomNick, timestamp);
             const keepChatMessage = await this.createChatMessageIfNew(transaction, chatRecord, chatMessage, deduplicate);
             await transactionPromise;
             if (this.debugLogEnabled) {
-                log.debug('ChatHistoryStorage.storeChatRecord: Done.', {chat, chatMessage, keepChatMessage});
+                log.debug('ChatHistoryStorage.storeChatMessage: Done.', {chatChannel, chatMessage, keepChatMessage});
             }
             return keepChatMessage;
         } catch (error) {
             await this.disposeErroneousTransaction(transaction, transactionPromise);
-            const errorMsg = 'ChatHistoryStorage.storeChatRecord: Failed!';
+            const errorMsg = 'ChatHistoryStorage.storeChatMessage: Failed!';
             if (this.debugLogEnabled) {
-                log.debug(errorMsg, {error, chat, chatMessage, this: {...this}});
+                log.debug(errorMsg, {error, chatChannel, chatMessage, this: {...this}});
             }
-            throw new ErrorWithData(errorMsg, {originalError: error, chat, chatMessage});
+            throw new ErrorWithData(errorMsg, {originalError: error, chatChannel, chatMessage});
         }
     }
 
-    public async getChatHistoryByChat(chat: Chat): Promise<ChatMessage[]>
+    public async getChatHistoryByChatChannel(chatChannel: ChatChannel): Promise<ChatMessage[]>
     {
         let transaction: IDBTransaction = null;
         let transactionPromise: Promise<void> = null;
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction(true);
-            const {type, roomJid, roomNick} = chat;
-            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
+            const {type, roomJid, roomNick} = chatChannel;
+            const chatRecord = await this.getChatChannelRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
             const chatHistoryFound = !is.nil(chatRecord);
             const chatMessages: ChatMessage[] = [];
             if (chatHistoryFound) {
-                const chatMessageRecords = await this.getChatMessageRecordsByChatId(transaction, chatRecord.id);
+                const chatMessageRecords = await this.getChatMessageRecordsByChatChannelId(transaction, chatRecord.id);
                 for (const {timestamp, id, type, nick, text} of chatMessageRecords) {
                     chatMessages.push({timestamp, id, type, nick, text});
                 }
             }
             await transactionPromise;
             if (this.debugLogEnabled) {
-                log.debug('ChatHistoryStorage.getChatHistoryByChat: Done.', {chat, chatHistoryFound, chatMessages});
+                log.debug('ChatHistoryStorage.getChatHistoryByChatChannel: Done.', {chatChannel, chatHistoryFound, chatMessages});
             }
             return chatMessages;
         } catch (error) {
             await this.disposeErroneousTransaction(transaction, transactionPromise);
-            const errorMsg = 'ChatHistoryStorage.getChatHistoryByChat: Failed!';
+            const errorMsg = 'ChatHistoryStorage.getChatHistoryByChatChannel: Failed!';
             if (this.debugLogEnabled) {
-                log.debug(errorMsg, {error, chat, this: {...this}});
+                log.debug(errorMsg, {error, chatChannel, this: {...this}});
             }
-            throw new ErrorWithData(errorMsg, {originalError: error, chat});
+            throw new ErrorWithData(errorMsg, {originalError: error, chatChannel});
         }
     }
 
-    public async deleteOldChatHistoryByChatOlderThanTime(chat: Chat, olderThanTime: string): Promise<void>
+    public async deleteOldChatHistoryByChatChannelOlderThanTime(chatChannel: ChatChannel, olderThanTime: string): Promise<void>
     {
         let transaction: IDBTransaction = null;
         let transactionPromise: Promise<void> = null;
         try {
             await this.openDb();
             [transaction, transactionPromise] = this.getNewDbTransaction();
-            const {type, roomJid, roomNick} = chat;
-            const chatRecord = await this.getChatRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
+            const {type, roomJid, roomNick} = chatChannel;
+            const chatRecord = await this.getChatChannelRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
             const chatFound = !is.nil(chatRecord);
             let messagesDeleted = 0;
             let chatDeleted = false;
             if (chatFound) {
-                const pruneResult = await this.deleteOldChatMessageRecordsByChatIdOlderThanTime(
+                const pruneResult = await this.deleteOldChatMessageRecordsByChatChannelIdOlderThanTime(
                     transaction, chatRecord.id, olderThanTime);
                 messagesDeleted = pruneResult.deletedCount;
                 if (pruneResult.chatIsEmpty) {
-                    await this.deleteChatRecordById(transaction, chatRecord.id);
+                    await this.deleteChatChannelRecordById(transaction, chatRecord.id);
                     chatDeleted = true;
                 }
             }
             await transactionPromise;
             if (this.debugLogEnabled) {
-                const msg = 'ChatHistoryStorage.deleteOldChatHistoryByChatOlderThanTime: Done.';
-                log.debug(msg, {chat, olderThanTime, chatFound, chatDeleted, messagesDeleted});
+                const msg = 'ChatHistoryStorage.deleteOldChatHistoryByChatChannelOlderThanTime: Done.';
+                log.debug(msg, {chatChannel, olderThanTime, chatFound, chatDeleted, messagesDeleted});
             }
         } catch (error) {
             await this.disposeErroneousTransaction(transaction, transactionPromise);
-            const errorMsg = 'ChatHistoryStorage.deleteOldChatHistoryByChat: Failed!';
+            const errorMsg = 'ChatHistoryStorage.deleteOldChatHistoryByChatChannelOlderThanTime: Failed!';
             if (this.debugLogEnabled) {
-                log.debug(errorMsg, {error, chat, olderThanTime, this: {...this}});
+                log.debug(errorMsg, {error, chatChannel, olderThanTime, this: {...this}});
             }
-            throw new ErrorWithData(errorMsg, {originalError: error, chat, olderThanTime});
+            throw new ErrorWithData(errorMsg, {originalError: error, chatChannel, olderThanTime});
         }
     }
 
-    public async maintain(now: Date): Promise<Map<string, {chat: Chat, olderThanTime: string}[]>>
+    public async maintain(now: Date): Promise<Map<string, {chatChannel: ChatChannel, olderThanTime: string}[]>>
     {
-        const deletedHistoriesByRoomJid: Map<string, {chat: Chat, olderThanTime: string}[]> = new Map();
+        const deletedHistoriesByRoomJid: Map<string, {chatChannel: ChatChannel, olderThanTime: string}[]> = new Map();
 
         const nowSecs = now.getTime() / 1000;
         const maintenanceDelaySecs = this.maintainanceLastTime + this.maintenanceCheckIntervalSec - nowSecs;
@@ -179,30 +184,30 @@ export class ChatHistoryStorage {
             const chatOlderThanDate = new Date((nowSecs - this.maintenanceIntervalSec) * 1000);
             const chatOlderThanTimeStr = Utils.utcStringOfDate(chatOlderThanDate);
             await this.openDb();
-            let chatRecord: ChatRecord|null = null;
+            let chatRecord: ChatChannelRecord|null = null;
             let chatRecordFound = true;
             let writeCount = 0;
             while (chatRecordFound && writeCount < this.maintenanceWriteCount) {
                 [transaction, transactionPromise] = this.getNewDbTransaction();
-                chatRecord = await this.getChatRecordToMaintain(transaction, chatOlderThanTimeStr);
+                chatRecord = await this.getChatChannelRecordToMaintain(transaction, chatOlderThanTimeStr);
                 chatRecordFound = !is.nil(chatRecord);
                 if (chatRecordFound) {
                     const retentionSecs = this.messageMaxAgeSecByType.get(chatRecord.type) ?? 10e20;
                     const msgOlderThanTime = Utils.utcStringOfDate(new Date(now.getTime() - retentionSecs * 1000));
-                    const pruneResult = await this.deleteOldChatMessageRecordsByChatIdOlderThanTime(
+                    const pruneResult = await this.deleteOldChatMessageRecordsByChatChannelIdOlderThanTime(
                         transaction, chatRecord.id, msgOlderThanTime);
                     writeCount += pruneResult.deletedCount + 1;
                     if (pruneResult.chatIsEmpty) {
-                        await this.deleteChatRecordById(transaction, chatRecord.id);
+                        await this.deleteChatChannelRecordById(transaction, chatRecord.id);
                     } else {
                         chatRecord.lastMaintained = nowStr;
-                        await this.updateChatRecord(transaction, chatRecord);
+                        await this.updateChatChannelRecord(transaction, chatRecord);
                     }
                     if (pruneResult.deletedCount !== 0 || pruneResult.chatIsEmpty) {
                         const {type, roomJid, roomNick} = chatRecord;
-                        const chat:Chat = { type, roomJid, roomNick };
+                        const chatChannel:ChatChannel = { type, roomJid, roomNick };
                         const jidEntries = deletedHistoriesByRoomJid.get(roomJid) ?? [];
-                        jidEntries.push({chat, olderThanTime: msgOlderThanTime});
+                        jidEntries.push({chatChannel, olderThanTime: msgOlderThanTime});
                         deletedHistoriesByRoomJid.set(roomJid, jidEntries);
                     }
                 }
@@ -226,15 +231,15 @@ export class ChatHistoryStorage {
     // ChatMessageRecord
 
     private async createChatMessageIfNew(
-        transaction: IDBTransaction, chat: ChatRecord, msg: ChatMessage, deduplicate: boolean,
+        transaction: IDBTransaction, chatChannel: ChatChannelRecord, msg: ChatMessage, deduplicate: boolean,
     ): Promise<boolean> {
-        if (await this.hasChatMessageWithId(transaction, chat.id, msg.id)) {
+        if (await this.hasChatMessageWithId(transaction, chatChannel.id, msg.id)) {
             return false;
         }
-        if (deduplicate && await this.hasDuplicateChatMessage(transaction, chat.id, msg)) {
+        if (deduplicate && await this.hasDuplicateChatMessage(transaction, chatChannel.id, msg)) {
             return false;
         }
-        const chatId = chat.id;
+        const chatId = chatChannel.id;
         const {timestamp, id, type, nick, text} = msg;
         const chatMessageRecord: ChatMessageRecord = { chatId, timestamp, id, type, nick, text };
         const chatMessageTable = transaction.objectStore('ChatMessage');
@@ -248,29 +253,29 @@ export class ChatHistoryStorage {
     }
 
     private async hasChatMessageWithId(
-        transaction: IDBTransaction, chatId: number, chatMessageId: string
+        transaction: IDBTransaction, chatChannelId: number, chatMessageId: string
     ): Promise<boolean> {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         try {
-            return !is.nil(await this.awaitDbRequest(chatMessageTable.get([chatId, chatMessageId])));
+            return !is.nil(await this.awaitDbRequest(chatMessageTable.get([chatChannelId, chatMessageId])));
         } catch (error) {
             const msg = 'ChatHistoryStorage.hasChatMessageWithId: chatMessageTable.get failed!';
-            throw new ErrorWithData(msg, {chatId, chatMessageId, error});
+            throw new ErrorWithData(msg, {chatChannelId, chatMessageId, error});
         }
     }
 
     private async hasDuplicateChatMessage(
-        transaction: IDBTransaction, chatId: number, chatMessageNew: ChatMessage
+        transaction: IDBTransaction, chatChannelId: number, chatMessageNew: ChatMessage
     ): Promise<boolean> {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         const index = chatMessageTable.index('iChatTimestamp');
-        const keyRange = IDBKeyRange.bound([chatId, '0'], [chatId, '9'], false, false);
+        const keyRange = IDBKeyRange.bound([chatChannelId, '0'], [chatChannelId, '9'], false, false);
         let cursor: IDBCursorWithValue;
         try {
             cursor = await this.awaitDbRequest(index.openCursor(keyRange, 'prev'));
         } catch (error) {
             const msg = 'ChatHistoryStorage.createChatMessageIfNew: iChatTimestamp.openCursor failed!';
-            throw new ErrorWithData(msg, {chatId, error});
+            throw new ErrorWithData(msg, {chatChannelId, error});
         }
         if (!is.nil(cursor)) {
             const chatMessageOld: ChatMessage = cursor.value;
@@ -286,35 +291,35 @@ export class ChatHistoryStorage {
         return false;
     }
 
-    private async getChatMessageRecordsByChatId(
-        transaction: IDBTransaction, chatId: number,
+    private async getChatMessageRecordsByChatChannelId(
+        transaction: IDBTransaction, chatChannelId: number,
     ): Promise<ChatMessageRecord[]> {
         const chatMessageTable = transaction.objectStore('ChatMessage');
         const index = chatMessageTable.index('iChatTimestamp');
-        const keyRange = IDBKeyRange.bound([chatId, '0'], [chatId, '9'], false, false);
+        const keyRange = IDBKeyRange.bound([chatChannelId, '0'], [chatChannelId, '9'], false, false);
         try {
             return this.awaitDbRequest(index.getAll(keyRange));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getChatMessageRecordsByChatId: iChatTimestamp.getAll failed!';
-            throw new ErrorWithData(msg, {chatId, error});
+            const msg = 'ChatHistoryStorage.getChatMessageRecordsByChatChannelId: iChatTimestamp.getAll failed!';
+            throw new ErrorWithData(msg, {chatChannelId, error});
         }
     }
 
-    private async deleteOldChatMessageRecordsByChatIdOlderThanTime(
-        transaction: IDBTransaction, chatId: number, olderThanTime: string,
+    private async deleteOldChatMessageRecordsByChatChannelIdOlderThanTime(
+        transaction: IDBTransaction, chatChannelId: number, olderThanTime: string,
     ): Promise<{chatIsEmpty: boolean, deletedCount: number}> {
         let chatIsEmpty = true;
         let deletedCount = 0;
         const chatMessageTable = transaction.objectStore('ChatMessage');
         const index = chatMessageTable.index('iChatTimestamp');
-        const keyRange = IDBKeyRange.bound([chatId, '0'], [chatId, '9'], false, false);
+        const keyRange = IDBKeyRange.bound([chatChannelId, '0'], [chatChannelId, '9'], false, false);
         const cursorRequest = index.openCursor(keyRange);
         let cursor: IDBCursorWithValue;
         try {
             cursor = await this.awaitDbRequest(cursorRequest);
         } catch (error) {
-            const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: iChatTimestamp.openCursor failed!';
-            throw new ErrorWithData(msg, {chatId, error});
+            const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatChannelIdOlderThanTime: iChatTimestamp.openCursor failed!';
+            throw new ErrorWithData(msg, {chatChannelId, error});
         }
         while (!is.nil(cursor)) {
             const chatMessage: ChatMessage = cursor.value;
@@ -325,7 +330,7 @@ export class ChatHistoryStorage {
                 try {
                     await this.awaitDbRequest(cursor.delete());
                 } catch (error) {
-                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: cursor.delete failed!';
+                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatChannelIdOlderThanTime: cursor.delete failed!';
                     throw new ErrorWithData(msg, {chatMessage, error});
                 }
                 deletedCount++;
@@ -333,8 +338,8 @@ export class ChatHistoryStorage {
                 try {
                     cursor = await this.awaitDbRequest(cursorRequest);
                 } catch (error) {
-                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatIdOlderThanTime: cursor.continue failed!';
-                    throw new ErrorWithData(msg, {chatId, error});
+                    const msg = 'ChatHistoryStorage.deleteOldChatMessageRecordsByChatChannelIdOlderThanTime: cursor.continue failed!';
+                    throw new ErrorWithData(msg, {chatChannelId, error});
                 }
             }
         }
@@ -342,14 +347,13 @@ export class ChatHistoryStorage {
     }
 
     //--------------------------------------------------------------------------
-    // ChatRecord
+    // ChatChannelRecord
 
-    private async getOrCreateChatRecord(
-        transaction: IDBTransaction, type: ChatType, roomJid: string, roomNick: string, lastMaintained: string,
-    ): Promise<ChatRecord> {
-        const chatFromIndex = await this.getChatRecordByTypeRoomJidRoomNick(
-            transaction, type, roomJid, roomNick);
-        if (!is.nil(chatFromIndex)) {
+    private async getOrCreateChatChannelRecord(
+        transaction: IDBTransaction, type: ChatChannelType, roomJid: string, roomNick: string, lastMaintained: string,
+    ): Promise<ChatChannelRecord> {
+        const chatFromIndex = await this.getChatChannelRecordByTypeRoomJidRoomNick(transaction, type, roomJid, roomNick);
+        if (chatFromIndex) {
             return chatFromIndex;
         }
         const metaTable = transaction.objectStore('Meta');
@@ -357,7 +361,7 @@ export class ChatHistoryStorage {
         try {
             metaRecord = await this.awaitDbRequest(metaTable.get('lastChatId'))
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.get failed!';
+            const msg = 'ChatHistoryStorage.getOrCreateChatChannelRecord: metaTable.get failed!';
             throw new ErrorWithData(msg, { type, roomJid, roomNick, lastMaintained, error });
         }
         const lastId: number = metaRecord?.value ?? 0;
@@ -366,60 +370,60 @@ export class ChatHistoryStorage {
         try {
             await this.awaitDbRequest(metaTable.put(metaRecord));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: metaTable.put failed!';
+            const msg = 'ChatHistoryStorage.getOrCreateChatChannelRecord: metaTable.put failed!';
             throw new ErrorWithData(msg, {metaRecord, error});
         }
-        const chatRecord: ChatRecord = { id, type, roomJid, roomNick, lastMaintained };
-        const chatTable = transaction.objectStore('Chat');
+        const chatChannelRecord: ChatChannelRecord = { id, type, roomJid, roomNick, lastMaintained };
+        const chatChannelTable = transaction.objectStore('Chat');
         try {
-            await this.awaitDbRequest(chatTable.add(chatRecord));
+            await this.awaitDbRequest(chatChannelTable.add(chatChannelRecord));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getOrCreateChatRecord: chatTable.add failed!';
-            throw new ErrorWithData(msg, {chatRecord, error});
+            const msg = 'ChatHistoryStorage.getOrCreateChatChannelRecord: chatChannelTable.add failed!';
+            throw new ErrorWithData(msg, {chatChannelRecord, error});
         }
-        return chatRecord;
+        return chatChannelRecord;
     }
-    
-    private async updateChatRecord(transaction: IDBTransaction, chatRecord: ChatRecord): Promise<void> {
-        const chatTable = transaction.objectStore('Chat');
+
+    private async updateChatChannelRecord(transaction: IDBTransaction, chatChannelRecord: ChatChannelRecord): Promise<void> {
+        const chatChannelTable = transaction.objectStore('Chat');
         try {
-            await this.awaitDbRequest(chatTable.put(chatRecord));
+            await this.awaitDbRequest(chatChannelTable.put(chatChannelRecord));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.updateChatRecord: chatTable.put failed!';
-            throw new ErrorWithData(msg, {chatRecord, error});
+            const msg = 'ChatHistoryStorage.updateChatChannelRecord: chatTable.put failed!';
+            throw new ErrorWithData(msg, {chatChannelRecord, error});
         }
     }
 
-    private async deleteChatRecordById(transaction: IDBTransaction, chatRecordId: number): Promise<void> {
-        const chatTable = transaction.objectStore('Chat');
+    private async deleteChatChannelRecordById(transaction: IDBTransaction, chatChannelRecordId: number): Promise<void> {
+        const chatChannelTable = transaction.objectStore('Chat');
         try {
-            await this.awaitDbRequest(chatTable.delete(chatRecordId));
+            await this.awaitDbRequest(chatChannelTable.delete(chatChannelRecordId));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.deleteChatRecordById: chatTable.delete failed!';
-            throw new ErrorWithData(msg, {chatRecordId, error});
+            const msg = 'ChatHistoryStorage.deleteChatChannelRecordById: chatChannelTable.delete failed!';
+            throw new ErrorWithData(msg, {chatChannelRecordId, error});
         }
     }
 
-    private async getChatRecordByTypeRoomJidRoomNick(
-        transaction: IDBTransaction, type: ChatType, roomJid: string, roomNick: string
-    ): Promise<ChatRecord|null> {
-        const chatTable = transaction.objectStore('Chat');
-        const index = chatTable.index('iTypeRoomJidNick');
+    private async getChatChannelRecordByTypeRoomJidRoomNick(
+        transaction: IDBTransaction, type: ChatChannelType, roomJid: string, roomNick: string
+    ): Promise<ChatChannelRecord|null> {
+        const chatChannelTable = transaction.objectStore('Chat');
+        const index = chatChannelTable.index('iTypeRoomJidNick');
         try {
             return this.awaitDbRequest(index.get(IDBKeyRange.only([type, roomJid, roomNick])));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getChatRecordByTypeRoomJidRoomNick: iTypeRoomJidNick.get failed!';
+            const msg = 'ChatHistoryStorage.getChatChannelRecordByTypeRoomJidRoomNick: iTypeRoomJidNick.get failed!';
             throw new ErrorWithData(msg, {type, roomJid, roomNick, error});
         }
     }
 
-    private async getChatRecordToMaintain(transaction: IDBTransaction, olderThanTime: string): Promise<ChatRecord|null> {
-        const chatTable = transaction.objectStore('Chat');
-        const index = chatTable.index('iLastMaintained');
+    private async getChatChannelRecordToMaintain(transaction: IDBTransaction, olderThanTime: string): Promise<ChatChannelRecord|null> {
+        const chatChannelTable = transaction.objectStore('Chat');
+        const index = chatChannelTable.index('iLastMaintained');
         try {
             return this.awaitDbRequest(index.get(IDBKeyRange.upperBound(olderThanTime, true)));
         } catch (error) {
-            const msg = 'ChatHistoryStorage.getChatRecordToMaintain: iLastMaintained.get failed!';
+            const msg = 'ChatHistoryStorage.getChatChannelRecordToMaintain: iLastMaintained.get failed!';
             throw new ErrorWithData(msg, {olderThanTime, error});
         }
     }

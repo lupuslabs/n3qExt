@@ -4,7 +4,7 @@ import { ItemException } from './ItemException';
 import { ItemProperties, ItemPropertiesSet } from './ItemProperties';
 import { BackgroundApp } from '../background/BackgroundApp';
 import { Environment } from './Environment';
-import { Chat, ChatMessage } from './ChatMessage';
+import { ChatUtils } from './ChatUtils';
 import { Utils } from './Utils'
 
 export type TabStats = {
@@ -134,7 +134,7 @@ export class NewChatMessageResponse extends BackgroundSuccessResponse
 
 export class GetChatHistoryResponse extends BackgroundSuccessResponse
 {
-    constructor(public chatHistory: ChatMessage[]) { super(); }
+    constructor(public chatHistory: ChatUtils.ChatMessage[]) { super(); }
 }
 
 export class IsTabDisabledResponse extends BackgroundSuccessResponse
@@ -463,31 +463,22 @@ export class BackgroundMessage
         return BackgroundMessage.sendMessageCheckOk(request).then(response => <ItemProperties[]>(response.items));
     }
 
-    static handleNewChatMessage(chat: Chat, chatMessage: ChatMessage, deduplicate: boolean): Promise<boolean>
+    static handleNewChatMessage(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage, deduplicate: boolean): Promise<boolean>
     {
-        return new Promise((resolve, reject) => {
-            BackgroundMessage.sendMessageCheckOk({
-                'type': BackgroundMessage.handleNewChatMessage.name, chat, chatMessage, deduplicate,
-            })
-            .then(response => resolve(response.keepChatMessage))
-            .catch(error => reject(error));
-        });
+        const request = { 'type': BackgroundMessage.handleNewChatMessage.name, chatChannel, chatMessage, deduplicate }
+        return BackgroundMessage.sendMessageCheckOk(request).then(response => response.keepChatMessage);
     }
 
-    static getChatHistory(chat: Chat): Promise<ChatMessage[]>
+    static getChatHistory(chatChannel: ChatUtils.ChatChannel): Promise<ChatUtils.ChatMessage[]>
     {
-        return new Promise((resolve, reject) => {
-            BackgroundMessage.sendMessageCheckOk({'type': BackgroundMessage.getChatHistory.name, chat})
-            .then(response => resolve(response.chatHistory))
-            .catch(error => reject(error));
-        });
+        const request = { 'type': BackgroundMessage.getChatHistory.name, chatChannel };
+        return BackgroundMessage.sendMessageCheckOk(request).then(response => response.chatHistory);
     }
 
-    static deleteChatHistory(chat: Chat, olderThanTime: string): Promise<void>
+    static deleteChatHistory(chatChannel: ChatUtils.ChatChannel, olderThanTime: string): Promise<void>
     {
-        return BackgroundMessage.sendMessageCheckOk({
-            'type': BackgroundMessage.deleteChatHistory.name, chat, olderThanTime,
-        });
+        const request = { 'type': BackgroundMessage.deleteChatHistory.name, chatChannel, olderThanTime };
+        return BackgroundMessage.sendMessageCheckOk(request).then(response => {});
     }
 
     static openOrFocusPopup(popupDefinition: PopupDefinition): Promise<void>

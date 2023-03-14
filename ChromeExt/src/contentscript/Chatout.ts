@@ -2,14 +2,14 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { DomUtils } from '../lib/DomUtils';
-import { ChatMessage, chatMessageCmpFun, chatMessageIdFun, isUserChatMessageType } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { Utils } from '../lib/Utils';
 import { OrderedSet } from '../lib/OrderedSet';
 import { AnimationsDefinition } from './AnimationsXml';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast'|'closed';
-type BubbleInfo = ChatMessage & {
+type BubbleInfo = ChatUtils.ChatMessage & {
     bubbleElem: HTMLElement,
     bubbleStatus: BubbleStatus,
 };
@@ -24,7 +24,7 @@ export class Chatout
     constructor(app: ContentApp, display: HTMLElement)
     {
         this.app = app;
-        this.bubbles = new OrderedSet<BubbleInfo>([], chatMessageCmpFun, chatMessageIdFun);
+        this.bubbles = new OrderedSet<BubbleInfo>([], ChatUtils.chatMessageCmpFun, ChatUtils.chatMessageIdFun);
 
         this.containerElem = DomUtils.elemOfHtml('<div class="n3q-chatout-container"></div>');
         this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 100));
@@ -51,9 +51,9 @@ export class Chatout
         }
     }
 
-    public displayChatMessage(chatMessage: ChatMessage): void
+    public displayChatMessage(chatMessage: ChatUtils.ChatMessage): void
     {
-        if (!isUserChatMessageType(chatMessage.type)) {
+        if (!ChatUtils.isUserChatMessageType(chatMessage.type)) {
             return;
         }
 
@@ -111,7 +111,7 @@ export class Chatout
         this.containerElem.style.bottom = `${chatBubblesBottom}px`;
     }
 
-    protected makeBubble(chatMessage: ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
+    protected makeBubble(chatMessage: ChatUtils.ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
     {
         const typeClass = 'n3q-chat-type-' + chatMessage.type;
         const bubbleElem = DomUtils.elemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);

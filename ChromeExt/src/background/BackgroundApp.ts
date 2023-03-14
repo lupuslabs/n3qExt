@@ -42,7 +42,7 @@ import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
-import { Chat, ChatMessage, isChat, isChatMessage } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
 import { BrowserActionGui } from './BrowserActionGui';
@@ -527,15 +527,15 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.handleNewChatMessage.name: {
-                return this.handle_newChatMessage(message.chat, message.chatMessage, message.deduplicate, sendResponse);
+                return this.handle_newChatMessage(message.chatChannel, message.chatMessage, message.deduplicate, sendResponse);
             } break;
 
             case BackgroundMessage.getChatHistory.name: {
-                return this.handle_getChatHistory(message.chat, sendResponse);
+                return this.handle_getChatHistory(message.chatChannel, sendResponse);
             } break;
 
             case BackgroundMessage.deleteChatHistory.name: {
-                return this.handle_deleteChatHistory(message.chat, message.olderThanTime, sendResponse);
+                return this.handle_deleteChatHistory(message.chatChannel, message.olderThanTime, sendResponse);
             } break;
 
             case BackgroundMessage.openOrFocusPopup.name: {
@@ -1127,28 +1127,28 @@ export class BackgroundApp
     }
 
     private handle_newChatMessage(
-        chat: unknown, chatMessage: unknown, deduplicate: unknown, sendResponse: (response: any) => void,
+        chatChannel: unknown, chatMessage: unknown, deduplicate: unknown, sendResponse: (response: any) => void,
     ): boolean {
-        if (!isChat(chat)) {
-            const error = new Error('chat is not a Chat object!');
+        if (!ChatUtils.isChatChannel(chatChannel)) {
+            const error = new Error('chatChannel is not a ChatChannel object!');
             sendResponse({'ok': false,
-                'ex': {error, chat, chatMessage, deduplicate}});
-        } else if (!isChatMessage(chatMessage)) {
+                'ex': {error, chatChannel, chatMessage, deduplicate}});
+        } else if (!ChatUtils.isChatMessage(chatMessage)) {
             const error = new Error('chatMessage is not a ChatMesage object!');
             sendResponse({'ok': false,
-                'ex': {error, chat, chatMessage, deduplicate}});
+                'ex': {error, chatChannel, chatMessage, deduplicate}});
         } else if (!is.boolean(deduplicate)) {
             const error = new Error('deduplicate is not a boolean!');
             sendResponse({'ok': false,
-                'ex': {error, chat, chatMessage, deduplicate}});
+                'ex': {error, chatChannel, chatMessage, deduplicate}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
-                const keepChatMessage = await this.chatHistoryStorage.storeChatRecord(chat, chatMessage, deduplicate);
+                const keepChatMessage = await this.chatHistoryStorage.storeChatMessage(chatChannel, chatMessage, deduplicate);
                 sendResponse(new NewChatMessageResponse(keepChatMessage));
                 if (keepChatMessage) {
-                    this.sendPersistedChatMessageToTabs(chat, chatMessage);
+                    this.sendPersistedChatMessageToTabs(chatChannel, chatMessage);
                 }
             })().catch(error => sendResponse({'ok': false, 'ex': error}));
             return true;
@@ -1156,16 +1156,16 @@ export class BackgroundApp
         return false;
     }
 
-    private handle_getChatHistory(chat: unknown, sendResponse: (response: any) => void): boolean
+    private handle_getChatHistory(chatChannel: unknown, sendResponse: (response: any) => void): boolean
     {
-        if (!isChat(chat)) {
-            const error = new Error('chat is not a Chat object!');
-            sendResponse({'ok': false, 'ex': {error, chat}});
+        if (!ChatUtils.isChatChannel(chatChannel)) {
+            const error = new Error('chatChannel is not a ChatChannel object!');
+            sendResponse({'ok': false, 'ex': {error, chatChannel}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
-                const chatMessages = await this.chatHistoryStorage.getChatHistoryByChat(chat);
+                const chatMessages = await this.chatHistoryStorage.getChatHistoryByChatChannel(chatChannel);
                 sendResponse(new GetChatHistoryResponse(chatMessages));
             })().catch(error => sendResponse({'ok': false, 'ex': error}));
             return true;
@@ -1173,21 +1173,21 @@ export class BackgroundApp
         return false;
     }
 
-    private handle_deleteChatHistory(chat: unknown, olderThanTime: unknown, sendResponse: (response: any) => void): boolean
+    private handle_deleteChatHistory(chatChannel: unknown, olderThanTime: unknown, sendResponse: (response: any) => void): boolean
     {
-        if (!isChat(chat)) {
-            const error = new Error('chat is not a Chat object!');
-            sendResponse({'ok': false, 'ex': {error, chat, olderThanTime}});
+        if (!ChatUtils.isChatChannel(chatChannel)) {
+            const error = new Error('chatChannel is not a ChatChannel object!');
+            sendResponse({'ok': false, 'ex': {error, chatChannel, olderThanTime}});
         } else if (!is.string(olderThanTime)) {
             const error = new Error('olderThan is not a UTC datetime string!');
-            sendResponse({'ok': false, 'ex': {error, chat, olderThanTime}});
+            sendResponse({'ok': false, 'ex': {error, chatChannel, olderThanTime}});
         } else {
             (async () => {
                 const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
-                await this.chatHistoryStorage.deleteOldChatHistoryByChatOlderThanTime(chat, olderThanTime);
-                const jidEntries = deletionsByRoomJid.get(chat.roomJid) ?? [];
-                jidEntries.push({chat, olderThanTime});
-                deletionsByRoomJid.set(chat.roomJid, jidEntries);
+                await this.chatHistoryStorage.deleteOldChatHistoryByChatChannelOlderThanTime(chatChannel, olderThanTime);
+                const jidEntries = deletionsByRoomJid.get(chatChannel.roomJid) ?? [];
+                jidEntries.push({chatChannel, olderThanTime});
+                deletionsByRoomJid.set(chatChannel.roomJid, jidEntries);
                 this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
                 sendResponse(new BackgroundSuccessResponse());
             })().catch(error => sendResponse({'ok': false, 'ex': error}));
@@ -1229,13 +1229,13 @@ export class BackgroundApp
         return false;
     }
 
-    private sendPersistedChatMessageToTabs(chat: Chat, chatMessage: ChatMessage): void
+    private sendPersistedChatMessageToTabs(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
-        const message = { type: ContentMessage.type_chatMessagePersisted, data: {chat, chatMessage} };
-        this.sendToTabsForRoom(chat.roomJid, message);
+        const message = { type: ContentMessage.type_chatMessagePersisted, data: {chatChannel, chatMessage} };
+        this.sendToTabsForRoom(chatChannel.roomJid, message);
     }
 
-    private sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chat: Chat, olderThanTime: string}[]>): void
+    private sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]>): void
     {
         for (const [roomJid, deletions] of deletionsByRoomJid) {
             const message = { type: ContentMessage.type_chatHistoryDeleted, data: {deletions} };

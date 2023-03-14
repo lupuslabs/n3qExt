@@ -38,7 +38,7 @@ import { DomUtils } from '../lib/DomUtils';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
-import { userChatMessageTypes } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { ViewportEventDispatcher } from '../lib/ViewportEventDispatcher'
 
 interface ILocationMapperResponse
@@ -434,10 +434,10 @@ export class ContentApp extends AppWithDom
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
-        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs, userChatMessageTypes) ?? 0) !== 0;
+        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs, ChatUtils.userChatMessageTypes) ?? 0) !== 0;
         const hasNewPrivateChat = participantIds.some(participantId => {
             const participant = this.room.getParticipant(participantId);
-            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs, userChatMessageTypes) !== 0;
+            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs, ChatUtils.userChatMessageTypes) !== 0;
         });
         const toastCount = this.toasts.size;
         const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
@@ -740,7 +740,7 @@ export class ContentApp extends AppWithDom
             } break;
 
             case ContentMessage.type_chatMessagePersisted: {
-                this.getRoom()?.onChatMessagePersisted(message.data.chat, message.data.chatMessage);
+                this.getRoom()?.onChatMessagePersisted(message.data.chatChannel, message.data.chatMessage);
                 return false;
             } break;
             case ContentMessage.type_chatHistoryDeleted: {

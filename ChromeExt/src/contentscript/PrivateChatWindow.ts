@@ -5,7 +5,7 @@ import { ContentApp } from './ContentApp';
 import { ChatWindow } from './ChatWindow';
 import { Participant } from './Participant';
 import { DomUtils } from '../lib/DomUtils';
-import { ChatMessage } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class PrivateChatWindow extends ChatWindow
@@ -68,7 +68,7 @@ export class PrivateChatWindow extends ChatWindow
         }
     }
 
-    protected giveMessageToChatOut(chatMessage: ChatMessage): void
+    protected giveMessageToChatOut(chatMessage: ChatUtils.ChatMessage): void
     {
         // Don't give message to chatout. Private chat shows up in private chat window only.
     }

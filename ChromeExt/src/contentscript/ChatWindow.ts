@@ -8,16 +8,7 @@ import { ContentApp } from './ContentApp';
 import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
 import { Entity } from './Entity';
-import {
-    areChatsEqual,
-    Chat,
-    ChatMessage,
-    chatMessageCmpFun,
-    chatMessageIdFun,
-    ChatMessageType,
-    isUserChatMessageType,
-    makeChatMessageId,
-} from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { OrderedSet } from '../lib/OrderedSet';
@@ -33,8 +24,8 @@ export class ChatWindow extends Window<ChatWindowOptions>
     protected chatoutElem: HTMLElement;
     protected chatoutAutoScroll: boolean = true;
     protected chatinInputElem: HTMLTextAreaElement;
-    protected chat: Chat;
-    protected chatMessages: OrderedSet<ChatMessage>;
+    protected chatChannel: ChatUtils.ChatChannel;
+    protected chatMessages: OrderedSet<ChatUtils.ChatMessage>;
     protected lastIncommingChatMessageTimeMs: number = 0;
     protected sessionStartTs: string;
     protected historyLoading: boolean = false;
@@ -48,22 +39,22 @@ export class ChatWindow extends Window<ChatWindowOptions>
         super(app);
         if (roomOrEntity instanceof Room) {
             this.room = roomOrEntity;
-            this.chat = {
+            this.chatChannel = {
                 type:     'roompublic',
                 roomJid:  this.room.getJid(),
                 roomNick: '',
             };
         } else {
             this.room = roomOrEntity.getRoom();
-            this.chat = {
+            this.chatChannel = {
                 type:     'roomprivate',
                 roomJid:  this.room.getJid(),
                 roomNick: roomOrEntity.getRoomNick(),
             };
         }
-        this.chatMessages = new OrderedSet<ChatMessage>([], chatMessageCmpFun, chatMessageIdFun);
+        this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.chatMessageIdFun);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
-        this.windowName = `Chat${this.chat.type}`;
+        this.windowName = `Chat${this.chatChannel.type}`;
         this.isResizable = true;
         this.persistGeometry = true;
 
@@ -81,7 +72,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
     public isSoundEnabled(): boolean { return this.soundEnabled; }
 
-    public getRecentMessageCount(maxAgeSecs: number, types: readonly ChatMessageType[]): number
+    public getRecentMessageCount(maxAgeSecs: number, types: readonly ChatUtils.ChatMessageType[]): number
     {
         let messageCount = 0;
         const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
@@ -193,7 +184,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
         this.chatinInputElem = null;
     }
 
-    public addLine(id: string|null, type: ChatMessageType, nick: string, text: string): void
+    public addLine(id: string|null, type: ChatUtils.ChatMessageType, nick: string, text: string): void
     {
         // Strictly increasing time to ensure correct order of locally generated messages comming in at the same millisecond:
         let timeMs = Date.now();
@@ -205,9 +196,9 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
         let generateId = is.nil(id);
         if (generateId) {
-            id = makeChatMessageId(time, nick);
+            id = ChatUtils.makeChatMessageId(time, nick);
         }
-        if (isUserChatMessageType(type)) {
+        if (ChatUtils.isUserChatMessageType(type)) {
             if (type === 'emote') {
                 text = this.app.translateText(text, text);
             }
@@ -215,7 +206,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
             text = this.app.translateText('Chatwindow.' + text, text);
         }
         const timestamp = Utils.utcStringOfDate(time);
-        const message: ChatMessage = { timestamp, id, type, nick, text };
+        const message: ChatUtils.ChatMessage = { timestamp, id, type, nick, text };
         if (this.chatMessages.has(message)) {
             return;
         }
@@ -224,8 +215,8 @@ export class ChatWindow extends Window<ChatWindowOptions>
         if (type === 'debug') {
             this.storeChatMessage(message);
         } else {
-            BackgroundMessage.handleNewChatMessage(this.chat, message, generateId)
-            .catch(error => this.app.onError(error));
+            BackgroundMessage.handleNewChatMessage(this.chatChannel, message, generateId)
+                .catch(error => this.app.onError(error));
         }
     }
 
@@ -242,7 +233,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
                 this.historyLoadRequired = false;
 
                 // Get and process recorded history:
-                const history = await BackgroundMessage.getChatHistory(this.chat);
+                const history = await BackgroundMessage.getChatHistory(this.chatChannel);
                 history.forEach(message => this.storeChatMessage(message));
             }
             this.historyLoading = false;
@@ -262,7 +253,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
         }
     }
 
-    private drawChatMessage(message: ChatMessage, index: number, replaceExisting: boolean)
+    private drawChatMessage(message: ChatUtils.ChatMessage, index: number, replaceExisting: boolean)
     {
         if (this.chatoutElem) {
             const typeClass = `n3q-chat-type-${message.type}`;
@@ -301,49 +292,49 @@ export class ChatWindow extends Window<ChatWindowOptions>
     public clear()
     {
         this.chatoutAutoScroll = true;
-        BackgroundMessage.deleteChatHistory(this.chat, Utils.utcStringOfDate(new Date()))
-        .catch(error => this.app.onError(error));
+        BackgroundMessage.deleteChatHistory(this.chatChannel, Utils.utcStringOfDate(new Date()))
+            .catch(error => this.app.onError(error));
     }
 
-    public onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    public onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
-        if (areChatsEqual(chat, this.chat)) {
+        if (ChatUtils.areChatsEqual(chatChannel, this.chatChannel)) {
             if (!this.chatMessages.has(chatMessage)) {
                 this.storeChatMessage(chatMessage);
             }
         }
     }
 
-    protected storeChatMessage(chatMessage: ChatMessage): void
+    protected storeChatMessage(chatMessage: ChatUtils.ChatMessage): void
     {
         const {index, replacedExisting} = this.chatMessages.add(chatMessage);
         this.drawChatMessage(chatMessage, index, replacedExisting);
         this.giveMessageToChatOut(chatMessage);
     }
 
-    protected giveMessageToChatOut(chatMessage: ChatMessage): void
+    protected giveMessageToChatOut(chatMessage: ChatUtils.ChatMessage): void
     {
         this.room.getParticipantByDisplayName(chatMessage.nick)?.getChatout()?.displayChatMessage(chatMessage);
     }
 
-    public getChatMessagesByNickSince(nick: string, timestampStart: string): ChatMessage[]
+    public getChatMessagesByNickSince(nick: string, timestampStart: string): ChatUtils.ChatMessage[]
     {
         return this.chatMessages.toArray().filter(m => m.timestamp >= timestampStart && m.nick === nick);
     }
 
-    public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
+    public onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
     {
         deletions
-        .filter(({chat}) => areChatsEqual(chat, this.chat))
-        .forEach(({olderThanTime}) => {
-            for (let index = this.chatMessages.length() - 1; index >= 0; index--) {
-                const message = this.chatMessages.at(index);
-                if (message.timestamp < olderThanTime) {
-                    this.chatMessages.removeAt(index);
-                    this.removeChatMessageFromDisplay(index);
+            .filter(({chatChannel}) => ChatUtils.areChatsEqual(chatChannel, this.chatChannel))
+            .forEach(({olderThanTime}) => {
+                for (let index = this.chatMessages.length() - 1; index >= 0; index--) {
+                    const message = this.chatMessages.at(index);
+                    if (message.timestamp < olderThanTime) {
+                        this.chatMessages.removeAt(index);
+                        this.removeChatMessageFromDisplay(index);
+                    }
                 }
-            }
-        });
+            });
     }
 
     public playSound(): void

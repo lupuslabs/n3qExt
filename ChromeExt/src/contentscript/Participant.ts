@@ -31,7 +31,7 @@ import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
 import { DomUtils } from '../lib/DomUtils';
 import { PointerEventData } from '../lib/PointerEventData';
-import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
+import { ChatUtils } from '../lib/ChatUtils';
 import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
@@ -717,7 +717,7 @@ export class Participant extends Entity
 
         // always
         const {isEmote, emoteId} = this.parseEmoteCmd(text);
-        const msgType: ChatMessageType = isEmote ? 'emote' : 'chat';
+        const msgType: ChatUtils.ChatMessageType = isEmote ? 'emote' : 'chat';
         this.room?.showChatMessage(id, msgType, name, text);
 
         this.sendParticipantChatToAllScriptFrames(text);
@@ -761,12 +761,12 @@ export class Participant extends Entity
         this.room.sendGroupChat(text);
     }
 
-    onChatMessagePersisted(chat: Chat, chatMessage: ChatMessage): void
+    onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
-        this.privateChatWindow.onChatMessagePersisted(chat, chatMessage);
+        this.privateChatWindow.onChatMessagePersisted(chatChannel, chatMessage);
     }
 
-    public onChatHistoryDeleted(deletions: {chat: Chat, olderThanTime: string}[]): void
+    public onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
     {
         this.privateChatWindow.onChatHistoryDeleted(deletions);
     }
