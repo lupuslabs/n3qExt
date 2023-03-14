@@ -2,7 +2,7 @@ import log = require('loglevel');
 import { as } from '../lib/as';
 import { RoomItem } from './RoomItem'
 import { ContentApp } from './ContentApp';
-import { domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { Utils } from '../lib/Utils'
 
 export type ItemFramePopupOptions = {
@@ -65,7 +65,7 @@ export class ItemFramePopup
             let windowId = Utils.randomString(15);
 
             const opacityClass = options.transparent ? 'n3q-transparent' : 'n3q-shadow-medium';
-            this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" class="n3q-window n3q-popupwindow ${opacityClass}" data-translate="children"></div>`);
+            this.windowElem = DomUtils.elemOfHtml(`<div id="${windowId}" class="n3q-window n3q-popupwindow ${opacityClass}" data-translate="children"></div>`);
 
             if (as.Bool(options.closeButton, true)) {
                 this.isClosing = false;
@@ -87,7 +87,7 @@ export class ItemFramePopup
 
             this.windowElem.classList.add('n3q-itemframepopup');
 
-            this.iframeElem = <HTMLIFrameElement>domHtmlElemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${url}" frameborder="0"></iframe>`);
+            this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${url}" frameborder="0"></iframe>`);
 
             if (options.hidden) {
                 this.setVisibility(false);
@@ -130,7 +130,7 @@ export class ItemFramePopup
 
         this.windowElem.style.width = `${mangledGeometry.width}px`;
         const heightTrans = { property: 'height', duration: delay };
-        startDomElemTransition(this.windowElem, null, heightTrans, `${mangledGeometry.height}px`);
+        DomUtils.startElemTransition(this.windowElem, null, heightTrans, `${mangledGeometry.height}px`);
         this.windowElem.style.left = `${mangledGeometry.left}px`;
         this.windowElem.style.bottom = `${mangledGeometry.bottom}px`;
     }

@@ -34,7 +34,7 @@ import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { domHtmlElemOfHtml, preventKeyboardEventBubbling } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -347,7 +347,7 @@ export class ContentApp extends AppWithDom
         // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
         document.querySelector('div#n3q')?.remove();
         const shadowDomAnchorStyle = 'all: revert !important; width: 0 !important; height: 0 !important; overflow: hidden !important;';
-        const shadowDomAnchor = domHtmlElemOfHtml(`<div id="n3q" data-client-variant="${variant}" style="${shadowDomAnchorStyle}"></div>`);
+        const shadowDomAnchor = DomUtils.elemOfHtml(`<div id="n3q" data-client-variant="${variant}" style="${shadowDomAnchorStyle}"></div>`);
         this.shadowDomRoot = shadowDomAnchor.attachShadow({mode: 'closed'});
 
         if (params.styleUrl) {
@@ -356,8 +356,8 @@ export class ContentApp extends AppWithDom
             styleElem.innerText = `@import "${styleDataUrl}";`;
         }
 
-        this.display = domHtmlElemOfHtml('<div id="n3q-display"></div>');
-        preventKeyboardEventBubbling(this.display);
+        this.display = DomUtils.elemOfHtml('<div id="n3q-display"></div>');
+        DomUtils.preventKeyboardEventBubbling(this.display);
         this.shadowDomRoot.append(this.display);
         this.appendToMe.append(shadowDomAnchor);
     }

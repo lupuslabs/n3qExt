@@ -3,15 +3,8 @@ import { as } from './as';
 import log = require('loglevel');
 import { AppWithDom } from './App';
 import { Config } from './Config';
-import {
-    getDomElemOpacityAtPos, getNextDomElemBehindElemAtViewportPos, getTopmostOpaqueDomElemAtViewportPos,
-    cloneDomEvent, dispatchDomEvent, capturePointer, releasePointer, DomButtonId, calcDomButtonIdsDiff,
-} from './domTools';
-import {
-    getDataFromPointerEvent, makeDummyPointerEventData, hasMovedDragDistance,
-    PointerEventData, PointerEventType, setButtonsOnPointerEventData,
-    setClientPosOnPointerEventData, setDistanceOnPointerEventData, setModifierKeysOnPointerEventData, DomModifierKeyId,
-} from './PointerEventData';
+import { DomUtils } from './DomUtils';
+import { PointerEventData, PointerEventType } from './PointerEventData';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
 
@@ -26,8 +19,8 @@ export type PointerEventDispatcherOptions = {
 };
 
 type EventListenerRecord = {
-    buttons:      null|DomButtonId,
-    modifierKeys: null|DomModifierKeyId,
+    buttons:      null|DomUtils.ButtonId,
+    modifierKeys: null|DomUtils.ModifierKeyId,
     listener:     PointerEventListener,
 };
 
@@ -309,33 +302,33 @@ export class PointerEventDispatcher {
     }
 
     public addUnmodifiedLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('click', DomButtonId.first, DomModifierKeyId.none, listener);
+        return this.addListener('click', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, listener);
     }
     public addShiftLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('click', DomButtonId.first, DomModifierKeyId.shift, listener);
+        return this.addListener('click', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.shift, listener);
     }
     public addCtrlLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('click', DomButtonId.first, DomModifierKeyId.control, listener);
+        return this.addListener('click', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.control, listener);
     }
 
     public addUnmodifiedLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.none, listener);
+        return this.addListener('longclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, listener);
     }
     public addShiftLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.shift, listener);
+        return this.addListener('longclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.shift, listener);
     }
     public addCtrlLeftLongclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('longclick', DomButtonId.first, DomModifierKeyId.control, listener);
+        return this.addListener('longclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.control, listener);
     }
 
     public addUnmodifiedLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.none, listener);
+        return this.addListener('doubleclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, listener);
     }
     public addShiftLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.shift, listener);
+        return this.addListener('doubleclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.shift, listener);
     }
     public addCtrlLeftDoubleclickListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('doubleclick', DomButtonId.first, DomModifierKeyId.control, listener);
+        return this.addListener('doubleclick', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.control, listener);
     }
 
     public addDragStartListener(listener: PointerEventListener): PointerEventDispatcher {
@@ -362,8 +355,8 @@ export class PointerEventDispatcher {
 
     public addListener(
         type:         PointerEventType,
-        buttons:      null|DomButtonId,
-        modifierKeys: null|DomModifierKeyId,
+        buttons:      null|DomUtils.ButtonId,
+        modifierKeys: null|DomUtils.ModifierKeyId,
         listener:     PointerEventListener
     ): PointerEventDispatcher {
         const record: EventListenerRecord = { buttons, modifierKeys, listener };
@@ -541,9 +534,10 @@ export class PointerEventDispatcher {
         }
 
         // Call buttonup event handlers when any button was down:
-        if ((this.buttonsPointerStatesLast.get(ev.pointerId)?.buttons ?? DomButtonId.none) !== DomButtonId.none) {
-            const data = getDataFromPointerEvent('buttonup', ev, this.domElem);
-            data.buttons = DomButtonId.none; // Assume buttons to be all up no matter what.
+        if ((this.buttonsPointerStatesLast.get(ev.pointerId)?.buttons ?? DomUtils.ButtonId.none) !== DomUtils.ButtonId.none) {
+            const data = new PointerEventData('buttonup', ev, this.domElem, {
+                buttons: DomUtils.ButtonId.none, // Assume buttons to be all up no matter what.
+            });
             this.callEventListener(data);
         }
 
@@ -551,7 +545,7 @@ export class PointerEventDispatcher {
         this.buttonsPointerStatesLast.delete(ev.pointerId);
 
         // Allow other elements to receive events in case the pointer comes back online:
-        releasePointer(this.domElem, ev.pointerId);
+        DomUtils.releasePointer(this.domElem, ev.pointerId);
 
         // Clean up any action-in-progress state:
         const isInvolvedInAction
@@ -580,10 +574,10 @@ export class PointerEventDispatcher {
         this.inEventHandling = true;
         const pointerId = ev.pointerId;
         const lastButtonsState
-            = this.buttonsPointerStatesLast.get(pointerId) ?? {isButtonsUp: false, buttons: DomButtonId.none};
+            = this.buttonsPointerStatesLast.get(pointerId) ?? {isButtonsUp: false, buttons: DomUtils.ButtonId.none};
         const isOpaqueAtLoc = this.isOpaqueAtEventLocation(ev);
         const isInvolvedInAction = pointerId === this.buttonsActionPointerId;
-        const hadButtonsDown = lastButtonsState.buttons !== DomButtonId.none;
+        const hadButtonsDown = lastButtonsState.buttons !== DomUtils.ButtonId.none;
 
         if (this.logEventsIn.has(ev.type)) {
             const msg = `DomOpacityAwarePointerEventDispatcher.handlePointerEvent`;
@@ -637,7 +631,7 @@ export class PointerEventDispatcher {
 
             // Handle drag start:
             if (this.dragEnabled && !this.buttonsResetOngoing && !isConcurrent && this.dragStartPossible
-            && hasMovedDragDistance(this.buttonsDownEventStart, ev, this.dragStartDistance)) {
+            && DomUtils.pointerMovedDistance(this.buttonsDownEventStart, ev, this.dragStartDistance)) {
                 this.clickEnd(true); // Prevent click or doubleclick.
                 this.buttonsResetOngoing = false; // Has been set by clickEnd.
                 this.swallowNextMouseclickEvent = true;
@@ -658,16 +652,16 @@ export class PointerEventDispatcher {
 
     private handleButtonEvent(ev: PointerEvent, isConcurrent: boolean, lastButtonsState: ButtonsState): void
     {
-        const [buttonsUp, buttonsDown] = calcDomButtonIdsDiff(lastButtonsState.buttons, ev.buttons);
-        const [isButtonsUp, isButtonsDown] = [buttonsUp !== DomButtonId.none, buttonsDown !== DomButtonId.none];
-        const isInitialDown = lastButtonsState.buttons === DomButtonId.none;
+        const [buttonsUp, buttonsDown] = DomUtils.calcButtonIdsDiff(lastButtonsState.buttons, ev.buttons);
+        const [isButtonsUp, isButtonsDown] = [buttonsUp !== DomUtils.ButtonId.none, buttonsDown !== DomUtils.ButtonId.none];
+        const isInitialDown = lastButtonsState.buttons === DomUtils.ButtonId.none;
 
         this.buttonsPointerStatesLast.set(ev.pointerId, {isButtonsUp, buttons: ev.buttons});
 
         if (isButtonsUp) {
             // Only the final button up for a pointer triggers an actual pointerup event in chrome.
             // So just accept all heuristically detected ones:
-            this.callEventListener(getDataFromPointerEvent('buttonup', ev, this.domElem));
+            this.callEventListener(new PointerEventData('buttonup', ev, this.domElem));
         }
         if (isButtonsDown) {
             const isPointerDownEvent = ev.type === 'pointerdown';
@@ -684,10 +678,10 @@ export class PointerEventDispatcher {
                 // Missed initial pointerdown (likely because it happened outdside domElem's bounding box).
                 this.cancelAllActions();
             } else {
-                this.callEventListener(getDataFromPointerEvent('buttondown', ev, this.domElem));
+                this.callEventListener(new PointerEventData('buttondown', ev, this.domElem));
             }
             if (isInitialDown) {
-                capturePointer(this.domElem, ev.pointerId);
+                DomUtils.capturePointer(this.domElem, ev.pointerId);
             }
         }
 
@@ -696,7 +690,7 @@ export class PointerEventDispatcher {
         }
         if (!this.buttonsResetOngoing && isButtonsUp) {
             this.dragStartPossible = false;
-            if (ev.buttons === DomButtonId.none) {
+            if (ev.buttons === DomUtils.ButtonId.none) {
                 if (this.dragOngoing) {
                     this.dragHandleDrop(ev);
                 } else if (this.clickOngoing) {
@@ -740,9 +734,9 @@ export class PointerEventDispatcher {
             this.buttonsActionPointerId = null;
         }
         for (const [pointerId, pointerState] of this.buttonsPointerStatesLast.entries()) {
-            if (pointerState.buttons === DomButtonId.none && pointerId !== this.buttonsActionPointerId) {
+            if (pointerState.buttons === DomUtils.ButtonId.none && pointerId !== this.buttonsActionPointerId) {
                 this.buttonsPointerStatesLast.delete(pointerId);
-                releasePointer(this.domElem, pointerId);
+                DomUtils.releasePointer(this.domElem, pointerId);
             } else {
                 this.buttonsResetOngoing = true;
             }
@@ -772,7 +766,7 @@ export class PointerEventDispatcher {
                 return;
             }
             this.hoverLeaveAll(interactivePointerId); // All other pointers
-            isHovering = hasMovedDragDistance(this.clickDownEventStart, ev, this.dragStartDistance)
+            isHovering = DomUtils.pointerMovedDistance(this.clickDownEventStart, ev, this.dragStartDistance)
         }
 
         if (isHovering) {
@@ -802,17 +796,17 @@ export class PointerEventDispatcher {
         }
 
         if (this.hoverEventsLast.size === 0) {
-            this.callEventListener(getDataFromPointerEvent('hoverenter', ev, this.domElem));
+            this.callEventListener(new PointerEventData('hoverenter', ev, this.domElem));
         }
         this.hoverEventsLast.set(ev.pointerId, ev);
-        this.callEventListener(getDataFromPointerEvent('hovermove', ev, this.domElem));
+        this.callEventListener(new PointerEventData('hovermove', ev, this.domElem));
     }
 
     private handleHoverleave(ev: PointerEvent): void
     {
         const wasHovering = this.hoverEventsLast.delete(ev.pointerId);
         if (wasHovering && this.hoverEventsLast.size === 0) {
-            this.callEventListener(getDataFromPointerEvent('hoverleave', ev, this.domElem));
+            this.callEventListener(new PointerEventData('hoverleave', ev, this.domElem));
         }
     }
 
@@ -889,12 +883,13 @@ export class PointerEventDispatcher {
             && this.clickOngoing
             && this.clickCount !== 0
             && !discard
-            && !hasMovedDragDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
+            && !DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
         ) {
-            const type = this.clickCount === 1 ? (this.clickIsLong ? 'longclick' : 'click') : 'doubleclick';
-            const data = getDataFromPointerEvent(type, this.clickDownEventLast, this.domElem);
-            setClientPosOnPointerEventData(data, this.clickDownEventStart);
-            setModifierKeysOnPointerEventData(data, this.clickMoveEventLast);
+            const type = this.getClickType();
+            const data = new PointerEventData(type, this.clickDownEventLast, this.domElem, {
+                posEvent: this.clickDownEventStart,
+                modifierKeys: this.clickMoveEventLast,
+            });
             if (this.callEventListener(data)) {
                 this.swallowNextMouseclickEvent = true; // We handled the click, so swallow the browser generated click event.
             }
@@ -906,6 +901,17 @@ export class PointerEventDispatcher {
         this.clickDownEventLast = null;
         this.clickMoveEventLast = null;
         this.clickHandlingReleasesPointer();
+    }
+
+    private getClickType(): 'longclick'|'click'|'doubleclick'
+    {
+        if (this.clickCount > 1) {
+            return 'doubleclick';
+        }
+        if (this.clickIsLong) {
+            return 'longclick';
+        }
+        return 'click';
     }
 
     // -------------------------------------------------------------------------
@@ -921,13 +927,13 @@ export class PointerEventDispatcher {
         this.dragUserCanceled = false;
         this.dragStartPossible = false;
         this.dragDropTargetLast = null;
-        this.dragDownEventStart = getDataFromPointerEvent('dragstart', eventStart, this.domElem);
+        this.dragDownEventStart = new PointerEventData('buttondown', eventStart, this.domElem);
         this.dragDownEventLast = eventStart;
         this.dragMoveEventLast = null;
         this.dragMoveEventDataLast = null;
-        const data = getDataFromPointerEvent('dragstart', eventMove, this.domElem);
-        setDistanceOnPointerEventData(data, this.dragDownEventStart);
-        this.callEventListener(data);
+        this.callEventListener(new PointerEventData('dragstart', eventMove, this.domElem, {
+            startEvent: this.dragDownEventStart,
+        }));
         if (this.dragUserCanceled) {
             this.dragCancel(true);
         }
@@ -940,28 +946,35 @@ export class PointerEventDispatcher {
             window.clearInterval(this.dragUpdateTimeoutHandle);
         }
 
-        const moveData = this.dragCallMoveHandler(eventUpLast);
+        this.dragCallMoveHandler(eventUpLast);
         if (this.dragUserCanceled) {
             this.dragCancel(true);
-            return;
+        } else {
+
+            if (this.dragDropTargetLast) {
+                this.callEventListener(new PointerEventData('dragleave', eventUpLast, this.domElem, {
+                    startEvent: this.dragDownEventStart,
+                    buttons: this.dragDownEventLast,
+                    dropTargetLast: this.dragDropTargetLast,
+                }));
+            }
+
+            this.callEventListener(new PointerEventData('dragdrop', eventUpLast, this.domElem, {
+                startEvent: this.dragDownEventStart,
+                buttons: this.dragDownEventLast,
+                dropTarget: this.dragDropTargetLast,
+                dropTargetLast: this.dragDropTargetLast,
+            }));
+
+            this.callEventListener(new PointerEventData('dragend', eventUpLast, this.domElem, {
+                startEvent: this.dragDownEventStart,
+                buttons: this.dragDownEventLast,
+                dropTarget: this.dragDropTargetLast,
+                dropTargetLast: this.dragDropTargetLast,
+            }));
+
+            this.dragCancel(false);
         }
-
-        const dropData = {...moveData};
-        dropData.type = 'dragdrop';
-        dropData.dropTargetLast = moveData.dropTarget;
-        dropData.dropTargetChanged = false;
-
-        if (!is.nil(dropData.dropTargetLast)) {
-            this.callEventListener({...dropData, type: 'dragleave'});
-        }
-
-        this.callEventListener(dropData);
-
-        const endData = {...dropData};
-        endData.type = 'dragend';
-        this.callEventListener(endData);
-
-        this.dragCancel(false);
     }
 
     private dragHandleMove(eventMove?: PointerEvent): void
@@ -984,7 +997,7 @@ export class PointerEventDispatcher {
         this.dragMoveEventLast = eventMove;
     }
 
-    private dragCallMoveHandler(eventMove: PointerEvent): PointerEventData
+    private dragCallMoveHandler(eventMove: PointerEvent): void
     {
         const clientX = eventMove.clientX;
         const clientY = eventMove.clientY;
@@ -994,36 +1007,45 @@ export class PointerEventDispatcher {
         }
 
         const opacityMin = this.ignoreOpacity ? 0 : this.opacityMin;
-        const dropTarget = getTopmostOpaqueDomElemAtViewportPos(
+        const dropTarget = DomUtils.getTopmostOpaqueElemAtViewportPos(
             this.shadowDomRoot, clientX, clientY, opacityMin, this.dragTransparentClasses, this.dragTransparentElements);
 
-        const moveData = getDataFromPointerEvent('dragmove', eventMove, this.domElem);
-        setDistanceOnPointerEventData(moveData, this.dragDownEventStart);
-        setButtonsOnPointerEventData(moveData, this.dragDownEventLast);
-        moveData.dropTarget = dropTarget;
-        moveData.dropTargetLast = this.dragDropTargetLast;
-        moveData.dropTargetChanged = dropTarget !== this.dragDropTargetLast;
+        const moveData = new PointerEventData('dragmove', eventMove, this.domElem, {
+            startEvent: this.dragDownEventStart,
+            buttons: this.dragDownEventLast,
+            dropTarget: dropTarget,
+            dropTargetLast: this.dragDropTargetLast,
+        });
 
         if (moveData.dropTargetChanged) {
-            if (!is.nil(this.dragDropTargetLast)) {
-                this.callEventListener({...moveData, type: 'dragleave'});
+            if (this.dragDropTargetLast) {
+                this.callEventListener(new PointerEventData('dragleave', eventMove, this.domElem, {
+                    startEvent: this.dragDownEventStart,
+                    buttons: this.dragDownEventLast,
+                    dropTarget: dropTarget,
+                    dropTargetLast: this.dragDropTargetLast,
+                }));
             }
-            if (!is.nil(dropTarget)) {
-                this.callEventListener({...moveData, type: 'dragenter'});
+            if (dropTarget) {
+                this.callEventListener(new PointerEventData('dragenter', eventMove, this.domElem, {
+                    startEvent: this.dragDownEventStart,
+                    buttons: this.dragDownEventLast,
+                    dropTarget: dropTarget,
+                    dropTargetLast: this.dragDropTargetLast,
+                }));
             }
         }
 
-        if (is.nil(this.dragMoveEventDataLast)
+        if (!this.dragMoveEventDataLast
         || this.dragMoveEventLast.clientX !== moveData.clientX || this.dragMoveEventLast.clientY !== moveData.clientY
         || this.dragMoveEventDataLast.buttons !== moveData.buttons
         || this.dragMoveEventDataLast.modifierKeys !== moveData.modifierKeys
         || dropTarget !== this.dragDropTargetLast) {
-            this.callEventListener({...moveData});
+            this.callEventListener(moveData);
         }
 
         this.dragMoveEventDataLast = moveData;
         this.dragDropTargetLast = dropTarget;
-        return moveData;
     }
 
     private dragCancel(sendCancel: boolean): void
@@ -1037,19 +1059,24 @@ export class PointerEventDispatcher {
             this.dragUserCanceled = false;
             if (sendCancel) {
                 const moveEventLast = this.dragMoveEventLast ?? this.dragDownEventLast;
-                const cancelData = makeDummyPointerEventData('dragcancel', moveEventLast, this.domElem);
-                setDistanceOnPointerEventData(cancelData, this.dragDownEventStart);
-                setButtonsOnPointerEventData(cancelData, this.dragDownEventLast);
-                cancelData.dropTargetLast = this.dragDropTargetLast;
-                cancelData.dropTargetChanged = this.dragDropTargetLast !== null;
 
-                if (!is.nil(cancelData.dropTargetLast)) {
-                    this.callEventListener({...cancelData, type: 'dragleave'});
+                if (this.dragDropTargetLast) {
+                    this.callEventListener(new PointerEventData('dragleave', moveEventLast, this.domElem, {
+                        startEvent: this.dragDownEventStart,
+                        buttons: this.dragDownEventLast,
+                        dropTargetLast: this.dragDropTargetLast,
+                    }));
                 }
 
-                this.callEventListener(cancelData);
+                this.callEventListener(new PointerEventData('dragcancel', moveEventLast, this.domElem, {
+                    startEvent: this.dragDownEventStart,
+                    buttons: this.dragDownEventLast,
+                }));
 
-                this.callEventListener({...cancelData, type: 'dragend'});
+                this.callEventListener(new PointerEventData('dragend', moveEventLast, this.domElem, {
+                    startEvent: this.dragDownEventStart,
+                    buttons: this.dragDownEventLast,
+                }));
             }
         }
         this.dragDropTargetLast = null;
@@ -1067,7 +1094,7 @@ export class PointerEventDispatcher {
         if (this.ignoreOpacity) {
             return true; // Event is for us even if actually outside the element's bounding box.
         }
-        const [opacityAtLoc, pointerInBoundingbox] = getDomElemOpacityAtPos(this.domElem, ev.clientX, ev.clientY);
+        const [opacityAtLoc, pointerInBoundingbox] = DomUtils.getElemOpacityAtPos(this.domElem, ev.clientX, ev.clientY);
         const isOpaqueAtLoc = pointerInBoundingbox && opacityAtLoc >= this.opacityMin;
         return isOpaqueAtLoc;
     }
@@ -1095,7 +1122,7 @@ export class PointerEventDispatcher {
 
     private reroutePointerOrMouseEvent(ev: MouseEvent): Element|null
     {
-        const elemBelow = getNextDomElemBehindElemAtViewportPos(this.shadowDomRoot, this.domElem, ev.clientX, ev.clientY);
+        const elemBelow = DomUtils.getNextElemBehindElemAtViewportPos(this.shadowDomRoot, this.domElem, ev.clientX, ev.clientY);
         const isOutEvent = ev.type === 'pointerout' || ev.type === 'pointerleave';
 
         // Create artificial enter/leave and move events for new and former target element:
@@ -1106,7 +1133,7 @@ export class PointerEventDispatcher {
 
         if (!is.nil(elemBelow)
         && !isOutEvent) { // Don't reroute event meaningless for other DOM elements.
-            this.dispatchDomEvent(cloneDomEvent(ev), elemBelow);
+            this.dispatchDomEvent(DomUtils.cloneEvent(ev), elemBelow);
         }
         return elemBelow;
     }
@@ -1123,9 +1150,9 @@ export class PointerEventDispatcher {
         }
         this.hoverRedirectTargetsLast.delete(ev.pointerId);
         for (let elem: Element = hoverRedirectTargetLast; !is.nil(elem); elem = elem.parentElement) {
-            this.dispatchDomEvent(cloneDomEvent(ev, {type: 'pointerout'}), elem);
+            this.dispatchDomEvent(DomUtils.cloneEvent(ev, {type: 'pointerout'}), elem);
         }
-        this.dispatchDomEvent(cloneDomEvent(ev, {type: 'pointerleave'}), hoverRedirectTargetLast);
+        this.dispatchDomEvent(DomUtils.cloneEvent(ev, {type: 'pointerleave'}), hoverRedirectTargetLast);
     }
 
     private handleRedirectTargetPointerHover(ev: PointerEvent, hoverRedirectTargetCurrent: Element|null): void
@@ -1138,11 +1165,11 @@ export class PointerEventDispatcher {
         this.hoverRedirectTargetsLast.set(ev.pointerId, hoverRedirectTargetCurrent);
         if (ev.isPrimary) { // Don't send pointerover, pointerenter for secondary multitouch.
             for (let elem: Element = hoverRedirectTargetCurrent; !is.nil(elem); elem = elem.parentElement) {
-                this.dispatchDomEvent(cloneDomEvent(ev, {type: 'pointerover'}), elem);
+                this.dispatchDomEvent(DomUtils.cloneEvent(ev, {type: 'pointerover'}), elem);
             }
-            this.dispatchDomEvent(cloneDomEvent(ev, {type: 'pointerenter'}), hoverRedirectTargetCurrent);
+            this.dispatchDomEvent(DomUtils.cloneEvent(ev, {type: 'pointerenter'}), hoverRedirectTargetCurrent);
         }
-        this.dispatchDomEvent(cloneDomEvent(ev, {type: 'pointermove'}), hoverRedirectTargetCurrent);
+        this.dispatchDomEvent(DomUtils.cloneEvent(ev, {type: 'pointermove'}), hoverRedirectTargetCurrent);
     }
 
     private dispatchDomEvent(ev: MouseEvent, domElem: Element): void
@@ -1152,7 +1179,7 @@ export class PointerEventDispatcher {
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, originalElem: this.domElem, newElem: domElem, ev, this: {...this}});
         }
-        dispatchDomEvent(ev, domElem);
+        DomUtils.triggerEvent(ev, domElem);
     }
 
 }

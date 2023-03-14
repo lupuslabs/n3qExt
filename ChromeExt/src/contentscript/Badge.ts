@@ -2,8 +2,7 @@ import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { BadgesController } from './BadgesController';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { DomModifierKeyId } from '../lib/PointerEventData';
-import { DomButtonId } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { BadgeInfoWindow } from './BadgeInfoWindow';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { as } from '../lib/as';
@@ -163,7 +162,7 @@ export class Badge
 
         this.pointerEventDispatcher.addDragMoveListener(ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
-                if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
+                if (ev.buttons !== DomUtils.ButtonId.first || ev.modifierKeys !== DomUtils.ModifierKeyId.none) {
                     this.pointerEventDispatcher.cancelDrag();
                     return;
                 }

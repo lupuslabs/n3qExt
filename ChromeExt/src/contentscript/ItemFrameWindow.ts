@@ -5,7 +5,7 @@ import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { RoomItem } from './RoomItem'
 
 export type ItemFrameWindowOptions = WindowOptions & {
@@ -66,7 +66,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
             log.info('ItemFrameWindow.makeContent', this.url);
         }
 
-        this.iframeElem = <HTMLIFrameElement>domHtmlElemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
+        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
 
         this.contentElem.append(this.iframeElem);
     }

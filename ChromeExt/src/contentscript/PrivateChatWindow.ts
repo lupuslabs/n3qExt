@@ -4,7 +4,7 @@ import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { ChatWindow } from './ChatWindow';
 import { Participant } from './Participant';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { ChatMessage } from '../lib/ChatMessage';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
@@ -26,7 +26,7 @@ export class PrivateChatWindow extends ChatWindow
     {
         await super.makeContent();
         if (Config.get('room.showPrivateChatInfoButton', false)) {
-            const infoElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Info" data-translate="attr:title:Chatwindow text:Chatwindow">Info</div>');
+            const infoElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Info" data-translate="attr:title:Chatwindow text:Chatwindow">Info</div>');
             this.contentElem.appendChild(infoElem);
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, infoElem).addUnmodifiedLeftClickListener(ev => this.sendVersionQuery());
         }

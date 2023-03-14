@@ -8,7 +8,7 @@ import { PointsGenerator } from './PointsGenerator';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Pid } from '../lib/ItemProperties';
-import { getDataFromPointerEvent } from '../lib/PointerEventData';
+import { PointerEventData } from '../lib/PointerEventData';
 
 export class ActivitySet { [channel: string]: number }
 
@@ -28,13 +28,13 @@ export class ActivityBar implements IObserver
             this.participant?.select();
         }, { capture: true });
         this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hoverenter', ev, this.elem));
+            this.participant.onMouseEnterAvatar(new PointerEventData('hoverenter', ev, this.elem));
         });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
-            this.participant?.onMouseEnterAvatar(getDataFromPointerEvent('hovermove', ev, this.elem));
+            this.participant?.onMouseEnterAvatar(new PointerEventData('hovermove', ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.participant?.onMouseLeaveAvatar(getDataFromPointerEvent('hoverleave', ev, this.elem));
+            this.participant?.onMouseLeaveAvatar(new PointerEventData('hoverleave', ev, this.elem));
         });
 
         display.appendChild(this.elem);

@@ -1,7 +1,7 @@
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
-import { domHtmlElemOfHtml, domOnNextRenderComplete, startDomElemTransition } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { ChatMessage, chatMessageCmpFun, chatMessageIdFun, isUserChatMessageType } from '../lib/ChatMessage';
 import { Utils } from '../lib/Utils';
 import { OrderedSet } from '../lib/OrderedSet';
@@ -26,7 +26,7 @@ export class Chatout
         this.app = app;
         this.bubbles = new OrderedSet<BubbleInfo>([], chatMessageCmpFun, chatMessageIdFun);
 
-        this.containerElem = domHtmlElemOfHtml('<div class="n3q-chatout-container"></div>');
+        this.containerElem = DomUtils.elemOfHtml('<div class="n3q-chatout-container"></div>');
         this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 100));
         display.appendChild(this.containerElem);
     }
@@ -114,18 +114,18 @@ export class Chatout
     protected makeBubble(chatMessage: ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
     {
         const typeClass = 'n3q-chat-type-' + chatMessage.type;
-        const bubbleElem = domHtmlElemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);
+        const bubbleElem = DomUtils.elemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);
         const bubbleStatus: BubbleStatus = 'fadingSlow';
         const bubble: BubbleInfo = {...chatMessage, bubbleElem, bubbleStatus};
         if (this.bubbles.has(bubble)) {
             return; // Duplicate detected - keep old version.
         }
 
-        const bubbleBubbleElem = domHtmlElemOfHtml('<div class="n3q-speech"></div>');
+        const bubbleBubbleElem = DomUtils.elemOfHtml('<div class="n3q-speech"></div>');
         bubbleBubbleElem.onpointerdown = (ev) => this.pinBubble(bubble);
         bubbleElem.appendChild(bubbleBubbleElem);
 
-        const textElem = domHtmlElemOfHtml('<div class="n3q-text"></div>');
+        const textElem = DomUtils.elemOfHtml('<div class="n3q-text"></div>');
         textElem.innerHTML = as.HtmlWithClickableLinks(chatMessage.text);
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, textElem);
         bubbleBubbleElem.appendChild(textElem);
@@ -182,7 +182,7 @@ export class Chatout
         if (bubble.bubbleStatus !== 'closed') {
             bubble.bubbleStatus = newStatus;
             const guard = () => bubble.bubbleStatus === newStatus;
-            domOnNextRenderComplete(() => {
+            DomUtils.execOnNextRenderComplete(() => {
                 if (guard()) {
                     const transition = {
                         property: 'opacity',
@@ -191,7 +191,7 @@ export class Chatout
                         timingFun: 'linear',
                     };
                     const onComplete = () => this.closeBubbleWithStatus(bubble, newStatus);
-                    startDomElemTransition(bubble.bubbleElem, guard, transition, '0.05', onComplete);
+                    DomUtils.startElemTransition(bubble.bubbleElem, guard, transition, '0.05', onComplete);
                 }
             });
         }

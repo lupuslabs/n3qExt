@@ -3,7 +3,7 @@ import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { RoomItem } from './RoomItem';
-import { domHtmlElemOfHtml, domWaitForRenderComplete, startDomElemTransition } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { Utils } from '../lib/Utils'
 
 export class RoomItemStats // Todo: Convert to Window.
@@ -16,7 +16,7 @@ export class RoomItemStats // Todo: Convert to Window.
 
     public show(): void
     {
-        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops n3q-roomitemstats n3q-shadow-small" data-translate="children"></div>');
+        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops n3q-roomitemstats n3q-shadow-small" data-translate="children"></div>');
         const hasStats = this.update();
         if (!hasStats) {
             return;
@@ -25,7 +25,7 @@ export class RoomItemStats // Todo: Convert to Window.
         this.app.toFront(this.elem, ContentApp.LayerEntityTooltip);
         this.elem.style.opacity = '0';
         const transition = { property: 'opacity', duration: '200ms' };
-        startDomElemTransition(this.elem, null, transition, '1');
+        DomUtils.startElemTransition(this.elem, null, transition, '1');
     }
 
     public close(): void
@@ -45,13 +45,13 @@ export class RoomItemStats // Todo: Convert to Window.
             label = as.String(props[Pid.Template]);
         }
         if (label) {
-            let labelElem = domHtmlElemOfHtml('<div class="n3q-base n3q-title" data-translate="text:ItemLabel">' + label + '</div>');
+            let labelElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-title" data-translate="text:ItemLabel">' + label + '</div>');
             this.elem.append(labelElem);
         }
 
         let description = as.String(props[Pid.Description], '');
         if (description.length) {
-            let descriptionElem = domHtmlElemOfHtml('<div class="n3q-base n3q-description">' + description + '</div>');
+            let descriptionElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-description">' + description + '</div>');
             this.elem.append(descriptionElem);
         }
 
@@ -68,13 +68,13 @@ export class RoomItemStats // Todo: Convert to Window.
             display[Pid.OwnerName] = this.roomItem.getOwnerName();
         }
 
-        let listElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
+        let listElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
         let hasStats = description !== '';
         for (let pid in display) {
             let value = display[pid];
             if (value) {
                 hasStats = true;
-                let lineElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-line" data-translate="children">'
+                let lineElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-line" data-translate="children">'
                     + '<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">'
                     + pid + '</span><span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="'
                     + as.Html(value) + '">'
@@ -98,7 +98,7 @@ export class RoomItemStats // Todo: Convert to Window.
     public updateGeometry(): void
     {
         (async () => {
-            await domWaitForRenderComplete();
+            await DomUtils.waitForRenderComplete();
             const container = this.app.getDisplay();
             const roomItemElem = this.roomItem.getElem();
             if (!container || !roomItemElem || !this.elem) {

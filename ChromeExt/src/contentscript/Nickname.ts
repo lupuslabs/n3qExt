@@ -3,9 +3,9 @@ import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
-import { DomModifierKeyId, getDataFromPointerEvent, PointerEventData } from '../lib/PointerEventData';
+import { PointerEventData } from '../lib/PointerEventData';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 
 export class Nickname implements IObserver
 {
@@ -20,19 +20,19 @@ export class Nickname implements IObserver
 
     constructor(protected app: ContentApp, private participant: Participant, private isSelf: boolean, private display: HTMLElement)
     {
-        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-nickname n3q-shadow-small" />');
+        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-nickname n3q-shadow-small" />');
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant.select();
         }, { capture: true });
         this.elem.addEventListener('pointerenter', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hoverenter', ev, this.elem));
+            this.participant.onMouseEnterAvatar(new PointerEventData('hoverenter', ev, this.elem));
         });
         this.elem.addEventListener('pointermove', (ev: PointerEvent) => {
-            this.participant.onMouseEnterAvatar(getDataFromPointerEvent('hovermove', ev, this.elem));
+            this.participant.onMouseEnterAvatar(new PointerEventData('hovermove', ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.lastLeaveEvent = getDataFromPointerEvent('hoverleave', ev, this.elem);
+            this.lastLeaveEvent = new PointerEventData('hoverleave', ev, this.elem);
             if (!this.isMenuOpen) {
                 this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
             }
@@ -42,12 +42,12 @@ export class Nickname implements IObserver
         this.menuElem = menuElem;
         menuElem.classList.add('n3q-base', 'n3q-menu-open-button', 'n3q-menu-open-button-closed');
         let menuEventdispatcher = new PointerEventDispatcher(this.app, menuElem);
-        menuEventdispatcher.addListener('buttondown', DomButtonId.first, DomModifierKeyId.none, ev => {
+        menuEventdispatcher.addListener('buttondown', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, ev => {
             this.participant.openMenu();
         });
         this.elem.appendChild(menuElem);
 
-        this.textElem = domHtmlElemOfHtml('<div class="n3q-base n3q-text" />');
+        this.textElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-text" />');
         this.elem.appendChild(this.textElem);
 
         display.appendChild(this.elem);

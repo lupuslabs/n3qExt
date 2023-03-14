@@ -4,7 +4,7 @@ import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { Memory } from '../lib/Memory';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class XmppWindow extends Window<WindowOptions>
@@ -39,12 +39,12 @@ export class XmppWindow extends Window<WindowOptions>
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        this.outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-xmppwindow-out" data-translate="children"></div>');
-        const inElem = domHtmlElemOfHtml('<div class="n3q-base n3q-xmppwindow-in" data-translate="children"></div>');
-        this.inInputElem = <HTMLTextAreaElement>domHtmlElemOfHtml('<textarea class="n3q-base n3q-xmppwindow-in-input n3q-input n3q-text"></textarea>');
-        const inSendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-send" title="Send">Send</div>');
-        const inSaveElem = domHtmlElemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-save" title="Save">Save</div>');
-        const outClearElem = domHtmlElemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-out-clear" title="Clear">Clear</div>');
+        this.outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-xmppwindow-out" data-translate="children"></div>');
+        const inElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-xmppwindow-in" data-translate="children"></div>');
+        this.inInputElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-xmppwindow-in-input n3q-input n3q-text"></textarea>');
+        const inSendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-send" title="Send">Send</div>');
+        const inSaveElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-save" title="Save">Save</div>');
+        const outClearElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-out-clear" title="Clear">Clear</div>');
 
         inElem.append(this.inInputElem);
 

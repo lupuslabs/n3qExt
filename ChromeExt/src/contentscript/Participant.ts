@@ -29,7 +29,7 @@ import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { Environment } from '../lib/Environment';
 import { Memory } from '../lib/Memory';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { PointerEventData } from '../lib/PointerEventData';
 import { Chat, ChatMessage, ChatMessageType } from '../lib/ChatMessage';
 import { RootMenu, } from './Menu';
@@ -106,7 +106,7 @@ export class Participant extends Entity
                 countIntroYou++;
                 await Memory.setLocal('client.introYou', countIntroYou);
 
-                const introYouElem = domHtmlElemOfHtml(''
+                const introYouElem = DomUtils.elemOfHtml(''
                     + '<div class="n3q-base n3q-intro-you n3q-bounce" data-translate="children">'
                     + '  <svg class="n3q-base n3q-shadow-small" width="72" height="48" xmlns="http://www.w3.org/2000/svg">'
                     + '    <g>'
@@ -115,7 +115,7 @@ export class Participant extends Entity
                     + '  </svg>'
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
                     + '</div>');
-                const closeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
+                const closeElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
                 PointerEventDispatcher.makeOpaqueDispatcher(this.app, closeElem).addUnmodifiedLeftClickListener(ev => {
                     Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
                     introYouElem.remove();

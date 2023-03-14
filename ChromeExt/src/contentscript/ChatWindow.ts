@@ -21,9 +21,8 @@ import {
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { OrderedSet } from '../lib/OrderedSet';
-import { DomButtonId, domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { DomModifierKeyId } from '../lib/PointerEventData'
 
 export type ChatWindowOptions = WindowOptions & {
     soundEnabled?: boolean,
@@ -115,14 +114,14 @@ export class ChatWindow extends Window<ChatWindowOptions>
         this.windowElem.classList.add('n3q-chatwindow');
         const contentElem = this.contentElem;
 
-        const chatoutElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
-        const chatinElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
-        const chatinTextElem = <HTMLTextAreaElement> domHtmlElemOfHtml('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
-        const chatinSendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
+        const chatoutElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
+        const chatinElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
+        const chatinTextElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
+        const chatinSendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
 
-        const clearElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
-        const soundCheckboxElem = <HTMLInputElement>domHtmlElemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');
-        const soundcheckElem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>');
+        const clearElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
+        const soundCheckboxElem = <HTMLInputElement>DomUtils.elemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');
+        const soundcheckElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>');
         soundcheckElem.appendChild(soundCheckboxElem);
 
         // const retentionInfoElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`);
@@ -269,7 +268,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
             const typeClass = `n3q-chat-type-${message.type}`;
             const ageClass = message.timestamp >= this.sessionStartTs ? 'n3q-chat-new' : 'n3q-chat-old';
             const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
-            const lineElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-line ${ageClass}"></div>`);
+            const lineElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-chatwindow-line ${ageClass}"></div>`);
             lineElem.classList.add('n3q-base', 'n3q-chatwindow-line', typeClass, ageClass);
             const innerHtmls = [];
             if (message.nick.length !== 0) {

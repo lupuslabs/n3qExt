@@ -11,9 +11,9 @@ import { BackpackWindow } from './BackpackWindow';
 import { BackpackItemInfo } from './BackpackItemInfo';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { is } from '../lib/is';
-import { DomButtonId } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { Participant } from './Participant';
-import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
+import { PointerEventData } from '../lib/PointerEventData';
 
 export class BackpackItem
 {
@@ -218,7 +218,7 @@ export class BackpackItem
 
     private onDragMove(ev: PointerEventData): void
     {
-        if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
+        if (ev.buttons !== DomUtils.ButtonId.first || ev.modifierKeys !== DomUtils.ModifierKeyId.none) {
             this.pointerEventDispatcher.cancelDrag();
             return;
         }

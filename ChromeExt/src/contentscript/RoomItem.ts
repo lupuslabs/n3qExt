@@ -24,8 +24,7 @@ import { ItemFramePopup, ItemFramePopupOptions } from './ItemFramePopup';
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
 import { Element as XmlElement } from 'ltx';
-import { DomButtonId } from '../lib/domTools';
-import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
+import { PointerEventData } from '../lib/PointerEventData';
 
 export class RoomItem extends Entity
 {
@@ -406,22 +405,14 @@ export class RoomItem extends Entity
     public onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftDoubleclickAvatar(ev);
-        switch (ev.buttons) {
-            case DomButtonId.first: {
-                switch (ev.modifierKeys) {
-                    case DomModifierKeyId.none: {
-                        if (as.Bool(this.properties[Pid.IframeAspect])) {
-                            if (this.framePopup) {
-                                const visible = this.framePopup.getVisibility();
-                                this.framePopup.setVisibility(!visible);
-                            } else if (this.frameWindow) {
-                                const visible = this.frameWindow.getVisibility();
-                                this.frameWindow.setVisibility(!visible);
-                            }
-                        }
-                    } break;
-                }
-            } break;
+        if (as.Bool(this.properties[Pid.IframeAspect])) {
+            if (this.framePopup) {
+                const visible = this.framePopup.getVisibility();
+                this.framePopup.setVisibility(!visible);
+            } else if (this.frameWindow) {
+                const visible = this.frameWindow.getVisibility();
+                this.frameWindow.setVisibility(!visible);
+            }
         }
     }
 

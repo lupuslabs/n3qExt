@@ -8,7 +8,7 @@ import { Utils } from '../lib/Utils';
 import { BackpackItem } from './BackpackItem';
 import { ContentApp } from './ContentApp';
 import { SimpleErrorToast } from './Toast';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { Window, WindowOptions } from './Window'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
@@ -74,13 +74,13 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             label = as.String(props[Pid.Template]);
         }
         if (label) {
-            const labelElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-title" data-translate="text:ItemLabel">${as.Html(label)}</div>`);
+            const labelElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-title" data-translate="text:ItemLabel">${as.Html(label)}</div>`);
             this.contentElem.append(labelElem);
         }
 
         const description = as.String(props[Pid.Description]);
         if (description) {
-            const descriptionElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-description">${as.Html(description)}</div>`);
+            const descriptionElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-description">${as.Html(description)}</div>`);
             this.contentElem.append(descriptionElem);
         }
 
@@ -92,7 +92,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         }
 
 
-        const listElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
+        const listElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
         let hasStats = false;
         for (const pid in display) {
             let value = display[pid];
@@ -106,7 +106,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 }
 
                 let lineElem = null;
-                lineElem = domHtmlElemOfHtml(''
+                lineElem = DomUtils.elemOfHtml(''
                     + '<div class="n3q-base n3q-itemprops-line" data-translate="children" > '
                     + `<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">${as.Html(pid)}</span>`
                     + `<span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`
@@ -119,12 +119,12 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             this.contentElem.append(listElem);
         }
 
-        const buttonListElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button-list" data-translate="children"></div>');
+        const buttonListElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button-list" data-translate="children"></div>');
 
         if (as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect])) {
-            const activateGroup = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-activate" data-translate="children"></div>');
-            const activateLabel = domHtmlElemOfHtml('<span class="n3q-base " data-translate="text:Backpack">Active</div>');
-            const activateCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack"${as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : ''}/>`); // Active
+            const activateGroup = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-activate" data-translate="children"></div>');
+            const activateLabel = DomUtils.elemOfHtml('<span class="n3q-base " data-translate="text:Backpack">Active</div>');
+            const activateCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input type="checkbox" class="n3q-base n3q-backpack-activate" data-translate="text:Backpack"${as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : ''}/>`); // Active
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, activateCheckbox);
             activateCheckbox.addEventListener('change', ev =>
             {
@@ -145,7 +145,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         }
 
         if (as.Bool(props[Pid.IsRezzed])) {
-            const derezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>');
+            const derezBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>');
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, derezBtn).addUnmodifiedLeftClickListener(ev => {
                 this.app.derezItem(this.backpackItem.getItemId());
                 this.close();
@@ -154,7 +154,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 
             const destination = as.String(props[Pid.RezzedDestination]);
             if (destination) {
-                const goBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>');
+                const goBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-go" data-translate="text:Backpack">Go to item</div>');
                 PointerEventDispatcher.makeOpaqueDispatcher(this.app, goBtn).addUnmodifiedLeftClickListener(ev => {
                     window.location.assign(destination);
                 });
@@ -162,7 +162,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             }
         } else {
             if (as.Bool(props[Pid.IsRezable], true)) {
-                const rezBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>');
+                const rezBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>');
                 PointerEventDispatcher.makeOpaqueDispatcher(this.app, rezBtn).addUnmodifiedLeftClickListener(ev => {
                     const rezzedX = as.Int(props[Pid.RezzedX], -1);
                     this.backpackItem.rezItem(rezzedX);
@@ -173,7 +173,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         }
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
-            const delBtn = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>');
+            const delBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>');
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, delBtn).addUnmodifiedLeftClickListener(ev => {
                 this.app.deleteItemAsk(this.backpackItem.getItemId());
                 this.close();
@@ -201,10 +201,10 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         for (const pid in props) { keys.push(pid); }
         keys = keys.sort();
 
-        const completeListElem = domHtmlElemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
+        const completeListElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
         for (const pid of keys) {
             const value = props[pid];
-            const lineElem = domHtmlElemOfHtml(''
+            const lineElem = DomUtils.elemOfHtml(''
                 + '<div class="n3q-base n3q-itemprops-line">'
                 + `<span class="n3q-base n3q-itemprops-key">${as.Html(pid)}</span>`
                 + `<span class="n3q-base n3q-itemprops-value" title="${as.Html(value)}">${as.Html(value)}</span>`

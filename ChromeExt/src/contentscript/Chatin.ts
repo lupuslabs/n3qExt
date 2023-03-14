@@ -1,6 +1,6 @@
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { AnimationsDefinition } from './AnimationsXml';
 import { Config } from '../lib/Config';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -14,14 +14,14 @@ export class Chatin
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-chatin n3q-shadow-small" data-translate="children" />');
+        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatin n3q-shadow-small" data-translate="children" />');
         this.setVisibility(false);
 
-        this.chatinInputElem = <HTMLInputElement> domHtmlElemOfHtml('<input type="text" class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin" />');
+        this.chatinInputElem = <HTMLInputElement> DomUtils.elemOfHtml('<input type="text" class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin" />');
         this.chatinInputElem.addEventListener('keydown', ev => this.onKeydown(ev));
         this.elem.appendChild(this.chatinInputElem);
 
-        this.sendElem = domHtmlElemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
+        this.sendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftClickListener(ev => {
             this.sendChat();
         });

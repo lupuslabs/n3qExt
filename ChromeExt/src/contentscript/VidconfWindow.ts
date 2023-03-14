@@ -2,7 +2,7 @@ import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 
 export type VidconfWindowOptions = WindowOptions & {
     url: string,
@@ -42,7 +42,7 @@ export class VidconfWindow extends Window<VidconfWindowOptions>
         const contentElem = this.contentElem;
         windowElem.classList.add('n3q-vidconfwindow');
 
-        const iframeElem = domHtmlElemOfHtml(`<iframe class="n3q-base n3q-vidconfwindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
+        const iframeElem = DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-vidconfwindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
 
         contentElem.append(iframeElem);
     }

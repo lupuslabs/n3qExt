@@ -2,7 +2,7 @@ import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { _Changes } from '../lib/_Changes';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class ChangesWindow extends Window<WindowOptions>
@@ -32,7 +32,7 @@ export class ChangesWindow extends Window<WindowOptions>
     {
         await super.makeContent();
         const contentElem = this.contentElem;
-        this.outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
+        this.outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
         contentElem.append(this.outElem);
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.outElem);
         this.showHistory();
@@ -59,7 +59,7 @@ export class ChangesWindow extends Window<WindowOptions>
 
     protected showLine(text: string): void
     {
-        const lineElem = domHtmlElemOfHtml(
+        const lineElem = DomUtils.elemOfHtml(
             `<div class="n3q-base n3q-changeswindow-line">
                 <span class="n3q-base n3q-text n3q-changeswindow-text">${as.HtmlWithClickableLinks(text)}</span>
             <div>`

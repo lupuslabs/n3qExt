@@ -4,7 +4,7 @@ import { Window, WindowOptions } from './Window';
 import { ContentApp } from './ContentApp';
 import { LiveTestPayload } from './LiveTestPayload';
 import { LiveTestSimpleRpc } from './LiveTestSimpleRpc';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class TestWindow extends Window<WindowOptions>
@@ -33,8 +33,8 @@ export class TestWindow extends Window<WindowOptions>
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const outElem = domHtmlElemOfHtml('<div class="n3q-base n3q-testwindow-out" data-translate="children"></div>');
-        const runElem = domHtmlElemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-testwindow-run" title="Run">Run</div>');
+        const outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-testwindow-out" data-translate="children"></div>');
+        const runElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-testwindow-run" title="Run">Run</div>');
 
         contentElem.append(outElem);
         contentElem.append(runElem);

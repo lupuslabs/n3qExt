@@ -11,7 +11,7 @@ import { Window, WindowOptions } from './Window';
 import { BackpackItem as BackpackItem } from './BackpackItem';
 import { ItemException } from '../lib/ItemException';
 import { FreeSpace } from './FreeSpace';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class BackpackWindow extends Window<WindowOptions>
@@ -48,7 +48,7 @@ export class BackpackWindow extends Window<WindowOptions>
     {
         await super.makeContent();
 
-        this.paneElem = domHtmlElemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>');
+        this.paneElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.paneElem);
         this.contentElem.append(this.paneElem);
 

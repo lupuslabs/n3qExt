@@ -6,7 +6,7 @@ import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { RoomItem } from './RoomItem';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 
 export class ItemFrameUnderlay
 {
@@ -26,7 +26,7 @@ export class ItemFrameUnderlay
             let css = JSON.parse(options);
             this.iframeId = Utils.randomString(15);
 
-            this.elem = <HTMLIFrameElement>domHtmlElemOfHtml(`<iframe id="${this.iframeId}" class="n3q-base n3q-itemframepopunder-content" src="${this.url}" frameborder="0" allow="autoplay; encrypted-media"></iframe>`);
+            this.elem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe id="${this.iframeId}" class="n3q-base n3q-itemframepopunder-content" src="${this.url}" frameborder="0" allow="autoplay; encrypted-media"></iframe>`);
             $(this.elem).css(css);
 
             let avatar = this.roomItem.getAvatar();

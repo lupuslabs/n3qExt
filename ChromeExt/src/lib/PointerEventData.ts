@@ -1,5 +1,8 @@
 ﻿// Generalized PointerEventData type and utilities
 
+import { DomUtils } from './DomUtils'
+import { is } from './is'
+
 export type PointerEventType =
     | 'hoverenter'  // Pointer hovers into opaque area
     | 'hovermove'   // Pointer hovers over opaque area
@@ -19,140 +22,101 @@ export type PointerEventType =
     | 'dragdrop'    // Completed drag or swipe
     | 'dragcancel'  // Drag or swipe canceled
     | 'dragend'     // Drag or swipe completed or canceled
-;
 
-export enum DomModifierKeyId {
-    none    = 0,
-    shift   = 1,
-    control = 2,
-    alt     = 4,
-    meta    = 8,
+type ExtraData = {
+    posEvent?:       PointerEventData|PointerEvent
+    startEvent?:     PointerEventData
+    buttons?:        PointerEventData|PointerEvent|number
+    modifierKeys?:   PointerEventData|PointerEvent|number
+    dropTarget?:     Element|null
+    dropTargetLast?: Element|null
 }
 
-export type PointerEventData = {
-    type: PointerEventType,
-    domElement: Element,
-    domElementRect: DOMRect,
+export class PointerEventData {
+    public readonly type: PointerEventType
+    public readonly domElement: Element
+    public readonly domElementRect: DOMRect
 
     // Last raw event related to this event for debugging purposes:
-    rawEvent: PointerEvent,
+    public readonly rawEvent: PointerEvent
 
     // Viewport position:
     // - Initial button down for click/doubleclick.
     // - Drop position for dragdrop.
-    clientX: number,
-    clientY: number,
+    public readonly clientX: number
+    public readonly clientY: number
 
     // Position relative to top-left corner of domElement:
-    domElementOffsetX: number,
-    domElementOffsetY: number,
+    public readonly domElementOffsetX: number
+    public readonly domElementOffsetY: number
 
     // Start viewport position of action:
     // Same as client* for all events except dragmove, dragdrop, dragcancel.
-    startClientX: number,
-    startClientY: number,
+    public readonly startClientX: number
+    public readonly startClientY: number
 
     // Action start position relative to top-left corner of domElement:
-    startDomElementOffsetX: number,
-    startDomElementOffsetY: number,
+    public readonly startDomElementOffsetX: number
+    public readonly startDomElementOffsetY: number
 
     // Distance between initial buttonsdown and final dragdrop event clientX/clientY:
     // - 0.0 if not dragdrop.
-    distanceX: number,
-    distanceY: number,
+    public readonly distanceX: number
+    public readonly distanceY: number
 
     // Or-ed ButtonId values of pressed buttons (touch = ButtonId.first).
-    buttons: number,
+    public readonly buttons: number
 
     // Or-ed ModifierKeyId values of pressed modifier keys:
-    modifierKeys: number,
+    public readonly modifierKeys: number
 
     // Only for drag* events:
-    dropTarget:     Element|null, // Current opaque element under the pointer.
-    dropTargetLast: Element|null, // Opaque element under the pointer at last event.
-    dropTargetChanged: boolean,   // dropTarget !== dropTargetLast.
-};
+    public readonly dropTarget:     Element|null // Current opaque element under the pointer.
+    public readonly dropTargetLast: Element|null // Opaque element under the pointer at last event.
+    public readonly dropTargetChanged: boolean   // dropTarget !== dropTargetLast.
 
-export function hasMovedDragDistance(eventStart: null|PointerEvent, eventMove: null|PointerEvent, dragStartDistance: number): boolean
-{
-    return eventStart && eventMove && (false
-        || Math.abs(eventStart.clientX - eventMove.clientX) >= dragStartDistance
-        || Math.abs(eventStart.clientY - eventMove.clientY) >= dragStartDistance
-    );
-}
+    public constructor(type: PointerEventType, event: PointerEvent, domElement: Element, extraData?: ExtraData) {
+        this.type = type
+        this.domElement = domElement
+        this.domElementRect = domElement.getBoundingClientRect()
+        this.rawEvent = event
 
-export function getDataFromPointerEvent(type: PointerEventType, event: PointerEvent, domElement: Element): PointerEventData {
-    const data = makeDummyPointerEventData(type, event, domElement);
-    data.rawEvent = event;
-    return data;
-}
+        extraData ??= {}
 
-export function makeDummyPointerEventData(
-    type: PointerEventType, event: PointerEvent, domElement: Element
-): PointerEventData {
-    const data: PointerEventData = {
-        type: type,
-        domElement: domElement,
-        domElementRect: domElement.getBoundingClientRect(),
-        rawEvent: event,
-        clientX: 0,
-        clientY: 0,
-        domElementOffsetX: 0,
-        domElementOffsetY: 0,
-        startClientX: 0,
-        startClientY: 0,
-        startDomElementOffsetX: 0,
-        startDomElementOffsetY: 0,
-        distanceX: 0.0,
-        distanceY: 0.0,
-        buttons: event.buttons,
-        modifierKeys: modifierKeyIdsOfDomEvent(event),
-        dropTarget: null,
-        dropTargetLast: null,
-        dropTargetChanged: false,
-    };
-    setClientPosOnPointerEventData(data, event);
-    setButtonsOnPointerEventData(data, event);
-    return data;
-}
+        const posEvent = extraData.posEvent ?? event
+        this.clientX = posEvent.clientX
+        this.clientY = posEvent.clientY
+        // Calculated manually because event.offset* isn't based on actual target inside shadow DOM:
+        this.domElementOffsetX = posEvent.clientX - this.domElementRect.left
+        this.domElementOffsetY = posEvent.clientY - this.domElementRect.top
 
-export function setClientPosOnPointerEventData(data: PointerEventData, event: PointerEvent): void
-{
-    data.clientX = event.clientX;
-    data.clientY = event.clientY;
-    // Calculated manually because event.offset* isn't based on actual target inside shadow DOM:
-    data.domElementOffsetX = event.clientX - data.domElementRect.left;
-    data.domElementOffsetY = event.clientY - data.domElementRect.top;
-    data.startClientX = data.clientX;
-    data.startClientY = data.clientY;
-    data.startDomElementOffsetX = data.domElementOffsetX;
-    data.startDomElementOffsetY = data.domElementOffsetY;
-}
+        const startEvent = extraData.startEvent ?? this
+        this.startClientX = startEvent.clientX
+        this.startClientY = startEvent.clientY
+        this.startDomElementOffsetX = startEvent.domElementOffsetX
+        this.startDomElementOffsetY = startEvent.domElementOffsetY
+        this.distanceX = this.clientX - startEvent.clientX
+        this.distanceY = this.clientY - startEvent.clientY
 
-export function setDistanceOnPointerEventData(data: PointerEventData, startEvent: PointerEventData): void
-{
-    data.startClientX = startEvent.clientX;
-    data.startClientY = startEvent.clientY;
-    data.startDomElementOffsetX = startEvent.startDomElementOffsetX;
-    data.startDomElementOffsetY = startEvent.startDomElementOffsetY;
-    data.distanceX = data.clientX - startEvent.clientX;
-    data.distanceY = data.clientY - startEvent.clientY;
-}
+        const buttonsOrEvent = extraData.buttons ?? event
+        if (is.number(buttonsOrEvent)) {
+            this.buttons = buttonsOrEvent
+        } else {
+            this.buttons = buttonsOrEvent.buttons
+        }
 
-export function setButtonsOnPointerEventData(data: PointerEventData, event: PointerEvent): void
-{
-    data.buttons = event.buttons;
-}
+        const modifierKeysOrEvent = extraData.modifierKeys ?? event
+        if (is.number(modifierKeysOrEvent)) {
+            this.modifierKeys = modifierKeysOrEvent
+        } else if (modifierKeysOrEvent instanceof PointerEventData) {
+            this.modifierKeys = modifierKeysOrEvent.modifierKeys
+        } else {
+            this.modifierKeys = DomUtils.modifierKeyIdsOfEvent(modifierKeysOrEvent)
+        }
 
-export function setModifierKeysOnPointerEventData(data: PointerEventData, event: PointerEvent): void
-{
-    data.modifierKeys = modifierKeyIdsOfDomEvent(event);
-}
+        this.dropTarget = extraData.dropTarget ?? null
+        this.dropTargetLast = extraData.dropTargetLast ?? null
+        this.dropTargetChanged = this.dropTarget !== this.dropTargetLast
+    }
 
-export function modifierKeyIdsOfDomEvent(event: MouseEvent): number
-{
-    return <any>event.shiftKey * DomModifierKeyId.shift
-         + <any>event.ctrlKey  * DomModifierKeyId.control
-         + <any>event.altKey   * DomModifierKeyId.alt
-         + <any>event.metaKey  * DomModifierKeyId.meta;
 }

@@ -4,8 +4,7 @@ import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { as } from '../lib/as';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { DomModifierKeyId } from '../lib/PointerEventData';
-import { DomButtonId, domOnNextRenderComplete } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 
 abstract class MenuItem
 {
@@ -376,7 +375,7 @@ abstract class Menu
             return;
         }
         this.render();
-        domOnNextRenderComplete(() => this.applyPosition(clientX, clientY))
+        DomUtils.execOnNextRenderComplete(() => this.applyPosition(clientX, clientY))
     }
 
     public close(): void

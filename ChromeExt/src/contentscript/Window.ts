@@ -2,9 +2,9 @@ import { is } from '../lib/is';
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils';
 import { ContentApp, WindowStyle } from './ContentApp';
 import { Memory } from '../lib/Memory';
-import { DomButtonId, domHtmlElemOfHtml, domWaitForRenderComplete, getDomElementLeftBottomRect } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData'
+import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
 
@@ -94,14 +94,14 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.windowElem.classList.add('n3q-hidden');
             this.app.translateElem(this.windowElem);
             if (this.geometryInitstrategy === 'beforeContent') {
-                await domWaitForRenderComplete(); // Wait for frame having dimensions in DOM.
+                await DomUtils.waitForRenderComplete(); // Wait for frame having dimensions in DOM.
                 await this.initGeometry(); // Need to wait for it so makeContent can use geometry.
             }
             this.toFront();
             this.containerElem.append(this.windowElem);
             await this.makeContent();
             this.app.translateElem(this.contentElem);
-            await domWaitForRenderComplete(); // Wait for window content having dimensions in DOM.
+            await DomUtils.waitForRenderComplete(); // Wait for window content having dimensions in DOM.
             if (this.geometryInitstrategy === 'afterContent') {
                 await this.initGeometry();
             }
@@ -138,7 +138,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
         const windowId = Utils.randomString(15);
 
-        this.windowElem = domHtmlElemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
+        this.windowElem = DomUtils.elemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
         this.windowElem.classList.add(...this.windowCssClasses, `n3q-window-style-${this.style}`);
         this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
         this.windowElemPointerDispatcher = PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.windowElem);
@@ -147,7 +147,7 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.makeTitlebar();
         }
 
-        this.contentElem = domHtmlElemOfHtml('<div data-translate="children"></div>');
+        this.contentElem = DomUtils.elemOfHtml('<div data-translate="children"></div>');
         this.contentElem.classList.add(...this.contentCssClasses);
         this.windowElem.append(this.contentElem);
 
@@ -167,9 +167,9 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeTitlebar(): void
     {
-        this.titlebarElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-title-bar" data-translate="children"></div>');
-        const titleElem = domHtmlElemOfHtml('<div class="n3q-base n3q-window-title" data-translate="children"></div>');
-        const titleTextElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-window-title-text"></div>`);
+        this.titlebarElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-window-title-bar" data-translate="children"></div>');
+        const titleElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-window-title" data-translate="children"></div>');
+        const titleTextElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-window-title-text"></div>`);
         titleTextElem.innerText = this.titleText;
         this.windowElem.append(this.titlebarElem);
         this.titlebarElem.append(titleElem);
@@ -191,7 +191,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeUndockButton(): void
     {
-        const button = domHtmlElemOfHtml(
+        const button = DomUtils.elemOfHtml(
             `<div class="n3q-base n3q-window-button n3q-window-button-2" title="Undock" data-translate="attr:title:Common">
                 <div class="n3q-base n3q-button-symbol n3q-button-undock"></div>
             </div>`
@@ -250,7 +250,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     ): void {
         let elem: HTMLElement;
         if (is.string(elemOrClass)) {
-            elem = domHtmlElemOfHtml(`<div class="${elemOrClass}"></div>`);
+            elem = DomUtils.elemOfHtml(`<div class="${elemOrClass}"></div>`);
             this.windowElem.append(elem);
         } else {
             elem = elemOrClass;
@@ -262,7 +262,7 @@ export abstract class Window<OptionsType extends WindowOptions>
             }
         });
         dispatcher.addDragMoveListener(ev => {
-            if (ev.buttons === DomButtonId.first && ev.modifierKeys === DomModifierKeyId.none) {
+            if (ev.buttons === DomUtils.ButtonId.first && ev.modifierKeys === DomUtils.ModifierKeyId.none) {
                 this.setGeometry(newGeometryFun(ev));
             } else {
                 dispatcher.cancelDrag();
@@ -297,7 +297,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected async initGeometry(): Promise<void>
     {
-        await domWaitForRenderComplete();
+        await DomUtils.waitForRenderComplete();
         const persitedOptions = this.persistGeometry ? await this.getSavedOptions() : {};
         const mergedGeometry = {...this.givenOptions, ...persitedOptions};
         this.setGeometry(mergedGeometry);
@@ -305,7 +305,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected readGeometryFromDom(): LeftBottomRect
     {
-        return getDomElementLeftBottomRect(this.containerElem, this.windowElem);
+        return DomUtils.getElemLeftBottomRect(this.containerElem, this.windowElem);
     }
 
     protected mangleGeometry(optionsOrGeometry: LeftBottomRect|Partial<OptionsType>): LeftBottomRect

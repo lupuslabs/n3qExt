@@ -1,7 +1,7 @@
 import { ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
-import { domHtmlElemOfHtml } from '../lib/domTools';
+import { DomUtils } from '../lib/DomUtils';
 import { Badge } from './Badge';
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config';
@@ -69,12 +69,12 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         await super.makeContent();
 
         const properties = this.badge.getProperties();
-        const columnsElem = domHtmlElemOfHtml('<div class="n3q-badgeInfoWindow-columns"></div>');
+        const columnsElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-columns"></div>');
         this.contentElem.append(columnsElem);
 
         const {imageUrl, imageWidth, imageHeight} = ItemProperties.getBadgeImageData(properties);
         if (imageUrl.length !== 0) {
-            const elem = domHtmlElemOfHtml('<img class="n3q-badgeInfoWindow-image"/>');
+            const elem = DomUtils.elemOfHtml('<img class="n3q-badgeInfoWindow-image"/>');
             elem.style.width = `${imageWidth}px`;
             elem.style.height = `${imageHeight}px`;
             columnsElem.appendChild(elem);
@@ -87,14 +87,14 @@ export class BadgeInfoWindow extends Window<WindowOptions>
 
         const title = ItemProperties.getBadgeTitle(properties);
         if (title.length !== 0) {
-            const elem = domHtmlElemOfHtml('<div class="n3q-badgeInfoWindow-title"></div>');
+            const elem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-title"></div>');
             this.makeTextElems(elem, title);
             descriptionColumnElems.push(elem);
         }
 
         const description = ItemProperties.getBadgeDescription(properties);
         if (description.length !== 0) {
-            const elem = domHtmlElemOfHtml('<div class="n3q-badgeInfoWindow-description"></div>');
+            const elem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-description"></div>');
             this.makeTextElems(elem, description);
             descriptionColumnElems.push(elem);
         }
@@ -105,7 +105,7 @@ export class BadgeInfoWindow extends Window<WindowOptions>
             if (linkLabel.length === 0) {
                 linkLabel = Utils.getLabelOfUrl(linkUrl);
             }
-            const elem = domHtmlElemOfHtml('<a class="n3q-badgeInfoWindow-link" target="_blank"></a>');
+            const elem = DomUtils.elemOfHtml('<a class="n3q-badgeInfoWindow-link" target="_blank"></a>');
             elem.setAttribute('href', linkUrl);
             this.makeTextElems(elem, linkLabel);
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, elem);
@@ -113,7 +113,7 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         }
 
         if (descriptionColumnElems.length !== 0) {
-            const columnElem = domHtmlElemOfHtml('<div class="n3q-badgeInfoWindow-descriptionColumn"></div>');
+            const columnElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-descriptionColumn"></div>');
             descriptionColumnElems.forEach(elem => columnElem.appendChild(elem));
             columnsElem.appendChild(columnElem);
         }

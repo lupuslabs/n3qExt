@@ -11,7 +11,7 @@ import { RoomItem } from './RoomItem';
 import { BackpackItem } from './BackpackItem';
 import { PointerEventData } from '../lib/PointerEventData';
 import { AnimationsDefinition } from './AnimationsXml';
-import { DomElemTransition, domHtmlElemOfHtml, startDomElemTransition } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 
 export class Entity
 {
@@ -24,7 +24,7 @@ export class Entity
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
-        this.elem = domHtmlElemOfHtml('<div class="n3q-base n3q-entity n3q-hidden"></div>');
+        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-entity n3q-hidden"></div>');
         app.getDisplay()?.append(this.elem);
     }
 
@@ -42,7 +42,7 @@ export class Entity
                 this.elem.classList.remove('n3q-hidden');
                 this.elem.style.opacity = '0';
                 const transition = { property: 'opacity', duration: `${durationSec}s` };
-                startDomElemTransition(this.elem, null, transition, '1');
+                DomUtils.startElemTransition(this.elem, null, transition, '1');
             } else {
                 this.elem.classList.add('n3q-hidden');
             }
@@ -58,7 +58,7 @@ export class Entity
 
     showEffect(effect: string): void
     {
-        const pulseElem = domHtmlElemOfHtml('<div class="n3q-base n3q-pulse"></div>');
+        const pulseElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-pulse"></div>');
         this.elem.append(pulseElem);
         window.setTimeout(() => { pulseElem?.remove(); }, 1000);
     }
@@ -66,7 +66,7 @@ export class Entity
     setRange(left: number, right: number): void
     {
         this.removeRange();
-        this.rangeElem = domHtmlElemOfHtml('<div class="n3q-base n3q-range"></div>');
+        this.rangeElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-range"></div>');
         this.rangeElem.style.left = `${left}px`;
         this.rangeElem.style.width = `${right - left}px`;
         this.elem.prepend(this.rangeElem);
@@ -108,7 +108,7 @@ export class Entity
         }
         const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
         const durationSecs = Math.abs(diffX) / speedPixelPerSec;
-        const transition: DomElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
+        const transition: DomUtils.ElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
         const onMoveComplete = ev => {
             if (ev.propertyName === 'left') {
                 this.onMoveDestinationReached(newX);
@@ -117,7 +117,7 @@ export class Entity
         this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
         this.onMoveTransitionEndHandler = onMoveComplete;
         this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
-        startDomElemTransition(this.elem, null, transition, `${newX}px`);
+        DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
     protected onMoveDestinationReached(newX: number): void
@@ -144,7 +144,7 @@ export class Entity
         if (newX < 0) { newX = 0; }
 
         const durationSecs = as.Float(Config.get('room.quickSlideSec'), 0.1);
-        const transition: DomElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
+        const transition: DomUtils.ElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
         const onMoveComplete = ev => {
             if (ev.propertyName === 'left') {
                 this.onQuickSlideReached(newX);
@@ -153,7 +153,7 @@ export class Entity
         this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
         this.onMoveTransitionEndHandler = onMoveComplete;
         this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
-        startDomElemTransition(this.elem, null, transition, `${newX}px`);
+        DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
     protected onQuickSlideReached(newX: number): void

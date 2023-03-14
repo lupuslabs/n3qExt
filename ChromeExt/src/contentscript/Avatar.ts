@@ -11,8 +11,8 @@ import { AnimationsXml, AnimationsDefinition } from './AnimationsXml';
 import { RoomItem } from './RoomItem';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { SimpleToast } from './Toast';
-import { DomButtonId } from '../lib/domTools';
-import { DomModifierKeyId, PointerEventData } from '../lib/PointerEventData';
+import { DomUtils } from '../lib/DomUtils';
+import { PointerEventData } from '../lib/PointerEventData';
 
 class AvatarGetAnimationResult
 {
@@ -95,7 +95,7 @@ export class Avatar implements IObserver
         });
 
         this.pointerEventDispatcher.addDragMoveListener(ev => {
-            if (ev.buttons !== DomButtonId.first || ev.modifierKeys !== DomModifierKeyId.none) {
+            if (ev.buttons !== DomUtils.ButtonId.first || ev.modifierKeys !== DomUtils.ModifierKeyId.none) {
                 this.pointerEventDispatcher.cancelDrag();
             }
 
