@@ -419,14 +419,14 @@ export class BadgesController
     public onMouseEnterBadge(eventData: PointerEventData): void
     {
         if (!this.isInEditMode) {
-            this.entity.onMouseEnterAvatar(eventData);
+            //this.entity.onMouseEnterAvatar(eventData);
         }
     }
 
     public onMouseLeaveBadge(eventData: PointerEventData): void
     {
         if (!this.isInEditMode) {
-            this.entity.onMouseLeaveAvatar(eventData);
+            //this.entity.onMouseLeaveAvatar(eventData);
         }
     }
 
