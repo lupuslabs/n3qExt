@@ -589,6 +589,13 @@ div#n3q-display {
         touch-action: none;
         filter: drop-shadow(1px 1px 2px rgb(112, 112, 112));
     }
+    div.n3q-participant div.n3q-badges img.n3q-badge:hover {
+        filter: drop-shadow(1px 1px 2px rgb(112, 112, 112)) brightness(0.8);
+    }
+    div.n3q-participant div.n3q-badges img.n3q-badge:active {
+        filter: drop-shadow(1px 1px 2px rgb(112, 112, 112)) brightness(0.7);
+    }
+
     img.n3q-badge-draggedElem {
         position: absolute;
         pointer-events: none;
