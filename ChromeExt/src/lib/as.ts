@@ -123,7 +123,7 @@ export class as
         });
     }
 
-    static HtmlLink(val: unknown, text?: string, urlFilter?: (s: string) => string, alt?: string): string
+    static HtmlLink(val: unknown, text?: string, urlFilter?: (s: string) => string, alt?: string, target?: string): string
     {
         let res = as.String(val, alt);
         if (urlFilter == null) {
@@ -135,7 +135,7 @@ export class as
             if (text === '') {
                 text = url;
             }
-            res = '<a href="' + as.Html(url) + '">' + as.Html(text) + '</a>'
+            res = '<a href="' + as.Html(url) + '"' + (target ? ' target=' + target : '')+ '>' + as.Html(text) + '</a>'
         }
         return res;
     }

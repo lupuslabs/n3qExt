@@ -2,6 +2,7 @@ import { Window, WindowOptions } from './Window';
 import { ContentApp } from './ContentApp';
 import { domHtmlElemOfHtml } from '../lib/domTools'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { Config } from '../lib/Config';
 
 interface Video
 {
@@ -9,21 +10,22 @@ interface Video
     url: string;
 }
 
-export class IntroWindow extends Window<WindowOptions> {
-    private videos: Video[] = [
-        {
-            title: '2750 The Interactive VR-Drama Executive Decision',
-            url: 'https://www.youtube.com/embed/_0nVD3USvbU?autoplay=&controls=01',
-        },
-        {
-            title: '2626 An Administrative Process Saves Humanity',
-            url: 'https://www.youtube.com/embed/mU3g6aig8N4?autoplay=1&controls=0',
-        },
-        {
-            title: '2574 The Greatest Scam Ever',
-            url: 'https://www.youtube.com/embed/SYm-j8vcCDY?autoplay=1&controls=0',
-        },
-    ];
+export class TutorialWindow extends Window<WindowOptions> {
+    // private videos: Video[] = [
+    //     {
+    //         title: '2750 The Interactive VR-Drama Executive Decision',
+    //         url: 'https://www.youtube.com/embed/_0nVD3USvbU?autoplay=1&controls=0',
+    //     },
+    //     {
+    //         title: '2626 An Administrative Process Saves Humanity',
+    //         url: 'https://www.youtube.com/embed/mU3g6aig8N4?autoplay=1&controls=0',
+    //     },
+    //     {
+    //         title: '2574 The Greatest Scam Ever',
+    //         url: 'https://www.youtube.com/embed/SYm-j8vcCDY?autoplay=1&controls=0',
+    //     },
+    // ];
+    private videos: Video[] = Config.get('tutorial.videos', []);
     private currentVideoIndex: number = 0;
     private videoTitle: HTMLElement;
     private videoContainer: HTMLElement;
@@ -38,12 +40,12 @@ export class IntroWindow extends Window<WindowOptions> {
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
-        this.windowCssClasses.push('n3q-introwindow');
-        this.titleText = this.app.translateText('IntroWindow.Introduction', 'Tutorial');
-        this.defaultWidth = 800;
-        this.defaultHeight = 600;
-        this.defaultBottom = 400;
-        this.defaultLeft = 50;
+        this.windowCssClasses.push('n3q-tutorialwindow');
+        this.titleText = this.app.translateText('TutorialWindow.Tutorial', 'Tutorial');
+        this.defaultWidth = Config.get('tutorial.defaultWidth', 800);
+        this.defaultHeight = Config.get('tutorial.defaultHeight', 600);
+        this.defaultBottom = Config.get('tutorial.defaultBottom', 400);
+        this.defaultLeft = Config.get('tutorial.defaultLeft', 50);
     }
 
     protected async makeContent(): Promise<void>
@@ -51,15 +53,15 @@ export class IntroWindow extends Window<WindowOptions> {
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const tutorialPane = domHtmlElemOfHtml('<div class="n3q-base tutorial-window" data-translate="children"></div>');
+        const tutorialPane = domHtmlElemOfHtml('<div class="n3q-base n3q-tutorialwindow-pane" data-translate="children"></div>');
 
-        this.videoTitle = domHtmlElemOfHtml('<h3 class="video-title"></h3>');
-        this.videoContainer = domHtmlElemOfHtml('<div class="video-container"></div>');
+        this.videoTitle = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
+        this.videoContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
 
-        const navButtons = domHtmlElemOfHtml('<div class="nav-buttons" data-translate="children"></div>');
-        const previousBtn = domHtmlElemOfHtml('<button class="previous-btn" data-translate="text:IntroWindow">Previous</button>');
-        const nextBtn = domHtmlElemOfHtml('<button class="next-btn" data-translate="text:IntroWindow">Next</button>');
-        this.dotsContainer = domHtmlElemOfHtml('<div class="dots-container"></div>');
+        const navButtons = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
+        const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:Tutorialindow">Previous</div>');
+        const nextBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
+        this.dotsContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dots-container"></div>');
 
         navButtons.appendChild(previousBtn);
         navButtons.appendChild(this.dotsContainer);
@@ -78,10 +80,9 @@ export class IntroWindow extends Window<WindowOptions> {
 
         this.videos.forEach((elem, index) =>
         {
-            const dot = domHtmlElemOfHtml('<span class="dot" data-index="' + index + '" title="' + elem.title + '"></span>');
-            dot.addEventListener('click', () => this.onDotClick(index));
-            this.dotsContainer.appendChild(dot);
+            const dot = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dot" data-index="' + index + '" title="' + elem.title + '"></div>');
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, dot).addUnmodifiedLeftClickListener(ev => { this.onDotClick(index); });
+            this.dotsContainer.appendChild(dot);
         });
 
         this.updateVideo();
@@ -96,9 +97,9 @@ export class IntroWindow extends Window<WindowOptions> {
         {
             const dot = this.dotsContainer.querySelector('[data-index="' + index + '"]');
             if (index == this.currentVideoIndex) {
-                dot.classList.add('active');
+                dot.classList.add('n3q-active');
             } else {
-                dot.classList.remove('active');
+                dot.classList.remove('n3q-active');
             }
         });
     }
