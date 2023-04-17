@@ -7,6 +7,8 @@ import { MenuColumn } from './Menu';
 import { as } from '../lib/as';
 import { TestWindow } from './TestWindow'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
+import { TutorialWindow } from './TutorialWindow';
+import { AboutWindow } from './AboutWindow';
 
 export class OwnParticipantMenu extends ParticipantMenu
 {
@@ -48,6 +50,8 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         this.makeEmotesMenuAndItem(column);
 
+        this.makeHelpMenuAndItem(column);
+
         if (Environment.isDevelopment()) {
             this.makeDebugMenuAndItem(column);
         }
@@ -72,6 +76,15 @@ export class OwnParticipantMenu extends ParticipantMenu
                 groupBlocklist.push(action);
             }
         }
+    }
+
+    protected makeHelpMenuAndItem(column: MenuColumn): void
+    {
+        const menuItem = column.addSubmenuItem('help', 'Help');
+        const menuColumn = menuItem.addColumn('help');
+
+        menuColumn.addActionItem(null, 'About weblin', () => new AboutWindow(this.app).show({}));
+        menuColumn.addActionItem(null, 'Tutorials', () => new TutorialWindow(this.app).show({}));
     }
 
     protected makeDebugMenuAndItem(column: MenuColumn): void

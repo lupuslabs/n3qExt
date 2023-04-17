@@ -43,10 +43,10 @@ export class Config
             activateBackgroundPageProbeTotalSec: 120,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
-            windowContainerMarginTop:    3, // [px]
-            windowContainerMarginRight:  3, // [px]
+            windowContainerMarginTop: 3, // [px]
+            windowContainerMarginRight: 3, // [px]
             windowContainerMarginBottom: 3, // [px]
-            windowContainerMarginLeft:   3, // [px]
+            windowContainerMarginLeft: 3, // [px]
             sendTabStatsToBackgroundPageDelaySec: 0.1,
             tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
         },
@@ -163,13 +163,13 @@ export class Config
             chatBubbleFadeDurationSec: 10.0,
             chatBubblesDefaultBottom: 100,
             chatBubblesDefaultBottomAvatarHeightFactors: [
-                {avatarHeightMin: 101, bottomOffset: 190},
-                {avatarHeightMin: 0, bottomOffset: 110},
+                { avatarHeightMin: 101, bottomOffset: 190 },
+                { avatarHeightMin: 0, bottomOffset: 110 },
             ],
             chatinDefaultBottom: 35,
             chatinDefaultBottomAvatarHeightFactors: [
-                {avatarHeightMin: 101, bottomOffset: 100},
-                {avatarHeightMin: 0, bottomOffset: 35},
+                { avatarHeightMin: 101, bottomOffset: 100 },
+                { avatarHeightMin: 0, bottomOffset: 35 },
             ],
             maxChatAgeSec: 60,
             chatWindowWidth: 400,
@@ -484,6 +484,30 @@ export class Config
                 },
             ],
         },
+        tutorial: {
+            defaultWidth: 800,
+            defaultHeight: 600,
+            defaultBottom: 400,
+            defaultLeft: 50,
+            videos: [
+                {
+                    title: '2750 The Interactive VR-Drama Executive Decision',
+                    url: 'https://www.youtube.com/embed/_0nVD3USvbU?autoplay=1&controls=0',
+                },
+                {
+                    title: '2626 An Administrative Process Saves Humanity',
+                    url: 'https://www.youtube.com/embed/mU3g6aig8N4?autoplay=1&controls=0',
+                },
+                {
+                    title: '2574 The Greatest Scam Ever',
+                    url: 'https://www.youtube.com/embed/SYm-j8vcCDY?autoplay=1&controls=0',
+                },
+            ]
+        },
+        about: {
+            landingPage: 'https://www.weblin.io/',
+            projectPage: 'https://www.weblin.io/Start',
+        },
         i18n: {
             // overrideBrowserLanguage: 'fr-FR',
             defaultLanguage: 'en-US',
@@ -584,7 +608,8 @@ export class Config
                     'Vidconfwindow.Video Conference': 'Video Conference',
                     'Settingswindow.Settings': 'Settings',
                     'BackpackWindow.Inventory': 'Your Backpack',
-                    'IntroWindow.Introduction': 'Tutorial',
+                    'TutorialWindow.Tutorial': 'Tutorial',
+                    'AboutWindow.About': 'About weblin',
 
                     // 'Backpack.Shredder': 'Shredder',
                     'Backpack.Go to item': 'Go there',
@@ -596,8 +621,12 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
 
-                    'IntroWindow.Previous': 'Previous',
-                    'IntroWindow.Next': 'Next',
+                    'TutorialWindow.Previous': 'Previous',
+                    'TutorialWindow.Next': 'Next',
+
+                    'AboutWindow.Version': 'Version',
+                    'AboutWindow.Landing page': 'Landing page',
+                    'AboutWindow.Project page': 'Project page',
 
                     'Badges.editModeHint': 'Drop your badges here',
 
@@ -894,7 +923,8 @@ export class Config
                     'Vidconfwindow.Video Conference': 'Videokonferenz',
                     'Settingswindow.Settings': 'Einstellungen',
                     'BackpackWindow.Inventory': 'Dein Rucksack',
-                    'IntroWindow.Introduction': 'Einführung',
+                    'TutorialWindow.Tutorial': 'Einführung',
+                    'AboutWindow.About': 'Über weblin',
 
                     // 'Backpack.Shredder': 'Schredder',
                     'Backpack.Go to item': 'Dort hingehen',
@@ -906,8 +936,12 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
 
-                    'IntroWindow.Previous': 'zurück',
-                    'IntroWindow.Next': 'weiter',
+                    'TutorialWindow.Previous': 'Zurück',
+                    'TutorialWindow.Next': 'Weiter',
+
+                    'AboutWindow.Version': 'Version',
+                    'AboutWindow.Landing page': 'Landingpage',
+                    'AboutWindow.Project page': 'Projektseite',
 
                     'Badges.editModeHint': 'Lege deine Sticker hier ab',
 

@@ -5,7 +5,8 @@ import { Translator } from '../lib/Translator';
 import { ContentApp } from './ContentApp';
 import { Room } from './Room';
 import { TestWindow } from './TestWindow';
-import { IntroWindow } from './IntroWindow';
+import { TutorialWindow } from './TutorialWindow';
+import { AboutWindow } from './AboutWindow';
 import { VpiResolver } from './VpiResolver';
 import { as } from '../lib/as';
 
@@ -89,8 +90,12 @@ export class ChatConsole
             case '/test':
                 new TestWindow(context.app).show({});
                 break;
-            case '/intro':
-                new IntroWindow(context.app).show({});
+            case '/tutorial':
+            case '/tut':
+                new TutorialWindow(context.app).show({});
+                break;
+            case '/about':
+                new AboutWindow(context.app).show({});
                 break;
             case '/changes':
                 context.app?.showChangesWindow();
