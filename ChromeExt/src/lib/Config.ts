@@ -584,6 +584,7 @@ export class Config
                     'Vidconfwindow.Video Conference': 'Video Conference',
                     'Settingswindow.Settings': 'Settings',
                     'BackpackWindow.Inventory': 'Your Backpack',
+                    'IntroWindow.Introduction': 'Tutorial',
 
                     // 'Backpack.Shredder': 'Shredder',
                     'Backpack.Go to item': 'Go there',
@@ -594,6 +595,9 @@ export class Config
                     'Backpack.Too many items': 'Too many items',
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
+
+                    'IntroWindow.Previous': 'Previous',
+                    'IntroWindow.Next': 'Next',
 
                     'Badges.editModeHint': 'Drop your badges here',
 
@@ -890,6 +894,7 @@ export class Config
                     'Vidconfwindow.Video Conference': 'Videokonferenz',
                     'Settingswindow.Settings': 'Einstellungen',
                     'BackpackWindow.Inventory': 'Dein Rucksack',
+                    'IntroWindow.Introduction': 'Einführung',
 
                     // 'Backpack.Shredder': 'Schredder',
                     'Backpack.Go to item': 'Dort hingehen',
@@ -900,6 +905,9 @@ export class Config
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+
+                    'IntroWindow.Previous': 'zurück',
+                    'IntroWindow.Next': 'weiter',
 
                     'Badges.editModeHint': 'Lege deine Sticker hier ab',
 

@@ -1386,8 +1386,73 @@ div#n3q-display {
 
     div.n3q-testwindow div.n3q-testwindow-run { right: 30px; top: 8px; }
 
-    div.n3q-vidconfwindow {
+    div.n3q-introwindow {
+        .tutorial-window {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            touch-action: pan-y;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
+        }
+
+        .video-title {
+            font-weight: bold;
+            display: none;
+        }
+          
+        .video-container {
+            width: 480px;
+            height: 270px;
+            overflow: hidden;
+            background-color: #000;
+        }
+          
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+        }
+          
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 20px;
+            position: absolute;
+            right: 0px;
+            left: 0px;
+        }
+          
+        .previous-btn,
+        .next-btn {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+          
+        .dots-container {
+            display: flex;
+            align-items: center;
+        }
+          
+        .dot {
+            width: 20px;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 50%;
+            margin: 0 5px;
+        }
+        
+        .dot.active {
+            background-color: #007BFF;
+        }
     }
+
+    // div.n3q-vidconfwindow {}
 
     div.n3q-vidconfwindow iframe.n3q-vidconfwindow-content {
         width: 100%;
