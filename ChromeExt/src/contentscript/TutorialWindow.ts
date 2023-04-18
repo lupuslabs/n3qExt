@@ -53,7 +53,7 @@ export class TutorialWindow extends Window<WindowOptions> {
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const tutorialPane = domHtmlElemOfHtml('<div class="n3q-base n3q-tutorialwindow-pane" data-translate="children"></div>');
+        const pane = domHtmlElemOfHtml('<div class="n3q-base n3q-tutorialwindow-pane" data-translate="children"></div>');
 
         this.videoTitle = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
         this.videoContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
@@ -67,13 +67,13 @@ export class TutorialWindow extends Window<WindowOptions> {
         navButtons.appendChild(this.dotsContainer);
         navButtons.appendChild(nextBtn);
 
-        tutorialPane.appendChild(this.videoTitle);
-        tutorialPane.appendChild(this.videoContainer);
-        tutorialPane.appendChild(navButtons);
+        pane.appendChild(this.videoTitle);
+        pane.appendChild(this.videoContainer);
+        pane.appendChild(navButtons);
 
-        contentElem.append(tutorialPane);
+        contentElem.append(pane);
 
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, tutorialPane);
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, pane);
 
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, previousBtn).addUnmodifiedLeftClickListener(ev => { this.onPreviousClick(); });
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, nextBtn).addUnmodifiedLeftClickListener(ev => { this.onNextClick(); });

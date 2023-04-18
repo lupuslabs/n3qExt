@@ -8,9 +8,9 @@ import { as } from '../lib/as';
 
 interface Line
 {
-    label: string;
-    text: string;
-    isLink: boolean;
+    key: string;
+    value: string;
+    type?: 'raw' | 'link' | 'html';
 }
 
 export class AboutWindow extends Window<WindowOptions> {
@@ -25,10 +25,10 @@ export class AboutWindow extends Window<WindowOptions> {
         super.prepareMakeDom();
         this.windowCssClasses.push('n3q-aboutwindow');
         this.titleText = this.app.translateText('AboutWindow.About', 'About');
-        this.defaultWidth = 500;
-        this.defaultHeight = 300;
-        this.defaultBottom = 400;
-        this.defaultLeft = 50;
+        this.defaultWidth = Config.get('about.defaultWidth', 650);
+        this.defaultHeight = Config.get('about.defaultHeight', 300);
+        this.defaultBottom = Config.get('about.defaultBottom', 400);
+        this.defaultLeft = Config.get('about.defaultLeft', 50);
     }
 
     protected async makeContent(): Promise<void>
@@ -37,36 +37,53 @@ export class AboutWindow extends Window<WindowOptions> {
         const contentElem = this.contentElem;
 
         const pane = domHtmlElemOfHtml('<div class="n3q-base n3q-aboutwindow-pane" data-translate="children"></div>');
+        const logo = domHtmlElemOfHtml('<div class="n3q-aboutwindow-logo"></div>');
         const title = domHtmlElemOfHtml('<div class="n3q-aboutwindow-title" data-translate="text:AboutWindow"></div>');
         const linesContainer = domHtmlElemOfHtml('<div class="n3q-aboutwindow-lines" data-translate="children"></div>');
 
         const lines: Line[] = [
-            { label: 'Version', text: Client.getVersion(), isLink: true },
-            { label: 'Landing page', text: Config.get('about.landingPage', ''), isLink: true },
-            { label: 'Project page', text: Config.get('about.projectPage', ''), isLink: true },
+            { key: 'Version', value: Client.getVersion() },
+            { key: 'Variant', value: Client.getVariant() },
+            { key: 'Language', value: Client.getUserLanguage() },
+            { key: 'Landing page', value: Config.get('about.landingPage', ''), type: 'link' },
+            { key: 'Project page', value: Config.get('about.projectPage', ''), type: 'link' },
+            { key: 'Extension link', value: Config.get('about.extensionLink', ''), type: 'link' },
+            { key: 'Description', value: Config.get('about.description', ''), type: 'raw' },
         ]
 
         lines.forEach(line =>
         {
+            var value = '';
+            switch (line.type ?? 'html') {
+                case 'raw': 
+                value = line.value;
+                break;
+
+                case 'link': 
+                value = as.HtmlLink(line.value, line.value, null, null, '_new')
+                break;
+
+                case 'html': 
+                value = as.Html(line.value);
+                break;
+            }
+            
             const lineElem = domHtmlElemOfHtml(
                 '<div class="n3q-aboutwindow-line" data-translate="children">'
-                + '<span class="n3q-aboutwindow-label" data-translate="text:AboutWindow">' + line.label + '</span>'
-                + '<span class="n3q-aboutwindow-text" data-translate="text:AboutWindow">'
-                + (line.isLink ?
-                    as.HtmlLink(line.text, line.text, null, null, '_new')
-                    :
-                    as.Html(line.text)
-                )
-                + '</span>'
+                + '<span class="n3q-aboutwindow-label" data-translate="text:AboutWindow">' + line.key + '</span>'
+                + '<span class="n3q-aboutwindow-text" data-translate="text:AboutWindow">' + value + '</span>'
                 + '</div>')
                 ;
+
             linesContainer.appendChild(lineElem);
         });
 
+        pane.append(logo);
         pane.append(title);
         pane.append(linesContainer);
         contentElem.append(pane);
 
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, pane);
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, pane);
     }
 }
