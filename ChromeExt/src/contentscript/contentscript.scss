@@ -1462,6 +1462,16 @@ div#n3q-display {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
         }
 
+        div.n3q-aboutwindow-logo {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 96px;
+            height: 96px;
+            background-image: url(../assets/icon.png);
+            background-size: contain;
+        }
+        
         div.n3q-aboutwindow-title {
             font-weight: bold;
         }
@@ -1473,8 +1483,15 @@ div#n3q-display {
             margin: 8px 0;
         }
 
+        span.n3q-aboutwindow-label {
+            font-weight: bold;
+        }
         span.n3q-aboutwindow-label:after {
             content: ': ';
+        }
+    
+        span.n3q-aboutwindow-text {
+            line-height: 16px;
         }
     
         span.n3q-aboutwindow-text a {

@@ -505,8 +505,14 @@ export class Config
             ]
         },
         about: {
+            defaultWidth: 650,
+            defaultHeight: 300,
+            defaultBottom: 400,
+            defaultLeft: 50,
             landingPage: 'https://www.weblin.io/',
             projectPage: 'https://www.weblin.io/Start',
+            extensionLink: 'https://chrome.google.com/webstore/detail/weblin/cgfkfhdinajjhfeghebnljbanpcjdlkm',
+            description: 'The Web is a virtual world. You meet other people - on all pages. </br></br>You have an avatar on every web page and you meet other people who are on the same page at the same time. It\'s anonymous. It\'s on every web page. It\'s in real-time.',
         },
         i18n: {
             // overrideBrowserLanguage: 'fr-FR',
@@ -625,8 +631,12 @@ export class Config
                     'TutorialWindow.Next': 'Next',
 
                     'AboutWindow.Version': 'Version',
+                    'AboutWindow.Variant': 'Variant',
+                    'AboutWindow.Language': 'Language',
+                    'AboutWindow.Description': 'Description',
                     'AboutWindow.Landing page': 'Landing page',
                     'AboutWindow.Project page': 'Project page',
+                    'AboutWindow.Extension link': 'Extension',
 
                     'Badges.editModeHint': 'Drop your badges here',
 
@@ -940,8 +950,12 @@ export class Config
                     'TutorialWindow.Next': 'Weiter',
 
                     'AboutWindow.Version': 'Version',
+                    'AboutWindow.Variant': 'Variante',
+                    'AboutWindow.Language': 'Sprache',
+                    'AboutWindow.Description': 'Beschreibung',
                     'AboutWindow.Landing page': 'Landingpage',
                     'AboutWindow.Project page': 'Projektseite',
+                    'AboutWindow.Extension link': 'Extension',
 
                     'Badges.editModeHint': 'Lege deine Sticker hier ab',
 
