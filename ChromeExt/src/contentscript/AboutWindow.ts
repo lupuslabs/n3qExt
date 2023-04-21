@@ -64,7 +64,7 @@ export class AboutWindow extends Window<WindowOptions> {
                 break;
 
                 case 'html': 
-                value = as.Html(line.value);
+                value = as.HtmlWithClickableLinks(line.value);
                 break;
             }
             
