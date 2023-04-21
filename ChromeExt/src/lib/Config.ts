@@ -485,23 +485,17 @@ export class Config
             ],
         },
         tutorial: {
-            defaultWidth: 800,
-            defaultHeight: 600,
+            defaultWidth: 1040,
+            defaultHeight: 665,
             defaultBottom: 400,
             defaultLeft: 50,
             videos: [
-                {
-                    title: '2750 The Interactive VR-Drama Executive Decision',
-                    url: 'https://www.youtube.com/embed/_0nVD3USvbU?autoplay=1&controls=0',
-                },
-                {
-                    title: '2626 An Administrative Process Saves Humanity',
-                    url: 'https://www.youtube.com/embed/mU3g6aig8N4?autoplay=1&controls=0',
-                },
-                {
-                    title: '2574 The Greatest Scam Ever',
-                    url: 'https://www.youtube.com/embed/SYm-j8vcCDY?autoplay=1&controls=0',
-                },
+                { title: 'How weblin Works And What You Can Do With It', url: 'https://www.youtube.com/embed/bTX9KncEI9E?autoplay=1&controls=1&rel=0', },
+                { title: 'Configure Your Own Avatar With weblin.io', url: 'https://www.youtube.com/embed/ft3IyKuKnZs?autoplay=1&controls=1&rel=0', },
+                { title: 'How to communicate with other weblins', url: 'https://www.youtube.com/embed/H-8oOhB1zDE?autoplay=1&controls=1&rel=0', },
+                { title: 'Useful Tools For The Web - Chat GPT For Every Web Page', url: 'https://www.youtube.com/embed/8GbpX2fKveM?autoplay=1&controls=1&rel=0', },
+                { title: 'Gaming Features - Points & Flags', url: 'https://www.youtube.com/embed/3UhTVhzQJ3c?autoplay=1&controls=1&rel=0', },
+                { title: 'Gaming Features - Mining, Crafting & Recycling', url: 'https://www.youtube.com/embed/7u_g4tmZ3F4?autoplay=1&controls=1&rel=0', },
             ]
         },
         about: {
@@ -882,7 +876,7 @@ export class Config
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',
                     'Menu.About weblin': 'Über weblin',
-                    'Menu.Tutorials': 'Einführung',
+                    'Menu.Tutorials': 'Tutorial',
                     'Menu.Emotes': 'Emotes',
                     'Menu.wave': 'Winken',
                     'Menu.dance': 'Tanzen',
@@ -937,7 +931,7 @@ export class Config
                     'Vidconfwindow.Video Conference': 'Videokonferenz',
                     'Settingswindow.Settings': 'Einstellungen',
                     'BackpackWindow.Inventory': 'Dein Rucksack',
-                    'TutorialWindow.Tutorial': 'Einführung',
+                    'TutorialWindow.Tutorial': 'Tutorial',
                     'AboutWindow.About': 'Über weblin',
 
                     // 'Backpack.Shredder': 'Schredder',
