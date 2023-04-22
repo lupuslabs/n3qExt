@@ -6,7 +6,9 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.6', 'Dependencies', [
+        ['1.2.6', 'Tutorial', [
+            ['Add', 'Tutorial videos'],
+            ['Change', 'Show mouse hover over badges'],
             ['Change', 'Update dependencies and tools'],
         ]],
         ['1.2.5', 'PresenceFightShadowDom', [
