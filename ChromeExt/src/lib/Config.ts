@@ -102,7 +102,7 @@ export class Config
             name: 'weblin.io',
             notificationToastDurationSec: 30,
             showIntroYou: 10,
-            showTutorial: 3,
+            showTutorial: 6,
         },
         toast: {
             durationSecByType: {

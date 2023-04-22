@@ -133,10 +133,10 @@ export class Participant extends Entity
     {
         const maxShowTutorial = as.Int(Config.get('client.showTutorial'), 0);
         if (maxShowTutorial > 0) {
-            let countTutorial = as.Int(await Memory.getLocal('client.showTutorial', 0));
+            let countTutorial = as.Int(await Memory.getLocal(TutorialWindow.localStorage_TutorialPopupCount_Key, 0));
             if (countTutorial < maxShowTutorial && ! await TutorialWindow.isDontShow()) {
                 countTutorial++;
-                await Memory.setLocal('client.showTutorial', countTutorial);
+                await Memory.setLocal(TutorialWindow.localStorage_TutorialPopupCount_Key, countTutorial);
 
                 new TutorialWindow(this.app).show({});
             }

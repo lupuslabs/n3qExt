@@ -22,20 +22,11 @@ interface Video
 }
 
 export class TutorialWindow extends Window<WindowOptions> {
-    // private videos: Video[] = [
-    //     {
-    //         title: '2750 The Interactive VR-Drama Executive Decision',
-    //         url: 'https://www.youtube.com/embed/_0nVD3USvbU?autoplay=1&controls=0',
-    //     },
-    //     {
-    //         title: '2626 An Administrative Process Saves Humanity',
-    //         url: 'https://www.youtube.com/embed/mU3g6aig8N4?autoplay=1&controls=0',
-    //     },
-    //     {
-    //         title: '2574 The Greatest Scam Ever',
-    //         url: 'https://www.youtube.com/embed/SYm-j8vcCDY?autoplay=1&controls=0',
-    //     },
-    // ];
+
+    static localStorage_TutorialPopupCount_Key: string = 'client.tutorialPopupCount';
+    static localStorage_LastTutorial_Key: string = 'client.lastTutorial';
+    static localStorage_DontShow_Key: string = 'dontShow.Tutorial';
+
     private videos: Video[] = Config.get('tutorial.videos', []);
     private currentVideoIndex: number = 0;
     private videoTitle: HTMLElement;
@@ -72,7 +63,7 @@ export class TutorialWindow extends Window<WindowOptions> {
         const navButtons = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
         const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:Tutorialindow">Previous</div>');
 
-        const dontShowContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dontshow-container"></div>');
+        const dontShowContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dontshow-container" data-translate="children"></div>');
         const checkboxId = Utils.randomString(10);
         const dontShowCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input class="n3q-tutorialwindow-dontshow" type="checkbox" name="checkbox" id="${checkboxId}" />`);
         const dontShowLabel = domHtmlElemOfHtml(`<label class="n3q-tutorialwindow-dontshow" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`);
@@ -114,10 +105,27 @@ export class TutorialWindow extends Window<WindowOptions> {
             this.dotsContainer.appendChild(dot);
         });
 
-        this.updateVideo();
+
+        this.currentVideoIndex = await TutorialWindow.getLastVideoIndex();
+        if (this.currentVideoIndex < this.videos.length - 1) {
+            this.currentVideoIndex++;
+        }
+        this.limitVideoIndex();
+
+        this.updateVideo().then(() => {});
     }
 
-    private updateVideo(): void
+    private limitVideoIndex(): void
+    {
+        if (this.currentVideoIndex >= this.videos.length) {
+            this.currentVideoIndex = this.videos.length - 1;
+        }
+        if (this.currentVideoIndex < 0) {
+            this.currentVideoIndex = 0;
+        }
+    }
+
+    private async updateVideo(): Promise<void>
     {
         this.videoTitle.textContent = this.videos[this.currentVideoIndex].title;
 
@@ -134,6 +142,8 @@ export class TutorialWindow extends Window<WindowOptions> {
                 dot.classList.remove('n3q-active');
             }
         });
+
+        await TutorialWindow.saveLastVideoIndex(this.currentVideoIndex);
     }
     // private updateVideo(): void
     // {
@@ -191,7 +201,7 @@ export class TutorialWindow extends Window<WindowOptions> {
     {
         if (this.currentVideoIndex > 0) {
             this.currentVideoIndex--;
-            this.updateVideo();
+            this.updateVideo().then(_ => {});
         }
     }
 
@@ -199,25 +209,33 @@ export class TutorialWindow extends Window<WindowOptions> {
     {
         if (this.currentVideoIndex < this.videos.length - 1) {
             this.currentVideoIndex++;
-            this.updateVideo();
+            this.updateVideo().then(_ => {});
         }
     }
 
     private onDotClick(index: number): void
     {
         this.currentVideoIndex = index;
-        this.updateVideo();
+        this.updateVideo().then(_ => {});
     }
 
-    static localStorage_DontShow_Key: string = 'dontShow.Tutorial';
+    static async getLastVideoIndex(): Promise<number>
+    {
+        return await Memory.getLocal(TutorialWindow.localStorage_LastTutorial_Key, -1);
+    }
+
+    static async saveLastVideoIndex(value: number): Promise<void>
+    {
+        await Memory.setLocal(TutorialWindow.localStorage_LastTutorial_Key, value);
+    }
 
     static async isDontShow(): Promise<boolean>
     {
-        return await Memory.getLocal(this.localStorage_DontShow_Key, false);
+        return await Memory.getLocal(TutorialWindow.localStorage_DontShow_Key, false);
     }
 
     static async setDontShow(value: boolean): Promise<void>
     {
-        await Memory.setLocal(this.localStorage_DontShow_Key, value);
+        await Memory.setLocal(TutorialWindow.localStorage_DontShow_Key, value);
     }
 }
