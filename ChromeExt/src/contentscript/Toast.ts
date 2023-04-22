@@ -105,8 +105,6 @@ export class Toast extends Window<ToastOptions>
         }
         await super.makeContent();
 
-        const checkboxId = Utils.randomString(10);
-
         const iconElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-toast-icon n3q-toast-icon-${this.iconType}"></div>`);
         this.contentElem.append(iconElem);
 
@@ -116,6 +114,7 @@ export class Toast extends Window<ToastOptions>
 
         if (this.hasDontShowAgainOption) {
             const footerElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-toast-footer" data-translate="children"></div>');
+            const checkboxId = Utils.randomString(10);
             const dontShowElem = <HTMLInputElement> DomUtils.elemOfHtml(`<input class="n3q-base" type="checkbox" name="checkbox" id="${checkboxId}" />`);
             const dontShowLabelElem = DomUtils.elemOfHtml(`<label class="n3q-base" for="${checkboxId}" data-translate="text:Toast">Do not show this message again</label>`);
             dontShowElem.addEventListener('change', ev => {

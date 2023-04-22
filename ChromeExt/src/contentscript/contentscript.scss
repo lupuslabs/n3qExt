@@ -1396,58 +1396,74 @@ div#n3q-display {
             bottom: 8px;
             touch-action: pan-y;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
-        }
 
-        div.n3q-tutorialwindow-video-title {
-            font-weight: bold;
-            display: none;
-        }
-          
-        div.n3q-tutorialwindow-video-container {
-            background-color: #000;
-            position: absolute;
-            left: 0;
-            top: 0;
-            right: 0;
-            bottom: 46px;
-        }
-          
-        div.n3q-tutorialwindow-video-container iframe {
-            width: 100%;
-            height: 100%;
-        }
-          
-        div.n3q-tutorialwindow-nav-buttons {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 20px;
-            position: absolute;
-            right: 0px;
-            left: 0px;
-            bottom: 4px;
-        }
-          
-        div.n3q-tutorialwindow-previous,
-        div.n3q-tutorialwindow-next {
-            padding: 10px 20px;
-        }
-          
-        div.n3q-tutorialwindow-dots-container {
-            display: flex;
-            align-items: center;
-        }
-          
-        div.n3q-tutorialwindow-dot {
-            width: 20px;
-            height: 20px;
-            background-color: #ccc;
-            border-radius: 50%;
-            margin: 0 5px;
-        }
+            div.n3q-tutorialwindow-video-title {
+                font-weight: bold;
+                display: none;
+            }
+            
+            div.n3q-tutorialwindow-video-container {
+                background-color: #000;
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 46px;
+            }
+            
+            div.n3q-tutorialwindow-video-container iframe {
+                width: 100%;
+                height: 100%;
+            }
+            
+            div.n3q-tutorialwindow-nav-buttons {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 20px;
+                position: absolute;
+                right: 0px;
+                left: 0px;
+                bottom: 4px;
 
-        .n3q-tutorialwindow-dot.n3q-active {
-            background-color: #888;
+                div.n3q-tutorialwindow-previous,
+                div.n3q-tutorialwindow-next {
+                    padding: 10px 20px;
+                }
+                
+                div.n3q-tutorialwindow-dontshow-container {
+                    margin-left: 10px;
+
+                    input[type=checkbox] {
+                        vertical-align: text-bottom;
+                    }
+        
+                    label {
+                        margin-left: 4px;
+                    }
+                }
+
+                div.n3q-flex-filler {
+                    flex-grow: 1;
+                }
+    
+                div.n3q-tutorialwindow-dots-container {
+                    display: flex;
+                    align-items: center;
+    
+                    div.n3q-tutorialwindow-dot {
+                        width: 20px;
+                        height: 20px;
+                        background-color: #ccc;
+                        border-radius: 50%;
+                        margin: 0 5px;
+                    }
+        
+                    .n3q-tutorialwindow-dot.n3q-active {
+                        background-color: #888;
+                    }    
+                }
+            }
         }
     }
 

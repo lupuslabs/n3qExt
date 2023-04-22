@@ -102,6 +102,7 @@ export class Config
             name: 'weblin.io',
             notificationToastDurationSec: 30,
             showIntroYou: 10,
+            showTutorial: 3,
         },
         toast: {
             durationSecByType: {
@@ -489,13 +490,15 @@ export class Config
             defaultHeight: 665,
             defaultBottom: 400,
             defaultLeft: 50,
+            videoArgs: '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1',
+            videoHtmlAllow: 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen',
             videos: [
-                { title: 'How weblin Works And What You Can Do With It', url: 'https://www.youtube.com/embed/bTX9KncEI9E?autoplay=1&controls=1&rel=0', },
-                { title: 'Configure Your Own Avatar With weblin.io', url: 'https://www.youtube.com/embed/ft3IyKuKnZs?autoplay=1&controls=1&rel=0', },
-                { title: 'How to communicate with other weblins', url: 'https://www.youtube.com/embed/H-8oOhB1zDE?autoplay=1&controls=1&rel=0', },
-                { title: 'Useful Tools For The Web - Chat GPT For Every Web Page', url: 'https://www.youtube.com/embed/8GbpX2fKveM?autoplay=1&controls=1&rel=0', },
-                { title: 'Gaming Features - Points & Flags', url: 'https://www.youtube.com/embed/3UhTVhzQJ3c?autoplay=1&controls=1&rel=0', },
-                { title: 'Gaming Features - Mining, Crafting & Recycling', url: 'https://www.youtube.com/embed/7u_g4tmZ3F4?autoplay=1&controls=1&rel=0', },
+                { title: 'How weblin Works And What You Can Do With It', url: 'https://www.youtube.com/embed/bTX9KncEI9E', },
+                { title: 'Configure Your Own Avatar With weblin.io', url: 'https://www.youtube.com/embed/ft3IyKuKnZs', },
+                { title: 'How to communicate with other weblins', url: 'https://www.youtube.com/embed/H-8oOhB1zDE', },
+                { title: 'Useful Tools For The Web - Chat GPT For Every Web Page', url: 'https://www.youtube.com/embed/8GbpX2fKveM', },
+                { title: 'Gaming Features - Points & Flags', url: 'https://www.youtube.com/embed/3UhTVhzQJ3c', },
+                { title: 'Gaming Features - Mining, Crafting & Recycling', url: 'https://www.youtube.com/embed/7u_g4tmZ3F4', },
             ]
         },
         about: {
@@ -625,6 +628,7 @@ export class Config
 
                     'TutorialWindow.Previous': 'Previous',
                     'TutorialWindow.Next': 'Next',
+                    'TutorialWindow.Do not show again': 'Don\'t show again',
 
                     'AboutWindow.Version': 'Version',
                     'AboutWindow.Variant': 'Variant',
@@ -689,7 +693,7 @@ export class Config
                     'iframeApi.avatarActivatedTitle': 'Avatar Activated',
                     'iframeApi.avatarCreatedActivatedTitle': 'Avatar Received and Activated',
 
-                    'Toast.Do not show this message again': 'Do not show this message again',
+                    'Toast.Do not show this message again': 'Don\'t show this message again',
                     'Toast.greets': '...greeted you',
                     'Toast.byes': '...sent a goodbye',
                     'Toast.tousles': '...tousled you',
@@ -876,7 +880,7 @@ export class Config
                     'Menu.Video Conference': 'Videokonferenz',
                     'Menu.Chat': 'Sprechblase',
                     'Menu.About weblin': 'Über weblin',
-                    'Menu.Tutorials': 'Tutorial',
+                    'Menu.Tutorials': 'Tutorials',
                     'Menu.Emotes': 'Emotes',
                     'Menu.wave': 'Winken',
                     'Menu.dance': 'Tanzen',
@@ -946,6 +950,7 @@ export class Config
 
                     'TutorialWindow.Previous': 'Zurück',
                     'TutorialWindow.Next': 'Weiter',
+                    'TutorialWindow.Do not show again': 'Nicht mehr anzeigen',
 
                     'AboutWindow.Version': 'Version',
                     'AboutWindow.Variant': 'Variante',

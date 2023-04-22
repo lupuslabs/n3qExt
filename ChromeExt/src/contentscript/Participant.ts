@@ -37,6 +37,7 @@ import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { AnimationsDefinition } from './AnimationsXml';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { TutorialWindow } from './TutorialWindow';
 
 export class Participant extends Entity
 {
@@ -65,6 +66,7 @@ export class Participant extends Entity
         if (isSelf) {
             this.elem.classList.add('n3q-participant-self');
             this.showIntroYouOnce().catch(error => this.app.onError(error));
+            this.showTutorialOnce().catch(error => this.app.onError(error));
         } else {
             this.elem.classList.add('n3q-participant-other');
         }
@@ -123,6 +125,20 @@ export class Participant extends Entity
                 introYouElem.append(closeElem);
                 this.app.translateElem(introYouElem);
                 this.getElem().append(introYouElem);
+            }
+        }
+    }
+
+    async showTutorialOnce(): Promise<void>
+    {
+        const maxShowTutorial = as.Int(Config.get('client.showTutorial'), 0);
+        if (maxShowTutorial > 0) {
+            let countTutorial = as.Int(await Memory.getLocal('client.showTutorial', 0));
+            if (countTutorial < maxShowTutorial && ! await TutorialWindow.isDontShow()) {
+                countTutorial++;
+                await Memory.setLocal('client.showTutorial', countTutorial);
+
+                new TutorialWindow(this.app).show({});
             }
         }
     }

@@ -4,6 +4,8 @@ import { domHtmlElemOfHtml } from '../lib/domTools'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { Config } from '../lib/Config';
 import { as } from '../lib/as';
+import { Memory } from '../lib/Memory';
+import { Utils } from '../lib/Utils';
 
 // declare global
 // {
@@ -62,18 +64,36 @@ export class TutorialWindow extends Window<WindowOptions> {
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const pane = domHtmlElemOfHtml('<div class="n3q-base n3q-tutorialwindow-pane" data-translate="children"></script></div>');
+        const pane = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-pane" data-translate="children"></script></div>');
 
         this.videoTitle = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
         this.videoContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
 
         const navButtons = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
         const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:Tutorialindow">Previous</div>');
-        const nextBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
+
+        const dontShowContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dontshow-container"></div>');
+        const checkboxId = Utils.randomString(10);
+        const dontShowCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input class="n3q-tutorialwindow-dontshow" type="checkbox" name="checkbox" id="${checkboxId}" />`);
+        const dontShowLabel = domHtmlElemOfHtml(`<label class="n3q-tutorialwindow-dontshow" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`);
+        dontShowCheckbox.checked = await TutorialWindow.isDontShow();
+        dontShowCheckbox.addEventListener('change', ev => { TutorialWindow.setDontShow(dontShowCheckbox.checked); });
+        dontShowContainer.appendChild(dontShowCheckbox);
+        dontShowContainer.appendChild(dontShowLabel);
+
+        const filler1 = domHtmlElemOfHtml('<div class="n3q-flex-filler"></div>');
+
         this.dotsContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dots-container"></div>');
 
+        const filler2 = domHtmlElemOfHtml('<div class="n3q-flex-filler"></div>');
+
+        const nextBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
+
         navButtons.appendChild(previousBtn);
+        navButtons.appendChild(dontShowContainer);
+        navButtons.appendChild(filler1);
         navButtons.appendChild(this.dotsContainer);
+        navButtons.appendChild(filler2);
         navButtons.appendChild(nextBtn);
 
         pane.appendChild(this.videoTitle);
@@ -82,10 +102,10 @@ export class TutorialWindow extends Window<WindowOptions> {
 
         contentElem.append(pane);
 
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, pane);
-
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, pane);
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, previousBtn).addUnmodifiedLeftClickListener(ev => { this.onPreviousClick(); });
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, nextBtn).addUnmodifiedLeftClickListener(ev => { this.onNextClick(); });
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, pane);
 
         this.videos.forEach((elem, index) =>
         {
@@ -100,7 +120,10 @@ export class TutorialWindow extends Window<WindowOptions> {
     private updateVideo(): void
     {
         this.videoTitle.textContent = this.videos[this.currentVideoIndex].title;
-        this.videoContainer.innerHTML = `<iframe src="${this.videos[this.currentVideoIndex].url.replace('youtu.be', 'youtube.com/embed')}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+
+        const videoUrl = this.videos[this.currentVideoIndex].url.replace('youtu.be', 'youtube.com/embed') + Config.get('tutorial.videoArgs', '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1')
+        const videoHtmlAllow = Config.get('tutorial.videoHtmlAllow', 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
+        this.videoContainer.innerHTML = `<iframe src="${videoUrl}" frameborder="0" ${videoHtmlAllow}></iframe>`;
 
         this.videos.forEach((elem, index) =>
         {
@@ -184,5 +207,17 @@ export class TutorialWindow extends Window<WindowOptions> {
     {
         this.currentVideoIndex = index;
         this.updateVideo();
+    }
+
+    static localStorage_DontShow_Key: string = 'dontShow.Tutorial';
+
+    static async isDontShow(): Promise<boolean>
+    {
+        return await Memory.getLocal(this.localStorage_DontShow_Key, false);
+    }
+
+    static async setDontShow(value: boolean): Promise<void>
+    {
+        await Memory.setLocal(this.localStorage_DontShow_Key, value);
     }
 }
