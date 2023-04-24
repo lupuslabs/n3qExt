@@ -61,7 +61,7 @@ export class TutorialWindow extends Window<WindowOptions> {
         this.videoContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
 
         const navButtons = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
-        const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:Tutorialindow">Previous</div>');
+        const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:TutorialWindow">Previous</div>');
 
         const dontShowContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dontshow-container" data-translate="children"></div>');
         const checkboxId = Utils.randomString(10);
