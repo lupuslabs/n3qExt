@@ -1459,6 +1459,10 @@ div#n3q-display {
                         margin: 0 5px;
                     }
         
+                    .n3q-tutorialwindow-dot:hover {
+                        filter: brightness(0.9);
+                    }    
+
                     .n3q-tutorialwindow-dot.n3q-active {
                         background-color: #888;
                     }    
