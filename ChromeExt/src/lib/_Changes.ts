@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.2.6', 'Tutorial', [
             ['Add', 'Tutorial videos'],
+            ['Add', 'Tooltip to toast title'],
             ['Change', 'Show mouse hover over badges'],
             ['Change', 'Update dependencies and tools'],
         ]],

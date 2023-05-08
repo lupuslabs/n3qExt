@@ -217,7 +217,7 @@ export class SimpleToast extends Toast
     {
         super(app, type, durationSec, iconType, DomUtils.elemOfHtml(''
             + '<div class="n3q-base n3q-toast-body" data-translate="children">'
-            + (title != null ? `<div class="n3q-base n3q-title" data-translate="text:Toast">${as.Html(title)}</div>` : '')
+            + (title != null ? `<div class="n3q-base n3q-title" data-translate="text:Toast attr:title:Toast" title="${as.Html(title)}">${as.Html(title)}</div>` : '')
             + (text != null ? `<div class="n3q-base n3q-text" data-translate="text:Toast">${as.Html(text)}</div>` : '')
             + '</div>'
         ));
