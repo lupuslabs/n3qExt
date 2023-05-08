@@ -9,6 +9,7 @@ import { TestWindow } from './TestWindow'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { TutorialWindow } from './TutorialWindow';
 import { AboutWindow } from './AboutWindow';
+import { SimpleToast } from './Toast';
 
 export class OwnParticipantMenu extends ParticipantMenu
 {
@@ -26,7 +27,8 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         if (!is.nil(this.participant.getBadgesDisplay())) {
             const [menuItemId, labelId] = ['badgesEditMode', 'BadgesEditMode'];
-            const onClick = () => {
+            const onClick = () =>
+            {
                 const badges = this.participant.getBadgesDisplay();
                 if (is.nil(badges)) {
                     return;
@@ -94,7 +96,18 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         debugColumn.addActionItem(null, 'Integration tests...', () => new TestWindow(this.app).show({}));
         debugColumn.addActionItem(null, 'Avatar Effect Test', () => this.app.test());
-        debugColumn.addActionItem(null, 'Open or focus test popup', () => {
+        debugColumn.addActionItem(null, 'Show a Toast', () =>
+        {
+            new SimpleToast(this.app,
+                'privatevidconfrestestponse',
+                10,
+                'notice',
+                'You Can Claim Activity Points',
+                'Activity points can be claimed')
+                .show()
+        });
+        debugColumn.addActionItem(null, 'Open or focus test popup', () =>
+        {
             BackgroundMessage.openOrFocusPopup({
                 id: 'testPopupWindow',
                 url: 'https://chat.openai.com/chat',
