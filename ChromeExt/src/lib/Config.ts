@@ -486,6 +486,7 @@ export class Config
             ],
         },
         tutorial: {
+            experiencedUserPointsLimit: 200,
             defaultWidth: 1040,
             defaultHeight: 665,
             defaultBottom: 400,
