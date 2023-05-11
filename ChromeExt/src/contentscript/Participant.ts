@@ -135,7 +135,11 @@ export class Participant extends Entity
         if (maxShowTutorial > 0) {
             let countTutorial = as.Int(await Memory.getLocal(TutorialWindow.localStorage_TutorialPopupCount_Key, 0));
             if (countTutorial < maxShowTutorial && ! await TutorialWindow.isDontShow()) {
-                countTutorial++;
+                if (await TutorialWindow.isExperiencedUser()) {
+                    countTutorial = maxShowTutorial + 1;
+                } else {
+                    countTutorial++;
+                }
                 await Memory.setLocal(TutorialWindow.localStorage_TutorialPopupCount_Key, countTutorial);
 
                 new TutorialWindow(this.app).show({});

@@ -6,6 +6,9 @@ import { Config } from '../lib/Config';
 import { as } from '../lib/as';
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
+import { BackgroundMessage } from '../lib/BackgroundMessage';
+import { Pid } from '../lib/ItemProperties';
+import { ItemPropertiesSet } from '../lib/ItemProperties';
 
 // declare global
 // {
@@ -237,5 +240,31 @@ export class TutorialWindow extends Window<WindowOptions> {
     static async setDontShow(value: boolean): Promise<void>
     {
         await Memory.setLocal(TutorialWindow.localStorage_DontShow_Key, value);
+    }
+
+    static getHighestPointsTotal(pointsItemProperties: ItemPropertiesSet): number
+    {
+        let highestPoints = 0;
+        for (let id in pointsItemProperties) {
+            let props = pointsItemProperties[id];
+            let points = as.Int(props[Pid.PointsTotal]);
+            if (points > highestPoints) {
+                highestPoints = points;
+            }
+        }
+        return highestPoints;
+    }
+
+    static async getPointsItems(): Promise<ItemPropertiesSet>
+    {
+        return await BackgroundMessage.findBackpackItemProperties({ [Pid.PointsAspect]: 'true' });
+    }
+
+    static async isExperiencedUser(): Promise<boolean>
+    { 
+        let pointsItemProperties = await TutorialWindow.getPointsItems();
+        let points = TutorialWindow.getHighestPointsTotal(pointsItemProperties);
+        let experiencedUserPointsLimit = Config.get('tutorial.experiencedUserPointsLimit', 200);
+        return points > experiencedUserPointsLimit;
     }
 }
