@@ -20,6 +20,7 @@ export type WindowOptions = {
     bottom?:       string|number,
     left?:         string|number,
     center?:       string|number, // Used when left unset.
+    undocked?:     boolean,
 };
 
 type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none';
@@ -42,6 +43,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected geometryInitstrategy: WindowGeometryInitStrategy = 'beforeContent';
     protected persistGeometry:  boolean = false;
     protected isUndockable:     boolean = false;
+    protected isUndocked:       boolean = false;
 
     protected containerMarginTop:    number = 0;
     protected containerMarginRight:  number = 0;
@@ -108,6 +110,9 @@ export abstract class Window<OptionsType extends WindowOptions>
             if (!this.isClosing && !(this.givenOptions.hidden ?? this.showHidden)) {
                 this.setVisibility(true);
             }
+            if (this.isUndocked) {
+                this.undock();
+            }
         })().catch(error => {
             this.app.onError(error);
             this.isClosing = true;
@@ -128,6 +133,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected prepareMakeDom(): void
     {
         this.closeIsHide = as.Bool(this.givenOptions.closeIsHide, this.closeIsHide);
+        this.isUndocked = as.Bool(this.givenOptions.undocked, this.isUndocked);
         this.containerMarginTop    = as.Int(Config.get('system.windowContainerMarginTop'), 0);
         this.containerMarginRight  = as.Int(Config.get('system.windowContainerMarginRight'), 0);
         this.containerMarginBottom = as.Int(Config.get('system.windowContainerMarginBottom'), 0);

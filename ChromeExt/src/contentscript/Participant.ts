@@ -1091,6 +1091,7 @@ export class Participant extends Entity
                 this.privateVidconfWindow.show({
                     above: aboveElem,
                     url: url,
+                    undocked: true,
                     onClose: () =>
                     {
                         this.privateVidconfWindow = null;

@@ -789,6 +789,7 @@ export class RoomItem extends Entity
                 bottom: as.Int(windowOptions.bottom, 50),
                 resizable: as.Bool(windowOptions.rezizable, true),
                 undockable: as.Bool(windowOptions.undockable),
+                undocked: as.Bool(windowOptions.undocked),
                 transparent: as.Bool(windowOptions.transparent),
                 hidden: as.Bool(windowOptions.hidden),
                 titleText: as.String(this.properties[Pid.Description], as.String(this.properties[Pid.Label], 'Item')),

@@ -47,7 +47,7 @@ export class VidconfWindow extends Window<VidconfWindowOptions>
         contentElem.append(iframeElem);
     }
 
-    protected undock(): void
+    undock(): void
     {
         const left = Config.get('room.vidconfUndockedLeft', 100);
         const top = Config.get('room.vidconfUndockedTop', 100);

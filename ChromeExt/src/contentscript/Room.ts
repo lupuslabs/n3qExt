@@ -575,6 +575,7 @@ export class Room
             this.vidconfWindow.show({
                 'above': aboveElem,
                 'url': url,
+                'undocked': true,
                 onClose: () =>
                 {
                     this.vidconfWindow = null;
