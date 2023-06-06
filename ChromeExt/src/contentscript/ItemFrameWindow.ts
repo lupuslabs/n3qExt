@@ -13,6 +13,7 @@ export type ItemFrameWindowOptions = WindowOptions & {
     url: string,
     resizable?: boolean,
     undockable?: boolean,
+    undocked?: boolean,
     transparent?: boolean, // Not implemented on ItemFrameWindow.
     titleText: string,
 }
@@ -44,6 +45,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
         this.minWidth = 180;
         this.minHeight = 100;
         this.isUndockable = as.Bool(this.givenOptions.undockable);
+        this.isUndocked= as.Bool(this.givenOptions.undocked);
 
         const url: string = as.String(this.givenOptions.url);
         if (!url.length) {

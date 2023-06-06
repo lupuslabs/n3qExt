@@ -6,8 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.7', '?', [
-            ['x', 'y'],
+        ['1.2.7', 'VidconfUndocked', [
+            ['Change', 'Video windows initially undocked because Jitsi does not support embedding in iframes anymore'],
         ]],
         ['1.2.6', 'Tutorial', [
             ['Add', 'Tutorial videos'],
