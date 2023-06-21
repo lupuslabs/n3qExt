@@ -7,7 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.8', 'NextVersion', [
-            ['Fix', 'Next fix'],
+            ['Fix', 'Text of changes window not selectable'],
         ]],
         ['1.2.7', 'VidconfUndocked', [
             ['Change', 'Video windows initially undocked because Jitsi does not support embedding in iframes anymore'],

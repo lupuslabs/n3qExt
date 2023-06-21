@@ -34,7 +34,7 @@ export class ChangesWindow extends Window<WindowOptions>
         const contentElem = this.contentElem;
         this.outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
         contentElem.append(this.outElem);
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.outElem);
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
         this.showHistory();
     }
 
