@@ -47,6 +47,7 @@ export class AboutWindow extends Window<WindowOptions> {
             { key: 'Language', value: Client.getUserLanguage() },
             { key: 'Landing page', value: Config.get('about.landingPage', ''), type: 'link' },
             { key: 'Project page', value: Config.get('about.projectPage', ''), type: 'link' },
+            { key: 'Privacy policy', value: Config.get('about.privacyPolicy', ''), type: 'link' },
             { key: 'Extension link', value: Config.get('about.extensionLink', ''), type: 'link' },
             { key: 'Description', value: Config.get('about.description', ''), type: 'raw' },
         ]

@@ -510,8 +510,9 @@ export class Config
             defaultLeft: 50,
             landingPage: 'https://www.weblin.io/',
             projectPage: 'https://www.weblin.io/Start',
+            privacyPolicy: 'https://www.weblin.io/PrivacyPolicy',
             extensionLink: 'https://chrome.google.com/webstore/detail/weblin/cgfkfhdinajjhfeghebnljbanpcjdlkm',
-            description: 'The Web is a virtual world. You meet other people - on all pages. </br></br>You have an avatar on every web page and you meet other people who are on the same page at the same time. It\'s anonymous. It\'s on every web page. It\'s in real-time.',
+            description: 'The Web is a virtual world. You meet other people - on all pages. </br></br>You have an avatar on every web page and you meet other people who are on the same page at the same time. It\'s anonymous. It\'s on every web page. It\'s real-time.',
         },
         i18n: {
             // overrideBrowserLanguage: 'fr-FR',
