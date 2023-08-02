@@ -7,6 +7,7 @@ module.exports = config
 config.mode = 'development'
 
 config.entry.test = join(__dirname, 'src/test/test.ts')
+config.output.publicPath = '.'
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 config.plugins.push(
