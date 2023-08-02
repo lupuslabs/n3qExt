@@ -1,6 +1,6 @@
 import { Window, WindowOptions } from './Window';
 import { ContentApp } from './ContentApp';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { Config } from '../lib/Config';
 import { as } from '../lib/as';
@@ -58,30 +58,30 @@ export class TutorialWindow extends Window<WindowOptions> {
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const pane = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-pane" data-translate="children"></script></div>');
+        const pane = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-pane" data-translate="children"></script></div>');
 
-        this.videoTitle = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
-        this.videoContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
+        this.videoTitle = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
+        this.videoContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
 
-        const navButtons = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
-        const previousBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:TutorialWindow">Previous</div>');
+        const navButtons = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
+        const previousBtn = DomUtils.elemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:TutorialWindow">Previous</div>');
 
-        const dontShowContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dontshow-container" data-translate="children"></div>');
+        const dontShowContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dontshow-container" data-translate="children"></div>');
         const checkboxId = Utils.randomString(10);
-        const dontShowCheckbox = <HTMLInputElement>domHtmlElemOfHtml(`<input class="n3q-tutorialwindow-dontshow" type="checkbox" name="checkbox" id="${checkboxId}" />`);
-        const dontShowLabel = domHtmlElemOfHtml(`<label class="n3q-tutorialwindow-dontshow" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`);
+        const dontShowCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input class="n3q-tutorialwindow-dontshow" type="checkbox" name="checkbox" id="${checkboxId}" />`);
+        const dontShowLabel = DomUtils.elemOfHtml(`<label class="n3q-tutorialwindow-dontshow" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`);
         dontShowCheckbox.checked = await TutorialWindow.isDontShow();
         dontShowCheckbox.addEventListener('change', ev => { TutorialWindow.setDontShow(dontShowCheckbox.checked); });
         dontShowContainer.appendChild(dontShowCheckbox);
         dontShowContainer.appendChild(dontShowLabel);
 
-        const filler1 = domHtmlElemOfHtml('<div class="n3q-flex-filler"></div>');
+        const filler1 = DomUtils.elemOfHtml('<div class="n3q-flex-filler"></div>');
 
-        this.dotsContainer = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dots-container"></div>');
+        this.dotsContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dots-container"></div>');
 
-        const filler2 = domHtmlElemOfHtml('<div class="n3q-flex-filler"></div>');
+        const filler2 = DomUtils.elemOfHtml('<div class="n3q-flex-filler"></div>');
 
-        const nextBtn = domHtmlElemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
+        const nextBtn = DomUtils.elemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
 
         navButtons.appendChild(previousBtn);
         navButtons.appendChild(dontShowContainer);
@@ -103,7 +103,7 @@ export class TutorialWindow extends Window<WindowOptions> {
 
         this.videos.forEach((elem, index) =>
         {
-            const dot = domHtmlElemOfHtml('<div class="n3q-tutorialwindow-dot" data-index="' + index + '" title="' + as.Html(elem.title) + '"></div>');
+            const dot = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dot" data-index="' + index + '" title="' + as.Html(elem.title) + '"></div>');
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, dot).addUnmodifiedLeftClickListener(ev => { this.onDotClick(index); });
             this.dotsContainer.appendChild(dot);
         });
@@ -139,7 +139,7 @@ export class TutorialWindow extends Window<WindowOptions> {
         this.videos.forEach((elem, index) =>
         {
             const dot = this.dotsContainer.querySelector('[data-index="' + index + '"]');
-            if (index == this.currentVideoIndex) {
+            if (index === this.currentVideoIndex) {
                 dot.classList.add('n3q-active');
             } else {
                 dot.classList.remove('n3q-active');
@@ -261,7 +261,7 @@ export class TutorialWindow extends Window<WindowOptions> {
     }
 
     static async isExperiencedUser(): Promise<boolean>
-    { 
+    {
         let pointsItemProperties = await TutorialWindow.getPointsItems();
         let points = TutorialWindow.getHighestPointsTotal(pointsItemProperties);
         let experiencedUserPointsLimit = Config.get('tutorial.experiencedUserPointsLimit', 200);

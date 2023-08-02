@@ -1,6 +1,6 @@
 import { Window, WindowOptions } from './Window';
 import { ContentApp } from './ContentApp';
-import { domHtmlElemOfHtml } from '../lib/domTools'
+import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { Config } from '../lib/Config';
 import { Client } from '../lib/Client';
@@ -36,10 +36,10 @@ export class AboutWindow extends Window<WindowOptions> {
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        const pane = domHtmlElemOfHtml('<div class="n3q-base n3q-aboutwindow-pane" data-translate="children"></div>');
-        const logo = domHtmlElemOfHtml('<div class="n3q-aboutwindow-logo"></div>');
-        const title = domHtmlElemOfHtml('<div class="n3q-aboutwindow-title" data-translate="text:AboutWindow"></div>');
-        const linesContainer = domHtmlElemOfHtml('<div class="n3q-aboutwindow-lines" data-translate="children"></div>');
+        const pane = DomUtils.elemOfHtml('<div class="n3q-base n3q-aboutwindow-pane" data-translate="children"></div>');
+        const logo = DomUtils.elemOfHtml('<div class="n3q-aboutwindow-logo"></div>');
+        const title = DomUtils.elemOfHtml('<div class="n3q-aboutwindow-title" data-translate="text:AboutWindow"></div>');
+        const linesContainer = DomUtils.elemOfHtml('<div class="n3q-aboutwindow-lines" data-translate="children"></div>');
 
         const lines: Line[] = [
             { key: 'Version', value: Client.getVersion() },
@@ -56,20 +56,20 @@ export class AboutWindow extends Window<WindowOptions> {
         {
             var value = '';
             switch (line.type ?? 'html') {
-                case 'raw': 
+                case 'raw':
                 value = line.value;
                 break;
 
-                case 'link': 
+                case 'link':
                 value = as.HtmlLink(line.value, line.value, null, null, '_new')
                 break;
 
-                case 'html': 
+                case 'html':
                 value = as.HtmlWithClickableLinks(line.value);
                 break;
             }
-            
-            const lineElem = domHtmlElemOfHtml(
+
+            const lineElem = DomUtils.elemOfHtml(
                 '<div class="n3q-aboutwindow-line" data-translate="children">'
                 + '<span class="n3q-aboutwindow-label" data-translate="text:AboutWindow">' + line.key + '</span>'
                 + '<span class="n3q-aboutwindow-text" data-translate="text:AboutWindow">' + value + '</span>'
