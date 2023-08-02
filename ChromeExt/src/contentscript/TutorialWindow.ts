@@ -257,6 +257,9 @@ export class TutorialWindow extends Window<WindowOptions> {
 
     static async getPointsItems(): Promise<ItemPropertiesSet>
     {
+        if (!Utils.isBackpackEnabled()) {
+            return new ItemPropertiesSet();
+        }
         return await BackgroundMessage.findBackpackItemProperties({ [Pid.PointsAspect]: 'true' });
     }
 
