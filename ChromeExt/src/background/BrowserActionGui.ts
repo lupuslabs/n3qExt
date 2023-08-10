@@ -15,9 +15,9 @@ class TabState {
     public readonly lastStats: TabStats;
     public readonly attentionLevel: AttentionLevel;
     public readonly animationStart: number;
-    public readonly timeoutHandle: null|number;
+    public readonly timeoutHandle: null|ReturnType<typeof setTimeout>;
 
-    constructor(lastStats: TabStats, attentionLevel: AttentionLevel, animationStart: number, timeoutHandle: null|number) {
+    constructor(lastStats: TabStats, attentionLevel: AttentionLevel, animationStart: number, timeoutHandle: null|ReturnType<typeof setTimeout>) {
         this.lastStats = lastStats;
         this.attentionLevel = attentionLevel;
         this.animationStart = animationStart;
@@ -32,32 +32,30 @@ export class BrowserActionGui
 
     protected readonly app: BackgroundApp;
     protected readonly hasBrowserActionFeature: boolean;
-    protected readonly normalBadgeColor: string;
-    protected readonly attentionBadgeColor: string;
-    protected readonly blinkBadgeColor: string;
-    protected readonly blinkPhaseCount: number;
-    protected readonly blinkPhaseDurationMsecs: number;
 
+    protected listenerRegistered: boolean = false;
     protected readonly lastTabStates: Map<number,TabState> = new Map();
 
     constructor(app: BackgroundApp) {
         this.app = app;
-        this.hasBrowserActionFeature = !is.nil(chrome?.browserAction);
-        this.normalBadgeColor = as.String(Config.get('browserAction.normalBadgeColor'), '#FFFFFF');
-        this.attentionBadgeColor = as.String(Config.get('browserAction.attentionBadgeColor'), '#000000');
-        this.blinkBadgeColor = as.String(Config.get('browserAction.attentionBlinkBadgeColor'), '#FFFFFF');
-        const blinkCount = as.Int(Config.get('browserAction.attentionBlinkCount'), 3);
-        const blinkDurationSecs = as.Float(Config.get('browserAction.attentionBlinkDurationSec'), 1);
-        this.blinkPhaseCount = 2 * Math.max(0, blinkCount);
-        this.blinkPhaseDurationMsecs = Math.max(1, 1000 * blinkDurationSecs / 2);
-        if (this.hasBrowserActionFeature) {
-            chrome.browserAction.onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
+        this.hasBrowserActionFeature = !is.nil(chrome?.action);
+    }
+
+    public onConfigUpdated(): void
+    {
+        if (this.hasBrowserActionFeature && !this.listenerRegistered) {
+            this.listenerRegistered = true;
+            chrome.action.onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
         }
     }
 
     public forgetTab(tabId: number): void
     {
-        this.lastTabStates.delete(tabId);
+        const lastTabState = this.lastTabStates.get(tabId) ?? null;
+        if (lastTabState) {
+            this.lastTabStates.delete(tabId);
+            clearTimeout(lastTabState.timeoutHandle);
+        }
     }
 
     protected onBrowserActionClicked(tabId: number): void
@@ -70,7 +68,7 @@ export class BrowserActionGui
                 state = true;
                 await Memory.setLocal(Utils.localStorageKey_Active(), state);
                 const message = { 'type': ContentMessage.type_extensionActiveChanged, 'data': { state } };
-                ContentMessage.sendMessage(tabId, message);
+                this.app.sendToTab(tabId, message);
             }
         })().catch(error => log.info('BrowserActionGui.onBrowserActionClicked', error));
 
@@ -88,7 +86,7 @@ export class BrowserActionGui
         }
         const lastTabState = this.lastTabStates.get(tabId) ?? BrowserActionGui.dummyTabState;
         let {lastStats, attentionLevel, animationStart, timeoutHandle} = lastTabState;
-        window.clearTimeout(timeoutHandle);
+        clearTimeout(timeoutHandle);
         timeoutHandle = null;
         const {isGuiEnabled, stats} = this.app.getTabData(tabId);
 
@@ -109,7 +107,7 @@ export class BrowserActionGui
 
         let path = '/assets/icon.png';
         let titleKey = 'Extension.Hide';
-        let color = this.normalBadgeColor;
+        let color = as.String(Config.get('browserAction.normalBadgeColor'), '#FFFFFF');
         let text = '';
         if (!isGuiEnabled) {
             path = '/assets/iconDisabled.png';
@@ -117,19 +115,23 @@ export class BrowserActionGui
             text = as.String(stats.participantCount);
         }
         if (attentionLevel > 0) {
-            color = this.attentionBadgeColor;
+            color = as.String(Config.get('browserAction.attentionBadgeColor'), '#000000');
             if (attentionLevel > 1) {
+                const blinkCount = as.Int(Config.get('browserAction.attentionBlinkCount'), 3);
+                const blinkDurationSecs = as.Float(Config.get('browserAction.attentionBlinkDurationSec'), 1);
+                const blinkPhaseCount = 2 * Math.max(0, blinkCount);
+                const blinkPhaseDurationMsecs = Math.max(1, 1000 * blinkDurationSecs / 2);
                 const nowMsecs = Date.now();
                 const msecsPassed = nowMsecs - animationStart;
-                const blinkPhase = as.Int(msecsPassed / this.blinkPhaseDurationMsecs);
-                if (blinkPhase < this.blinkPhaseCount) {
+                const blinkPhase = as.Int(msecsPassed / blinkPhaseDurationMsecs);
+                if (blinkPhase < blinkPhaseCount) {
                     if (blinkPhase % 2 === 1) {
-                        color = this.blinkBadgeColor;
+                        color = as.String(Config.get('browserAction.attentionBlinkBadgeColor'), '#FFFFFF');
                     }
-                    const nextPhaseAlreadyPassedMsecs = msecsPassed % this.blinkPhaseDurationMsecs;
-                    const nextPhaseDelayMsecs = this.blinkPhaseDurationMsecs - nextPhaseAlreadyPassedMsecs + 1;
+                    const nextPhaseAlreadyPassedMsecs = msecsPassed % blinkPhaseDurationMsecs;
+                    const nextPhaseDelayMsecs = blinkPhaseDurationMsecs - nextPhaseAlreadyPassedMsecs + 1;
                     const nextAnimStepFun = () => this.updateBrowserActionGui(tabId);
-                    timeoutHandle = window.setTimeout(nextAnimStepFun, nextPhaseDelayMsecs);
+                    timeoutHandle = setTimeout(nextAnimStepFun, nextPhaseDelayMsecs);
                 } else {
                     attentionLevel = 1;
                 }
@@ -137,10 +139,12 @@ export class BrowserActionGui
         }
         const title = this.app.translateText(titleKey);
 
-        chrome.browserAction.setIcon({ tabId, path }, () => {});
-        chrome.browserAction.setTitle({ tabId, title });
-        chrome.browserAction.setBadgeBackgroundColor({ tabId, color });
-        chrome.browserAction.setBadgeText({ tabId, text });
+        (async () => {
+            await chrome.action.setIcon({ tabId, path });
+            await chrome.action.setTitle({ tabId, title });
+            await chrome.action.setBadgeBackgroundColor({ tabId, color });
+            await chrome.action.setBadgeText({ tabId, text });
+        })().catch(error => log.info('BrowserActionGui.updateBrowserActionGui', error));
 
         lastStats = {...stats};
         this.lastTabStates.set(tabId, { lastStats, attentionLevel, animationStart, timeoutHandle });

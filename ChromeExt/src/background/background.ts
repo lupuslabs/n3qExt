@@ -1,37 +1,22 @@
-import log = require('loglevel');
-import { is } from '../lib/is';
-import { Environment } from '../lib/Environment';
-import { BackgroundApp } from './BackgroundApp';
+import log = require('loglevel')
+import { Environment } from '../lib/Environment'
+import { ContentCommunicatorFactory, BackgroundApp } from './BackgroundApp'
+import { BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
+import { PortBackgroundMessagePipeProvider } from '../lib/PortMessagePipe'
+import { Client } from '../lib/Client'
 
-const debug = Environment.isDevelopment();
-console.debug('weblin.io Background', 'dev', debug);
+Client.initLog()
+const isDevelopment = Environment.isDevelopment()
+console.debug('weblin.io Background', { isDevelopment })
 
-log.setLevel(log.levels.INFO);
-
-if (debug) {
-    log.setLevel(log.levels.DEBUG);
-    // log.setLevel(log.levels.TRACE);
+const communicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, requestHandler) => {
+    const messagePipeProvider = new PortBackgroundMessagePipeProvider()
+    return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, requestHandler)
 }
+// Must happen in first event loop cycle for browser to detect use of event listeners in background service
+// worker or the worker will not be restarted on coresponding incomming events if it stops for any reason:
+const app = new BackgroundApp(communicatorMaker)
 
-let app = null;
-
-function activate()
-{
-    if (is.nil(app)) {
-        app = new BackgroundApp();
-
-        app.start().catch(error => {
-            app = null;
-        });
-    }
-}
-
-function deactivate()
-{
-    if (!is.nil(app)) {
-        app.stop();
-        app = null;
-    }
-}
-
-activate();
+app.start().catch(error => {
+    log.info('BackgroundApp.start failed!', error)
+})

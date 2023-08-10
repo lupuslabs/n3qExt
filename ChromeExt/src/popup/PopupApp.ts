@@ -13,6 +13,7 @@ import { RandomNames } from '../lib/RandomNames';
 import { DomUtils } from '../lib/DomUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { AppWithDom } from '../lib/App'
+import { BackgroundMessageUrlFetcher } from '../lib/UrlFetcher'
 
 export class PopupApp extends AppWithDom
 {
@@ -35,7 +36,8 @@ export class PopupApp extends AppWithDom
         const langMapper = lang => Config.get('i18n.languageMapping', {})[lang];
         const language: string = Translator.mapLanguage(navLang, langMapper, defaultLandg);
         const translationTable = Config.get('i18n.translations', {})[language];
-        this.babelfish = new Translator(translationTable, language, Config.get('i18n.serviceUrl', ''));
+        const serviceUrl = Config.get('i18n.serviceUrl', '')
+        this.babelfish = new Translator(translationTable, language, serviceUrl, new BackgroundMessageUrlFetcher());
     }
 
     public onError(error: unknown): void

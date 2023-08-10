@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { VpiResolver, VpiResolverEvaluateResultType, VpiResolverConfigProvider, VpiResolverUrlFetcher } from '../contentscript/VpiResolver';
-import { FetchUrlResponse } from '../lib/BackgroundMessage';
+import { VpiResolver, VpiResolverEvaluateResultType, VpiResolverConfigProvider } from '../contentscript/VpiResolver';
+import { UrlAsTextFetcher } from '../lib/UrlFetcher'
 
 export class TestVpiResolver
 {
@@ -88,7 +88,7 @@ class TestConfigInstance implements VpiResolverConfigProvider
     }
 }
 
-class TestDataProvider implements VpiResolverUrlFetcher
+class TestDataProvider implements UrlAsTextFetcher
 {
     private data = {
         'https://lms.virtual-presence.org/v7/root.xml': `<?xml version="1.0" encoding="UTF-8"?>
@@ -388,15 +388,12 @@ class TestDataProvider implements VpiResolverUrlFetcher
         </vpi>`,
     };
 
-    fetchUrl(url: string, version: string): Promise<FetchUrlResponse>
+    async fetchAsText(url: string, version: string): Promise<string>
     {
-        return new Promise((resolve, reject) =>
-        {
-            if (this.data[url]) {
-                resolve(new FetchUrlResponse(this.data[url]));
-            } else {
-                reject('No data for ' + url);
-            }
-        });
+        const data = this.data[url];
+        if (!data) {
+            throw { ok: false, status: 'Error', statusText: 'Not Found!' };
+        }
+        return data;
     }
 }

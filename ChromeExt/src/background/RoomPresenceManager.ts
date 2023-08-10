@@ -24,7 +24,7 @@ class RoomData
     public desiredNick: null|string // Initially tried nick set before entering the room.
     public confirmedNick: null|string = null // Set when entered the room.
     public pendingNick: null|string = null // Set while entering the room.
-    public roomEnterTimeoutForNicknameProblemDetection: null|number = null
+    public roomEnterTimeoutForNicknameProblemDetection: null|ReturnType<typeof setTimeout> = null
     public fallenBackToLastWorkingNick: boolean = false
     public enterRetryCount: number = 0
 
@@ -35,7 +35,7 @@ class RoomData
     public sentPresenceCounts: Map<string,number> = new Map()
     public presenceDataToSend: null|TabRoomPresenceData = null
     public sendPresenceTimeoutStart: null|Date = null
-    public sendPresenceTimeoutHandle: null|number = null
+    public sendPresenceTimeoutHandle: null|ReturnType<typeof setTimeout> = null
     public sheduledPresenceCountSinceLastSend: Map<string,number> = new Map()
 
     public constructor(roomJid: string, posX: number)
@@ -73,7 +73,7 @@ export class RoomPresenceManager
             for (const tabId of roomData.tabIds.values()) {
                 this.onTabUnavailable(tabId)
             }
-            window.clearTimeout(roomData.sendPresenceTimeoutHandle)
+            clearTimeout(roomData.sendPresenceTimeoutHandle)
         }
         this.rooms.clear()
         this.tabPresences.clear()
@@ -234,7 +234,7 @@ export class RoomPresenceManager
             roomData.confirmedNick = participantResource
             roomData.pendingNick = null
 
-            window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+            clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
             roomData.roomEnterTimeoutForNicknameProblemDetection = null
             if (roomData.fallenBackToLastWorkingNick) {
                 // Got into the room only after falling back to last working nickname right after a nickname change.
@@ -341,7 +341,7 @@ export class RoomPresenceManager
         }
         roomData.sendPresenceTimeoutStart = nowDate
         const sender = () => this.doSendRoomPresence(roomData.roomJid, logPresenceType)
-        roomData.sendPresenceTimeoutHandle = window.setTimeout(sender, 1000 * deferDelaySecsFinal)
+        roomData.sendPresenceTimeoutHandle = setTimeout(sender, 1000 * deferDelaySecsFinal)
     }
 
     private getLogPresenceTypeAndDelayOfRoomData(roomData: RoomData): { logPresenceType: string, defaultDelaySecs: number }
@@ -425,14 +425,14 @@ export class RoomPresenceManager
         roomData.enterRetryCount = 0
         roomData.fallenBackToLastWorkingNick = false
 
-        window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+        clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
         roomData.roomEnterTimeoutForNicknameProblemDetection = null
 
         // Detection of server completely ignoring the room (re)enter presence if the nick isn't known to be working:
         if (desiredNick !== this.lastWorkingNick) {
             const handler = () => this.onFailedToEnterRoomWithNewNicknameBecauseServerIgnoredPresence(roomData.roomJid)
             const timeoutSecs = as.Float(Config.get('xmpp.detectServerCompletelyIgnoredPresenceMaybeBecauseOfInvalidNicknameTimeoutSec'), 60)
-            roomData.roomEnterTimeoutForNicknameProblemDetection = window.setTimeout(handler, 1000 * timeoutSecs)
+            roomData.roomEnterTimeoutForNicknameProblemDetection = setTimeout(handler, 1000 * timeoutSecs)
         }
     }
 
@@ -451,7 +451,11 @@ export class RoomPresenceManager
     private getMergedRoomPresenceData(roomData: RoomData): TabRoomPresenceData
     {
         const tabPresences = [...roomData.tabIds.values()].map(tabId => this.tabPresences.get(tabId))
-        const cmpByTimestampDesc = (a, b) => a.timestamp < b.timestamp ? 1 : (a.timestamp === b.timestamp ? 0 : -1)
+        const cmpByTimestampDesc = (a, b) => {
+            if (a.timestamp < b.timestamp) { return 1 }
+            if (a.timestamp === b.timestamp) { return 0 }
+            return -1
+        }
         tabPresences.sort(cmpByTimestampDesc)
         const newestPresence = tabPresences[0] ?? null
         const filterForIsAvailable = p => p.isAvailable && p.showAvailability.length === 0
@@ -642,7 +646,7 @@ export class RoomPresenceManager
         }
         log.info('RoomPresenceManager.onFailedToEnterRoomWithNewNickname: Entering room with new nick failed because server completely ignored the presence!', { roomData })
 
-        window.clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
+        clearTimeout(roomData.roomEnterTimeoutForNicknameProblemDetection)
         roomData.roomEnterTimeoutForNicknameProblemDetection = null
 
         roomData.pendingNick = this.lastWorkingNick

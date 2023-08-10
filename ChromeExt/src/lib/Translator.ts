@@ -1,18 +1,18 @@
-import * as $ from 'jquery';
-import log = require('loglevel');
-import { Config } from './Config';
-import { Utils } from './Utils';
+import { is } from './is'
+import { as } from './as'
+import log = require('loglevel')
+import { UrlJsonFetcher } from './UrlFetcher'
 
 interface ITranslationResponse
 {
-    key: string;
-    lang: string;
-    translatedText: string;
-    isTranslated: boolean;
-    timestamp: number;
+    key: string
+    lang: string
+    translatedText: string
+    isTranslated: boolean
+    timestamp: number
 }
 
-class HtmlElementPartApplier
+abstract class HtmlElementPartApplier
 {
     constructor(public elem: HTMLElement, public what: string) { }
     apply(translated: string): void { }
@@ -20,177 +20,162 @@ class HtmlElementPartApplier
 
 class HtmlElementPartAttributeApplier extends HtmlElementPartApplier
 {
-    constructor(public elem: HTMLElement, public what: string, public attrName: string) { super(elem, what); }
+    constructor(public elem: HTMLElement, public what: string, public attrName: string) { super(elem, what) }
 
     apply(translated: string): void
     {
-        $(this.elem).attr(this.attrName, translated);
+        this.elem.setAttribute(this.attrName, translated)
     }
 }
 
 class HtmlElementTextPartApplier extends HtmlElementPartApplier
 {
-    constructor(public elem: HTMLElement, public what: string) { super(elem, what); }
+    constructor(public elem: HTMLElement, public what: string) { super(elem, what) }
 
     apply(translated: string): void
     {
-        $(this.elem).text(translated);
+        this.elem.innerText = translated
     }
 }
 
-interface TranslatorLanguageMapper { (key: string): string }
+type TranslatorLanguageMapper = (key: null|string) => string
 
 export class Translator
 {
-    translationAvailable: { [id: string]: boolean; } = {};
 
-    static mapLanguage(browserLanguage: string, languageMapper: TranslatorLanguageMapper, defaultLanguage: string): string
+    public static mapLanguage(browserLanguage: string, languageMapper: TranslatorLanguageMapper, defaultLanguage: string): string
     {
-        let language = defaultLanguage;
+        const language = languageMapper(browserLanguage)
+        if (!is.nil(language)) {
+            return language
+        }
 
-        if (languageMapper(browserLanguage) != undefined) {
-            language = languageMapper(browserLanguage);
-        } else {
-            let parts = browserLanguage.split('-', 2);
-            if (parts.length == 2) {
-                if (languageMapper(parts[0]) != undefined) {
-                    language = languageMapper(parts[0]);
-                }
+        const parts = browserLanguage.split('-', 2)
+        if (parts.length === 2) {
+            const language = languageMapper(parts[0])
+            if (!is.nil(language)) {
+                return language
             }
         }
 
-        return language;
+        return defaultLanguage
     }
 
-    constructor(private translations: any, private language: string, private translationService: string)
+    public static getShortLanguageCode(language: string): string
     {
+        return language.substring(0, 2)
     }
 
-    getLanguage(): string
+    private readonly translations: { [key: string]: any }
+    private readonly translationAvailable: { [id: string]: boolean } = {}
+    private readonly language: string
+    private readonly translationServiceUrl: string
+    private readonly urlFetcher: UrlJsonFetcher
+
+    public constructor(translations: { [key: string]: any }, language: string, translationServiceUrl: string, urlFetcher: UrlJsonFetcher)
     {
-        return this.language;
+        this.translations = translations
+        this.language = language
+        this.translationServiceUrl = translationServiceUrl
+        this.urlFetcher = urlFetcher
     }
 
-    static getShortLanguageCode(language: string): string
+    public getLanguage(): string
     {
-        return language.substr(0, 2);
+        return this.language
     }
 
-    translateText(key: string, defaultText: string): string
+    public translateText(key: string, defaultText: string): string
     {
         if (this.translations[key]) {
-            return this.translations[key];
+            return this.translations[key]
         } else {
-            if (defaultText) { return defaultText; }
+            if (defaultText) { return defaultText }
         }
 
-        let parts = key.split('.', 2);
-        if (parts.length == 2) { return parts[1]; }
-        return key;
+        let parts = key.split('.', 2)
+        if (parts.length === 2) { return parts[1] }
+        return key
     }
 
-    translateElem(elem: HTMLElement): void
+    public translateElem(elem: HTMLElement): void
     {
-        var translate: string = $(elem).data('translate');
-        if (translate) {
+        const translate: string = as.String(elem.getAttribute('data-translate'))
+        if (!translate.length) {
+            return
+        }
+        const cmds = translate.split(' ')
+        for (const cmd of cmds) {
+            const cmdParts = cmd.split(':')
+            const what = cmdParts[0]
+            let applier: HtmlElementPartApplier = null
+            let key: string
 
-            var parts = translate.split(' ');
-            for (var i = 0; i < parts.length; i++) {
-                var cmd = parts[i];
-                var cmdParts = cmd.split(':');
-                var what = cmdParts[0];
-                var applier: HtmlElementPartApplier = null;
+            switch (what) {
+                case 'attr': {
+                    const attrName = as.String(cmdParts[1])
+                    const context = as.String(cmdParts[2])
+                    const text = as.String(elem.getAttribute(attrName))
+                    key = this.getKey(context, text)
+                    applier = new HtmlElementPartAttributeApplier(elem, what, attrName)
+                    this.applyTranslation(key, applier)
+                } break
 
-                switch (what) {
-                    case 'attr':
-                        var attrName = cmdParts[1];
-                        var context = cmdParts[2];
-                        var text = $(elem).attr(attrName);
-                        var key = this.getKey(context, text);
-                        applier = new HtmlElementPartAttributeApplier(elem, what, attrName);
-                        break;
+                case 'text': {
+                    if (!elem.children.length) {
+                        const context = as.String(cmdParts[1])
+                        const text = elem.innerText
+                        key = this.getKey(context, text)
+                        applier = new HtmlElementTextPartApplier(elem, what)
+                        this.applyTranslation(key, applier)
+                    }
+                } break
 
-                    case 'text':
-                        if ($(elem).children().length == 0) {
-                            var context = cmdParts[1];
-                            var text = $(elem).text();
-                            var key = this.getKey(context, text);
-                            applier = new HtmlElementTextPartApplier(elem, what);
-                        }
-                        break;
-
-                    case 'children':
-                        $(elem).children().each(
-                            (index, child) =>
-                            {
-                                //log.debug('translate child', child.tagName, child.className);
-                                this.translateElem(<HTMLElement>child);
-                            });
-                        break;
-                }
-
-                if (applier != null) {
-                    if (this.translations[key] || this.translations[key] === '') { 
-                        this.translationAvailable[key] = true;
-                        this.applyTranslation(applier, this.translations[key], true);
-                    } else {
-                        if (this.translationAvailable[key] == undefined) {
-                            if (this.translationService != undefined && this.translationService != null && this.translationService != '') {
-                                var url = this.translationService + '?lang=' + encodeURI(this.language) + '&key=' + encodeURI(key);
-                                jQuery.getJSON(url, data =>
-                                {
-                                    if (data.translatedText) {
-                                        var response: ITranslationResponse = <ITranslationResponse>data;
-                                        this.translationAvailable[key] = response.isTranslated;
-                                        if (response.isTranslated) {
-                                            this.translations[key] = response.translatedText;
-                                        }
-                                        this.applyTranslation(applier, response.translatedText, response.isTranslated);
-                                    }
-                                });
-                            }
+                case 'children': {
+                    for (const child of elem.children) {
+                        if (child instanceof HTMLElement) {
+                            //log.debug('translate child', child.tagName, child.className)
+                            this.translateElem(child)
                         }
                     }
-                }
+                } break
             }
         }
     }
 
-    getKey(context: string, text: string): string
+    private applyTranslation(key: string, applier: HtmlElementPartApplier): void
     {
-        let key: string = context;
+        if (this.translations[key] || this.translations[key] === '') {
+            this.translationAvailable[key] = true
+            applier.apply(this.translations[key])
+        } else if (is.nil(this.translationAvailable[key]) && !is.nil(this.translationServiceUrl) && this.translationServiceUrl.length) {
+            const url = this.translationServiceUrl + '?lang=' + encodeURI(this.language) + '&key=' + encodeURI(key)
+            this.urlFetcher.fetchJson(url)
+                .then((response: ITranslationResponse) => {
+                    if (!response.translatedText) {
+                        return
+                    }
+                    this.translationAvailable[key] = response.isTranslated
+                    if (response.isTranslated) {
+                        this.translations[key] = response.translatedText
+                    }
+                    applier.apply(response.translatedText)
+                })
+                .catch(error => {
+                    log.info('Translator.applyTranslation: urlFetcher.fetchJson failed!', { error })
+                })
+        }
+    }
+
+    private getKey(context: string, text: string): string
+    {
+        let key: string = context
         if (context.indexOf('.') < 0) {
-            if (text != undefined && text != null && text != '') {
-                key = context + '.' + text;
+            if (text.length) {
+                key = context + '.' + text
             }
         }
-        return key;
+        return key
     }
 
-    applyTranslation(applier: HtmlElementPartApplier, translatedText: string, isTranslated: boolean): void
-    {
-        applier.apply(translatedText);
-
-        if (isTranslated) {
-            var ontranslate: string = $(applier.elem).data('ontranslate');
-            if (ontranslate != null) {
-                var sepIndex = ontranslate.indexOf(':');
-                var what = ontranslate.substr(0, sepIndex);
-                var detail = ontranslate.substr(sepIndex + 1);
-
-                switch (what) {
-                    case 'show':
-                        var selector = detail;
-                        $(selector).removeClass('n3q-dim');//$(selector).toggle(true);
-                        break;
-
-                    case 'eval':
-                        var code = detail;
-                        eval(code);
-                        break;
-
-                }
-            }
-        }
-    }
 }

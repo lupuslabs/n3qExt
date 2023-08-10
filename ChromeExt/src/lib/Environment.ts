@@ -34,13 +34,6 @@ export class Environment
 
     static isExtension(): boolean
     {
-        if (typeof chrome !== 'undefined') {
-            if (typeof chrome.runtime !== 'undefined') {
-                if (typeof chrome.runtime.onMessage !== 'undefined') {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return !!(chrome.runtime?.onMessage);
     }
 }

@@ -6,7 +6,13 @@ import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { AppWithDom } from '../lib/App'
 import { ErrorWithData, Utils } from '../lib/Utils';
-import { BackgroundMessage, TabRoomPresenceData, TabStats } from '../lib/BackgroundMessage';
+import {
+    BackgroundErrorResponse,
+    BackgroundMessage,
+    BackgroundRequest, BackgroundResponse,
+    TabRoomPresenceData,
+    TabStats
+} from '../lib/BackgroundMessage';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -30,7 +36,6 @@ import { RandomNames } from '../lib/RandomNames';
 import { Participant } from './Participant';
 import { SimpleItemTransferController } from './SimpleItemTransferController';
 import { ItemException } from '../lib/ItemException';
-import { prepareValueForLog } from '../lib/debugUtils';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
@@ -40,6 +45,8 @@ import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
 import { ChatUtils } from '../lib/ChatUtils';
 import { ViewportEventDispatcher } from '../lib/ViewportEventDispatcher'
+import { ContentToBackgroundCommunicator, ContentRequestHandler } from '../lib/ContentToBackgroundCommunicator'
+import { BackgroundMessageUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
 
 interface ILocationMapperResponse
 {
@@ -70,6 +77,8 @@ export type ContentAppParams = {
 
 export class ContentApp extends AppWithDom
 {
+    private readonly backgroundCommunicator: ContentToBackgroundCommunicator;
+    private readonly urlFetcher: UrlFetcher;
     private isStopped: boolean = false;
     private debugUtils: DebugUtils;
     private shadowDomRoot: ShadowRoot;
@@ -78,7 +87,7 @@ export class ContentApp extends AppWithDom
     private isGuiEnabled: boolean = false;
     private pageUrl: string;
     private presetPageUrl: string;
-    private roomJid: string;
+    private roomJid: string = '';
     private room: Room|null;
     private propertyStorage: PropertyStorage = new PropertyStorage();
     private language = 'en-US';
@@ -89,7 +98,6 @@ export class ContentApp extends AppWithDom
     private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
-    private onRuntimeMessageClosure: (message: any, sender: any, sendResponse: any) => any;
     private iframeApi: IframeApi;
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
@@ -131,68 +139,18 @@ export class ContentApp extends AppWithDom
         return this.simpleItemTransferController;
     }
 
-    constructor(protected appendToMe: HTMLElement, private messageHandler: ContentAppNotificationCallback)
-    {
+    constructor(
+        protected appendToMe: HTMLElement,
+        private messageHandler: ContentAppNotificationCallback,
+        contentCommunicatorFactory: (requestHandler: ContentRequestHandler) => ContentToBackgroundCommunicator,
+    ) {
         super();
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
-    }
-
-    activateBackgroundPageProbeDelaySec = 0;
-    getActivateBackgroundPageProbeDelay()
-    {
-        if (this.activateBackgroundPageProbeDelaySec <= 0) {
-            this.activateBackgroundPageProbeDelaySec = Config.get('system.activateBackgroundPageProbeDelayMinSec', 0.1);
-        } else {
-            this.activateBackgroundPageProbeDelaySec *= Config.get('system.activateBackgroundPageProbeDelayFactor', 2);
-            const max = Config.get('system.activateBackgroundPageProbeDelayMaxSec', 10);
-            if (this.activateBackgroundPageProbeDelaySec > max) {
-                this.activateBackgroundPageProbeDelaySec = max;
-            }
-        }
-        return this.activateBackgroundPageProbeDelaySec;
-    }
-    async activateBackgroundPage(): Promise<void>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            const probeStartTime = Date.now() / 1000;
-            let awake = false;
-            while (!awake) {
-                if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'probing'); }
-                try {
-                    awake = await BackgroundMessage.wakeup();
-                } catch (error) {
-                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'unreachable'); }
-                }
-                if (!awake) {
-                    const now = Date.now() / 1000;
-                    const since = now - probeStartTime;
-                    if (since > Config.get('system.activateBackgroundPageProbeTotalSec', 60)) {
-                        break;
-                    } else {
-
-                        const delay = this.getActivateBackgroundPageProbeDelay();
-                        if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'sleeping', delay); }
-                        await Utils.sleep(delay * 1000);
-                    }
-                } else {
-                    if (Utils.logChannel('startup', false)) { log.info('ContentApp.getActiveBackgroundPage', 'available'); }
-                }
-            }
-            if (awake) {
-                resolve();
-            } else {
-                reject({ message: 'BackgroundApp seems unreachable, giving up' });
-            }
-        });
-
-        // WFT: chrome.runtime.getBackgroundPage is not a function
-        // return new Promise(resolve =>
-        // {
-        //     chrome.runtime.getBackgroundPage(resolve);
-        // });
+        const requestHandler = request => this.onBackgroundRequest(request)
+        this.backgroundCommunicator = contentCommunicatorFactory(requestHandler);
+        this.urlFetcher = new BackgroundMessageUrlFetcher()
     }
 
     async start(params: ContentAppParams)
@@ -202,11 +160,13 @@ export class ContentApp extends AppWithDom
         if (params && params.pageUrl) { this.presetPageUrl = params.pageUrl; }
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
 
+        this.backgroundCommunicator.start()
+        BackgroundMessage.backgroundCommunicator = this.backgroundCommunicator;
+
         try {
-            // await this.activateBackgroundPage();
             await BackgroundMessage.waitReady();
         } catch (error) {
-            log.debug(error.message);
+            log.debug(error);
             Panic.now();
         }
         if (Panic.isOn) { return; }
@@ -259,9 +219,10 @@ export class ContentApp extends AppWithDom
 
         this.language = Client.getUserLanguage()
         const translationTable = Config.get('i18n.translations', {})[this.language];
-        this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''));
+        const serviceUrl = Config.get('i18n.serviceUrl', '')
+        this.babelfish = new Translator(translationTable, this.language, serviceUrl, this.urlFetcher);
 
-        this.vpi = new VpiResolver(BackgroundMessage, Config);
+        this.vpi = new VpiResolver(this.urlFetcher, Config);
         this.vpi.language = Translator.getShortLanguageCode(this.language);
 
         this.avatarGallery = new AvatarGallery();
@@ -277,17 +238,13 @@ export class ContentApp extends AppWithDom
 
         await this.initDisplay(params);
 
-        if (Environment.isExtension()) {
-            this.onRuntimeMessageClosure = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => this.onRuntimeMessage(message, sender, sendResponse);
-            chrome.runtime.onMessage.addListener(this.onRuntimeMessageClosure);
-        }
         BackgroundMessage.signalContentAppStartToBackground().catch(error => this.onError(error));
 
         // this.enterPage();
         await this.checkPageUrlChanged();
 
         this.evaluateStayOnTabChange();
-        if (this.roomJid != '') {
+        if (this.roomJid !== '') {
             // this.stayHereIsChecked = await Memory.getLocal(Utils.localStorageKey_StayOnTabChange(this.roomJid), false);
             this.backpackIsOpen = await Memory.getLocal(Utils.localStorageKey_BackpackIsOpen(this.roomJid), false);
             this.chatIsOpen = await Memory.getLocal(Utils.localStorageKey_ChatIsOpen(this.roomJid), false);
@@ -299,7 +256,6 @@ export class ContentApp extends AppWithDom
         }
 
         this.startCheckPageUrl();
-        this.pingBackgroundToKeepConnectionAlive();
         this.iframeApi = new IframeApi(this).start();
 
         this.debugUtils.onAppStartComplete();
@@ -337,7 +293,10 @@ export class ContentApp extends AppWithDom
 
     private async isPageDisabledByBackgroundCheck(pageUrl: string): Promise<boolean>
     {
-        const isDisabled = await BackgroundMessage.isTabDisabled(pageUrl);
+        const isDisabled = await BackgroundMessage.isTabDisabled(pageUrl).catch(errorResponse => {
+            this.onError(errorResponse);
+            return true;
+        });
         return isDisabled;
     }
 
@@ -380,11 +339,11 @@ export class ContentApp extends AppWithDom
         this.statusToPageSender.sendClientInactive();
         this.viewportEventDispatcher.stop();
         this.iframeApi?.stop();
-        this.stop_pingBackgroundToKeepConnectionAlive();
         this.stopCheckPageUrl();
         this.leavePage();
         this.onUnload();
         BackgroundMessage.signalContentAppStopToBackground().catch(error => this.onError(error));
+        this.backgroundCommunicator.stop()
     }
 
     onUnload()
@@ -392,12 +351,6 @@ export class ContentApp extends AppWithDom
         if (this.room) {
             this.room.onUnload();
             this.room = null;
-        }
-
-        try {
-            chrome.runtime?.onMessage.removeListener(this.onRuntimeMessageClosure);
-        } catch (error) {
-            //
         }
 
         // Remove our own top element
@@ -646,109 +599,80 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    // Backgound pages dont allow timers
-    // and alerts were unreliable on first test.
-    // So, let the content script call the background
-    private pingBackgroundToKeepConnectionAliveSec: number = as.Float(Config.get('xmpp.pingBackgroundToKeepConnectionAliveSec'), 180);
-    private pingBackgroundToKeepConnectionAliveTimer: number = undefined;
-    private pingBackgroundToKeepConnectionAlive()
-    {
-        if (this.pingBackgroundToKeepConnectionAliveTimer === undefined) {
-            this.pingBackgroundToKeepConnectionAliveTimer = window.setTimeout(async () =>
-            {
-                try {
-                    await BackgroundMessage.pingBackground();
-                } catch (error) {
-                    //
-                }
-
-                this.pingBackgroundToKeepConnectionAliveTimer = undefined;
-                this.pingBackgroundToKeepConnectionAlive();
-            }, this.pingBackgroundToKeepConnectionAliveSec * 1000);
-        }
-    }
-
-    private stop_pingBackgroundToKeepConnectionAlive()
-    {
-        if (this.pingBackgroundToKeepConnectionAliveTimer !== undefined) {
-            clearTimeout(this.pingBackgroundToKeepConnectionAliveTimer);
-            this.pingBackgroundToKeepConnectionAliveTimer = undefined;
-        }
-    }
-
     // IPC
 
-    onDirectRuntimeMessage(message: any)
-    {
-        this.onSimpleRuntimeMessage(message);
-    }
+    private async onBackgroundRequest(message: BackgroundRequest): Promise<BackgroundResponse> {
+        try {
+            switch (message.type) {
 
-    private onRuntimeMessage(message, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void): any
-    {
-        this.onSimpleRuntimeMessage(message);
-    }
+                case ContentMessage.type_sendStateToBackground: {
+                    this.handle_sendStateToBackground();
+                } break;
 
-    private onSimpleRuntimeMessage(message): boolean
-    {
-        switch (message.type) {
-            case ContentMessage.type_recvStanza: {
-                this.handle_recvStanza(message.stanza);
-            } break;
+                case ContentMessage.type_recvStanza: {
+                    this.handle_recvStanza(message.stanza);
+                } break;
 
-            case ContentMessage.type_xmppIo: {
-                if (this.xmppWindow) {
-                    const label = message.direction === 'in' ? '_IN_' : 'OUT';
-                    const stanza: ltx.Element = Utils.jsObject2xmlObject(message.stanza);
-                    const stanzaText = stanza.toString();
-                    this.xmppWindow.showLine(label, stanzaText);
-                }
-            } break;
+                case ContentMessage.type_xmppIo: {
+                    if (this.xmppWindow) {
+                        const label = message.direction === 'in' ? '_IN_' : 'OUT';
+                        const stanza: ltx.Element = Utils.jsObject2xmlObject(message.stanza);
+                        const stanzaText = stanza.toString();
+                        this.xmppWindow.showLine(label, stanzaText);
+                    }
+                } break;
 
-            case ContentMessage.type_userSettingsChanged: {
-                this.handle_userSettingsChanged();
-            } break;
+                case ContentMessage.type_userSettingsChanged: {
+                    this.handle_userSettingsChanged();
+                } break;
 
-            case ContentMessage.type_clientNotification: {
-                this.handle_clientNotification(message.data);
-            } break;
+                case ContentMessage.type_clientNotification: {
+                    this.handle_clientNotification(message.data);
+                } break;
 
-            case ContentMessage.type_extensionActiveChanged: {
-                this.handle_extensionActiveChanged(message.data.state);
-            } break;
+                case ContentMessage.type_extensionActiveChanged: {
+                    this.handle_extensionActiveChanged(message.data.state);
+                } break;
 
-            case ContentMessage.type_extensionIsGuiEnabledChanged: {
-                this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
-            } break;
+                case ContentMessage.type_extensionIsGuiEnabledChanged: {
+                    this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
+                } break;
 
-            case ContentMessage.type_onBackpackShowItem: {
-                const properties = message.data.properties;
-                this.backpackWindow?.onShowItem(message.data.id, properties);
-                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackShowItem(properties);
-                return false;
-            } break;
-            case ContentMessage.type_onBackpackSetItem: {
-                const properties = message.data.properties;
-                this.backpackWindow?.onSetItem(message.data.id, properties);
-                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackSetItem(properties);
-                return false;
-            } break;
-            case ContentMessage.type_onBackpackHideItem: {
-                const properties = message.data.properties;
-                this.backpackWindow?.onHideItem(message.data.id);
-                this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackHideItem(properties);
-                return false;
-            } break;
+                case ContentMessage.type_onBackpackShowItem: {
+                    const properties = message.data.properties;
+                    this.backpackWindow?.onShowItem(message.data.id, properties);
+                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackShowItem(properties);
+                } break;
+                case ContentMessage.type_onBackpackSetItem: {
+                    const properties = message.data.properties;
+                    this.backpackWindow?.onSetItem(message.data.id, properties);
+                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackSetItem(properties);
+                } break;
+                case ContentMessage.type_onBackpackHideItem: {
+                    const properties = message.data.properties;
+                    this.backpackWindow?.onHideItem(message.data.id);
+                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackHideItem(properties);
+                } break;
 
-            case ContentMessage.type_chatMessagePersisted: {
-                this.getRoom()?.onChatMessagePersisted(message.data.chatChannel, message.data.chatMessage);
-                return false;
-            } break;
-            case ContentMessage.type_chatHistoryDeleted: {
-                this.getRoom()?.onChatHistoryDeleted(message.data.deletions);
-                return false;
-            } break;
+                case ContentMessage.type_chatMessagePersisted: {
+                    this.getRoom()?.onChatMessagePersisted(message.data.chatChannel, message.data.chatMessage);
+                } break;
+                case ContentMessage.type_chatHistoryDeleted: {
+                    this.getRoom()?.onChatHistoryDeleted(message.data.deletions);
+                } break;
+            }
+        } catch (error) {
+            this.onError(error)
+            return BackgroundErrorResponse.ofError(error);
         }
-        return true;
+        return { ok: true };
+    }
+
+    handle_sendStateToBackground(): void
+    {
+        this.room?.sendStateToBackground();
+        this.sendTabStatsToBackground();
+        BackgroundMessage.sendIsGuiEnabled(this.isGuiEnabled).catch(error => this.onError(error));
     }
 
     handle_recvStanza(jsStanza: unknown): void
@@ -768,7 +692,6 @@ export class ContentApp extends AppWithDom
 
     handle_userSettingsChanged(): any
     {
-        // this.messageHandler({ 'type': ContentAppNotification.type_restart });
         if (this.room) {
             this.room.onUserSettingsChanged();
         }
@@ -865,7 +788,7 @@ export class ContentApp extends AppWithDom
             const newRoomJid = mappingResult.roomJid;
             const newDestinationUrl = mappingResult.destinationUrl;
 
-            if (newRoomJid == this.roomJid) {
+            if (newRoomJid === this.roomJid) {
                 this.room.setPageUrl(pageUrl);
                 log.debug('ContentApp.checkPageUrlChanged', 'Same room', pageUrl, ' => ', this.roomJid);
                 return;
@@ -873,7 +796,7 @@ export class ContentApp extends AppWithDom
 
             this.leavePage();
 
-            if (newRoomJid != '') {
+            if (newRoomJid !== '') {
                 this.enterRoom(newRoomJid, pageUrl, newDestinationUrl);
                 if (Config.get('points.enabled', false)) {
                     BackgroundMessage.pointsActivity(Pid.PointsChannelNavigation, 1)
@@ -1048,7 +971,11 @@ export class ContentApp extends AppWithDom
 
     public onError(error: unknown): void
     {
-        log.info(error); // Log to info channel only so it doesn't appear on extensions page.
+        // Log to info channel only so it doesn't appear on extensions page.
+        // Logging error directly lets browser apply source maps to show actual files and lines in trace.
+        // Logging error as property of an anonymous object allows inspection of additional properties of error.
+        log.info(error, { error });
+
         if (ItemException.isInstance(error)) {
             const duration = as.Float(Config.get('room.errorToastDurationSec'));
             new ItemExceptionToast(this, duration, error).show();
@@ -1443,19 +1370,13 @@ export class ContentApp extends AppWithDom
         if (url.startsWith('data:')) {
             return url;
         }
-        let response;
         try {
-            response = await BackgroundMessage.fetchUrlAsDataUrl(url, '');
-        } catch (error) {
-            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, error }));
+            const data = await this.urlFetcher.fetchAsDataUrl(url, '');
+            return data;
+        } catch (errorResponse) {
+            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, errorResponse }));
             return url;
         }
-        const { ok, data } = response;
-        if (!ok || !is.string(data)) {
-            this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, response }));
-            return url;
-        }
-        return data;
     }
 
     public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {

@@ -176,10 +176,26 @@ export class Room
         }
     }
 
-    saveOwnPosition(posX: number): void
+    public sendStateToBackground(): void
     {
-        this.app.savePosition(posX).catch(error => log.info(error));
-        BackgroundMessage.sendRoomPos(this.jid, posX).catch(error => log.info(error));
+        this.sendOwnPositionToBackground().then(() => this.sendPresence());
+    }
+
+    public saveOwnPosition(posX: number): void
+    {
+        this.app.savePosition(posX)
+            .catch(error => log.info(error))
+            .then(() => this.sendOwnPositionToBackground());
+    }
+
+    private async sendOwnPositionToBackground(): Promise<void>
+    {
+        try {
+            const posX = await this.app.getSavedPosition()
+            await BackgroundMessage.sendRoomPos(this.jid, posX);
+        } catch (error) {
+            log.info(error);
+        }
     }
 
     public sendPresence(): void

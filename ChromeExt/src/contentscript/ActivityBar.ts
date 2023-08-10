@@ -47,7 +47,7 @@ export class ActivityBar implements IObserver
 
     updateObservableProperty(name: string, value: string): void
     {
-        if (name == 'Activities') {
+        if (name === 'Activities') {
             let activities = JSON.parse(value);
             // this.setActivities(activities);
         }
@@ -59,8 +59,10 @@ export class ActivityBar implements IObserver
 
         let activities = new ActivitySet();
         if (Utils.isBackpackEnabled()) {
+
+            // Todo: Catch and handle error:
             let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.PointsAspect]: 'true' });
-            let item = null;
+
             for (let id in propSet) {
                 let props = propSet[id];
                 for (let channel in activitiesConfig) {

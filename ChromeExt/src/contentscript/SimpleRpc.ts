@@ -1,13 +1,11 @@
-import log = require('loglevel');
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { Utils } from '../lib/Utils';
-import { parseJSON } from 'jquery';
 import { as } from '../lib/as';
+import { is } from '../lib/is'
 
 export class SimpleRpcResponse
 {
     constructor(public ok: boolean, public data: any, public message: string = null) { }
-    
+
     get(key: string, defaultValue: any): any
     {
         if (this.data[key]) {
@@ -27,21 +25,25 @@ export class SimpleRpc
     async send(url: string): Promise<SimpleRpcResponse>
     {
         this.params['method'] = this.rpcMethod;
+        let dataJson: string;
         try {
-            var response = await BackgroundMessage.jsonRpc(url, this.params);
-            if (response.ok) {
-                let data = JSON.parse(response.data);
-                if (data.status == 'ok') {
-                    return new SimpleRpcResponse(true, data)
-                } else {
-                    return new SimpleRpcResponse(false, {}, data.message);
-                }
-            } else {
-                return new SimpleRpcResponse(false, {}, as.String(response.status, 'no-status') + ': ' + as.String(response.statusText, 'no-status-text'));
-            }
-        } catch (error) {
-            return new SimpleRpcResponse(false, {}, JSON.stringify(error));
+            dataJson = await BackgroundMessage.jsonRpc(url, this.params);
+        } catch (errorResponse) {
+            return new SimpleRpcResponse(false, {}, as.String(errorResponse.status, 'no-status') + ': ' + as.String(errorResponse.statusText, 'no-status-text'));
         }
-        return new SimpleRpcResponse(false, {}, 'unknown error');
+        let dataParsed: unknown;
+        try {
+            dataParsed = JSON.parse(dataJson);
+        } catch (parseError) {
+            return new SimpleRpcResponse(false, {}, JSON.stringify(parseError));
+        }
+        if (!is.object(dataParsed)) {
+            return new SimpleRpcResponse(false, {}, 'Result isn\'t an object!');
+        }
+        if (dataParsed.status !== 'ok') {
+            const message = is.string(dataParsed.message) ? dataParsed.message : 'ok isn\'t true and message isn\'t a string!';
+            return new SimpleRpcResponse(false, {}, message);
+        }
+        return new SimpleRpcResponse(true, dataParsed);
     }
 }

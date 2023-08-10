@@ -3,7 +3,6 @@ import { is } from './is';
 import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
-import { ErrorWithDataBase } from './debugUtils';
 import * as crypto from 'crypto';
 
 export interface NumberFormatOptions extends Intl.NumberFormatOptions {
@@ -30,23 +29,25 @@ export type BoxEdges = {
 
 export type BoxEdgeMovements = Partial<BoxEdges>
 
-export class ErrorWithData extends ErrorWithDataBase
+export class ErrorWithData extends Error
 {
     constructor(msg: string, data?: {[p: string]: unknown}) {
-        super(msg, data);
+        super(msg);
+        Object.assign(this, data ?? {});
     }
 
     // Wraps an error into a new error with its own stacktrace and keeps item error user info by default:
-    static ofError(error: unknown, msg?: string, data?: object, copyUserMsg: boolean = true): ErrorWithData
+    static ofError(error: unknown, msg?: string, data?: object, copyUserMsg: boolean = true): Error
     {
         const msgNew = msg ?? (is.object(error) && is.string(error.message) ? error.message : 'Unknown error!');
-        const dataNew = {error: error, ...data ?? {}};
-        let errorNew: ErrorWithData;
+        let errorNew: Error;
         if (copyUserMsg && ItemException.isInstance(error)) {
-            errorNew = new ItemException(error.fact, error.reason, error.detail, msgNew, dataNew);
+            errorNew = new ItemException(error.fact, error.reason, error.detail, msgNew);
         } else {
-            errorNew = new ErrorWithData(msgNew, dataNew);
+            errorNew = new Error(msgNew);
         }
+        errorNew['error'] = error;
+        Object.assign(errorNew, data ?? {});
         return errorNew;
     }
 }
@@ -252,10 +253,10 @@ export class Utils
         }
         if (is.object(val)) {
             const mangled = {};
-            for (const prop of Object.getOwnPropertyNames(val)) {
+            for (const prop in val) {
                 const pVal = val[prop];
                 if (stack.includes(pVal)) {
-                    // Igniore because can't serialize circular references.
+                    // Ignore because can't serialize circular references.
                 } else {
                     const pValMangled = Utils.prepareValForMessage(pVal, [...stack, val]);
                     if (pValMangled !== undefined) {

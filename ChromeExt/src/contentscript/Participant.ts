@@ -7,7 +7,7 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
-import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { ItemProperties, ItemPropertiesSet, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemException } from '../lib/ItemException';
 import { ContentApp } from './ContentApp';
@@ -415,17 +415,21 @@ export class Participant extends Entity
             }
         }
 
-        if (isFirstPresence) {
-            if (this.isSelf) {
-                if (Utils.isBackpackEnabled()) {
-                    const propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.AutorezAspect]: 'true', [Pid.AutorezIsActive]: 'true' });
-                    for (const itemId in propSet) {
-                        const props = propSet[itemId];
-                        if (props[Pid.IsRezzed]) {
-                            await BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
-                        }
-                        await BackgroundMessage.rezBackpackItem(itemId, this.room.getJid(), as.Int(props[Pid.RezzedX], -1), this.room.getDestination(), {});
+        if (isFirstPresence && this.isSelf && Utils.isBackpackEnabled()) {
+            const propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.AutorezAspect]: 'true', [Pid.AutorezIsActive]: 'true' })
+                .catch((errorResponse) => {
+                    this.app.onError(errorResponse);
+                    return new ItemPropertiesSet();
+                });
+            for (const itemId in propSet) {
+                const props = propSet[itemId];
+                try {
+                    if (props[Pid.IsRezzed]) {
+                        await BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
                     }
+                    await BackgroundMessage.rezBackpackItem(itemId, this.room.getJid(), as.Int(props[Pid.RezzedX], -1), this.room.getDestination(), {});
+                } catch (errorResponse) {
+                    this.app.onError(errorResponse);
                 }
             }
         }
@@ -510,7 +514,7 @@ export class Participant extends Entity
         this.app.sendStanza(iq, stanzaId, (stanza) =>
         {
             const imageUrl = this.decodeVcardImage2DataUrl(stanza);
-            if (imageUrl && imageUrl != '') {
+            if (imageUrl && imageUrl !== '') {
                 avatarDisplay.updateObservableProperty('VCardImageUrl', imageUrl);
             }
         });
@@ -548,7 +552,7 @@ export class Participant extends Entity
 
     decodeVcardImage2DataUrl(stanza: ltx.Element): string
     {
-        let url: string;
+        let url: string = '';
 
         const vCardNode = stanza.getChildren('vCard').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vcard-temp');
         if (vCardNode) {
@@ -560,9 +564,9 @@ export class Participant extends Entity
                 const typeNodes = photoNode.getChildren('TYPE');
                 const typeNode = typeNodes[0];
                 if (binvalNode && typeNode) {
-                    let data = binvalNode.text();
-                    const type = typeNode.text();
-                    if (data && data != '' && type && type != '') {
+                    let data = binvalNode.text() ?? '';
+                    const type = typeNode.text() ?? '';
+                    if (data && data !== '' && type && type !== '') {
                         data = data.replace(/(\r\n|\n|\r)/gm, '').replace(/ /g, '');
                         url = 'data:' + type + ';base64,' + data;
                     }
@@ -629,7 +633,7 @@ export class Participant extends Entity
         try {
             const pokeType = node.attrs.type;
             let iconType = 'greeting';
-            if (pokeType == 'bye') { iconType = 'bye'; }
+            if (pokeType === 'bye') { iconType = 'bye'; }
             const toast = new SimpleToast(this.app, 'poke-' + pokeType + '-' + this.getUserId(), as.Float(Config.get('room.pokeToastDurationSec_' + pokeType) ?? Config.get('room.pokeToastDurationSec'), 10), iconType, this.getDisplayName(), pokeType + 's');
             toast.actionButton(pokeType + ' back', () =>
             {
@@ -724,11 +728,11 @@ export class Participant extends Entity
         let id = null;
         const bodyNode = stanza.getChild('body');
         if (bodyNode) {
-            text = bodyNode.getText();
+            text = bodyNode.getText() ?? '';
             id = bodyNode.attrs['id'];
         }
 
-        if (text == '') { return; }
+        if (text === '') { return; }
 
         if (timestamp === 0) {
             timestamp = now;
@@ -1063,8 +1067,8 @@ export class Participant extends Entity
     {
         const roomJid = jid(this.room.getJid());
 
-        let vidconfSecret = await Memory.getLocal('client.vidconfSecret', '');
-        if (vidconfSecret == '') {
+        let vidconfSecret = as.String(await Memory.getLocal('client.vidconfSecret', ''));
+        if (vidconfSecret === '') {
             vidconfSecret = Utils.randomString(10);
             await Memory.setLocal('client.vidconfSecret', vidconfSecret);
         }

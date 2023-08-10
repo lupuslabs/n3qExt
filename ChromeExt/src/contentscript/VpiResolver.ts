@@ -3,16 +3,16 @@ import log = require('loglevel');
 import * as crypto from 'crypto';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { BackgroundMessage, FetchUrlResponse } from '../lib/BackgroundMessage';
 import { Utils } from '../lib/Utils';
+import { UrlAsTextFetcher } from '../lib/UrlFetcher'
 
 export class VpiMappingResult
 {
     constructor(
         public isValid: boolean,
         public roomJid: string,
-        public destinationUrl: string    
-    ) {}        
+        public destinationUrl: string
+    ) {}
 }
 
 export enum VpiResolverEvaluateResultType
@@ -29,11 +29,6 @@ export class VpiResolverEvaluateResult
         public location: string,
         public destination: string
     ) { }
-}
-
-export interface VpiResolverUrlFetcher
-{
-    fetchUrl(url: string, version: string): Promise<FetchUrlResponse>;
 }
 
 export interface VpiResolverConfigProvider
@@ -54,7 +49,7 @@ export class VpiResolver
     language: string = '';
     trace: (key: string, value: string) => void = () => { };
 
-    constructor(private urlFetcher: VpiResolverUrlFetcher, private config: VpiResolverConfigProvider = new VpiResolverConfigInstance())
+    constructor(private urlFetcher: UrlAsTextFetcher, private config: VpiResolverConfigProvider = new VpiResolverConfigInstance())
     {
     }
 
@@ -68,44 +63,49 @@ export class VpiResolver
 
         do {
             iterationCounter--;
-            let response = await this.urlFetcher.fetchUrl(vpiUrl, '');
-            if (response.ok) {
-                let result = this.evaluate(documentUrl, vpiUrl, response.data, this.language);
-                switch (result.status) {
-
-                    case VpiResolverEvaluateResultType.Error: {
-                        this.trace(VpiResolverEvaluateResultType[result.error], '');
-                        log.debug('VpiResolver', result.error);
-                    } break;
-
-                    case VpiResolverEvaluateResultType.Delegate: {
-                        this.trace(VpiResolverEvaluateResultType[result.status], result.delegate);
-                        if (Utils.logChannel('urlMapping', false)) {
-                            log.debug('VpiResolver', result.status, result.delegate);
-                        }
-                        vpiUrl = result.delegate;
-                    } break;
-
-                    case VpiResolverEvaluateResultType.Location: {
-                        this.trace(VpiResolverEvaluateResultType[result.status], result.location);
-                        if (Utils.logChannel('urlMapping', false)) {
-                            log.debug('VpiResolver', result.status, result.location);
-                        }
-                        locationUrl = result.location;
-                        destinationUrl = result.destination;
-                    } break;
-
-                    case VpiResolverEvaluateResultType.Ignore: {
-                        this.trace(VpiResolverEvaluateResultType[result.status], '');
-                        if (Utils.logChannel('urlMapping', false)) {
-                            log.debug('VpiResolver', result.status);
-                        }
-                        return new VpiMappingResult(false, '', '');
-                    } break;
-
-                }
+            let data: string;
+            try {
+                data = await this.urlFetcher.fetchAsText(vpiUrl, '');
+            } catch (errorResponse) {
+                // Ignore error.
+                continue;
             }
-        } while (locationUrl == '' && iterationCounter > 0);
+
+            let result = this.evaluate(documentUrl, vpiUrl, data, this.language);
+            switch (result.status) {
+
+                case VpiResolverEvaluateResultType.Error: {
+                    this.trace(VpiResolverEvaluateResultType[result.error], '');
+                    log.debug('VpiResolver', result.error);
+                } break;
+
+                case VpiResolverEvaluateResultType.Delegate: {
+                    this.trace(VpiResolverEvaluateResultType[result.status], result.delegate);
+                    if (Utils.logChannel('urlMapping', false)) {
+                        log.debug('VpiResolver', result.status, result.delegate);
+                    }
+                    vpiUrl = result.delegate;
+                } break;
+
+                case VpiResolverEvaluateResultType.Location: {
+                    this.trace(VpiResolverEvaluateResultType[result.status], result.location);
+                    if (Utils.logChannel('urlMapping', false)) {
+                        log.debug('VpiResolver', result.status, result.location);
+                    }
+                    locationUrl = result.location;
+                    destinationUrl = result.destination;
+                } break;
+
+                case VpiResolverEvaluateResultType.Ignore: {
+                    this.trace(VpiResolverEvaluateResultType[result.status], '');
+                    if (Utils.logChannel('urlMapping', false)) {
+                        log.debug('VpiResolver', result.status);
+                    }
+                    return new VpiMappingResult(false, '', '');
+                } break;
+
+            }
+        } while (locationUrl === '' && iterationCounter > 0);
 
         const url = new URL(locationUrl);
         const roomJid = url.pathname;
@@ -144,7 +144,7 @@ export class VpiResolver
                 }
 
                 if (matchResult) {
-                    if (vpiChild.tagName == 'delegate') {
+                    if (vpiChild.tagName === 'delegate') {
 
                         let nextVpiExpr = as.String(vpiChild.firstElementChild?.textContent, '');
                         let nextVpi = this.replaceMatch(nextVpiExpr, matchResult);
@@ -154,7 +154,7 @@ export class VpiResolver
                         resultType = VpiResolverEvaluateResultType.Delegate;
                         break;
 
-                    } else if (vpiChild.tagName == 'location') {
+                    } else if (vpiChild.tagName === 'location') {
 
                         logData['regex'] = matchExpr;
                         this.trace('match', matchExpr);
@@ -179,13 +179,13 @@ export class VpiResolver
                                         this.trace('server', server);
                                     } break;
 
-                                    case 'name': // The same: '<name hash="true">\5</name>' | '<name hash="SHA1">\5</name>' BUT: '<name>\5</name>' does not hash
+                                case 'name': // The same: '<name hash="true">\5</name>' | '<name hash="SHA1">\5</name>' BUT: '<name>\5</name>' does not hash
                                     {
                                         let hash = locationChild.attributes.hash ? as.String(locationChild.attributes.hash.value, 'SHA1') : '';
-                                        if (hash == 'true') { hash = 'SHA1'; }
+                                        if (hash === 'true') { hash = 'SHA1'; }
 
                                         let prefix = locationChild.attributes.prefix ? as.String(locationChild.attributes.prefix.value, '') : '';
-                                        if (prefix != '') { this.trace('prefix', prefix); }
+                                        if (prefix !== '') { this.trace('prefix', prefix); }
 
                                         let nameExpr = locationChild.textContent;
                                         this.trace('replace', nameExpr);
@@ -195,7 +195,7 @@ export class VpiResolver
                                         logData['replace'] = nameExpr;
                                         logData['name'] = name;
 
-                                        if (as.String(hash, '') != '') {
+                                        if (as.String(hash, '') !== '') {
                                             let hasher = crypto.createHash(hash.toLowerCase());
                                             hasher.update(name);
                                             name = hasher.digest('hex');
@@ -204,7 +204,7 @@ export class VpiResolver
                                         room = prefix + name;
                                     } break;
 
-                                    case 'destination': // <destination>\2</destination>
+                                case 'destination': // <destination>\2</destination>
                                     {
                                         let destinationExpr = locationChild.textContent;
                                         destination = this.replaceMatch(destinationExpr, matchResult);
@@ -223,7 +223,7 @@ export class VpiResolver
                                                     {
                                                         let suffix = selectChild.attributes.suffix ? as.String(selectChild.attributes.suffix.value, '') : '';
                                                         let tag = as.String(selectChild.firstElementChild?.textContent, '');
-                                                        if (tag != '' && suffix != '') {
+                                                        if (tag !== '' && suffix !== '') {
                                                             options.push({ 'tag': tag, 'suffix': suffix });
                                                         }
                                                     } break;
@@ -233,9 +233,9 @@ export class VpiResolver
 
                                         let langTag = 'lang:' + language;
                                         this.trace('language', langTag);
-                                        let candidates = options.filter(option => { return option.tag == langTag; });
-                                        if (candidates.length == 0) {
-                                            candidates = options.filter(option => { return option.tag == defaultTag; });
+                                        let candidates = options.filter(option => { return option.tag === langTag; });
+                                        if (candidates.length === 0) {
+                                            candidates = options.filter(option => { return option.tag === defaultTag; });
                                         }
                                         if (candidates.length > 0) {
                                             let rndIndex = Utils.randomInt(0, candidates.length);
@@ -271,7 +271,7 @@ export class VpiResolver
         let replaced = '';
 
         for (let charIndex = 0; charIndex < replaceExpression.length;) {
-            if (replaceExpression[charIndex] == '\\') {
+            if (replaceExpression[charIndex] === '\\') {
                 charIndex++;
                 let numberStr = '';
                 while (replaceExpression[charIndex] >= '0' && replaceExpression[charIndex] <= '9' && charIndex < replaceExpression.length) {

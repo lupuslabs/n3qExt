@@ -202,8 +202,8 @@ export class Avatar implements IObserver
     static getEntityIdByAvatarElem(elem: HTMLElement): string
     {
         if (elem) {
-            const nick = $(elem).data('nick');
-            if (nick) { if (nick != '') { return nick; } }
+            const nick = $(elem).data('nick') ?? '';
+            if (nick) { if (nick !== '') { return nick; } }
 
             const avatarElem = elem.parentElement;
             if (avatarElem) {
@@ -257,46 +257,39 @@ export class Avatar implements IObserver
                 }
             } break;
             case 'AnimationsUrl': {
-                if (value == '') {
-                    this.setAnimations(value);
+                if (value === '') {
+                    this.setAnimations(value).catch(error => log.info(error));
                 } else {
                     // let defaultSize = Config.get('room.defaultAnimationSize', 100);
                     // this.setSize(defaultSize, defaultSize);
-                    this.setAnimations(value);
+                    this.setAnimations(value).catch(error => log.info(error));
                 }
             } break;
         }
     }
 
-    async getDataUrlImage(imageUrl: string): Promise<string>
+    private async getDataUrlImage(imageUrl: string): Promise<string>
     {
         const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
-        return new Promise(async (resolve, reject) =>
-        {
-            try {
-                const response = await BackgroundMessage.fetchUrl(proxiedUrl, '');
-                if (response.ok) {
-                    resolve(response.data);
-                }
-            } catch (error) {
-                reject(error);
-            }
-        });
+        try {
+            const data = await BackgroundMessage.fetchUrlAsText(proxiedUrl, '');
+            return data;
+        } catch (errorResponse) {
+            throw errorResponse;
+        }
     }
 
     setImage(url: string): void
     {
         if (url.startsWith('data:')) {
-            $(this.imageElem).attr('src', url);
+            this.imageElem.setAttribute('src', url);
         } else {
-            try {
-                this.getDataUrlImage(url).then(dataUrlImage =>
-                {
-                    $(this.imageElem).attr('src', dataUrlImage);
+            this.getDataUrlImage(url)
+                .then(dataUrlImage => {
+                    this.imageElem.setAttribute('src', dataUrlImage);
+                }).catch (error => {
+                    this.imageElem.setAttribute('src', url);
                 });
-            } catch (error) {
-                $(this.imageElem).attr('src', url);
-            }
         }
     }
 
@@ -307,7 +300,7 @@ export class Avatar implements IObserver
 
     setCondition(condition: string): void
     {
-        if (this.currentCondition != condition) {
+        if (this.currentCondition !== condition) {
             this.currentCondition = condition;
             this.startNextAnimation();
         }
@@ -315,7 +308,7 @@ export class Avatar implements IObserver
 
     setState(state: string): void
     {
-        if (this.currentState != state) {
+        if (this.currentState !== state) {
             this.currentState = state;
             this.startNextAnimation();
         }
@@ -323,7 +316,7 @@ export class Avatar implements IObserver
 
     setActivity(activity: string): void
     {
-        if (this.currentActivity != activity) {
+        if (this.currentActivity !== activity) {
             this.currentActivity = activity;
             this.startNextAnimation();
         }
@@ -331,7 +324,7 @@ export class Avatar implements IObserver
 
     setAction(action: string): void
     {
-        if (this.currentAction != action) {
+        if (this.currentAction !== action) {
             this.currentAction = action;
             this.startNextAnimation();
         }
@@ -339,31 +332,29 @@ export class Avatar implements IObserver
 
     async setAnimations(url: string): Promise<void>
     {
-        if (url == '') {
+        if (url === '') {
             this.animations = null;
             this.hasAnimation = false;
-        } else {
-            const response = await BackgroundMessage.fetchUrl(url, '');
-            if (response.ok) {
-                try {
-
-                    const parsed = AnimationsXml.parseXml(url, response.data);
-                    this.setSize(parsed.params.width, parsed.params.height);
-
-                    this.animations = parsed;
-                    this.defaultGroup = this.getDefaultGroup();
-
-                    if (!this.hasAnimation) {
-                        this.startNextAnimation();
-                        this.hasAnimation = true;
-                    }
-
-                    this.entity.onAvatarAnimationsParsed(this.animations);
-                } catch (error) {
-                    log.info(error);
-                }
-            }
+            return;
         }
+        let data: string;
+        try {
+            data = await BackgroundMessage.fetchUrlAsText(url, '');
+        } catch (errorResponse) {
+            return; // Nothing to do if the URL couldn't be resolved.
+        }
+        const parsed = AnimationsXml.parseXml(url, data);
+        this.setSize(parsed.params.width, parsed.params.height);
+
+        this.animations = parsed;
+        this.defaultGroup = this.getDefaultGroup();
+
+        if (!this.hasAnimation) {
+            this.startNextAnimation();
+            this.hasAnimation = true;
+        }
+
+        this.entity.onAvatarAnimationsParsed(this.animations);
     }
 
     private moveCnt = 0;
@@ -372,10 +363,10 @@ export class Avatar implements IObserver
     {
         let group = this.currentAction;
         this.currentAction = '';
-        if (group == '') { group = this.currentCondition; }
-        if (group == '') { group = this.currentState; }
-        if (group == '') { group = this.currentActivity; }
-        if (group == '') { group = this.defaultGroup; }
+        if (group === '') { group = this.currentCondition; }
+        if (group === '') { group = this.currentState; }
+        if (group === '') { group = this.currentActivity; }
+        if (group === '') { group = this.defaultGroup; }
 
         let animation = this.getAnimationByGroup(group);
         if (!animation) {
@@ -411,7 +402,7 @@ export class Avatar implements IObserver
 
     hasSpeed(): boolean
     {
-        return this.speedPixelPerSec != 0;
+        return this.speedPixelPerSec !== 0;
     }
 
     getSpeedPixelPerSec(): Number
@@ -429,7 +420,7 @@ export class Avatar implements IObserver
         return this.animations;
     }
 
-    getAnimationByGroup(group: string): AvatarGetAnimationResult
+    getAnimationByGroup(group: string): null|AvatarGetAnimationResult
     {
         if (this.animations == null) { return null; }
 
@@ -438,7 +429,7 @@ export class Avatar implements IObserver
 
         for (const name in this.animations.sequences) {
             const animation = this.animations.sequences[name];
-            if (animation.group == group) {
+            if (animation.group === group) {
                 const nWeight = as.Int(animation.weight, 1);
                 nWeightSum += nWeight;
                 groupAnimations.push(new AvatarGetAnimationResult(animation.url, nWeight, as.Int(animation.dx), as.Int(animation.duration, 1000), as.Bool(animation.loop)));

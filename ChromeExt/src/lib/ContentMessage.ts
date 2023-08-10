@@ -1,7 +1,4 @@
-import log = require('loglevel');
 import { ItemProperties } from './ItemProperties';
-import { ContentApp } from '../contentscript/ContentApp';
-import { Utils } from './Utils'
 
 export class BackpackShowItemData
 {
@@ -26,6 +23,7 @@ export class BackpackRemoveItemData
 
 export class ContentMessage
 {
+    static readonly type_sendStateToBackground = 'sendStateToBackground';
     static readonly type_xmppIo = 'xmppIo';
     static readonly type_recvStanza = 'recvStanza';
     static readonly type_userSettingsChanged = 'userSettingsChanged';
@@ -37,16 +35,4 @@ export class ContentMessage
     static readonly type_clientNotification = 'clientNotification';
     static readonly type_chatMessagePersisted = 'chatMessagePersisted';
     static readonly type_chatHistoryDeleted = 'chatHistoryDeleted';
-
-    static content: ContentApp;
-
-    static sendMessage(tabId: number, message: any): void
-    {
-        message = Utils.prepareValForMessage(message);
-        if (ContentMessage.content) {
-            ContentMessage.content.onDirectRuntimeMessage(message);
-        } else {
-            chrome.tabs.sendMessage(tabId, message);
-        }
-    }
 }

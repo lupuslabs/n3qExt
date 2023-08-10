@@ -1,8 +1,11 @@
+import * as log from 'loglevel'
 import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
 import { Translator } from './Translator';
 import { _Changes } from './_Changes';
+import { Memory } from './Memory'
+import { Utils } from './Utils'
 
 export class Client
 {
@@ -38,4 +41,26 @@ export class Client
 
         return language;
     }
+
+    static async initDevConfig(): Promise<void>
+    {
+        try {
+            const devConfigJson = await Memory.getLocal(Utils.localStorageKey_CustomConfig(), '{}');
+            const devConfig = JSON.parse(devConfigJson);
+            Config.setDevTree(devConfig);
+        } catch (error) {
+            log.info('Dev config initialization failed!', error);
+        }
+    }
+
+    static initLog(): void
+    {
+        let debug = Environment.isDevelopment();
+        log.setLevel(log.levels.INFO);
+        if (debug) {
+            log.setLevel(log.levels.DEBUG);
+            // log.setLevel(log.levels.TRACE);
+        }
+    }
+
 }

@@ -7,7 +7,7 @@ import { Config } from '../lib/Config';
 import { PointsGenerator } from './PointsGenerator';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { Pid } from '../lib/ItemProperties';
+import { ItemPropertiesSet, Pid } from '../lib/ItemProperties';
 import { PointerEventData } from '../lib/PointerEventData';
 
 export class PointsBar implements IObserver
@@ -78,7 +78,11 @@ export class PointsBar implements IObserver
 
         if (Utils.isBackpackEnabled()) {
             let activitiesConfig = Config.get('points.activities', {});
-            let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.PointsAspect]: 'true' });
+            let propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.PointsAspect]: 'true' })
+                .catch(errorResponse => {
+                    this.app.onError(errorResponse);
+                    return new ItemPropertiesSet();
+                });
             for (let id in propSet) {
                 let props = propSet[id];
                 for (let channel in activitiesConfig) {

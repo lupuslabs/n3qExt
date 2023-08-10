@@ -13,7 +13,6 @@ import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
-import { RpcClient } from '../lib/RpcClient';
 import { is } from '../lib/is';
 
 export class Backpack
@@ -21,12 +20,8 @@ export class Backpack
     private items: { [id: string]: Item; } = {};
     private rooms: { [jid: string]: Array<string>; } = {};
     private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
-    private rpcClient: RpcClient = new RpcClient();
 
-    constructor(private app: BackgroundApp, rpcClient: RpcClient = null)
-    {
-        if (rpcClient) { this.rpcClient = rpcClient; }
-    }
+    constructor(private app: BackgroundApp) { }
 
     getUserId(): string { return this.app.getUserId(); }
     async getUserToken(): Promise<string> { return await this.app.getUserToken(); }

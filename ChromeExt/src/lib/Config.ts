@@ -37,10 +37,6 @@ export class Config
             itemServiceRpcUrl: 'http://localhost:5000/ItemApi',
         },
         system: {
-            activateBackgroundPageProbeDelayMinSec: 0.1,
-            activateBackgroundPageProbeDelayMaxSec: 8,
-            activateBackgroundPageProbeDelayFactor: 2,
-            activateBackgroundPageProbeTotalSec: 120,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
             windowContainerMarginTop: 3, // [px]
@@ -49,6 +45,12 @@ export class Config
             windowContainerMarginLeft: 3, // [px]
             sendTabStatsToBackgroundPageDelaySec: 0.1,
             tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
+            clientBackgroundWaitReadyChecksMax: 100, // Content gives up until next navigation after that many failed checks. This has to account for slow config and backpack retrieval.
+            clientBackgroundWaitReadyCheckIntervalSec: 1, // This also often is the minimum content start delay on first navigation when background isn't already running.
+            clientBackgroundKeepaliveMessageIntervalSec: 17, // Thirty seconds minus safety margin to keep background service worker alive.
+            clientBackgroundMessagePipeReopenIntervalSec: 241, // Five minutes minus safety margin to keep ports to background service worker alive.
+            clientBackgroundSendTimeoutSec: 10, // How long before giving up sending a message.
+            clientBackgroundResponseTimeoutSec: 600, // How long before giving up waiting for a response.
         },
         browserAction: {
             normalBadgeColor: '#DDDDDD',
@@ -62,6 +64,8 @@ export class Config
             startup: false,
             backgroundTraffic: false,
             backgroundPresenceManagement: false,
+            clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, discarding of messages caused by closure or timeouts.
+            clientBackgroundMessages: false, // All messages going to or coming from the background!
             room2tab: false,
             contentTraffic: false,
             rpcClient: false,
@@ -87,7 +91,7 @@ export class Config
             pointerDragStartDistance: 3.0,
             pointerDropTargetUpdateIntervalSec: 0.5,
 
-            // these are here to avoid them being affected by log.all:
+            // These are here to avoid them being affected by log.all:
             logIncommingPointer: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
             logIncommingMouse: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
             logOutgoingPointer: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.
@@ -212,7 +216,6 @@ export class Config
             service: 'wss://xmpp.vulcan.weblin.com/xmpp-websocket',
             domain: 'xmpp.vulcan.weblin.com',
             maxMucEnterRetries: 4,
-            pingBackgroundToKeepConnectionAliveSec: 12,
             deferUnavailableSec: 3.0,
             deferAwaySec: 0.2,
             deferAwailable: 0.05,
@@ -1244,7 +1247,7 @@ export class Config
     static setDevTree(tree: { [p: string]: unknown })
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
-            log.info('Config.setDevTree');
+            log.info('Config.setDevTree', { tree: {...tree} });
         }
         this.devConfig = tree;
     }
@@ -1252,7 +1255,7 @@ export class Config
     static setOnlineTree(tree: { [p: string]: unknown }): void
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
-            log.info('Config.setOnlineTree');
+            log.info('Config.setOnlineTree', { tree: {...tree} });
         }
         this.onlineConfig = tree;
     }

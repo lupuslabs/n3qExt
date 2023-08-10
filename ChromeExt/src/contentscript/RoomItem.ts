@@ -144,7 +144,11 @@ export class RoomItem extends Entity
         }
 
         if (isFirstPresence) {
-            this.myItem = await BackgroundMessage.isBackpackItem(this.getItemId());
+            this.myItem = await BackgroundMessage.isBackpackItem(this.getItemId())
+                .catch(ErrorResponse => {
+                    this.app.onError(ErrorResponse);
+                    return false;
+                });
         }
 
         if (this.myItem) {
@@ -182,7 +186,12 @@ export class RoomItem extends Entity
                         // The new item is a remote item
                         if (! await this.room.propsClaimYieldsToExistingClaim(props)) {
                             // The new item is better
-                            if (await BackgroundMessage.isBackpackItem(claimingRoomItem.getItemId())) {
+                            const claimingRoomItemIsOwn = await BackgroundMessage.isBackpackItem(claimingRoomItem.getItemId())
+                                .catch(errorResponse => {
+                                    this.app.onError(errorResponse);
+                                    return false;
+                                });
+                            if (claimingRoomItemIsOwn) {
                                 // The existing claim is mine
                                 this.app.derezItem(claimingRoomItem.getItemId());
                                 new SimpleToast(this.app, 'ClaimDerezzed', Config.get('room.claimToastDurationSec', 15), 'notice', this.app.translateText('Toast.Your claim has been removed'), 'A stronger item just appeared').show();
@@ -498,7 +507,11 @@ export class RoomItem extends Entity
 
         const itemId = this.getItemId();
         if (this.myItem) {
-            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+            const props = await BackgroundMessage.getBackpackItemProperties(itemId)
+                .catch(errorResponse => {
+                    this.app.onError(errorResponse);
+                    return new ItemProperties();
+                });
             if (as.Bool(props[Pid.IframeLive])) {
 
                 const itemData = {

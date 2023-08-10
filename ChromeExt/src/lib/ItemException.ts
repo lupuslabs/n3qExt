@@ -1,8 +1,7 @@
 import { as } from './as';
 import { is } from './is';
-import { ErrorWithDataBase } from './debugUtils';
 
-export class ItemException extends ErrorWithDataBase
+export class ItemException extends Error
 {
     public fact: ItemException.Fact;
     public reason: ItemException.Reason;
@@ -15,10 +14,11 @@ export class ItemException extends ErrorWithDataBase
         msg?: string,
         data?: {[p: string]: unknown},
     ) {
-        super(msg ?? 'Item error!', data);
+        super(msg ?? 'Item error!');
         this.fact = ItemException.factFrom(fact);
         this.reason = ItemException.reasonFrom(reason);
         this.detail = detail;
+        Object.assign(this, data ?? {});
     }
 
     static fact2String(fact: ItemException.Fact): string

@@ -9,6 +9,7 @@ import { TutorialWindow } from './TutorialWindow';
 import { AboutWindow } from './AboutWindow';
 import { VpiResolver } from './VpiResolver';
 import { as } from '../lib/as';
+import { BackgroundMessageUrlFetcher } from '../lib/UrlFetcher'
 
 export interface ChatConsoleOut { (data: any): void }
 
@@ -123,10 +124,11 @@ export class ChatConsole
                     ChatConsole.out(context, [itemId, context.room?.getItem(itemId).getDisplayName()]);
                 });
                 break;
-            case '/map':
-                const vpi = new VpiResolver(BackgroundMessage, Config);
+            case '/map': {
+                const urlFetcher = new BackgroundMessageUrlFetcher()
+                const vpi = new VpiResolver(urlFetcher, Config);
                 const language: string = Translator.mapLanguage(navigator.language, lang => { return Config.get('i18n.languageMapping', {})[lang]; }, as.String(Config.get('i18n.defaultLanguage'), 'en-US'));
-                const translator = new Translator(Config.get('i18n.translations', {})[language], language, as.String(Config.get('i18n.serviceUrl'), ''));
+                const translator = new Translator(Config.get('i18n.translations', {})[language], language, as.String(Config.get('i18n.serviceUrl'), ''), urlFetcher);
                 vpi.language = Translator.getShortLanguageCode(translator.getLanguage());
                 const lines = new Array<[string, string]>();
                 const url = parts[1];
@@ -142,7 +144,7 @@ export class ChatConsole
                     // ChatConsole.out(context, ['room', result.roomJid]);
                     // ChatConsole.out(context, ['destination', result.destinationUrl]);
                 });
-                break;
+            } break;
         }
     }
 

@@ -54,7 +54,7 @@ export class ChatHistoryStorage {
 
     public onUserConfigUpdate(): void
     {
-        //this.debugLogEnabled = Utils.logChannel('chatHistory', true);
+        this.debugLogEnabled = Utils.logChannel('chatHistory', true);
         const roompublicMaxAgeSecRaw = Config.get('chatHistory.roompublicMaxAgeSec');
         this.messageMaxAgeSecByType.set('roompublic', as.Float(roompublicMaxAgeSecRaw, 10e20));
         const roomprivateMaxAgeSecRaw = Config.get('chatHistory.roomprivateMaxAgeSec');

@@ -48,7 +48,7 @@ export namespace HostedInventoryItemProvider
     {
         public itemIds = new Set<string>();
         constructor(
-            public timer: number,
+            public timer: ReturnType<typeof setTimeout>,
             public inventoryId: string,
             public roomJid: string,
             public participantNick: string)
@@ -1036,7 +1036,7 @@ export namespace HostedInventoryItemProvider
                 let deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                 deferredRequest.itemIds.add(itemId);
             } else {
-                const timer = window.setTimeout(() =>
+                const timer = setTimeout(() =>
                 {
                     const deferredRequest = this.deferredItemPropertiesRequests.get(timerKey);
                     this.deferredItemPropertiesRequests.delete(timerKey);

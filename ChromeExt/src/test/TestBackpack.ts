@@ -5,6 +5,8 @@ import { Backpack } from '../background/Backpack';
 import { as } from '../lib/as';
 import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
+import { BackgroundHeartbeatHandler, BackgroundRequestHandler, BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
+import { BackgroundMessagePipe } from '../lib/BackgroundMessage'
 
 export class TestBackpack
 {
@@ -25,7 +27,13 @@ export class TestBackpack
                 enabledProviders: ['nine3q'],
             },
         });
-        let ba = new BackgroundApp();
+        const communicatorMaker = (heartbeatHandler: BackgroundHeartbeatHandler, requestHandler: BackgroundRequestHandler) => {
+            const messagePipeProvider = {
+                addOnMessagePipeConnectHandler: (onConnectHandler: (messagePipe: BackgroundMessagePipe) => void): void => { },
+            }
+            return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, requestHandler)
+        }
+        let ba = new BackgroundApp(communicatorMaker);
         ba.assertThatThereIsAUserId();
         let rep = new Backpack(ba);
         await rep.init();

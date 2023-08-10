@@ -17,7 +17,7 @@ export class IframeApi
 {
     private messageHandler: (ev: any) => any;
 
-    constructor(protected app: ContentApp) 
+    constructor(protected app: ContentApp)
     {
     }
 
@@ -34,7 +34,7 @@ export class IframeApi
         try {
             window.removeEventListener('message', this.messageHandler)
         } catch (error) {
-            //            
+            //
         }
 
         return this;
@@ -787,10 +787,10 @@ export class IframeApi
         }
     }
 
-    handle_ClientNotificationRequest(request: WeblinClientApi.ClientNotificationRequest): WeblinClientApi.Response
+    async handle_ClientNotificationRequest(request: WeblinClientApi.ClientNotificationRequest): Promise<WeblinClientApi.Response>
     {
         try {
-            BackgroundMessage.clientNotification(as.String(request.target, 'notCurrentTab'), request);
+            await BackgroundMessage.clientNotification(as.String(request.target, 'notCurrentTab'), request);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_ClientNotificationRequest', ex);

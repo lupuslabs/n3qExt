@@ -19,9 +19,11 @@ export class LegacyIdentity
             this.url = url;
             this.digest = digest;
 
-            let response = await BackgroundMessage.fetchUrl(url, digest);
-            if (response.ok) {
-                this.evaluate(response.data);
+            try {
+                let data = await BackgroundMessage.fetchUrlAsText(url, digest);
+                this.evaluate(data);
+            } catch (errorResponse) {
+                // Error ignored.
             }
         }
     }

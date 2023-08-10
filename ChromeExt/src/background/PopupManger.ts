@@ -60,7 +60,7 @@ export class PopupManager
         }
         let popupInfo = this.popupInfos.get(popupId)
         if (popupInfo) {
-            chrome.windows.remove(popupInfo.windowId);
+            chrome.windows.remove(popupInfo.windowId).catch(error => log.info(error))
         }
     }
 
@@ -76,7 +76,7 @@ export class PopupManager
 
     private focusPopup(popupInfo: PopupInfo): void
     {
-        chrome.windows.update(popupInfo.windowId, { focused: true })
+        chrome.windows.update(popupInfo.windowId, { focused: true }).catch(error => log.info(error))
     }
 
     private openPopup(popupDefinition: PopupDefinition): void

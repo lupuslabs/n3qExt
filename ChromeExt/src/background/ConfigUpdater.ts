@@ -1,5 +1,4 @@
 import log = require('loglevel');
-import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -10,74 +9,70 @@ interface ConfigUpdaterCallabck { (): void }
 
 export class ConfigUpdater
 {
-    private gotConfig = false;
+    private app: BackgroundApp;
 
-    constructor(private app: BackgroundApp)
+    private updateCheckTimer: null|ReturnType<typeof setTimeout> = null;
+    private lastUpdateTimeMs: number = 0;
+    private onUpdate: ConfigUpdaterCallabck;
+
+    public constructor(app: BackgroundApp)
     {
+        this.app = app;
     }
 
-    private updateCheckIntervalSec: number = as.Float(Config.get('config.checkUpdateIntervalSec'), 61);
-    private updateCheckTimer: number = null;
-    async startUpdateTimer(onUpdate: () => void)
+    public start(onUpdate: ConfigUpdaterCallabck): void
     {
-        if (this.updateCheckTimer == null) {
-            this.updateCheckTimer = <number><unknown>setTimeout(async () =>
-            {
-                this.updateCheckTimer = null;
-                await this.checkUpdate(onUpdate);
-                await this.startUpdateTimer(onUpdate);
-            }, this.updateCheckIntervalSec * 1000);
-        }
-    }
-
-    stopUpdateTimer(): void
-    {
+        this.onUpdate = onUpdate
         if (this.updateCheckTimer) {
-            clearTimeout(this.updateCheckTimer);
-            this.updateCheckTimer = null;
+            return
         }
+        (async () => {
+            const lastOnlineConfig = await Memory.getLocal('config.lastOnlineConfig', {})
+            Config.setOnlineTree(lastOnlineConfig)
+            this.callOnUpdate()
+            this.updateLoop()
+        })().catch(error => log.info(error))
     }
 
-    async checkUpdate(onUpdate: ConfigUpdaterCallabck)
+    public stop(): void
+    {
+        clearTimeout(this.updateCheckTimer)
+        this.updateCheckTimer = null;
+    }
+
+    private callOnUpdate(): void
     {
         try {
-            const lastUpdateConfigTime = as.Int(Memory.getSession('config.lastUpdateTime', 0), 0);
-            const intervalSec = as.Int(Config.get('config.updateIntervalSec', 86331));
-            const secsSinceUpdate = Date.now() / 1000 - lastUpdateConfigTime;
-            if (secsSinceUpdate > intervalSec) {
-                await this.getUpdate(onUpdate)
-            }
+            this.onUpdate()
         } catch (error) {
-            log.info('ConfigUpdater.checkUpdate', error);
+            log.info(error)
         }
     }
 
-    async getUpdate(onUpdate: ConfigUpdaterCallabck)
+    private updateLoop(): void
+    {
+        const intervalSec = as.Int(Config.get('config.updateIntervalSec', 86331))
+        const secsSinceUpdate = (Date.now() - this.lastUpdateTimeMs) / 1000
+        if (secsSinceUpdate > intervalSec) {
+            this.getUpdate()
+        }
+        const updateCheckIntervalSec = as.Float(Config.get('config.checkUpdateIntervalSec'), 61)
+        this.updateCheckTimer = setTimeout(() => this.updateLoop(), updateCheckIntervalSec * 1000)
+    }
+
+    private getUpdate(): void
     {
         const configUrl = as.String(Config.get('config.serviceUrl'), 'https://webex.vulcan.weblin.com/Config');
-        try {
-            const data = await this.fetchJson(configUrl);
-            Config.setOnlineTree(data);
-            this.gotConfig = true;
-            Memory.setSession('config.lastUpdateTime', Date.now() / 1000);
-        } catch (error) {
-            log.info('ConfigUpdater.getUpdate', 'fetchConfig failed', configUrl, error)
-        }
-
-        if (this.gotConfig) {
-            if (onUpdate) { onUpdate(); }
-        }
+        (async () => {
+            if (Utils.logChannel('startup', true)) {
+                log.info('ConfigUpdater.getUpdate', configUrl)
+            }
+            const data = await this.app.getUrlFetcher().fetchJson(configUrl)
+            Config.setOnlineTree(data)
+            this.lastUpdateTimeMs = Date.now()
+            this.callOnUpdate()
+            await Memory.setLocal('config.lastOnlineConfig', data)
+        })().catch (error => log.info('ConfigUpdater.getUpdate', 'fetchConfig failed', configUrl, error))
     }
 
-    private async fetchJson(url: string): Promise<any>
-    {
-        if (Utils.logChannel('startup', true)) { log.info('ConfigUpdater.fetchConfig', url); }
-
-        return new Promise((resolve, reject) =>
-        {
-            $
-                .getJSON(url, data => resolve(data))
-                .fail(reason => reject(null));
-        });
-    }
 }

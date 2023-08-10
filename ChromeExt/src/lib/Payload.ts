@@ -6,13 +6,13 @@ export class Payload
 {
     static async getContextToken(user: string, itemId: string, lang: string, ttlSec: number, payloadOptions: any, tokenOptions: any): Promise<string>
     {
-        var payload = {
+        const payload = {
             'user': user,
             'item': itemId,
             'lang': lang,
             'entropy': Utils.randomString(20),
         };
-        
+
         for (let key in payloadOptions) {
             payload[key] = payloadOptions[key];
         }

@@ -1,5 +1,5 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Weblin",
     "short_name": "Weblin",
     "version": "1.2.8.1",
@@ -7,7 +7,7 @@
     "permissions": [
         "storage"
     ],
-    "browser_action": {
+    "action": {
         "default_title": "weblin.io"
     },
     "icons": {
@@ -26,16 +26,24 @@
         }
     ],
     "background": {
-        "scripts": [
-            "background.js"
-        ],
-        "persistent": true
+        "service_worker": "background.js",
+        "type": "module"
     },
     "web_accessible_resources": [
-        "contentscript.css",
-        "assets/*",
-        "popup.*",
-        "manifest.json"
+        {
+            "resources": [
+                "contentscript.css",
+                "assets/*",
+                "popup.*",
+                "manifest.json"
+            ],
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ]
+        }
     ],
-    "content_security_policy": "script-src 'self'; object-src 'self'"
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self';"
+    }
 }

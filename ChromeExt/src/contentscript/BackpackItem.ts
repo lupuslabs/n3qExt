@@ -350,7 +350,7 @@ export class BackpackItem
             }
         })().catch(error =>
         {
-            this.app.onError(ErrorWithData.ofError(error, undefined, { this: this }));
+            this.app.onError(error);
         });
     }
 
