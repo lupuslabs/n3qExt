@@ -137,8 +137,6 @@ export class BackgroundApp
 
         this.configUpdater.start(() => this.onConfigUpdated());
 
-        this.contentCommunicator.start();
-
         if (Environment.isExtension() && chrome?.browserAction?.onClicked) {
             chrome.tabs.onActivated.addListener(activeInfo => this.onBrowserTabActivated(activeInfo.tabId));
             chrome.tabs.onRemoved.addListener((tabId, activeInfo) => this.onBrowserTabRemoved(tabId));
@@ -230,13 +228,14 @@ export class BackgroundApp
     private onConfigUpdated(): void
     {
         (async () => {
+            this.contentCommunicator.start();
             this.language = Client.getUserLanguage()
             const translationTable = Config.get('i18n.translations', {})[this.language];
             this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''), this.urlFetcher);
 
-            if (!this.backpack && Utils.isBackpackEnabled()) {
+            if (!this.backpack) {
                 this.backpack = new Backpack(this);
-                await this.backpack.init();
+                await this.backpack.init(Utils.isBackpackEnabled());
             }
 
             this.urlFetcher.setCacheLifetimeSecs(Config.get('httpCache.maxAgeSec', 3600));
@@ -270,7 +269,6 @@ export class BackgroundApp
 
         this.contentCommunicator.stop()
 
-        // this.unsubscribeItemInventories();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
         this.popupManager.stop();
@@ -563,7 +561,7 @@ export class BackgroundApp
 
     private handle_getBackpackState(): GetBackpackStateResponse
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NoItemsReceived, ItemException.Reason.ItemsNotAvailable);
         }
         const items = this.backpack.getItems();
@@ -572,7 +570,7 @@ export class BackgroundApp
 
     private async handle_backpackIsItemStillInRepo(itemId: string): Promise<BackpackIsItemStillInRepoResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
         }
         const itemStillInRepo = await this.backpack.isItemStillInRepo(itemId);
@@ -581,7 +579,7 @@ export class BackgroundApp
 
     private async handle_modifyBackpackItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.modifyItemProperties(itemId, changed, deleted, options);
@@ -590,7 +588,7 @@ export class BackgroundApp
 
     private async loadWeb3BackpackItems(): Promise<BackgroundSuccessResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.loadWeb3Items();
@@ -599,7 +597,7 @@ export class BackgroundApp
 
     private async handle_rezBackpackItem(itemId: string, room: string, x: number, destination: string, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.rezItem(itemId, room, x, destination, options);
@@ -608,7 +606,7 @@ export class BackgroundApp
 
     private async handle_derezBackpackItem(itemId: string, roomJid: string, x: number, y: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.derezItem(itemId, roomJid, x, y, changed, deleted, options);
@@ -617,7 +615,7 @@ export class BackgroundApp
 
     private async handle_deleteBackpackItem(itemId: string, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotDeleted, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.deleteItem(itemId, options);
@@ -626,13 +624,16 @@ export class BackgroundApp
 
     private handle_isBackpackItem(itemId: string): IsBackpackItemResponse
     {
-        const isItem= this.backpack?.isItem(itemId) ?? false;
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
+            return new IsBackpackItemResponse(false);
+        }
+        const isItem = this.backpack.isItem(itemId);
         return new IsBackpackItemResponse(isItem);
     }
 
     private handle_getBackpackItemProperties(itemId: string): GetBackpackItemPropertiesResponse
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemsNotAvailable);
         }
         const props = this.backpack.getRepositoryItemProperties(itemId);
@@ -641,7 +642,7 @@ export class BackgroundApp
 
     private handle_findBackpackItemProperties(filterProperties: ItemProperties): FindBackpackItemPropertiesResponse
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemsNotAvailable);
         }
         const guardFun = (props: ItemProperties): boolean => {
@@ -662,7 +663,7 @@ export class BackgroundApp
 
     private async handle_executeBackpackItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>): Promise<ExecuteBackpackItemActionResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         const result = await this.backpack.executeItemAction(itemId, action, args, involvedIds, false);
@@ -671,7 +672,7 @@ export class BackgroundApp
 
     private async handle_getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<GetItemsByInventoryItemIdsResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemsNotAvailable);
         }
         const items = await this.backpack.getItemsByInventoryItemIds(itemsToGet);
@@ -682,7 +683,7 @@ export class BackgroundApp
     private pointsActivities: Array<PointsActivity> = [];
     private async handle_pointsActivity(channel: string, n: number): Promise<BackgroundResponse>
     {
-        if (!this.backpack || !Config.get('points.enabled', false)) {
+        if (!Utils.isBackpackEnabled() || !this.backpack || !Config.get('points.enabled', false)) {
             return new BackgroundSuccessResponse();
         }
         if (this.isPointsActivityIgnoredBecauseNeedsPause(channel)) {
@@ -720,7 +721,7 @@ export class BackgroundApp
 
     private async handle_applyItemToBackpackItem(activeId: string, passiveId: string): Promise<ApplyItemToBackpackItemResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         const result = await this.backpack.applyItemToItem(activeId, passiveId);
@@ -729,7 +730,7 @@ export class BackgroundApp
 
     private async handle_backpackTransferAuthorize(itemId: string, duration: number): Promise<BackpackTransferAuthorizeResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
         }
         const transferToken = await this.backpack.transferAuthorize(itemId, duration);
@@ -738,7 +739,7 @@ export class BackgroundApp
 
     private async handle_backpackTransferUnauthorize(itemId: string): Promise<BackpackTransferUnauthorizeResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
         }
         await this.backpack.transferUnauthorize(itemId);
@@ -747,7 +748,7 @@ export class BackgroundApp
 
     private async handle_backpackTransferComplete(provider: string, senderInventoryId: string, senderItemId: string, transferToken: string): Promise<BackpackTransferCompleteResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
         }
         const itemId = await this.backpack.transferComplete(provider, senderInventoryId, senderItemId, transferToken);
@@ -757,7 +758,7 @@ export class BackgroundApp
 
     private async handle_createBackpackItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<CreateBackpackItemResponse>
     {
-        if (!this.backpack) {
+        if (!Utils.isBackpackEnabled() || !this.backpack) {
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         const itemProps = await this.backpack.createItem(provider, auth, method, args);
@@ -851,7 +852,7 @@ export class BackgroundApp
 
         let xmlStanza: ltx.Element = Utils.jsObject2xmlObject(stanza);
 
-        if (this.backpack) {
+        if (Utils.isBackpackEnabled() && this.backpack) {
             xmlStanza = this.backpack.stanzaOutFilter(xmlStanza);
             if (xmlStanza == null) { return; }
         }
@@ -979,10 +980,11 @@ export class BackgroundApp
                         const startCount = await Memory.getLocal('client.startCount', 0);
                         const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
                         const xmppStats = this.xmppManager.getStats();
-                        const itemCount = this.backpack != null ? this.backpack.getItemCount() : -1;
-                        const rezzedItemCount = this.backpack != null ? this.backpack.getRezzedItemCount() : -1;
+                        const backpack = Utils.isBackpackEnabled() ? this.backpack : null;
+                        const itemCount = backpack?.getItemCount() ?? -1;
+                        const rezzedItemCount = backpack?.getRezzedItemCount() ?? -1;
                         let points = -1
-                        const pointsItems = this.backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false));
+                        const pointsItems = backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false)) ?? [];
                         if (pointsItems.length > 0) { points = as.Int(pointsItems[0].getProperties()[Pid.PointsTotal], -1); }
 
                         queryResponse.c('Variant').t(Client.getVariant());
@@ -1124,7 +1126,7 @@ export class BackgroundApp
 
         this.pointsActivities = [];
 
-        if (this.backpack) {
+        if (Utils.isBackpackEnabled() && this.backpack) {
             if (Config.get('points.enabled', false)) {
                 let points = await this.backpack.getOrCreatePointsItem();
                 if (points) {

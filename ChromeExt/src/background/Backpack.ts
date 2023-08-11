@@ -90,7 +90,7 @@ export class Backpack
         this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackHideItem, data });
     }
 
-    async init(): Promise<void>
+    async init(loadItems: boolean): Promise<void>
     {
         let providerConfigs = Config.get('itemProviders', {});
         let enabledProviders = Config.getArray('items.enabledProviders', []);
@@ -134,7 +134,7 @@ export class Backpack
             }
         }
 
-        {
+        if (loadItems) {
             let failedProviderIds = new Set<string>();
             for (let [providerId, provider] of this.providers) {
                 try {

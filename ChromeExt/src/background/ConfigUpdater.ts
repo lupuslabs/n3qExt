@@ -1,4 +1,5 @@
 import log = require('loglevel');
+import { is } from '../lib/is'
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -26,18 +27,29 @@ export class ConfigUpdater
         if (this.updateCheckTimer) {
             return
         }
-        (async () => {
-            const lastOnlineConfig = await Memory.getLocal('config.lastOnlineConfig', {})
-            Config.setOnlineTree(lastOnlineConfig)
-            this.callOnUpdate()
-            this.updateLoop()
-        })().catch(error => log.info(error))
+        this.loadLastOnlineConfig()
+            .catch(error => log.info('ConfigUpdater.start: loadLastOnlineConfig failed!', error))
+            .then(() => this.updateLoop())
     }
 
     public stop(): void
     {
         clearTimeout(this.updateCheckTimer)
         this.updateCheckTimer = null;
+    }
+
+    private async loadLastOnlineConfig(): Promise<void>
+    {
+        const lastOnlineConfigStr = await Memory.getLocal('config.lastOnlineConfig', null)
+        if (!is.string(lastOnlineConfigStr)) {
+            return
+        }
+        const lastOnlineConfig = JSON.parse(lastOnlineConfigStr)
+        if (!is.object(lastOnlineConfig)) {
+            return
+        }
+        Config.setOnlineTree(lastOnlineConfig)
+        this.callOnUpdate()
     }
 
     private callOnUpdate(): void
@@ -67,11 +79,16 @@ export class ConfigUpdater
             if (Utils.logChannel('startup', true)) {
                 log.info('ConfigUpdater.getUpdate', configUrl)
             }
-            const data = await this.app.getUrlFetcher().fetchJson(configUrl)
-            Config.setOnlineTree(data)
+            const onlineConfig = await this.app.getUrlFetcher().fetchJson(configUrl)
+            Config.setOnlineTree(onlineConfig)
             this.lastUpdateTimeMs = Date.now()
             this.callOnUpdate()
-            await Memory.setLocal('config.lastOnlineConfig', data)
+            try {
+                const onlineConfigStr = JSON.stringify(onlineConfig)
+                await Memory.setLocal('config.lastOnlineConfig', onlineConfigStr)
+            } catch (error) {
+                log.info('ConfigUpdater.getUpdate', 'Storing of retrieved config in local memory failed', { configUrl, onlineConfig }, error)
+            }
         })().catch (error => log.info('ConfigUpdater.getUpdate', 'fetchConfig failed', configUrl, error))
     }
 

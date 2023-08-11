@@ -1,4 +1,4 @@
-import log = require('loglevel');
+import { is } from './is'
 import { Utils } from './Utils';
 
 export class Memory
@@ -26,7 +26,7 @@ export class Memory
             {
                 chrome.storage.sync.get([key], result =>
                 {
-                    if (result[key] != undefined) {
+                    if (!is.nil(result[key])) {
                         resolve(result[key]);
                     } else {
                         resolve(defaultValue);
@@ -75,7 +75,7 @@ export class Memory
             if (Utils.hasChromeStorage()) {
                 chrome.storage.local.get([key], result =>
                 {
-                    if (result[key] != undefined) {
+                    if (!is.nil(result[key])) {
                         resolve(result[key]);
                     } else {
                         resolve(defaultValue);
@@ -110,7 +110,7 @@ export class Memory
                     resolve();
                 });
             } else if (window.localStorage) {
-                window.localStorage.setItem(key, value);
+                window.localStorage.setItem(key, value); // Implicitly converts value to string!
                 resolve();
             } else {
                 Memory.localConfig[key] = value;

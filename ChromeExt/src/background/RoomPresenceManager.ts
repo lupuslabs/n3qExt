@@ -499,7 +499,7 @@ export class RoomPresenceManager
             nickname: ownResourceInRoom,
         }
 
-        const backpack: null|Backpack = this.app.getBackpack()
+        const backpack: null|Backpack = Utils.isBackpackEnabled() ? this.app.getBackpack() : null
 
         let avatarUrl = this.settingsAvatarUrl
         const avatarItemProps = { [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
@@ -610,10 +610,10 @@ export class RoomPresenceManager
     private getDesiredNick(): string
     {
         let nick: string = ''
-        const backpack = this.app.getBackpack()
+        const backpack = Utils.isBackpackEnabled() ? this.app.getBackpack() : null
         if (backpack) {
             const filterProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
-            nick = as.String(backpack?.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
+            nick = as.String(backpack.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
         }
         if (!nick.length) {
             nick = this.settingsNick
