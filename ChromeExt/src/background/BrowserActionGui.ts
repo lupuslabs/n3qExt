@@ -38,7 +38,7 @@ export class BrowserActionGui
 
     constructor(app: BackgroundApp) {
         this.app = app;
-        this.hasBrowserActionFeature = !is.nil(chrome?.action);
+        this.hasBrowserActionFeature = (typeof chrome !== 'undefined') && !is.nil(chrome?.action);
     }
 
     public onConfigUpdated(): void

@@ -18,6 +18,7 @@ export class Entity
     protected elem: HTMLElement;
     protected rangeElem: HTMLElement;
     protected visible: boolean = false;
+    protected hasHover: boolean = false;
     protected avatarDisplay: Avatar;
     protected defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
     protected onMoveTransitionEndHandler: null|((ev: TransitionEvent) => void) = null;
@@ -171,11 +172,13 @@ export class Entity
 
     onMouseEnterAvatar(ev: PointerEventData): void
     {
+        this.hasHover = true;
         this.avatarDisplay?.hilite(true);
     }
 
     onMouseLeaveAvatar(ev: PointerEventData): void
     {
+        this.hasHover = false;
         this.avatarDisplay?.hilite(false);
     }
 

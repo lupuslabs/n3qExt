@@ -20,7 +20,7 @@ export class PopupManager
     public constructor(app: BackgroundApp)
     {
         this.app = app
-        this.isStopped = is.nil(chrome?.windows);
+        this.isStopped = (typeof chrome === 'undefined') || is.nil(chrome?.windows);
         if (this.isStopped) {
             return;
         }

@@ -2,11 +2,13 @@
 
 .vs
 extension.zip
+extension-firefox.xpi
 dist.zip
 
 # compiled output
 .firebase/
-dist
+dist/
+dist-firefox/
 src/popup/build
 # dependencies
 node_modules

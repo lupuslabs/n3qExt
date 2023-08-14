@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.2.8', 'NextVersion', [
+            ['Add', 'Now also available for Firefox'],
             ['Add', 'Privacy policy to about window'],
             ['Fix', 'Text of changes window not selectable'],
         ]],

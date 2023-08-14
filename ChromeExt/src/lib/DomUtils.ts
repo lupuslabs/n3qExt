@@ -39,7 +39,7 @@ export namespace DomUtils {
     export function getElemsAtViewportPos(
         document: DocumentOrShadowRoot, vpX: number, vpY: number, elemTop: Element|null, excludeElemTop: boolean,
     ): Element[] {
-        const elems = document.elementsFromPoint(vpX, vpY)
+        const elems = getAllElemsAtViewportPos(document, vpX, vpY)
         if (!is.nil(elemTop) && elems.includes(elemTop)) {
             while (elems.length !== 0) {
                 if (elems[0] === elemTop) {
@@ -51,6 +51,27 @@ export namespace DomUtils {
                 elems.shift()
             }
         }
+        return elems
+    }
+
+    function getAllElemsAtViewportPos(document: DocumentOrShadowRoot, vpX: number, vpY: number): Element[]
+    {
+        const elems = document.elementsFromPoint(vpX, vpY)
+
+        // On Firefox element discovery stops at a shadow root.
+        // So exit in case the list is complete or recursively get the elements from the outer documents in that case:
+        const shadowRootHost: null|Element = document['host']
+        if (!shadowRootHost || elems.at(-1)?.tagName === 'HTML') {
+            return elems
+        }
+
+        const parentElems = getAllElemsAtViewportPos(shadowRootHost.ownerDocument, vpX, vpY)
+
+        // The shadow root host element is returned as first element even when
+        // its dimensions in the inspector don't contain the coordinate:
+        parentElems.shift()
+
+        elems.push(...parentElems)
         return elems
     }
 

@@ -108,7 +108,7 @@ export class DirectUrlFetcher implements UrlFetcher
 
     public async fetchJson(url: string): Promise<any>
     {
-        const json = await this.fetchAsText(url, '1')
+        const json = await this.fetchAsText(url, '_nocache')
         let data: any
         try {
             data = JSON.parse(json)

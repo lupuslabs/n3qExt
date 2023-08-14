@@ -34,6 +34,6 @@ export class Environment
 
     static isExtension(): boolean
     {
-        return !!(chrome.runtime?.onMessage);
+        return (typeof chrome !== 'undefined') && !!(chrome.runtime?.onMessage);
     }
 }

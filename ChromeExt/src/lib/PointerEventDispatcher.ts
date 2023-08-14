@@ -40,11 +40,6 @@ export class PointerEventDispatcher {
     private readonly shadowDomRoot: DocumentOrShadowRoot;
     private readonly domElem: Element;
 
-    private readonly logButtons: boolean;
-    private readonly logDrag: boolean;
-    private readonly logHover: boolean;
-    private readonly logWithEnterLeave: boolean;
-    private readonly logWithMove: boolean;
     private readonly logEventsIn: Set<string> = new Set();
     private readonly logEventsOut: Set<string> = new Set();
     private readonly logListenerCalls: Set<PointerEventType> = new Set();
@@ -61,8 +56,6 @@ export class PointerEventDispatcher {
     private dragCssCursor: null|string;
 
     private inEventHandling: boolean = false; // For infinite recursion prevention.
-    private lastMouseEventButtons: number = 0;
-    private lastPointerEventWasForUs: boolean = false;
     private swallowNextMouseclickEvent: boolean = false;
 
     private hoverEventsLast: Map<number,PointerEvent> = new Map<number, PointerEvent>();
@@ -144,11 +137,11 @@ export class PointerEventDispatcher {
         const logIncommingMouse   = as.Bool(Config.get('pointerEventDispatcher.logIncommingMouse'));
         const logOutgoingPointer  = as.Bool(Config.get('pointerEventDispatcher.logOutgoingPointer'));
         const logOutgoingMouse    = as.Bool(Config.get('pointerEventDispatcher.logOutgoingMouse'));
-        this.logButtons           = as.Bool(Config.get('pointerEventDispatcher.logButtons'));
-        this.logDrag              = as.Bool(Config.get('pointerEventDispatcher.logDrag'));
-        this.logHover             = as.Bool(Config.get('pointerEventDispatcher.logHover'));
-        this.logWithEnterLeave    = as.Bool(Config.get('pointerEventDispatcher.logWithEnterLeave'));
-        this.logWithMove          = as.Bool(Config.get('pointerEventDispatcher.logWithMove'));
+        const logButtons           = as.Bool(Config.get('pointerEventDispatcher.logButtons'));
+        const logDrag              = as.Bool(Config.get('pointerEventDispatcher.logDrag'));
+        const logHover             = as.Bool(Config.get('pointerEventDispatcher.logHover'));
+        const logWithEnterLeave    = as.Bool(Config.get('pointerEventDispatcher.logWithEnterLeave'));
+        const logWithMove          = as.Bool(Config.get('pointerEventDispatcher.logWithMove'));
 
         if (logIncommingPointer) {
             this.logEventsIn.add('gotpointercapture');
@@ -156,10 +149,10 @@ export class PointerEventDispatcher {
             this.logEventsIn.add('pointercancel');
             this.logEventsIn.add('pointerdown');
             this.logEventsIn.add('pointerup');
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logEventsIn.add('pointermove');
             }
-            if (this.logWithEnterLeave) {
+            if (logWithEnterLeave) {
                 this.logEventsIn.add('pointerover');
                 this.logEventsIn.add('pointerout');
                 this.logEventsIn.add('pointerenter');
@@ -172,10 +165,10 @@ export class PointerEventDispatcher {
             this.logEventsIn.add('click');
             this.logEventsIn.add('dblclick');
             this.logEventsIn.add('contextmenu');
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logEventsIn.add('mousemove');
             }
-            if (this.logWithEnterLeave) {
+            if (logWithEnterLeave) {
                 this.logEventsIn.add('mouseover');
                 this.logEventsIn.add('mouseout');
                 this.logEventsIn.add('mouseenter');
@@ -189,10 +182,10 @@ export class PointerEventDispatcher {
             this.logEventsOut.add('pointercancel');
             this.logEventsOut.add('pointerdown');
             this.logEventsOut.add('pointerup');
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logEventsOut.add('pointermove');
             }
-            if (this.logWithEnterLeave) {
+            if (logWithEnterLeave) {
                 this.logEventsOut.add('pointerover');
                 this.logEventsOut.add('pointerout');
                 this.logEventsOut.add('pointerenter');
@@ -205,10 +198,10 @@ export class PointerEventDispatcher {
             this.logEventsOut.add('click');
             this.logEventsOut.add('dblclick');
             this.logEventsOut.add('contextmenu');
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logEventsOut.add('mousemove');
             }
-            if (this.logWithEnterLeave) {
+            if (logWithEnterLeave) {
                 this.logEventsOut.add('mouseover');
                 this.logEventsOut.add('mouseout');
                 this.logEventsOut.add('mouseenter');
@@ -216,32 +209,32 @@ export class PointerEventDispatcher {
             }
         }
 
-        if (this.logButtons) {
+        if (logButtons) {
             this.logListenerCalls.add('buttondown');
             this.logListenerCalls.add('buttonup');
             this.logListenerCalls.add('click');
             this.logListenerCalls.add('longclick');
             this.logListenerCalls.add('doubleclick');
         }
-        if (this.logDrag) {
+        if (logDrag) {
             this.logListenerCalls.add('dragstart');
-            if (this.logWithEnterLeave) {
+            if (logWithEnterLeave) {
                 this.logListenerCalls.add('dragenter');
                 this.logListenerCalls.add('dragleave');
             }
             this.logListenerCalls.add('dragdrop');
             this.logListenerCalls.add('dragcancel');
             this.logListenerCalls.add('dragend');
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logListenerCalls.add('dragmove');
             }
         }
-        if (this.logHover) {
-            if (this.logWithEnterLeave) {
+        if (logHover) {
+            if (logWithEnterLeave) {
                 this.logListenerCalls.add('hoverenter');
                 this.logListenerCalls.add('hoverleave');
             }
-            if (this.logWithMove) {
+            if (logWithMove) {
                 this.logListenerCalls.add('hovermove');
             }
         }
@@ -258,9 +251,7 @@ export class PointerEventDispatcher {
         this.setDragCssCursor(options?.dragCssCursor);
         this.addDropTargetTransparentClass(...(options?.dragTransparentClasses ?? []));
 
-
         const logOnlyHandler = (ev: MouseEvent) => this.handleEventLogOnly(ev);
-
         const updateHandler = (ev: PointerEvent) => this.handlePointerEvent(ev);
         this.domElem.addEventListener('pointermove',  updateHandler);
         this.domElem.addEventListener('pointerover',  logOnlyHandler);
@@ -269,7 +260,6 @@ export class PointerEventDispatcher {
         this.domElem.addEventListener('pointerleave', logOnlyHandler);
         this.domElem.addEventListener('pointerdown',  updateHandler);
         this.domElem.addEventListener('pointerup',    updateHandler);
-
 
         const cancelHandler = (ev: PointerEvent) => this.handlePointerCancelEvent(ev);
         this.domElem.addEventListener('gotpointercapture',  logOnlyHandler);
@@ -435,7 +425,7 @@ export class PointerEventDispatcher {
     private handleEventLogOnly(ev: MouseEvent): void
     {
         if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.handleEventLogOnly: Ignoring event we aren't interested in.`;
+            const msg = `PointerEventDispatcher.handleEventLogOnly: Ignoring event we aren't interested in.`;
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
         }
@@ -448,12 +438,11 @@ export class PointerEventDispatcher {
         if (this.inEventHandling) {
             // Routing loop detected. Just swallow the event.
             if (this.logEventsIn.has(ev.type)) {
-                const msg = `DomOpacityAwarePointerEventDispatcher.handleMouseEvent: Ignoring event while handling another event (probably a redirection loop).`;
+                const msg = `PointerEventDispatcher.handleMouseEvent: Ignoring event while handling another event (probably a redirection loop).`;
                 const {type, buttons} = ev;
                 log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
             }
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
+            this.stopEventProcessing(ev, true, true);
             return;
         }
 
@@ -464,26 +453,24 @@ export class PointerEventDispatcher {
 
     private swallowIgnoreOrRerouteMouseEvent(ev: MouseEvent): void
     {
-        this.lastMouseEventButtons = ev.buttons;
-
         // Special handling for some click mouse events:
         const isClick = PointerEventDispatcher.mouseclickEventTypes.has(ev.type);
         if (isClick && this.swallowNextMouseclickEvent) {
             // Event represents already-handled click.
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
+            this.stopEventProcessing(ev, !this.allowDefaultActions, !this.allowDefaultActions);
             this.swallowNextMouseclickEvent = false;
             if (this.logEventsIn.has(ev.type)) {
-                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Swallowing mouse click because swallowNextMouseclickEvent was true.`;
+                const msg = `PointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Swallowing mouse click because swallowNextMouseclickEvent was true.`;
                 const {type, buttons} = ev;
                 log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
             }
             return;
         }
+
         if (ev.type === 'contextmenu') {
             // Don't touch the event lest it won't become untrusted and not make the browser display the context menu.
             if (this.logEventsIn.has(ev.type)) {
-                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Completely ignoring the contextmenu event (it should just bubble up).`;
+                const msg = `PointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Completely ignoring the contextmenu event (it should just bubble up).`;
                 const {type, buttons} = ev;
                 log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
             }
@@ -491,44 +478,27 @@ export class PointerEventDispatcher {
         }
 
         // Handle remaining events that are for us:
-        const isForUs = this.isOpaqueAtEventLocation(ev);
-        const preventDefaultIfForUs = !this.allowDefaultActions || this.dragOngoing;
-        if (isForUs && preventDefaultIfForUs) {
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
-            if (this.logEventsIn.has(ev.type)) {
-                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Stopping propagation of event and preventing default.`;
-                const {type, buttons} = ev;
-                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
-            }
-            return;
-        }
-        if (isForUs) {
-            ev.stopImmediatePropagation();
-            if (this.logEventsIn.has(ev.type)) {
-                const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Stopping propagation of event (but not preventing default).`;
-                const {type, buttons} = ev;
-                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
-            }
+        if (this.isOpaqueAtEventLocation(ev)) {
+            const preventDefault = !this.allowDefaultActions || this.dragOngoing;
+            this.stopEventProcessing(ev, preventDefault, preventDefault);
             return;
         }
 
         // Reroute remaining events (not special case clicks and not for us):
         // The event becomes untrusted by this.
         if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Rerouting event.`;
+            const msg = `PointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Rerouting event.`;
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
         }
         this.reroutePointerOrMouseEvent(ev);
-        ev.stopImmediatePropagation();
-        ev.preventDefault();
+        this.stopEventProcessing(ev, true, true);
     }
 
     private handlePointerCancelEvent(ev: PointerEvent): void
     {
         if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.handlePointerCancelEvent`;
+            const msg = `PointerEventDispatcher.handlePointerCancelEvent`;
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
         }
@@ -545,7 +515,9 @@ export class PointerEventDispatcher {
         this.buttonsPointerStatesLast.delete(ev.pointerId);
 
         // Allow other elements to receive events in case the pointer comes back online:
-        DomUtils.releasePointer(this.domElem, ev.pointerId);
+        if (this.dragEnabled) {
+            DomUtils.releasePointer(this.domElem, ev.pointerId);
+        }
 
         // Clean up any action-in-progress state:
         const isInvolvedInAction
@@ -565,9 +537,12 @@ export class PointerEventDispatcher {
     private handlePointerEvent(ev: PointerEvent): void
     {
         if (this.inEventHandling) {
-            // Routing loop detected. Just swallow the event.
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
+            if (this.logEventsIn.has(ev.type)) {
+                const msg = `PointerEventDispatcher.handlePointerEvent: Ignoring event while handling another event (probably a redirection loop).`;
+                const {type, buttons} = ev;
+                log.info(msg, {type, buttons, domelem: this.domElem, ev, this: {...this}});
+            }
+            this.stopEventProcessing(ev, true, true);
             return;
         }
 
@@ -580,26 +555,17 @@ export class PointerEventDispatcher {
         const hadButtonsDown = lastButtonsState.buttons !== DomUtils.ButtonId.none;
 
         if (this.logEventsIn.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.handlePointerEvent`;
+            const msg = `PointerEventDispatcher.handlePointerEvent`;
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, isOpaqueAtLoc, isInvolvedInAction, hadButtonsDown, domelem: this.domElem, ev, this: {...this}});
         }
 
-        // Give raw event to lower element if it isn't a buttons event for us and outside domElem's opaque area:
-        const isForUs = isOpaqueAtLoc || isInvolvedInAction || hadButtonsDown;
-        if (isForUs) {
-            const preventDefault = !this.allowDefaultActions || this.dragOngoing;
+        const evIsForUs = isOpaqueAtLoc || isInvolvedInAction || hadButtonsDown;
+        if (evIsForUs) {
             this.handlePointerEventForUs(ev, isOpaqueAtLoc, lastButtonsState);
-            ev.stopImmediatePropagation();
-            if (preventDefault) {
-                ev.preventDefault();
-            }
         } else {
             this.handlePointerEventNotForUs(ev);
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
         }
-        this.lastPointerEventWasForUs = isForUs;
         this.inEventHandling = false;
     }
 
@@ -613,6 +579,8 @@ export class PointerEventDispatcher {
             const cursor = this.dragOngoing ? this.dragCssCursor : null;
             this.domElem.style.cursor = cursor ?? window.getComputedStyle(elemBelow)['cursor'];
         }
+
+        this.stopEventProcessing(ev, true, true);
     }
 
     private handlePointerEventForUs(ev: PointerEvent, isOpaqueAtLoc: boolean, lastButtonsState: ButtonsState): void
@@ -648,6 +616,9 @@ export class PointerEventDispatcher {
             const cursor = this.dragOngoing ? this.dragCssCursor : null;
             this.domElem.style.cursor = cursor ?? '';
         }
+
+        const preventDefault = !this.allowDefaultActions || this.dragOngoing;
+        this.stopEventProcessing(ev, preventDefault, preventDefault);
     }
 
     private handleButtonEvent(ev: PointerEvent, isConcurrent: boolean, lastButtonsState: ButtonsState): void
@@ -666,7 +637,7 @@ export class PointerEventDispatcher {
         if (isButtonsDown) {
             const isPointerDownEvent = ev.type === 'pointerdown';
 
-            // Don't swallow autogenerated mouse click / contextmenu event if it doesn't becoem a drag or a click handled by a listener:
+            // Don't swallow autogenerated mouse click / contextmenu event if it doesn't become a drag or a click handled by a listener:
             if (isInitialDown && !isPointerDownEvent) {
                 this.swallowNextMouseclickEvent = false;
             }
@@ -678,9 +649,10 @@ export class PointerEventDispatcher {
                 // Missed initial pointerdown (likely because it happened outdside domElem's bounding box).
                 this.cancelAllActions();
             } else {
+                this.handleHovering(ev);
                 this.callEventListener(new PointerEventData('buttondown', ev, this.domElem));
             }
-            if (isInitialDown) {
+            if (isInitialDown && this.dragEnabled) {
                 DomUtils.capturePointer(this.domElem, ev.pointerId);
             }
         }
@@ -736,7 +708,9 @@ export class PointerEventDispatcher {
         for (const [pointerId, pointerState] of this.buttonsPointerStatesLast.entries()) {
             if (pointerState.buttons === DomUtils.ButtonId.none && pointerId !== this.buttonsActionPointerId) {
                 this.buttonsPointerStatesLast.delete(pointerId);
-                DomUtils.releasePointer(this.domElem, pointerId);
+                if (this.dragEnabled) {
+                    DomUtils.releasePointer(this.domElem, pointerId);
+                }
             } else {
                 this.buttonsResetOngoing = true;
             }
@@ -766,7 +740,6 @@ export class PointerEventDispatcher {
                 return;
             }
             this.hoverLeaveAll(interactivePointerId); // All other pointers
-            isHovering = DomUtils.pointerMovedDistance(this.clickDownEventStart, ev, this.dragStartDistance)
         }
 
         if (isHovering) {
@@ -813,7 +786,7 @@ export class PointerEventDispatcher {
     // -------------------------------------------------------------------------
     // Click/doublecklick
     //
-    // Button down for first click (handled by handleInitialButtonDown)
+    // Button down for first click (handled by handleButtonEvent)
     // -> button up for first click
     // -> timeout (single click) / button down (double click)
     // -> wait for button up (handled by handleButtonsReset)
@@ -1107,7 +1080,7 @@ export class PointerEventDispatcher {
                 && (is.nil(record.modifierKeys) || record.modifierKeys === modifierKeys);
         });
         if (this.logListenerCalls.has(data.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.callEventListeners`;
+            const msg = `PointerEventDispatcher.callEventListeners`;
             log.info(msg, {type, buttons, modifierKeys, domElement: this.domElem, data, listeners, this: {...this}});
         }
         listeners.forEach(listenerRecord => {
@@ -1133,7 +1106,8 @@ export class PointerEventDispatcher {
 
         if (!is.nil(elemBelow)
         && !isOutEvent) { // Don't reroute event meaningless for other DOM elements.
-            this.dispatchDomEvent(DomUtils.cloneEvent(ev), elemBelow);
+            const newEv = DomUtils.cloneEvent(ev);
+            this.dispatchDomEvent(newEv, elemBelow);
         }
         return elemBelow;
     }
@@ -1175,11 +1149,37 @@ export class PointerEventDispatcher {
     private dispatchDomEvent(ev: MouseEvent, domElem: Element): void
     {
         if (this.logEventsOut.has(ev.type)) {
-            const msg = `DomOpacityAwarePointerEventDispatcher.dispatchDomEvent: Dispatching event to other element.`;
+            const msg = `PointerEventDispatcher.dispatchDomEvent: Dispatching event to other element.`;
             const {type, buttons} = ev;
             log.info(msg, {type, buttons, originalElem: this.domElem, newElem: domElem, ev, this: {...this}});
         }
         DomUtils.triggerEvent(ev, domElem);
+    }
+
+    private stopEventProcessing(ev: MouseEvent, stopPropagation: boolean, preventDefault: boolean): void
+    {
+        if (this.logEventsIn.has(ev.type)) {
+            const actions = [];
+            if (stopPropagation) {
+                actions.push('stopping propagation');
+            }
+            if (preventDefault) {
+                actions.push('canceling default action');
+            }
+            if (!actions.length) {
+                actions.push('Not touching the event');
+            }
+            const action = actions.join(' and ');
+            const msg = `PointerEventDispatcher.stopEventProcessing: ${action}.`;
+            const { type, buttons, } = ev;
+            log.info(msg, {type, buttons, stopPropagation, preventDefault, ev});
+        }
+        if (stopPropagation) {
+            ev.stopImmediatePropagation();
+        }
+        if (preventDefault) {
+            ev.preventDefault();
+        }
     }
 
 }

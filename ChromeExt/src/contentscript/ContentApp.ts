@@ -236,7 +236,12 @@ export class ContentApp extends AppWithDom
         await this.assertSavedPosition();
         if (Panic.isOn) { return; }
 
-        await this.initDisplay(params);
+        try {
+            await this.initDisplay(params);
+        } catch (error) {
+            log.debug(error.message);
+            Panic.now();
+        }
 
         BackgroundMessage.signalContentAppStartToBackground().catch(error => this.onError(error));
 
@@ -310,9 +315,8 @@ export class ContentApp extends AppWithDom
         this.shadowDomRoot = shadowDomAnchor.attachShadow({mode: 'closed'});
 
         if (params.styleUrl) {
-            const styleDataUrl = await this.fetchUrlAsDataUrl(params.styleUrl);
-            const styleElem = this.shadowDomRoot.appendChild(document.createElement('style'));
-            styleElem.innerText = `@import "${styleDataUrl}";`;
+            const style = await this.urlFetcher.fetchAsText(params.styleUrl, '1')
+            this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style>\n${style}\n</style>`));
         }
 
         this.display = DomUtils.elemOfHtml('<div id="n3q-display"></div>');

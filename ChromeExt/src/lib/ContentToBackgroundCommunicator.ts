@@ -103,29 +103,22 @@ export class ContentToBackgroundCommunicator
     {
         if (Utils.logChannel('clientBackgroundMessages', true)) {
             const isRequest = !messageEnvelope['response']
-            const logData = {}
-            let msgTypeStr: string
             if (isRequest) {
                 const request = (<BackgroundRequestEnvelope>messageEnvelope).request
-                logData['type'] = request.type
-                logData['request'] = request
-                msgTypeStr = 'request'
+                const logData = { type: request.type, request: request }
+                const logMsg: string = 'ExtensionContentToBackgroundCommunicator.sendToBackground: Sending request.'
+                log.info(logMsg, logData)
             } else {
                 const response = (<BackgroundResponseEnvelope>messageEnvelope).response
+                const logData = { ok: response.ok, response: response }
                 if (inResponseTo) {
                     const request = inResponseTo.request
                     logData['type'] = request.type
-                    logData['ok'] = response.ok
-                    logData['response'] = response
                     logData['inResponseTo'] = request
-                } else {
-                    logData['ok'] = response.ok
-                    logData['response'] = response
                 }
-                msgTypeStr = 'response'
+                const logMsg: string = 'ExtensionContentToBackgroundCommunicator.sendToBackground: Sending response.'
+                log.info(logMsg, logData)
             }
-            const logMsg: string = `ExtensionContentToBackgroundCommunicator.sendToBackground: Sending ${msgTypeStr}.`
-            log.info(logMsg, logData)
         }
 
         const messagePipe = this.messagePipe

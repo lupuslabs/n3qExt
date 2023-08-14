@@ -37,6 +37,7 @@ export class RoomItem extends Entity
     protected myItem: boolean = false;
     protected state = '';
     protected ownerName = 'unknown';
+    private statsDisplayOpenByLongclick: boolean = false;
     private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;
 
@@ -328,7 +329,7 @@ export class RoomItem extends Entity
     {
         super.onMouseEnterAvatar(ev);
         const delaySecs = Config.get('room.itemStatsTooltipDelay', 500) / 1000;
-        this.showStatsDisplay(delaySecs);
+        this.showStatsDisplay(delaySecs, false);
     }
 
     public onMouseLeaveAvatar(ev: PointerEventData): void
@@ -338,7 +339,9 @@ export class RoomItem extends Entity
         // When mouse moves from own avatar to transparent area of an avatar above our avatar,
         // an onMouseEnterAvatar might follow immediately after handling this event.
         // So delay actual closing slightly:
-        this.hideStatsDisplay(0.05);
+        if (!this.statsDisplayOpenByLongclick) {
+            this.hideStatsDisplay(0.05);
+        }
     }
 
     public onUnmodifiedLeftClickAvatar(ev: PointerEventData): void
@@ -362,10 +365,10 @@ export class RoomItem extends Entity
     onUnmodifiedLeftLongclickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftLongclickAvatar(ev);
-        if (this.statsDisplay) {
+        if (this.statsDisplayOpenByLongclick) {
             this.hideStatsDisplay(0);
         } else {
-            this.showStatsDisplay(0);
+            this.showStatsDisplay(0, true);
         }
     }
 
@@ -428,7 +431,7 @@ export class RoomItem extends Entity
     public onDragAvatarStart(ev: PointerEventData): void
     {
         super.onDragAvatarStart(ev);
-        this.statsDisplay?.close();
+        this.hideStatsDisplay(0);
 
         if (this.framePopup) {
             const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
@@ -872,11 +875,16 @@ export class RoomItem extends Entity
         this.getScriptWindow()?.postMessage(message, '*');
     }
 
-    private showStatsDisplay(delaySecs: number): void
+    private showStatsDisplay(delaySecs: number, openByLongclick: boolean): void
     {
+        if (this.statsDisplayOpenByLongclick) {
+            return;
+        }
+        this.statsDisplayOpenByLongclick = openByLongclick;
         window.clearTimeout(this.statsDisplayCloseTimeout);
         this.statsDisplayCloseTimeout = null;
         if (Utils.isBackpackEnabled() && !this.statsDisplay && is.nil(this.statsDisplayOpenTimeout)) {
+            window.clearTimeout(this.statsDisplayOpenTimeout);
             const action = () => {
                 this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
                 this.statsDisplay.show();
@@ -887,16 +895,17 @@ export class RoomItem extends Entity
 
     private hideStatsDisplay(delaySecs: number): void
     {
+        this.statsDisplayOpenByLongclick = false;
         window.clearTimeout(this.statsDisplayOpenTimeout);
         this.statsDisplayOpenTimeout = null;
         if (this.statsDisplay && (delaySecs === 0 || is.nil(this.statsDisplayCloseTimeout))) {
+            window.clearTimeout(this.statsDisplayCloseTimeout);
             const action = () => {
                 this.statsDisplayCloseTimeout = null;
                 this.statsDisplay?.close();
             };
             this.statsDisplayCloseTimeout = window.setTimeout(action, 1000 * delaySecs);
         }
-
     }
 
 }

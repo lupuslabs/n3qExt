@@ -52,13 +52,12 @@ export class Participant extends Entity
     private userId: string;
     private privateChatWindow: PrivateChatWindow;
     private privateVidconfWindow: PrivateVidconfWindow;
-    private decorationsVisible: boolean;
+    private decorationsVisibleByLongclick: boolean = false;
     private hideDecorationsTimeoutHandle: number|null = null;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
         super(app, room, roomNick, isSelf);
-        this.decorationsVisible = isSelf;
 
         this.elem.classList.add('n3q-participant');
         this.elem.setAttribute('data-nick', roomNick);
@@ -812,7 +811,7 @@ export class Participant extends Entity
         }
 
         if (!this.isSelf) {
-            this.showDecorations();
+            this.showDecorations(false);
         }
     }
 
@@ -820,7 +819,7 @@ export class Participant extends Entity
     {
         super.onMouseLeaveAvatar(ev);
 
-        if (!this.isSelf) {
+        if (!this.isSelf && !this.decorationsVisibleByLongclick) {
             this.hideDecorations();
         }
     }
@@ -828,7 +827,10 @@ export class Participant extends Entity
     onUnmodifiedLeftClickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftClickAvatar(ev);
-
+        this.decorationsVisibleByLongclick = false;
+        if (!this.hasHover) {
+            this.onMouseLeaveAvatar(ev);
+        }
         if (this.isSelf) {
             this.toggleChatin();
         } else {
@@ -838,6 +840,10 @@ export class Participant extends Entity
 
     onCtrlLeftClickAvatar(ev: PointerEventData) {
         super.onCtrlLeftClickAvatar(ev);
+        if (!this.hasHover) {
+            this.onMouseLeaveAvatar(ev);
+        }
+        this.decorationsVisibleByLongclick = false;
         if (this.isSelf) {
             this.showBackpackWindow();
         }
@@ -846,16 +852,23 @@ export class Participant extends Entity
     onUnmodifiedLeftLongclickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftLongclickAvatar(ev);
-        if (this.decorationsVisible) {
-            this.hideDecorations();
+        if (this.decorationsVisibleByLongclick) {
+            this.decorationsVisibleByLongclick = false;
+            if (!this.hasHover) {
+                this.onMouseLeaveAvatar(ev);
+            }
         } else {
-            this.showDecorations();
+            this.showDecorations(true);
         }
     }
 
     onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftDoubleclickAvatar(ev);
+        this.decorationsVisibleByLongclick = false;
+        if (!this.hasHover) {
+            this.onMouseLeaveAvatar(ev);
+        }
         if (this.isSelf) {
             this.room?.showChatInWithText('');
         } else {
@@ -866,6 +879,10 @@ export class Participant extends Entity
     onCtrlLeftDoubleclickAvatar(ev: PointerEventData): void
     {
         super.onCtrlLeftDoubleclickAvatar(ev);
+        this.decorationsVisibleByLongclick = false;
+        if (!this.hasHover) {
+            this.onMouseLeaveAvatar(ev);
+        }
         if (this.isSelf) {
             this.toggleChatWindow();
         } else {
@@ -1177,11 +1194,14 @@ export class Participant extends Entity
         }
     }
 
-    private showDecorations(): void
+    private showDecorations(openByLongclick: boolean): void
     {
         window.clearTimeout(this.hideDecorationsTimeoutHandle);
         this.hideDecorationsTimeoutHandle = null;
-        this.decorationsVisible = true;
+        if (this.decorationsVisibleByLongclick) {
+            return;
+        }
+        this.decorationsVisibleByLongclick = openByLongclick;
         if (!is.nil(this.nicknameDisplay)) {
             $(this.nicknameDisplay.getElem()).stop().fadeIn('fast');
         }
@@ -1195,20 +1215,24 @@ export class Participant extends Entity
 
     private hideDecorations(): void
     {
-        if (is.nil(this.hideDecorationsTimeoutHandle)) {
-            this.hideDecorationsTimeoutHandle = window.setTimeout(() => {
-                this.decorationsVisible = false;
-                if (!is.nil(this.nicknameDisplay)) {
-                    $(this.nicknameDisplay.getElem()).stop().fadeOut();
-                }
-                if (!is.nil(this.pointsDisplay)) {
-                    $(this.pointsDisplay.getElem()).stop().fadeOut();
-                }
-                if (!is.nil(this.activityDisplay)) {
-                    $(this.activityDisplay.getElem()).stop().fadeOut();
-                }
-            }, 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3));
+        if (!is.nil(this.hideDecorationsTimeoutHandle)) {
+            return;
         }
+        this.decorationsVisibleByLongclick = false;
+        const fun = () => {
+            this.hideDecorationsTimeoutHandle = null;
+            if (!is.nil(this.nicknameDisplay)) {
+                $(this.nicknameDisplay.getElem()).stop().fadeOut();
+            }
+            if (!is.nil(this.pointsDisplay)) {
+                $(this.pointsDisplay.getElem()).stop().fadeOut();
+            }
+            if (!is.nil(this.activityDisplay)) {
+                $(this.activityDisplay.getElem()).stop().fadeOut();
+            }
+        };
+        const delayMs = 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3);
+        this.hideDecorationsTimeoutHandle = window.setTimeout(fun, delayMs);
     }
 
 }

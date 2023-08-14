@@ -4,6 +4,7 @@ function makeBaseConfig() {
     const { join } = require('path')
     const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
     const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+    const WebpackShellPluginNext = require('webpack-shell-plugin-next')
 
     const prodPlugins = []
     if (process.env.NODE_ENV === 'production') {
@@ -11,6 +12,9 @@ function makeBaseConfig() {
             new optimize.AggressiveMergingPlugin()
         )
     }
+
+    const outputDirChrome = join(__dirname, 'dist')
+    const outputDirFirefox = join(__dirname, 'dist-firefox')
 
     return {
         mode: process.env.NODE_ENV,
@@ -24,7 +28,7 @@ function makeBaseConfig() {
         entry: {},
         output: {
             publicPath: '/',
-            path: join(__dirname, 'dist'),
+            path: outputDirChrome,
             filename: '[name].js',
         },
         module: {
@@ -67,6 +71,15 @@ function makeBaseConfig() {
                 'window.$': 'jquery'
             }),
             ...prodPlugins,
+            new WebpackShellPluginNext({
+                dev: false, // Scripts are only executed after first compilation when this is true.
+                logging: false,
+                onBuildExit: {
+                    scripts: [`shx cp -u -- "${outputDirChrome}/*.{js,html,css,txt}" "${outputDirFirefox}"`],
+                    parallel: false,
+                    blocking: true,
+                },
+            }),
         ],
         resolve: {
             extensions: ['.ts', '.js', '.scss'],
