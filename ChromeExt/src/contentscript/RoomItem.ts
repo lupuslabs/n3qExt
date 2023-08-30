@@ -883,7 +883,7 @@ export class RoomItem extends Entity
         this.statsDisplayOpenByLongclick = openByLongclick;
         window.clearTimeout(this.statsDisplayCloseTimeout);
         this.statsDisplayCloseTimeout = null;
-        if (Utils.isBackpackEnabled() && !this.statsDisplay && is.nil(this.statsDisplayOpenTimeout)) {
+        if (!this.statsDisplay && is.nil(this.statsDisplayOpenTimeout)) {
             window.clearTimeout(this.statsDisplayOpenTimeout);
             const action = () => {
                 this.statsDisplay = new RoomItemStats(this.app, this, () => { this.statsDisplay = null; });
