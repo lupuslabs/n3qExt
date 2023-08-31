@@ -6,10 +6,11 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.2.8', 'NextVersion', [
+        ['1.3.0', 'Manifest3Firefox', [
             ['Add', 'Now also available for Firefox'],
             ['Add', 'Privacy policy to about window'],
             ['Fix', 'Text of changes window not selectable'],
+            ['Fix', 'Typos'],
         ]],
         ['1.2.7', 'VidconfUndocked', [
             ['Change', 'Video windows initially undocked because Jitsi does not support embedding in iframes anymore'],
