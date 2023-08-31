@@ -748,7 +748,7 @@ export class Config
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Item activity',
                     'Activity.PointsChannelPageOwned': 'Page ownership',
-                    'Activity.PointsChannelSocial': 'Social activity',
+                    'Activity.PointsChannelSocial': 'Social network activity',
 
                     'ErrorFact.UnknownError': 'Error',
                     'ErrorFact.NotRezzed': 'Item Not Dropped',
@@ -1076,7 +1076,7 @@ export class Config
                     'Activity.PointsChannelPowerup': 'Powerup',
                     'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
                     'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
-                    'Activity.PointsChannelSocial': 'Activität in Soizalen Netzen',
+                    'Activity.PointsChannelSocial': 'Aktivität in sozialen Netzen',
 
                     'ErrorFact.UnknownError': 'Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
