@@ -17,15 +17,17 @@
  *                       |
  *                   msg offer
  *                       v
- *                 Recipient 1.a.                             .---------------------------------------------------------
- *                       |                                    |
- *                       |--local-timeout--> Recipient 2.b. --|--msg-reject-timeout------------.
- *                       |                                    |                                |--> Sender 4.a.
- *                       |--local-reject---> Recipient 2.c. --|--msg-reject-recipientRejected--'
- *                       |                                    |
- *                       '--local-accept---> Recipient 2.d.   |
- *                                            |               |
- * -----------------------------------------------------------'
+ *                 Recipient 1.a.                                 .---------------------------------------------------------
+ *                       |                                        |
+ *                       |--local-no-backpack--> Recipient 2.e. --|--msg-reject-unableToAccept-----.
+ *                       |                                        |                                |
+ *                       |--local-timeout--> Recipient 2.b. ------|--msg-reject-timeout------------|--> Sender 4.a.
+ *                       |                                        |                                |
+ *                       |--local-reject---> Recipient 2.c. ------|--msg-reject-recipientRejected--'
+ *                       |                                        |
+ *                       '--local-accept---> Recipient 2.d.       |
+ *                                            |                   |
+ * ---------------------------------------------------------------'
  *                                            |
  *                                       msg accept
  *                                            v
@@ -93,6 +95,12 @@
  * Accept transfer for item per API call to item server.
  * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.accept.
  * Show transfer success toast.
+ *
+ * Recipient 2.e.: User can't accept because of not having a backpack ->
+ * Delete item from controller memory.
+ * XMPP Message vp:transfer/x.type = SimpleItemTransferMsgType.reject,
+ * .cause = SimpleItemTransferRejectCause.recipientUnableToAccept.
+ *
  */
 import log = require('loglevel');
 import { ErrorWithData, Utils } from '../lib/Utils';
@@ -160,6 +168,7 @@ enum SimpleItemTransferCancelCause {
     senderCanceled = 'senderCanceled',
     recipientTimeout = 'recipientTimeout',
     recipientRejected = 'recipientRejected',
+    recipientUnableToAccept = 'recipientUnableToAccept',
 }
 
 const enum SimpleItemTransferSenderState {
@@ -248,7 +257,11 @@ export class SimpleItemTransferController
                 switch (msg.type) {
                     case SimpleItemTransferMsgType.offer: {
                         // Sender offered an item.
-                        this.recipientOnOfferMsg(<SimpleItemTransferMsgOffer>msg);
+                        if (Utils.isBackpackEnabled()) {
+                            this.recipientOnOfferMsg(<SimpleItemTransferMsgOffer>msg);
+                        } else {
+                            this.recipientUnableToAccept(<SimpleItemTransferMsgOffer>msg);
+                        }
                     } break;
                     case SimpleItemTransferMsgType.cancel: {
                         // Sender offered an item.
@@ -507,6 +520,14 @@ export class SimpleItemTransferController
                         this.showUserToast(toastType, translationMods, 'notice',
                             toastTitleId, toastTextId, toastDurationId, false);
                     } break;
+                    case SimpleItemTransferCancelCause.recipientUnableToAccept: {
+                        const toastType = 'SimpleItemTransferSenderRecipientUnableToAccept';
+                        const toastTitleId = 'SimpleItemTransfer.senderRecipientUnableToAcceptTitle';
+                        const toastTextId = 'SimpleItemTransfer.senderRecipientUnableToAcceptText';
+                        const toastDurationId = 'SimpleItemTransfer.errorToastDurationSec';
+                        this.showUserToast(toastType, translationMods, 'notice',
+                            toastTitleId, toastTextId, toastDurationId, false);
+                    } break;
                     default: {
                         const toastType = 'SimpleItemTransferSenderRecipientRejected';
                         const toastTitleId = 'SimpleItemTransfer.senderRecipientRejectedTitle';
@@ -679,6 +700,20 @@ export class SimpleItemTransferController
         } else {
             roomItem.showEffect('pulse');
         }
+    }
+
+    //--------------------------------------------------------------------------
+    // Steps: Recipient 2.e.
+
+    protected recipientUnableToAccept(msg: SimpleItemTransferMsgOffer): void
+    {
+        const item = msg.item;
+        const itemId = item[Pid.Id];
+        if (this.itemsReceiving[itemId]) {
+            return;
+        }
+        const record = new SimpleItemTransferRecipientRecord(msg.from, item, msg.transferToken);
+        this.sendMsg(record, SimpleItemTransferMsgType.reject, SimpleItemTransferCancelCause.recipientUnableToAccept);
     }
 
     //==========================================================================

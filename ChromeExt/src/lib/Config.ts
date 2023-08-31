@@ -676,6 +676,10 @@ export class Config
                     'SimpleItemTransfer.senderRecipientRejectedText':
                         '{recipient} rejected the item.\n' +
                         'You keep {item}.',
+                    'SimpleItemTransfer.senderRecipientUnableToAcceptTitle': 'Item Not Sent',
+                    'SimpleItemTransfer.senderRecipientUnableToAcceptText':
+                        '{recipient} has no backpack.\n' +
+                        'You keep {item}.',
                     'SimpleItemTransfer.senderSentCompleteTitle': 'Item Sent',
                     'SimpleItemTransfer.senderSentCompleteText': 'You sent {item} to {recipient}.',
                     'SimpleItemTransfer.recipientConfirmTimeoutTitle': 'Item Not Received',
@@ -998,6 +1002,10 @@ export class Config
                     'SimpleItemTransfer.senderRecipientRejectedTitle': 'Gegenstand nicht übergeben',
                     'SimpleItemTransfer.senderRecipientRejectedText':
                         '{recipient} hat den Gegenstand abgelehnt.\n' +
+                        'Du behältst {item}.',
+                    'SimpleItemTransfer.senderRecipientUnableToAcceptTitle': 'Gegenstand nicht übergeben',
+                    'SimpleItemTransfer.senderRecipientUnableToAcceptText':
+                        '{recipient} hat keinen Rucksack.\n' +
                         'Du behältst {item}.',
                     'SimpleItemTransfer.senderSentCompleteTitle': 'Gegenstand übergeben',
                     'SimpleItemTransfer.senderSentCompleteText': 'Du hast {item} an {recipient} übergeben.',
