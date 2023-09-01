@@ -1,6 +1,5 @@
 ﻿import { BackgroundApp } from './BackgroundApp';
 import log = require('loglevel');
-import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Memory } from '../lib/Memory';
@@ -38,14 +37,14 @@ export class BrowserActionGui
 
     constructor(app: BackgroundApp) {
         this.app = app;
-        this.hasBrowserActionFeature = (typeof chrome !== 'undefined') && !is.nil(chrome?.action);
+        this.hasBrowserActionFeature = (typeof chrome !== 'undefined') && !!(chrome.action ?? chrome.browserAction);
     }
 
     public onConfigUpdated(): void
     {
         if (this.hasBrowserActionFeature && !this.listenerRegistered) {
             this.listenerRegistered = true;
-            chrome.action.onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
+            (chrome.action ?? chrome.browserAction).onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
         }
     }
 
@@ -140,10 +139,10 @@ export class BrowserActionGui
         const title = this.app.translateText(titleKey);
 
         (async () => {
-            await chrome.action.setIcon({ tabId, path });
-            await chrome.action.setTitle({ tabId, title });
-            await chrome.action.setBadgeBackgroundColor({ tabId, color });
-            await chrome.action.setBadgeText({ tabId, text });
+            await (chrome.action ?? chrome.browserAction).setIcon({ tabId, path });
+            await (chrome.action ?? chrome.browserAction).setTitle({ tabId, title });
+            await (chrome.action ?? chrome.browserAction).setBadgeBackgroundColor({ tabId, color });
+            await (chrome.action ?? chrome.browserAction).setBadgeText({ tabId, text });
         })().catch(error => log.info('BrowserActionGui.updateBrowserActionGui', error));
 
         lastStats = {...stats};
