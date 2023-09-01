@@ -53,7 +53,7 @@ export class RoomPresenceManager
     private settingsAvatarUrl: string = ''
     private settingsPosX: number = 0
 
-    private isStopped: boolean = false
+    private isStopped: boolean = true
 
     private readonly app: BackgroundApp
     private readonly tabPresences: Map<number,TabRoomPresenceData> = new Map()
@@ -61,7 +61,16 @@ export class RoomPresenceManager
 
     public constructor(app: BackgroundApp) {
         this.app = app
-        this.onUserSettingsChanged()
+    }
+
+    public async startOrUpdateUserSettings(): Promise<void>
+    {
+        if (!this.isStopped) {
+            this.onUserSettingsChanged()
+            return
+        }
+        await this.onUserSettingsChangedAsync()
+        this.isStopped = false
     }
 
     public stop(): void
@@ -103,52 +112,56 @@ export class RoomPresenceManager
         if (this.isStopped) {
             return
         }
-        (async () => {
-            let settingsChanged: boolean = false
-            let delaySecs = as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1)
+        this.onUserSettingsChangedAsync()
+            .catch(error => log.info('RoomPresenceManager.onUserSettingsChanged: Getting settings failed!', { error }))
+    }
 
-            try {
-                this.lastWorkingNick = as.String(await Memory.getLocal(Utils.localStorageKey_LastWorkingNickname(), ''))
-            } catch (error) {
-                log.info('RoomPresenceManager.onUserSettingsChanged: Retrieval of last working nickname failed!', { error })
-            }
-            try {
-                const oldNick = this.settingsNick
-                const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''))
-                if (nickname.length === 0) {
-                    this.settingsNick = this.lastWorkingNick
-                    if (this.settingsNick.length === 0) {
-                        this.settingsNick = RandomNames.getRandomNickname()
-                    }
-                    await Memory.setLocal(Utils.localStorageKey_Nickname(), this.settingsNick)
-                } else {
-                    this.settingsNick = nickname
+    private async onUserSettingsChangedAsync(): Promise<void>
+    {
+        let settingsChanged: boolean = false
+        let delaySecs = as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1)
+
+        try {
+            this.lastWorkingNick = as.String(await Memory.getLocal(Utils.localStorageKey_LastWorkingNickname(), ''))
+        } catch (error) {
+            log.info('RoomPresenceManager.onUserSettingsChanged: Retrieval of last working nickname failed!', { error })
+        }
+        try {
+            const oldNick = this.settingsNick
+            const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''))
+            if (nickname.length === 0) {
+                this.settingsNick = this.lastWorkingNick
+                if (this.settingsNick.length === 0) {
+                    this.settingsNick = RandomNames.getRandomNickname()
                 }
-                settingsChanged = settingsChanged || this.settingsNick !== oldNick
-            } catch (error) {
-                log.info('RoomPresenceManager.onUserSettingsChanged: Nickname retrieval failed!', { error })
+                await Memory.setLocal(Utils.localStorageKey_Nickname(), this.settingsNick)
+            } else {
+                this.settingsNick = nickname
             }
+            settingsChanged = settingsChanged || this.settingsNick !== oldNick
+        } catch (error) {
+            log.info('RoomPresenceManager.onUserSettingsChanged: Nickname retrieval failed!', { error })
+        }
 
-            try {
-                const oldAvatarUrl = this.settingsAvatarUrl
-                this.settingsAvatarUrl = (await (new AvatarGallery()).getAvatarFromLocalMemory()).getConfigUrl()
-                settingsChanged = settingsChanged || this.settingsAvatarUrl !== oldAvatarUrl
-            } catch (error) {
-                log.info('RoomPresenceManager.onUserSettingsChanged: Avatar URL retrieval failed!', { error })
-            }
+        try {
+            const oldAvatarUrl = this.settingsAvatarUrl
+            this.settingsAvatarUrl = (await (new AvatarGallery()).getAvatarFromLocalMemory()).getConfigUrl()
+            settingsChanged = settingsChanged || this.settingsAvatarUrl !== oldAvatarUrl
+        } catch (error) {
+            log.info('RoomPresenceManager.onUserSettingsChanged: Avatar URL retrieval failed!', { error })
+        }
 
-            try {
-                this.settingsPosX = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), 100), 100)
-            } catch (error) {
-                log.info('RoomPresenceManager.onUserSettingsChanged: Position retrieval failed!', { error })
-            }
+        try {
+            this.settingsPosX = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), 100), 100)
+        } catch (error) {
+            log.info('RoomPresenceManager.onUserSettingsChanged: Position retrieval failed!', { error })
+        }
 
-            if (settingsChanged) {
-                for (const roomData of this.rooms.values()) {
-                    this.scheduleSendRoomPresence(roomData, delaySecs)
-                }
+        if (settingsChanged) {
+            for (const roomData of this.rooms.values()) {
+                this.scheduleSendRoomPresence(roomData, delaySecs)
             }
-        })().catch(error => log.info('RoomPresenceManager.onUserSettingsChanged: Settings retrieval!', { error }))
+        }
     }
 
     public onTabUnavailable(tabId: number): void

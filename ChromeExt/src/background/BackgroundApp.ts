@@ -242,9 +242,9 @@ export class BackgroundApp
             this.urlFetcher.setMaintenanceIntervalSecs(Config.get('httpCache.maintenanceIntervalSec', 60));
 
             this.browserActionGui.onConfigUpdated();
+            await this.roomPresenceManager.startOrUpdateUserSettings();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
-            this.roomPresenceManager.onUserSettingsChanged();
         })().catch(error => log.info(error));
     }
 
