@@ -613,6 +613,10 @@ export class ContentApp extends AppWithDom
                     this.handle_sendStateToBackground();
                 } break;
 
+                case ContentMessage.type_configChanged: {
+                    this.handle_configChanged();
+                } break;
+
                 case ContentMessage.type_recvStanza: {
                     this.handle_recvStanza(message.stanza);
                 } break;
@@ -677,6 +681,16 @@ export class ContentApp extends AppWithDom
         this.room?.sendStateToBackground();
         this.sendTabStatsToBackground();
         BackgroundMessage.sendIsGuiEnabled(this.isGuiEnabled).catch(error => this.onError(error));
+    }
+
+    handle_configChanged(): void
+    {
+        BackgroundMessage.getConfigTree(Config.onlineConfigName)
+            .then(config => Config.setOnlineTree(config))
+            .catch (error => log.debug(error.message));
+        BackgroundMessage.getConfigTree(Config.devConfigName)
+            .then(config => Config.setDevTree(config))
+            .catch (error => log.debug(error.message));
     }
 
     handle_recvStanza(jsStanza: unknown): void

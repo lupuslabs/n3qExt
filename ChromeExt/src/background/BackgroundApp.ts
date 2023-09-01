@@ -245,6 +245,7 @@ export class BackgroundApp
             await this.roomPresenceManager.startOrUpdateUserSettings();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
+            this.sendToAllTabs({ type: ContentMessage.type_configChanged });
         })().catch(error => log.info(error));
     }
 
@@ -1090,6 +1091,14 @@ export class BackgroundApp
         this.roomPresenceManager?.onUserSettingsChanged();
         this.chatHistoryStorage?.onUserConfigUpdate();
         this.sendToAllTabs({ type: ContentMessage.type_userSettingsChanged });
+
+        const oldDevConfig = Config.getDevTree();
+        Client.initDevConfig().then(() => {
+            if (Config.getDevTree() !== oldDevConfig) {
+                this.sendToAllTabs({ type: ContentMessage.type_configChanged });
+            }
+        });
+
         return new BackgroundSuccessResponse();
     }
 

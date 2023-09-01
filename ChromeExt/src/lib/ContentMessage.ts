@@ -24,6 +24,7 @@ export class BackpackRemoveItemData
 export class ContentMessage
 {
     static readonly type_sendStateToBackground = 'sendStateToBackground';
+    static readonly type_configChanged = 'configChanged';
     static readonly type_xmppIo = 'xmppIo';
     static readonly type_recvStanza = 'recvStanza';
     static readonly type_userSettingsChanged = 'userSettingsChanged';
