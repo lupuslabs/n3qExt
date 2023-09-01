@@ -81,6 +81,12 @@ export class Avatar implements IObserver
 
         this.pointerEventDispatcher.addDragStartListener(ev => {
             const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
+
+            // Work around wrongly applied CSP in Firefox on pages limiting img-src after cloning by unsetting and setting img src:
+            const dragImgElem = dragElem.querySelector('img');
+            dragImgElem.setAttribute('src', '');
+            dragImgElem.setAttribute('src', this.imageElem.getAttribute('src'));
+
             dragElem.classList.add('n3q-dragging');
             this.dragElem = dragElem;
             this.app.getDisplay()?.append(dragElem);
