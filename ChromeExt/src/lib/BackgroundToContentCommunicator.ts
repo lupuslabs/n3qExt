@@ -40,6 +40,7 @@ type TabData = {
     unsentRequests: UnsentRequest[],
     unsentResponses: UnsentResponse[],
     unreceivedResponses: Map<number,UnreceivedResponse>, // messageId => unreceivedResponseData
+    nextHeartbeatMs: number,
 }
 
 export class BackgroundToContentCommunicator
@@ -192,7 +193,7 @@ export class BackgroundToContentCommunicator
         }
 
         this.sendQueuedMessages(tabData)
-        this.callHeartbeatHandler(tabId)
+        this.callHeartbeatHandler(tabData)
         this.requestHandler(tabId, requestEnvelope.request)
             .catch(error => BackgroundErrorResponse.ofError(error, { request }))
             .then((response: BackgroundResponse) => {
@@ -315,7 +316,7 @@ export class BackgroundToContentCommunicator
         }
 
         this.sendQueuedMessages(tabData)
-        this.callHeartbeatHandler(tabId)
+        this.callHeartbeatHandler(tabData)
     }
 
     private onContentMessagePipeDisconnect(messagePipe: BackgroundMessagePipe): void
@@ -342,12 +343,21 @@ export class BackgroundToContentCommunicator
         }
     }
 
-    private callHeartbeatHandler(tabId: number): void
+    private callHeartbeatHandler(tabData: TabData): void
     {
+        // Rate-limit heartbeats for performance reasons and to reduce log spamming:
+        const nowMs = Date.now()
+        if (tabData.nextHeartbeatMs > nowMs) {
+            return;
+        }
+        const heartbeetIntervalSecs = Config.get('system.clientBackgroundKeepaliveMessageIntervalSec', 10)
+        const heartbeetIntervalMs = 1e3 / 2 * heartbeetIntervalSecs
+        tabData.nextHeartbeatMs = nowMs + heartbeetIntervalMs;
+
         try {
-            this.heartbeatHandler(tabId)
+            this.heartbeatHandler(tabData.tabId)
         } catch (error) {
-            log.info('ExtensionBackgroundToContentCommunicator.callHeartbeatHandler: heartbeatHandler failed!', { error, tabId })
+            log.info('ExtensionBackgroundToContentCommunicator.callHeartbeatHandler: heartbeatHandler failed!', { error, tabData })
         }
     }
 
@@ -364,6 +374,7 @@ export class BackgroundToContentCommunicator
                 unsentRequests: [],
                 unsentResponses: [],
                 unreceivedResponses: new Map(),
+                nextHeartbeatMs: 0,
             }
             this.tabs.set(tabId, tabData)
         }
