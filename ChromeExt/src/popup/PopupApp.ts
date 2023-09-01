@@ -142,14 +142,23 @@ export class PopupApp extends AppWithDom
         avatarGallery.append(right);
         group.append(avatarGallery);
 
-        avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+        const updateCurrentAvatar = currentAvatar => {
+            this.currentAvatar = currentAvatar;
+            const previewUrlRaw = currentAvatar.getPreviewUrl();
+            BackgroundMessage.fetchUrlAsDataUrl(previewUrlRaw, '')
+                .catch(error => previewUrlRaw)
+                .then(previewUrlData => {
+                    if (currentAvatar === this.currentAvatar) {
+                        avatarImgElem.src = previewUrlData;
+                    }
+                });
+        };
+        updateCurrentAvatar(this.currentAvatar);
         PointerEventDispatcher.makeOpaqueDispatcher(this, left).addUnmodifiedLeftClickListener(ev => {
-            this.currentAvatar = this.currentAvatar.getPreviousAvatar();
-            avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+            updateCurrentAvatar(this.currentAvatar.getPreviousAvatar());
         });
         PointerEventDispatcher.makeOpaqueDispatcher(this, right).addUnmodifiedLeftClickListener(ev => {
-            this.currentAvatar = this.currentAvatar.getNextAvatar();
-            avatarImgElem.src = this.currentAvatar.getPreviewUrl();
+            updateCurrentAvatar(this.currentAvatar.getNextAvatar());
         });
 
         const avatarGenUrl = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
