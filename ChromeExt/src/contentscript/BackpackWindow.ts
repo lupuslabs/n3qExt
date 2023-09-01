@@ -166,13 +166,4 @@ export class BackpackWindow extends Window<WindowOptions>
             this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', { itemId: itemId }));
         }
     }
-
-    itemVisibility(itemId: string, state: boolean)
-    {
-        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.itemVisibility', itemId, state); }
-        const item = this.items[itemId];
-        if (item) {
-            item.setVisibility(state);
-        }
-    }
 }

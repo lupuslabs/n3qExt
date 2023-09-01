@@ -1,9 +1,7 @@
 import * as imgDefaultItem from '../assets/DefaultItem.png';
 
-import * as $ from 'jquery';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
-import { ErrorWithData, Utils } from '../lib/Utils';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
@@ -17,10 +15,10 @@ import { PointerEventData } from '../lib/PointerEventData';
 
 export class BackpackItem
 {
-    private elem: HTMLDivElement;
-    private imageElem: HTMLDivElement;
-    private textElem: HTMLDivElement;
-    private coverElem: HTMLDivElement;
+    private elem: HTMLElement;
+    private imageElem: HTMLElement;
+    private textElem: HTMLElement;
+    private coverElem: HTMLElement;
     private pointerEventDispatcher: PointerEventDispatcher;
     private dragElem?: HTMLElement;
     private dragBadgeElem?: HTMLImageElement;
@@ -32,9 +30,9 @@ export class BackpackItem
     private imageHeight: number = 64;
     private info: BackpackItemInfo = null;
 
-    getElem(): HTMLElement { return this.elem; }
-    getProperties(): ItemProperties { return this.properties; }
-    getItemId(): string { return this.properties[Pid.Id]; }
+    public getElem(): HTMLElement { return this.elem; }
+    public getProperties(): ItemProperties { return this.properties; }
+    public getItemId(): string { return this.properties[Pid.Id]; }
 
     constructor(protected app: ContentApp, private backpackWindow: BackpackWindow, private itemId: string, private properties: ItemProperties)
     {
@@ -44,12 +42,12 @@ export class BackpackItem
         const x = pos.x;
         const y = pos.y;
 
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item" data-id="' + this.itemId + '" />').get(0);
-        this.imageElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-image" />').get(0);
+        this.elem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-backpack-item" data-id="${this.itemId}"></div>`);
+        this.imageElem = DomUtils.elemOfHtml('<img class="n3q-base n3q-backpack-item-image" src=""/>');
         this.elem.append(this.imageElem);
-        this.textElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-label" />').get(0);
+        this.textElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-item-label"></div>');
         this.elem.append(this.textElem);
-        this.coverElem = <HTMLDivElement>$('<div class="n3q-base n3q-backpack-item-cover" />').get(0);
+        this.coverElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-item-cover"></div>');
         this.elem.append(this.coverElem);
 
         this.setImage(imgDefaultItem);
@@ -84,47 +82,36 @@ export class BackpackItem
 
     }
 
-    getX(): number { return this.x; }
-    getY(): number { return this.y; }
-    getSize(): number { return this.imageWidth; }
-
-    match(pid: string, value: any)
-    {
-        if (this.properties[pid]) {
-            if (value) {
-                return as.String(this.properties[pid]) === as.String(value);
-            }
-        }
-        return false;
-    }
-
-    setImage(url: string): void
+    private setImage(url: string): void
     {
         this.app.fetchUrlAsDataUrl(url).then(dataUrl => this.setResolvedImageUrl(dataUrl));
     }
 
     private setResolvedImageUrl(url: string): void
     {
-        $(this.imageElem).css({ 'background-image': `url("${url}")` });
+        this.imageElem.setAttribute('src', url);
     }
 
-    setText(text: string): void
+    private setText(text: string): void
     {
-        $(this.textElem).text(text);
-        $(this.elem).attr('title', text);
+        this.textElem.innerText = text;
+        this.elem.setAttribute('title', text);
     }
 
-    getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }
-    getHeight(): number { return this.imageHeight + Config.get('backpack.itemBorderWidth', 2) * 2 + Config.get('backpack.itemLabelHeight', 12); }
+    private getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }
+    private getHeight(): number { return this.imageHeight + Config.get('backpack.itemBorderWidth', 2) * 2 + Config.get('backpack.itemLabelHeight', 12); }
 
-    setSize(imageWidth: number, imageHeight: number)
+    private setSize(imageWidth: number, imageHeight: number)
     {
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
-        $(this.elem).css({ 'width': this.getWidth() + 'px', 'height': this.getHeight() + 'px' });
+        this.imageElem.style.width = `${this.imageWidth}px`;
+        this.imageElem.style.height = `${this.imageHeight}px`;
+        this.elem.style.width = `${this.getWidth()}px`;
+        this.elem.style.height = `${this.getHeight()}px`;
     }
 
-    setPosition(x: number, y: number)
+    private setPosition(x: number, y: number)
     {
         // fix position
         // const bounds = {
@@ -141,26 +128,18 @@ export class BackpackItem
         this.x = x;
         this.y = y;
 
-        $(this.elem).css({ 'left': (x - this.getWidth() / 2) + 'px', 'top': (y - this.getHeight() / 2) + 'px' });
+        this.elem.style.left = `${x - this.getWidth() / 2}px`;
+        this.elem.style.top = `${y - this.getHeight() / 2}px`;
     }
 
-    getScrolledItemPos(x: number, y: number): { x: number, y: number }
+    private getScrolledItemPos(x: number, y: number): { x: number, y: number }
     {
         const scrollX = this.backpackWindow.getPane().scrollLeft;
         const scrollY = this.backpackWindow.getPane().scrollTop;
         return { x: x + scrollX, y: y + scrollY };
     }
 
-    setVisibility(state: boolean)
-    {
-        if (state) {
-            $(this.elem).stop().fadeIn('fast');
-        } else {
-            $(this.elem).hide();
-        }
-    }
-
-    toFront(): void
+    public toFront(): void
     {
         this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
     }
@@ -198,6 +177,12 @@ export class BackpackItem
     private onDragStart(ev: PointerEventData): void
     {
         const dragElem: HTMLElement = <HTMLElement>this.elem.cloneNode(true);
+
+        // Work around wrongly applied CSP in Firefox on pages limiting img-src after cloning by unsetting and setting img src:
+        const dragImgElem = dragElem.querySelector('img');
+        dragImgElem.setAttribute('src', '');
+        dragImgElem.setAttribute('src', this.imageElem.getAttribute('src'));
+
         dragElem.classList.add('n3q-dragging');
         this.dragElem = dragElem;
         this.app.getDisplay()?.append(dragElem);
@@ -298,19 +283,6 @@ export class BackpackItem
         return { x: x, y: y };
     }
 
-    private scrolledElemRect(elem: HTMLElement): { left: number, top: number, width: number, height: number }
-    {
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const panePosition = $(elem).offset();
-        const left = panePosition.left -= scrollLeft;
-        const top = panePosition.top -= scrollTop;
-        const width = $(elem).width();
-        const height = $(elem).height();
-
-        return { left: left, top: top, width: width, height: height };
-    }
-
     private isDraggablePositionInBackpack(ev: PointerEventData): boolean
     {
         return ev.dropTarget?.classList.contains('n3q-backpack-pane') === true;
@@ -319,7 +291,7 @@ export class BackpackItem
     private draggablePositionRelativeToPane(ev: PointerEventData): { x: number, y: number }
     {
         const pos = this.draggedItemCenter(ev);
-        const rect = this.scrolledElemRect(this.backpackWindow.getPane());
+        const rect = this.backpackWindow.getPane().getBoundingClientRect();
         return { 'x': pos.x - rect.left, 'y': pos.y - rect.top };
     }
 
@@ -332,7 +304,7 @@ export class BackpackItem
         return dragElemBottom > dropzoneTop;
     }
 
-    sendSetItemCoordinates(x: number, y: number): void
+    private sendSetItemCoordinates(x: number, y: number): void
     {
         (async () =>
         {
@@ -354,7 +326,7 @@ export class BackpackItem
         });
     }
 
-    rezItem(x: number)
+    public rezItem(x: number)
     {
         const room = this.app.getRoom();
         if (!is.nil(room)) {
@@ -362,21 +334,14 @@ export class BackpackItem
         }
     }
 
-    getPseudoRandomCoordinate(space: number, size: number, padding: number, id: string, mod: number): number
-    {
-        const min = size / 2 + padding;
-        const max = space - min;
-        return Utils.pseudoRandomInt(min, max, id, '', mod);
-    }
-
     // events
 
-    create()
+    public create()
     {
         this.applyProperties(this.properties);
     }
 
-    applyProperties(properties: ItemProperties)
+    public applyProperties(properties: ItemProperties)
     {
         if (properties[Pid.ImageUrl]) {
             this.setImage(properties[Pid.ImageUrl]);
@@ -398,9 +363,9 @@ export class BackpackItem
         }
 
         if (as.Bool(properties[Pid.IsRezzed])) {
-            $(this.elem).addClass('n3q-backpack-item-rezzed');
+            this.elem.classList.add('n3q-backpack-item-rezzed');
         } else {
-            $(this.elem).removeClass('n3q-backpack-item-rezzed');
+            this.elem.classList.remove('n3q-backpack-item-rezzed');
         }
 
         if (properties[Pid.InventoryX] && properties[Pid.InventoryY]) {
@@ -423,7 +388,7 @@ export class BackpackItem
         this.info?.update();
     }
 
-    destroy()
+    public destroy()
     {
         this.info?.close();
         this.elem.remove();

@@ -1401,7 +1401,7 @@ div#n3q-display {
                 font-weight: bold;
                 display: none;
             }
-            
+
             div.n3q-tutorialwindow-video-container {
                 background-color: #000;
                 position: absolute;
@@ -1410,12 +1410,12 @@ div#n3q-display {
                 right: 0;
                 bottom: 46px;
             }
-            
+
             div.n3q-tutorialwindow-video-container iframe {
                 width: 100%;
                 height: 100%;
             }
-            
+
             div.n3q-tutorialwindow-nav-buttons {
                 display: flex;
                 align-items: center;
@@ -1430,14 +1430,14 @@ div#n3q-display {
                 div.n3q-tutorialwindow-next {
                     padding: 10px 20px;
                 }
-                
+
                 div.n3q-tutorialwindow-dontshow-container {
                     margin-left: 10px;
 
                     input[type=checkbox] {
                         vertical-align: text-bottom;
                     }
-        
+
                     label {
                         margin-left: 4px;
                     }
@@ -1446,11 +1446,11 @@ div#n3q-display {
                 div.n3q-flex-filler {
                     flex-grow: 1;
                 }
-    
+
                 div.n3q-tutorialwindow-dots-container {
                     display: flex;
                     align-items: center;
-    
+
                     div.n3q-tutorialwindow-dot {
                         width: 20px;
                         height: 20px;
@@ -1458,14 +1458,14 @@ div#n3q-display {
                         border-radius: 50%;
                         margin: 0 5px;
                     }
-        
+
                     .n3q-tutorialwindow-dot:hover {
                         filter: brightness(0.9);
-                    }    
+                    }
 
                     .n3q-tutorialwindow-dot.n3q-active {
                         background-color: #888;
-                    }    
+                    }
                 }
             }
         }
@@ -1491,14 +1491,14 @@ div#n3q-display {
             background-image: url(../assets/icon.png);
             background-size: contain;
         }
-        
+
         div.n3q-aboutwindow-title {
             font-weight: bold;
         }
-        
+
         // div.n3q-aboutwindow-lines {
         // }
-        
+
         div.n3q-aboutwindow-line {
             margin: 8px 0;
         }
@@ -1509,11 +1509,11 @@ div#n3q-display {
         span.n3q-aboutwindow-label:after {
             content: ': ';
         }
-    
+
         span.n3q-aboutwindow-text {
             line-height: 16px;
         }
-    
+
         span.n3q-aboutwindow-text a {
             font-size: 14px;
         }
@@ -1698,11 +1698,6 @@ div#n3q-display {
             position: absolute;
             left: 2px;
             top: 2px;
-            right: 2px;
-            bottom: 16px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
             pointer-events: none !important;
         }
 
