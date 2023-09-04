@@ -116,6 +116,7 @@ export enum Pid
     BadgeIconY = 'BadgeIconY',
     BadgeIsTool = 'BadgeIsTool',
     BadgeToolOptions = 'BadgeToolOptions',
+    BadgeIsPrivate = 'BadgeIsPrivate',
     EditablePropertiesAspect = 'EditablePropertiesAspect',
     EditableProperties = 'EditableProperties',
 }
@@ -243,7 +244,7 @@ export class ItemProperties
     static getBadgeToolOptions(itemProperties: ItemProperties): { left: number, top: number, width: number, height: number }
     {
         let options = { left: 40, top: 40, width: 400, height: 400 };
-        try { 
+        try {
             const parsed = JSON.parse(itemProperties[Pid.BadgeToolOptions]);
             Object.assign(options, parsed);
         } catch {}

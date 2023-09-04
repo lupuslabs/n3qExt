@@ -146,8 +146,9 @@ export class BadgesController
         let lastProviderId: string|null = null;
         let lastInventoryId: string|null = null;
         for (const badgeDisplay of this.badges.values()) {
-            const {Provider, InventoryId, Id, Version} = badgeDisplay.getProperties();
-            if (as.Bool(badgeDisplay.getProperties()[Pid.BadgeIsTool])) {
+            const properties = badgeDisplay.getProperties();
+            const {Provider, InventoryId, Id, Version} = properties;
+            if (as.Bool(properties[Pid.BadgeIsPrivate])) {
                 // keep private
             } else {
                 const ids: string[] = [];
