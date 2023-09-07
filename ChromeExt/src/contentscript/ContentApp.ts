@@ -310,7 +310,7 @@ export class ContentApp extends AppWithDom
         const variant = Client.getVariant();
         // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
         document.querySelector('div#n3q')?.remove();
-        const shadowDomAnchorStyle = 'all: revert !important; width: 0 !important; height: 0 !important; overflow: hidden !important;';
+        const shadowDomAnchorStyle = 'all: revert !important; width: 0 !important; height: 0 !important; overflow: hidden !important; user-select: text !important;';
         const shadowDomAnchor = DomUtils.elemOfHtml(`<div id="n3q" data-client-variant="${variant}" style="${shadowDomAnchorStyle}"></div>`);
         this.shadowDomRoot = shadowDomAnchor.attachShadow({mode: 'closed'});
 
