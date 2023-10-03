@@ -137,7 +137,11 @@ export class ItemFramePopup
 
     public move(): void
     {
-        this.position(this.options.width, this.options.height, this.options.left, this.options.bottom);
+        const opts = this.options;
+        let { width, height } = this.windowElem.getBoundingClientRect();
+        width = width > 0 ? width : opts.width;
+        height = height > 0 ? height : opts.height;
+        this.position(width, height, opts.left, opts.bottom);
     }
 
     public toFront(layer?: undefined | number | string): void
