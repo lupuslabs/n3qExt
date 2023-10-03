@@ -770,7 +770,8 @@ export class RoomItem extends Entity
                 hidden: as.Bool(popupOptions.hidden),
                 width: width,
                 height: as.Int(popupOptions.height, 100),
-                left: as.Int(popupOptions.left, -width / 2),
+                left: as.Int(popupOptions.left),
+                leftAnchor: anchorElem === this.elem ? 'center' : 'left',
                 bottom: as.Int(popupOptions.bottom, 50),
                 closeButton: as.Bool(popupOptions.closeButton, true),
                 transparent: as.Bool(popupOptions.transparent, false),
@@ -808,7 +809,7 @@ export class RoomItem extends Entity
 
     public positionFrame(width: number, height: number, left: number, bottom: number, options: any = null): void
     {
-        this.framePopup?.position(width, height, left, bottom, options);
+        this.framePopup?.position(width, height, left, 'left', bottom, options);
         this.frameWindow?.position(width, height, left, bottom);
     }
 

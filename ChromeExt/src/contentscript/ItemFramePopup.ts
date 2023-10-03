@@ -5,6 +5,8 @@ import { ContentApp } from './ContentApp';
 import { DomUtils } from '../lib/DomUtils';
 import { Utils } from '../lib/Utils'
 
+export type ItemFramePopupLeftAnchor = 'left'|'center'
+
 export type ItemFramePopupOptions = {
     onClose?: () => void,
     closeIsHide: boolean,
@@ -16,6 +18,7 @@ export type ItemFramePopupOptions = {
     width: number,
     height: number,
     left: number,
+    leftAnchor: ItemFramePopupLeftAnchor,
     bottom: number,
     hidden: boolean,
 }
@@ -96,7 +99,7 @@ export class ItemFramePopup
             this.windowElem.append(this.iframeElem);
             this.app.translateElem(this.windowElem);
 
-            this.position(options.width, options.height, options.left, options.bottom);
+            this.position(options.width, options.height, options.left, options.leftAnchor, options.bottom);
 
             this.app.toFront(this.windowElem, ContentApp.LayerPopup)
 
@@ -106,7 +109,7 @@ export class ItemFramePopup
         }
     }
 
-    public position(width: number, height: number, left: number, bottom: number, options: any = null): void
+    public position(width: number, height: number, left: number, leftAnchor: ItemFramePopupLeftAnchor, bottom: number, options: any = null): void
     {
         if (this.isClosing || !this.windowElem) {
             return;
@@ -114,12 +117,16 @@ export class ItemFramePopup
         this.options.width = width;
         this.options.height = height;
         this.options.left = left;
+        this.options.leftAnchor = leftAnchor;
         this.options.bottom = bottom;
 
         const containerBox = this.containerElem.getBoundingClientRect();
         const anchorBox = this.options.elem.getBoundingClientRect();
 
-        const absLeft = anchorBox.left + left;
+        let absLeft = anchorBox.left + left;
+        if (this.options.leftAnchor === 'center') {
+            absLeft = absLeft + anchorBox.width / 2 - width / 2;
+        }
         const mangledGeometry = Utils.fitLeftBottomRect(
             { left: absLeft, bottom, width, height },
             containerBox.width, containerBox.height, 1, 1,
@@ -141,7 +148,7 @@ export class ItemFramePopup
         let { width, height } = this.windowElem.getBoundingClientRect();
         width = width > 0 ? width : opts.width;
         height = height > 0 ? height : opts.height;
-        this.position(width, height, opts.left, opts.bottom);
+        this.position(width, height, opts.left, opts.leftAnchor, opts.bottom);
     }
 
     public toFront(layer?: undefined | number | string): void
