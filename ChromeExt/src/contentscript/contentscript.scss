@@ -126,8 +126,13 @@ div#n3q-display {
         background-color: white;
     }
 
-    div.n3q-ghost {
-        opacity: 45% !important;
+    div.n3q-participant.n3q-ghost > * {
+        opacity: 45%;
+    }
+    div.n3q-participant.n3q-ghost > div.n3q-nickname {
+        opacity: 1;
+        backdrop-filter: blur(1px);
+        background-color: hsl(0deg 0% 100% / 60%);
     }
 
     // Components
