@@ -41,6 +41,7 @@ export class Avatar implements IObserver
     private currentAction: string = '';
     private isDefault: boolean = true;
     private speedPixelPerSec: number = 0;
+    private imageCache: Map<string,string> = new Map();
 
     isDefaultAvatar(): boolean { return this.isDefault; }
     getElem(): HTMLElement { return this.elem; }
@@ -276,13 +277,17 @@ export class Avatar implements IObserver
 
     private async getDataUrlImage(imageUrl: string): Promise<string>
     {
-        const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
-        try {
-            const data = await BackgroundMessage.fetchUrlAsText(proxiedUrl, '');
-            return data;
-        } catch (errorResponse) {
-            throw errorResponse;
+        let dataUrl = this.imageCache.get(imageUrl);
+        if (!dataUrl) {
+            const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
+            try {
+                dataUrl = await BackgroundMessage.fetchUrlAsText(proxiedUrl, '');
+            } catch (errorResponse) {
+                throw errorResponse;
+            }
+            this.imageCache.set(imageUrl, dataUrl);
         }
+        return dataUrl;
     }
 
     setImage(url: string): void
