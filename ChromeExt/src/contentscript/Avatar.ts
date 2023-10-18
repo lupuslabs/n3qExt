@@ -293,7 +293,15 @@ export class Avatar implements IObserver
 
     private async setImage(imageUrl: string): Promise<void>
     {
-        const dataUrlImage = await this.getDataUrlImage(imageUrl);
+        let dataUrlImage = await this.getDataUrlImage(imageUrl);
+        if (this.imageElem.getAttribute('src')?.startsWith(dataUrlImage)) {
+            return;
+        }
+
+        // Prevent browsers from syncing animations:
+        // https://stackoverflow.com/a/51488398/4017937
+        dataUrlImage = `${dataUrlImage}#${Math.random().toString()}`;
+
         this.imageElem.setAttribute('src', dataUrlImage);
     }
 
