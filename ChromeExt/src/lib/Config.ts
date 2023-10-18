@@ -37,6 +37,8 @@ export class Config
             itemServiceRpcUrl: 'http://localhost:5000/ItemApi',
         },
         system: {
+            displayProtectShadowDomAnchor: true,
+            displayPopupShadowDomAnchor: false,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
             windowContainerMarginTop: 3, // [px]

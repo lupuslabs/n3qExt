@@ -79,10 +79,15 @@ export class ContentApp extends AppWithDom
 {
     private readonly backgroundCommunicator: ContentToBackgroundCommunicator;
     private readonly urlFetcher: UrlFetcher;
+    private params: ContentAppParams;
     private isStopped: boolean = false;
     private debugUtils: DebugUtils;
-    private shadowDomRoot: ShadowRoot;
-    private display: HTMLElement;
+    private appendToMe: HTMLElement
+    private appendToMeDomObserver: null|MutationObserver;
+    private shadowDomAnchor: null|HTMLElement;
+    private shadowDomAnchorDomObserver: null|MutationObserver;
+    private shadowDomRoot: null|ShadowRoot;
+    private display: null|HTMLElement;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
     private pageUrl: string;
@@ -140,11 +145,12 @@ export class ContentApp extends AppWithDom
     }
 
     constructor(
-        protected appendToMe: HTMLElement,
+        appendToMe: HTMLElement,
         private messageHandler: ContentAppNotificationCallback,
         contentCommunicatorFactory: (requestHandler: ContentRequestHandler) => ContentToBackgroundCommunicator,
     ) {
         super();
+        this.appendToMe = appendToMe;
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
@@ -159,6 +165,7 @@ export class ContentApp extends AppWithDom
         if (params && params.avatar) { await Memory.setLocal(Utils.localStorageKey_Avatar(), params.avatar); }
         if (params && params.pageUrl) { this.presetPageUrl = params.pageUrl; }
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
+        this.params = params;
 
         this.backgroundCommunicator.start()
         BackgroundMessage.backgroundCommunicator = this.backgroundCommunicator;
@@ -237,7 +244,7 @@ export class ContentApp extends AppWithDom
         if (Panic.isOn) { return; }
 
         try {
-            await this.initDisplay(params);
+            await this.initDisplay();
         } catch (error) {
             log.debug(error.message);
             Panic.now();
@@ -305,15 +312,16 @@ export class ContentApp extends AppWithDom
         return isDisabled;
     }
 
-    private async initDisplay(params: ContentAppParams): Promise<void>
+    private async initDisplay(): Promise<void>
     {
-        const variant = Client.getVariant();
-        // document.querySelector(`div#n3q[data-client-variant=${variant}`)?.remove();
         document.querySelector('div#n3q')?.remove();
-        const shadowDomAnchorStyle = 'all: revert !important; width: 0 !important; height: 0 !important; overflow: hidden !important; user-select: text !important;';
-        const shadowDomAnchor = DomUtils.elemOfHtml(`<div id="n3q" data-client-variant="${variant}" style="${shadowDomAnchorStyle}"></div>`);
-        this.shadowDomRoot = shadowDomAnchor.attachShadow({mode: 'closed'});
 
+        this.appendToMeDomObserver = new MutationObserver(() => this.maintainDisplay());
+        this.shadowDomAnchorDomObserver = new MutationObserver(() => this.maintainDisplay());
+        this.shadowDomAnchor = DomUtils.elemOfHtml(`<div></div>`);
+        this.shadowDomRoot = this.shadowDomAnchor.attachShadow({mode: 'closed'});
+
+        const params = this.params;
         if (params.styleUrl) {
             const style = await this.urlFetcher.fetchAsText(params.styleUrl, '1')
             this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style>\n${style}\n</style>`));
@@ -322,7 +330,57 @@ export class ContentApp extends AppWithDom
         this.display = DomUtils.elemOfHtml('<div id="n3q-display"></div>');
         DomUtils.preventKeyboardEventBubbling(this.display);
         this.shadowDomRoot.append(this.display);
-        this.appendToMe.append(shadowDomAnchor);
+
+        const variant = Client.getVariant();
+        if (variant !== 'extension') {
+            this.appendToMe.append(this.shadowDomAnchor);
+        }
+
+        this.maintainDisplay();
+    }
+
+    private maintainDisplay()
+    {
+        this.appendToMeDomObserver?.disconnect();
+        this.shadowDomAnchorDomObserver?.disconnect();
+
+        if (!this.display) {
+            this.shadowDomAnchor?.remove();
+            return;
+        }
+        const variant = Client.getVariant();
+
+        // Move to end of body (prevent max z-index elements from rendering on top):
+        const lastChildOfParent = this.appendToMe.lastElementChild;
+        if (variant === 'extension' && lastChildOfParent !== this.shadowDomAnchor) {
+            this.appendToMe.append(this.shadowDomAnchor);
+        }
+
+        // Reset anchor:
+        for (const childElem of this.shadowDomAnchor.childNodes) {
+            childElem.remove();
+        }
+        const shadowDomAnchorStyle = 'all: revert !important; position: fixed !important; border: none !important; padding: 0 !important; width: 0 !important; height: 0 !important; overflow: hidden !important; z-index: 2147483647 !important; user-select: text !important;';
+        this.shadowDomAnchor.setAttribute('id', 'n3q');
+        this.shadowDomAnchor.setAttribute('data-client-variant', variant);
+        this.shadowDomAnchor.setAttribute('style', shadowDomAnchorStyle);
+
+        // Use experimental popover API to get on top of topmost page content:
+        // Feature disabled by default in Firefox (https://caniuse.com/mdn-api_htmlelement_showpopover).
+        if (Config.get('system.displayPopupShadowDomAnchor')) {
+            this.shadowDomAnchor.setAttribute('popover', 'manual');
+            try {
+                this.shadowDomAnchor['showPopover']?.();
+            } catch (error) {
+                // Already visible.
+            }
+        }
+
+        // React to DOM changes:
+        if (Config.get('system.displayProtectShadowDomAnchor')) {
+            this.appendToMeDomObserver.observe(this.appendToMe, { childList: true });
+            this.shadowDomAnchorDomObserver.observe(this.shadowDomAnchor, { childList: true, attributes: true });
+        }
     }
 
     sleep(statusMessage: string)
@@ -357,10 +415,8 @@ export class ContentApp extends AppWithDom
             this.room = null;
         }
 
-        // Remove our own top element
-        this.shadowDomRoot?.host?.remove(); // Only remove our own tag. Another instance might have started already.
-
         this.display = null;
+        this.maintainDisplay(); // does the ramainder of the cleanup.
     }
 
     private sendTabStatsTimeoutHandle?: number = null;

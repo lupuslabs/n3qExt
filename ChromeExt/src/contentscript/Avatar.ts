@@ -1,5 +1,4 @@
 import log = require('loglevel');
-import * as $ from 'jquery';
 import { is } from '../lib/is'
 import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
@@ -49,8 +48,8 @@ export class Avatar implements IObserver
 
     constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean, private isVisible: boolean)
     {
-        this.imageElem = <HTMLImageElement>$('<img class="n3q-base n3q-avatar-image" />').get(0);
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-avatar" />').get(0);
+        this.imageElem = <HTMLImageElement>DomUtils.elemOfHtml('<img class="n3q-base n3q-avatar-image" />');
+        this.elem = <HTMLDivElement>DomUtils.elemOfHtml('<div class="n3q-base n3q-avatar" />');
         this.elem.append(this.imageElem);
 
         // const url = 'https://www.virtual-presence.org/images/wolf.png';
@@ -204,23 +203,23 @@ export class Avatar implements IObserver
 
     addClass(className: string): void
     {
-        $(this.imageElem).addClass(className);
+        this.imageElem.classList.add(className);
     }
 
     static getEntityIdByAvatarElem(elem: HTMLElement): string
     {
         if (elem) {
-            const nick = $(elem).data('nick') ?? '';
+            const nick = elem.getAttribute('data-nick') ?? '';
             if (nick) { if (nick !== '') { return nick; } }
 
             const avatarElem = elem.parentElement;
             if (avatarElem) {
-                if ($(avatarElem).hasClass('n3q-entity')) {
-                    return $(avatarElem).data('nick');
+                if (avatarElem.classList.contains('n3q-entity')) {
+                    return avatarElem.getAttribute('data-nick');
                 } else {
                     const avatarEntityElem = avatarElem.parentElement;
                     if (avatarEntityElem) {
-                        return $(avatarEntityElem).data('nick');
+                        return avatarEntityElem.getAttribute('data-nick');
                     }
                 }
             }
@@ -239,9 +238,9 @@ export class Avatar implements IObserver
     hilite(on: boolean)
     {
         if (on) {
-            $(this.imageElem).addClass('n3q-avatar-hilite');
+            this.imageElem.classList.add('n3q-avatar-hilite');
         } else {
-            $(this.imageElem).removeClass('n3q-avatar-hilite');
+            this.imageElem.classList.remove('n3q-avatar-hilite');
         }
     }
 
@@ -307,7 +306,9 @@ export class Avatar implements IObserver
 
     setSize(width: number, height: number)
     {
-        $(this.elem).css({ 'width': width + 'px', 'height': height + 'px', 'left': -(width / 2) });
+        this.elem.style.width = `${width}px`;
+        this.elem.style.height = `${height}px`;
+        this.elem.style.left = `${-(width / 2)}px`;
     }
 
     setCondition(condition: string): void

@@ -116,8 +116,10 @@ export class Entity
             }
         }
         this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.elem.removeEventListener('transitioncancel', this.onMoveTransitionEndHandler);
         this.onMoveTransitionEndHandler = onMoveComplete;
         this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.elem.addEventListener('transitioncancel', this.onMoveTransitionEndHandler);
         DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
@@ -152,8 +154,10 @@ export class Entity
             }
         }
         this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.elem.removeEventListener('transitioncancel', this.onMoveTransitionEndHandler);
         this.onMoveTransitionEndHandler = onMoveComplete;
         this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
+        this.elem.addEventListener('transitioncancel', this.onMoveTransitionEndHandler);
         DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
     }
 
