@@ -17,6 +17,7 @@ export class Toast extends Window<ToastOptions>
     protected durationSec: number;
     protected iconType: string;
     protected bodyElem: HTMLElement;
+    private delayedTransitionTimeoutHandle: null|ReturnType<typeof setTimeout> = null;
 
     protected hasDontShowAgainOption = true;
     protected isModal = false;
@@ -159,6 +160,7 @@ export class Toast extends Window<ToastOptions>
     {
         super.onCapturePhasePointerDownInside(ev);
         this.status = 'pinned';
+        clearTimeout(this.delayedTransitionTimeoutHandle);
         DomUtils.stopElemTransition(this.contentElem, 'opacity', '1');
         DomUtils.stopElemTransition(this.windowElem, 'opacity', '1');
         DomUtils.stopElemTransition(this.windowElem, 'bottom');
@@ -166,42 +168,45 @@ export class Toast extends Window<ToastOptions>
 
     protected onAnimationDone(oldStatus: ToastStatus): void
     {
-        if (oldStatus === this.status) {
-            switch (oldStatus) {
-                case 'closed': {
-                    // Nothing to do.
-                } break;
-                case 'pinned': {
-                    // Nothing to do.
-                } break;
-                case 'fadingIn': {
-                    const newStatus = 'fadingOut';
-                    this.status = newStatus;
-                    const guard = () => this.status === newStatus;
-                    const onComplete = () => this.onAnimationDone(newStatus);
-                    if (this.isModal) {
-                        DomUtils.startElemTransition(this.contentElem, guard, {
-                            property: 'opacity',
-                            delay: `${this.durationSec}s`,
-                            duration: '600ms',
-                        }, '0', onComplete);
-                    } else {
+        if (oldStatus !== this.status) {
+            return;
+        }
+        clearTimeout(this.delayedTransitionTimeoutHandle);
+        switch (oldStatus) {
+            case 'closed': {
+                // Nothing to do.
+            } break;
+            case 'pinned': {
+                // Nothing to do.
+            } break;
+            case 'fadingIn': {
+                const newStatus = 'fadingOut';
+                this.status = newStatus;
+                const guard = () => this.status === newStatus;
+                const onComplete = () => this.onAnimationDone(newStatus);
+                if (this.isModal) {
+                    const playTransitionFun = () => DomUtils.startElemTransition(this.contentElem, guard, {
+                        property: 'opacity',
+                        duration: '600ms',
+                    }, '0', onComplete);
+                    this.delayedTransitionTimeoutHandle = setTimeout(playTransitionFun, 1e3 * this.durationSec);
+                } else {
+                    const playTransitionFun = () => {
                         DomUtils.startElemTransition(this.windowElem, guard, {
                             property: 'opacity',
-                            delay: `${this.durationSec}s`,
                             duration: '600ms',
                         }, '0', onComplete);
                         DomUtils.startElemTransition(this.windowElem, guard, {
                             property: 'bottom',
-                            delay: `${this.durationSec}s`,
                             duration: '600ms',
                         }, '-20px', onComplete);
-                    }
-                } break;
-                case 'fadingOut': {
-                    this.close();
-                } break;
-            }
+                    };
+                    this.delayedTransitionTimeoutHandle = setTimeout(playTransitionFun, 1e3 * this.durationSec);
+                }
+            } break;
+            case 'fadingOut': {
+                this.close();
+            } break;
         }
     }
 

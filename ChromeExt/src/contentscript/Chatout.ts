@@ -12,6 +12,9 @@ type BubbleStatus = 'pinned'|'fadingSlow'|'fadingFast'|'closed';
 type BubbleInfo = ChatUtils.ChatMessage & {
     bubbleElem: HTMLElement,
     bubbleStatus: BubbleStatus,
+    transitionStart: Date,
+    transitionDurationSecs: number,
+    transitionCancelHandler: () => void,
 };
 
 export class Chatout
@@ -57,15 +60,7 @@ export class Chatout
             return;
         }
 
-        const nowSecs = Date.now() / 1000;
-        const msgCreatedSecs = Utils.dateOfUtcString(chatMessage.timestamp).getTime() / 1000;
-        const startAgeCfgSecs = as.Float(Config.get('room.chatBubbleFadeStartSec'), 1.0);
-        const durationCfgSecs = as.Float(Config.get('room.chatBubbleFadeDurationSec'), 1.0);
-        const {delaySecs, durationSecs}
-            = this.calculateBubbleFadeout(nowSecs, msgCreatedSecs, startAgeCfgSecs, durationCfgSecs);
-        if (delaySecs + durationSecs > as.Float(Config.get('room.chatBubblesMinTimeRemSec'), 1.0)) {
-            this.makeBubble(chatMessage, delaySecs, durationSecs);
-        }
+        this.makeBubble(chatMessage);
 
         // Remove outdated closed bubbles and trigger fast fade out of slow fading bubbles to get under the limit:
         let bubblesCountingTowardsLimit = [];
@@ -111,12 +106,26 @@ export class Chatout
         this.containerElem.style.bottom = `${chatBubblesBottom}px`;
     }
 
-    protected makeBubble(chatMessage: ChatUtils.ChatMessage, fadeDelayMs: number, fadeDurationMs: number): void
+    protected makeBubble(chatMessage: ChatUtils.ChatMessage): void
     {
+        const startAgeSecs = as.Float(Config.get('room.chatBubbleFadeStartSec'), 1.0);
+        const durationSecs = as.Float(Config.get('room.chatBubbleFadeDurationSec'), 1.0);
+        const startTs = Utils.dateOfUtcString(chatMessage.timestamp).getTime() + 1e3 * startAgeSecs;
+        const endTs = startTs + 1e3 * durationSecs;
+        if (endTs - 1e3 * as.Float(Config.get('room.chatBubblesMinTimeRemSec'), 1.0) < Date.now()) {
+            return;
+        }
+
         const typeClass = 'n3q-chat-type-' + chatMessage.type;
         const bubbleElem = DomUtils.elemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);
-        const bubbleStatus: BubbleStatus = 'fadingSlow';
-        const bubble: BubbleInfo = {...chatMessage, bubbleElem, bubbleStatus};
+        const bubble: BubbleInfo = {
+            ...chatMessage,
+            bubbleElem,
+            bubbleStatus: 'fadingSlow',
+            transitionStart: new Date(startTs),
+            transitionDurationSecs: durationSecs,
+            transitionCancelHandler: () => this.fadeoutBubble(bubble),
+        };
         if (this.bubbles.has(bubble)) {
             return; // Duplicate detected - keep old version.
         }
@@ -135,10 +144,7 @@ export class Chatout
 
         this.bubbles.add(bubble);
         this.containerElem.appendChild(bubbleElem);
-
-        // Let element render, then start delayed fadeout:
-        this.fadeoutBubble(bubble, bubbleStatus, fadeDelayMs, fadeDurationMs);
-
+        this.fadeoutBubble(bubble);
     }
 
     protected closeBubble(bubble: BubbleInfo): void
@@ -160,9 +166,10 @@ export class Chatout
     {
         if (bubble.bubbleStatus !== 'closed') {
             const durationCfgSecs = as.Float(Config.get('room.chatBubbleFastFadeSec'), 1.0);
-            const {delaySecs, durationSecs}
-                = this.calculateBubbleFadeout(0, 0, 0.0, durationCfgSecs);
-            this.fadeoutBubble(bubble, 'fadingFast', delaySecs, durationSecs);
+            bubble.bubbleStatus = 'fadingFast';
+            bubble.transitionStart = new Date();
+            bubble.transitionDurationSecs = durationCfgSecs;
+            this.fadeoutBubble(bubble);
         }
     }
 
@@ -177,39 +184,37 @@ export class Chatout
         }
     }
 
-    protected fadeoutBubble(bubble: BubbleInfo, newStatus: BubbleStatus, delaySecs: number, durationSecs: number): void
+    protected fadeoutBubble(bubble: BubbleInfo): void
     {
-        if (bubble.bubbleStatus !== 'closed') {
-            bubble.bubbleStatus = newStatus;
-            const guard = () => bubble.bubbleStatus === newStatus;
-            DomUtils.execOnNextRenderComplete(() => {
-                if (guard()) {
-                    const transition = {
-                        property: 'opacity',
-                        delay: `${delaySecs}s`,
-                        duration: `${durationSecs}s`,
-                        timingFun: 'linear',
-                    };
-                    const onComplete = () => this.closeBubbleWithStatus(bubble, newStatus);
-                    DomUtils.startElemTransition(bubble.bubbleElem, guard, transition, '0.05', onComplete);
-                }
-            });
+        const bubbleElem = bubble.bubbleElem;
+        bubbleElem.removeEventListener('transitioncancel', bubble.transitionCancelHandler);
+        if (bubble.bubbleStatus !== 'fadingSlow' && bubble.bubbleStatus !== 'fadingFast') {
+            return;
         }
-    }
 
-    protected calculateBubbleFadeout(
-        nowSecs: number, bubbleCreatedSecs: number, startAgeSecs: number, durationSecs: number
-    ): {delaySecs: number, durationSecs: number} {
-        const startSecs = bubbleCreatedSecs + Math.max(0.0, startAgeSecs);
-        const delayRemSecs = startSecs - nowSecs;
-        if (delayRemSecs < 0.0) {
-            const durationRemSecs = durationSecs + delayRemSecs;
-            if (durationRemSecs < 0.0) {
-                return {delaySecs: 0.0, durationSecs: 0.0};
-            }
-            return {delaySecs: 0.0, durationSecs: durationRemSecs};
+        const currentStatus = bubble.bubbleStatus;
+        const delaySecs = (bubble.transitionStart.getTime() - Date.now()) / 1e3;
+        const durationSecs = bubble.transitionDurationSecs;
+        const fullDurationSecsRem = Math.max(0.0, durationSecs + delaySecs);
+        const durationSecsRem = Math.min(durationSecs, fullDurationSecsRem);
+        if (fullDurationSecsRem <= 0.0) {
+            this.closeBubble(bubble);
+            return;
         }
-        return {delaySecs: delayRemSecs, durationSecs};
+
+        const finalVal = 0.05;
+        const currentVal = finalVal + (1.0 - finalVal) / (durationSecs / durationSecsRem);
+        const transition = {
+            property: 'opacity',
+            delay: `${Math.max(0.0, delaySecs)}s`,
+            duration: `${durationSecsRem}s`,
+            timingFun: 'linear',
+        };
+        const guard = () => bubble.bubbleStatus === currentStatus;
+        const onComplete = () => this.closeBubbleWithStatus(bubble, currentStatus);
+        DomUtils.stopElemTransition(bubbleElem, 'opacity', currentVal.toString());
+        DomUtils.startElemTransition(bubbleElem, guard, transition, finalVal.toString(), onComplete);
+        bubbleElem.addEventListener('transitioncancel', bubble.transitionCancelHandler);
     }
 
     protected getMessageTimestampRemoveIfOlder(): string
