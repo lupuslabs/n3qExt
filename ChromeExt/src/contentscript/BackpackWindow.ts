@@ -108,31 +108,30 @@ export class BackpackWindow extends Window<WindowOptions>
     onShowItem(itemId: string, properties: ItemProperties)
     {
         if (as.Bool(properties[Pid.IsInvisible], false) && !Config.get('backpack.showInvisibleItems', false)) {
+            this.onHideItem(itemId);
             return;
         }
 
         let item = this.items[itemId];
-        if (!item) {
+        if (item) {
+            item.setProperties(properties);
+        } else {
             item = new BackpackItem(this.app, this, itemId, properties);
             this.items[itemId] = item;
         }
-        item.create();
+
         this.app.toFront(item.getElem(), ContentApp.LayerWindowContent);
     }
 
     onSetItem(itemId: string, properties: ItemProperties)
     {
-        if (this.items[itemId]) {
-            this.items[itemId].applyProperties(properties);
-        }
+        this.onShowItem(itemId, properties);
     }
 
     onHideItem(itemId: string)
     {
-        if (this.items[itemId]) {
-            this.items[itemId].destroy();
-            delete this.items[itemId];
-        }
+        this.items[itemId]?.destroy();
+        delete this.items[itemId];
     }
 
     rezItemSync(itemId: string, room: string, x: number, destination: string) { this.rezItem(itemId, room, x, destination); }

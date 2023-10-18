@@ -24,10 +24,11 @@ export class BackpackItem
     private dragBadgeElem?: HTMLImageElement;
     private dragIsRezable: boolean = false;
     private dragIsRezzed: boolean = false;
-    private x: number = 100;
-    private y: number = 100;
-    private imageWidth: number = 64;
-    private imageHeight: number = 64;
+    private x: number = -1;
+    private y: number = -1;
+    private imageUrl: string = '';
+    private imageWidth: number = -1;
+    private imageHeight: number = -1;
     private info: BackpackItemInfo = null;
 
     public getElem(): HTMLElement { return this.elem; }
@@ -36,12 +37,6 @@ export class BackpackItem
 
     constructor(protected app: ContentApp, private backpackWindow: BackpackWindow, private itemId: string, private properties: ItemProperties)
     {
-        const paneElem = this.backpackWindow.getPane();
-
-        const pos = this.backpackWindow.getFreeCoordinate();
-        const x = pos.x;
-        const y = pos.y;
-
         this.elem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-backpack-item" data-id="${this.itemId}"></div>`);
         this.imageElem = DomUtils.elemOfHtml('<img class="n3q-base n3q-backpack-item-image" src=""/>');
         this.elem.append(this.imageElem);
@@ -49,12 +44,7 @@ export class BackpackItem
         this.elem.append(this.textElem);
         this.coverElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-item-cover"></div>');
         this.elem.append(this.coverElem);
-
-        this.setImage(imgDefaultItem);
-        this.setSize(50, 50);
-        this.setPosition(x, y);
-
-        paneElem.append(this.elem);
+        this.backpackWindow.getPane().append(this.elem);
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem);
         this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-dropzone', 'n3q-badge');
@@ -80,20 +70,26 @@ export class BackpackItem
         this.pointerEventDispatcher.addDragDropListener(ev => this.onDragDrop(ev));
         this.pointerEventDispatcher.addDragEndListener(ev => this.onDragEnd());
 
+        this.setProperties(this.properties);
     }
 
-    private setImage(url: string): void
+    private applyImage(): void
     {
-        this.app.fetchUrlAsDataUrl(url).then(dataUrl => this.setResolvedImageUrl(dataUrl));
+        const imageUrl = this.properties[Pid.ImageUrl] ?? imgDefaultItem;
+        if (imageUrl !== this.imageUrl) {
+            this.imageUrl = imageUrl;
+            this.app.fetchUrlAsDataUrl(imageUrl)
+                .then(dataUrl => this.imageElem.setAttribute('src', dataUrl));
+        }
     }
 
-    private setResolvedImageUrl(url: string): void
+    private applyText(): void
     {
-        this.imageElem.setAttribute('src', url);
-    }
-
-    private setText(text: string): void
-    {
+        let text = as.String(this.properties[Pid.Label]);
+        const description = as.String(this.properties[Pid.Description]);
+        if (description !== '') {
+            text += (text !== '' ? ': ' : '') + description;
+        }
         this.textElem.innerText = text;
         this.elem.setAttribute('title', text);
     }
@@ -101,8 +97,19 @@ export class BackpackItem
     private getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2; }
     private getHeight(): number { return this.imageHeight + Config.get('backpack.itemBorderWidth', 2) * 2 + Config.get('backpack.itemLabelHeight', 12); }
 
-    private setSize(imageWidth: number, imageHeight: number)
+    private applySize()
     {
+        let imageWidth = as.Int(this.properties[Pid.Width], -1);
+        if (imageWidth < 1) {
+            imageWidth = 50;
+        }
+        let imageHeight = as.Int(this.properties[Pid.Height], -1);
+        if (imageHeight < 1) {
+            imageHeight = 50;
+        }
+        if (imageWidth === this.imageWidth && imageHeight === this.imageHeight) {
+            return;
+        }
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
         this.imageElem.style.width = `${this.imageWidth}px`;
@@ -111,8 +118,16 @@ export class BackpackItem
         this.elem.style.height = `${this.getHeight()}px`;
     }
 
-    private setPosition(x: number, y: number)
+    private applyPosition()
     {
+        let x = as.Int(this.properties[Pid.InventoryX], -1);
+        let y = as.Int(this.properties[Pid.InventoryY], -1);
+        if (x < 0 || y < 0) {
+            const pos = this.backpackWindow.getFreeCoordinate();
+            x = pos.x;
+            y = pos.y;
+        }
+
         // fix position
         // const bounds = {
         //     left: this.getWidth() / 2,
@@ -125,11 +140,13 @@ export class BackpackItem
         // if (y < bounds.top) { y = bounds.top; }
         // if (y > bounds.bottom) { y = bounds.bottom; }
 
-        this.x = x;
-        this.y = y;
+        if (x !== this.x || y !== this.y) {
+            this.x = x;
+            this.y = y;
 
-        this.elem.style.left = `${x - this.getWidth() / 2}px`;
-        this.elem.style.top = `${y - this.getHeight() / 2}px`;
+            this.elem.style.left = `${x - this.getWidth() / 2}px`;
+            this.elem.style.top = `${y - this.getHeight() / 2}px`;
+        }
     }
 
     private getScrolledItemPos(x: number, y: number): { x: number, y: number }
@@ -239,7 +256,9 @@ export class BackpackItem
             const pos = this.draggablePositionRelativeToPane(ev);
             if (pos.x !== this.x || pos.y !== this.y) {
                 const scrolledPos = this.getScrolledItemPos(pos.x, pos.y);
-                this.setPosition(scrolledPos.x, scrolledPos.y);
+                this.properties[Pid.InventoryX] = scrolledPos.x.toString();
+                this.properties[Pid.InventoryY] = scrolledPos.y.toString();
+                this.applyPosition();
                 this.sendSetItemCoordinates(scrolledPos.x, scrolledPos.y);
             }
             return;
@@ -336,54 +355,20 @@ export class BackpackItem
 
     // events
 
-    public create()
+    public setProperties(properties: ItemProperties)
     {
-        this.applyProperties(this.properties);
-    }
+        this.properties = properties;
 
-    public applyProperties(properties: ItemProperties)
-    {
-        if (properties[Pid.ImageUrl]) {
-            this.setImage(properties[Pid.ImageUrl]);
-        }
-
-        let text = as.String(properties[Pid.Label]);
-        const description = as.String(properties[Pid.Description]);
-        if (description !== '') {
-            text += (text !== '' ? ': ' : '') + description;
-        }
-        this.setText(text);
-
-        if (properties[Pid.Width] && properties[Pid.Height]) {
-            const imageWidth = as.Int(properties[Pid.Width], -1);
-            const imageHeight = as.Int(properties[Pid.Height], -1);
-            if (imageWidth > 0 && imageHeight > 0 && (imageWidth !== this.imageWidth || imageHeight !== this.imageHeight)) {
-                this.setSize(imageWidth, imageHeight);
-            }
-        }
+        this.applyText();
+        this.applyImage();
+        this.applySize();
+        this.applyPosition();
 
         if (as.Bool(properties[Pid.IsRezzed])) {
             this.elem.classList.add('n3q-backpack-item-rezzed');
         } else {
             this.elem.classList.remove('n3q-backpack-item-rezzed');
         }
-
-        if (properties[Pid.InventoryX] && properties[Pid.InventoryY]) {
-            let x = as.Int(properties[Pid.InventoryX], -1);
-            let y = as.Int(properties[Pid.InventoryY], -1);
-
-            if (x < 0 || y < 0) {
-                const pos = this.backpackWindow.getFreeCoordinate();
-                x = pos.x;
-                y = pos.y;
-            }
-
-            if (x !== this.x || y !== this.y) {
-                this.setPosition(x, y);
-            }
-        }
-
-        this.properties = properties;
 
         this.info?.update();
     }
