@@ -1,5 +1,6 @@
 import log = require('loglevel');
 import * as $ from 'jquery';
+import { is } from '../lib/is'
 import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
 import { Entity } from './Entity';
@@ -56,7 +57,7 @@ export class Avatar implements IObserver
         // const url = app.getAssetUrl('default-avatar.png');
         const url = entity.getDefaultAvatar();
         // this.elem.src = url;
-        this.setImage(url);
+        this.setImage(url).then(() => {});
         this.setSize(100, 100);
         this.isDefault = true;
 
@@ -251,7 +252,7 @@ export class Avatar implements IObserver
                 if (!this.hasAnimation) {
                     // let defaultSize = Config.get('room.defaultStillimageSize', 80);
                     // this.setSize(defaultSize, defaultSize);
-                    this.setImage(value);
+                    this.setImage(value).then(() => {});
                 }
             } break;
             case 'VCardImageUrl': {
@@ -260,7 +261,7 @@ export class Avatar implements IObserver
                     const minSize = maxSize * 0.75;
                     const slightlyRandomSize = Utils.randomInt(minSize, maxSize);
                     this.setSize(slightlyRandomSize, slightlyRandomSize);
-                    this.setImage(value);
+                    this.setImage(value).then(() => {});
                 }
             } break;
             case 'AnimationsUrl': {
@@ -277,31 +278,23 @@ export class Avatar implements IObserver
 
     private async getDataUrlImage(imageUrl: string): Promise<string>
     {
-        let dataUrl = this.imageCache.get(imageUrl);
-        if (!dataUrl) {
-            const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
-            try {
-                dataUrl = await BackgroundMessage.fetchUrlAsText(proxiedUrl, '');
-            } catch (errorResponse) {
-                throw errorResponse;
-            }
-            this.imageCache.set(imageUrl, dataUrl);
+        if (imageUrl.startsWith('data:')) {
+            return imageUrl;
         }
-        return dataUrl;
+        let dataUrlImage = this.imageCache.get(imageUrl);
+        if (is.string(dataUrlImage)) {
+            return dataUrlImage;
+        }
+        const proxiedUrl = as.String(Config.get('avatars.dataUrlProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/DataUrl?url={url}')).replace('{url}', encodeURIComponent(imageUrl));
+        dataUrlImage = await BackgroundMessage.fetchUrlAsText(proxiedUrl, '').catch(error => imageUrl);
+        this.imageCache.set(imageUrl, dataUrlImage);
+        return dataUrlImage;
     }
 
-    setImage(url: string): void
+    private async setImage(imageUrl: string): Promise<void>
     {
-        if (url.startsWith('data:')) {
-            this.imageElem.setAttribute('src', url);
-        } else {
-            this.getDataUrlImage(url)
-                .then(dataUrlImage => {
-                    this.imageElem.setAttribute('src', dataUrlImage);
-                }).catch (error => {
-                    this.imageElem.setAttribute('src', url);
-                });
-        }
+        const dataUrlImage = await this.getDataUrlImage(imageUrl);
+        this.imageElem.setAttribute('src', dataUrlImage);
     }
 
     setSize(width: number, height: number)
@@ -388,6 +381,9 @@ export class Avatar implements IObserver
             }
         }
 
+        clearTimeout(this.animationTimer);
+        this.animationTimer = undefined;
+
         if (group.startsWith('move')) {
             this.moveCnt++;
             //log.debug('##### startNextAnimation', group, this.moveCnt, Date.now() / 1000);
@@ -402,13 +398,9 @@ export class Avatar implements IObserver
         // dx means pixels per sec, not pixels per duration
         this.setSpeed(Math.abs(animation.dx));
 
-        this.setImage(animation.url);
-
-        if (this.animationTimer !== undefined) {
-            clearTimeout(this.animationTimer);
-            this.animationTimer = undefined;
-        }
-        this.animationTimer = window.setTimeout(() => { this.startNextAnimation(); }, durationSec * 1000);
+        this.setImage(animation.url).then(() => {
+            this.animationTimer = window.setTimeout(() => this.startNextAnimation(), durationSec * 1000);
+        });
     }
 
     hasSpeed(): boolean
