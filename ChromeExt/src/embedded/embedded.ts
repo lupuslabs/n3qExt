@@ -134,9 +134,9 @@ $(async function ()
                 if (contentRequestFromBackgroundHandler) {
                     return contentRequestFromBackgroundHandler(request);
                 }
-                return new BackgroundErrorResponse('error', 'ContentApp not ready yet.');
+                return new BackgroundErrorResponse('uninitialized', 'ContentApp not ready yet.');
             }
-            return new BackgroundErrorResponse('error', 'ContentApp not initialized yet.');
+            return new BackgroundErrorResponse('uninitialized', 'ContentApp not initialized yet.');
         };
         const messagePipeProvider = new SamethreadContentMessagePipeProvider(backgroundPipeProvider)
 

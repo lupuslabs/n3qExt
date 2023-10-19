@@ -43,7 +43,7 @@ $(async function ()
             if (contentRequestFromBackgroundHandler) {
                 return contentRequestFromBackgroundHandler(request)
             }
-            return new BackgroundErrorResponse('error', 'ContentApp not ready yet.')
+            return new BackgroundErrorResponse('uninitialized', 'ContentApp not ready yet.')
         }
         if (request.type === ContentMessage.type_extensionActiveChanged) {
             if (request.data?.['state']) {
@@ -51,7 +51,7 @@ $(async function ()
             }
             return new BackgroundSuccessResponse()
         }
-        return new BackgroundErrorResponse('error', 'ContentApp not initialized yet.')
+        return new BackgroundErrorResponse('uninitialized', 'ContentApp not initialized yet.')
     }
     const messagePipeProvider = new PortContentMessagePipeProvider()
     contentCommunicator = new ContentToBackgroundCommunicator(messagePipeProvider, onRequestFromBackground)

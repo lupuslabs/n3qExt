@@ -74,7 +74,7 @@ export class ContentToBackgroundCommunicator
     public async sendRequest<T extends BackgroundSuccessResponse>(request: BackgroundRequest, responseTimeoutSecs?: null|number): Promise<T|BackgroundErrorResponse>
     {
         if (!this.running) {
-            return new BackgroundErrorResponse('error', 'ExtensionContentToBackgroundCommunicator.sendRequest: Not started!')
+            return new BackgroundErrorResponse('uninitialized', 'ExtensionContentToBackgroundCommunicator.sendRequest: Not started!')
         }
 
         const requestId = this.makeMsgId()
@@ -85,16 +85,15 @@ export class ContentToBackgroundCommunicator
         }
         responseTimeoutSecs ??= Config.get('system.clientBackgroundResponseTimeoutSec', 10)
         const timeoutMs = 1e3 * responseTimeoutSecs
-        let responsePromiseResolver;
-        const responsePromise: Promise<T> = new Promise((resolve) => { responsePromiseResolver = resolve })
         const responseTimeoutHandler = () => this.onResponseTimeout(requestId)
-        const responseTimeoutHandle = window.setTimeout(responseTimeoutHandler, timeoutMs)
-        this.unreceivedResponses.set(requestId, {
-            requestEnvelope,
-            responseTimeoutHandle,
-            responsePromiseResolver,
+        const responsePromise: Promise<T> = new Promise((resolve) => {
+            this.unreceivedResponses.set(requestId, {
+                requestEnvelope,
+                responseTimeoutHandle: window.setTimeout(responseTimeoutHandler, timeoutMs),
+                responsePromiseResolver: <(response: BackgroundResponse) => void> resolve,
+            })
+            this.sendToBackground(requestEnvelope)
         })
-        this.sendToBackground(requestEnvelope)
 
         return responsePromise
     }

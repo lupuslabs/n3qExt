@@ -544,7 +544,7 @@ export class BackgroundApp
             this.readyAssertedCount++;
             return new BackgroundSuccessResponse();
         }
-        return new BackgroundErrorResponse('error', 'Not ready yet.');
+        return new BackgroundErrorResponse('uninitialized', 'Not ready yet.');
     }
 
     private async handle_getConfigTree(name: any): Promise<GetConfigTreeResponse>
@@ -1049,8 +1049,8 @@ export class BackgroundApp
     public sendToTab(tabId: number, message: { type: string, [p: string]: any }): void
     {
         this.contentCommunicator.sendRequest(tabId, message).then(response => {
-            if (!response.ok) {
-                const msg = `BackgroundApp.sendToTab: Request to tab ${tabId} failed.`
+            if (!response.ok && (<BackgroundErrorResponse>response).status !== 'uninitialized') {
+                const msg = `BackgroundApp.sendToTab: Request to tab ${tabId} failed!`
                 log.info(msg, { message, response });
             }
         });

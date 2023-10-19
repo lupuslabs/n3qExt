@@ -102,7 +102,7 @@ export class BackgroundToContentCommunicator
     {
         if (!this.running) {
             const msg = 'ExtensionBackgroundToContentCommunicator.sendRequest: Not started!'
-            return new BackgroundErrorResponse('error', msg, { request })
+            return new BackgroundErrorResponse('uninitialized', msg, { request })
         }
 
         const tabData = this.getOrCreateTabData(tabId)
@@ -111,19 +111,18 @@ export class BackgroundToContentCommunicator
             requestTimeMs: Date.now(),
             request: Utils.prepareValForMessage(request),
         }
-        let responsePromiseResolver;
-        const responsePromise: Promise<BackgroundResponse> = new Promise((resolve) => { responsePromiseResolver = resolve })
         const sendTimeoutSecs = Config.get('system.clientBackgroundSendTimeoutSec', 10)
         const sendTimeoutTimeMs = Date.now() - 1e3 * sendTimeoutSecs
         responseTimeoutSecs ??= Config.get('system.clientBackgroundResponseTimeoutSec', 10)
-        tabData.unsentRequests.push({
-            requestEnvelope,
-            responsePromiseResolver,
-            sendTimeoutTimeMs,
-            responseTimeoutSecs,
+        const responsePromise: Promise<BackgroundResponse> = new Promise((resolve) => {
+            tabData.unsentRequests.push({
+                requestEnvelope,
+                responsePromiseResolver: resolve,
+                sendTimeoutTimeMs,
+                responseTimeoutSecs,
+            })
+            this.sendQueuedMessages(tabData)
         })
-
-        this.sendQueuedMessages(tabData)
         return responsePromise
     }
 
@@ -182,7 +181,7 @@ export class BackgroundToContentCommunicator
 
         if (!this.running) {
             const msg = 'ExtensionBackgroundToContentCommunicator.handleRequestFromContent: Not started!'
-            const response = new BackgroundErrorResponse('error', msg, { request })
+            const response = new BackgroundErrorResponse('uninitialized', msg, { request })
             if (Utils.logChannel('clientBackgroundMessagePipeManagement', true)) {
                 const logMsg: string = `ExtensionBackgroundToContentCommunicator.handleRequestFromContent: Responding with error to message from tab ${tabId} because this is stopped.`
                 log.info(logMsg, { request: requestEnvelope, response })
@@ -255,7 +254,7 @@ export class BackgroundToContentCommunicator
         const tabId = tabData.tabId
         const nowMs = Date.now()
         const logDebugMsgs = Utils.logChannel('clientBackgroundMessagePipeManagement', true)
-        const cancelMsgStatus: string = forgettingTab ? 'canceled' : 'timeout'
+        const cancelMsgStatus: string = forgettingTab ? 'uninitialized' : 'timeout'
         const cancelMsgReason: string = forgettingTab ? 'forgetting tab.' : 'of timeout!'
         const unsentCancelGuard = function<T extends UnsentRequest|UnsentResponse>(unsentMessage: undefined|T): boolean {
             return unsentMessage && (forgettingTab || unsentMessage.sendTimeoutTimeMs < nowMs)
