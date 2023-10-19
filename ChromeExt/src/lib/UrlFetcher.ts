@@ -148,18 +148,20 @@ export class DirectUrlFetcher implements UrlFetcher
 
     private doFetch(key: string, url: string, version: string): void
     {
-        (async () => {
+        (async (): Promise<[boolean, Blob|Error]> => {
 
             let response: Response
             try {
                 response = await fetch(url, { cache: 'reload' })
             } catch (error) {
                 const msg = 'UrlFetcher.doFetch: fetch failed!'
-                throw new ErrorWithData(msg, { error })
+                return [false, ErrorWithData.ofError(error, msg)]
             }
             if (!response.ok) {
                 const msg = 'UrlFetcher.doFetch: Fetch resulted in error response.'
-                throw new ErrorWithData(msg, { response })
+                const error = new Error(msg)
+                error['data'] = { response }
+                return [false, error]
             }
 
             let blob: Blob
@@ -167,7 +169,7 @@ export class DirectUrlFetcher implements UrlFetcher
                 blob = await response.blob()
             } catch (error) {
                 const msg = 'UrlFetcher.doFetch: text retrieval failed!'
-                throw new ErrorWithData(msg, { response })
+                return [false, ErrorWithData.ofError(error, msg, { response })]
             }
 
             if (version !== '_nocache') {
@@ -178,16 +180,20 @@ export class DirectUrlFetcher implements UrlFetcher
             }
 
             if (Utils.logChannel('backgroundFetchUrl', true)) {
-                log.info('UrlFetcher.doFetch', 'response', url, blob.size, response)
+                log.info('UrlFetcher.doFetch', 'response', { url, blobSize: blob.size, response })
             }
-            for (const {resolve} of this.fetchRequests.get(key) ?? []) {
-                resolve(blob)
-            }
-
+            return [true, blob]
         })().catch(error => {
-            log.debug('UrlFetcher.doFetch', 'exception', url, error)
-            for (const {reject} of this.fetchRequests.get(key) ?? []) {
-                reject(error)
+            log.info('UrlFetcher.doFetch', 'exception', url, error)
+            return [true, error]
+        }).then(([logged, result]: [boolean, Blob|Error]) => {
+            if (result instanceof Blob) {
+                (this.fetchRequests.get(key) ?? []).forEach(({resolve}) => resolve(result))
+            } else {
+                if (!logged && Utils.logChannel('backgroundFetchUrl', true)) {
+                    log.info('UrlFetcher.doFetch', 'exception', { url, error: result })
+                }
+                (this.fetchRequests.get(key) ?? []).forEach(({reject}) => reject(result))
             }
         }).finally(() => {
             this.fetchRequests.delete(key)
