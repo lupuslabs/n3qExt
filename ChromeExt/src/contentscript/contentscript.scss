@@ -891,18 +891,28 @@ div#n3q-display {
 
     div.n3q-chatin {
         position: absolute;
-        left: -89px;
-        background-color: #FFFFFF;
-        //border: 1px solid #808080;
-        border-radius: 4px;
-        -webkit-border-radius: 5px;
-        white-space: nowrap;
-        padding: 0 2px 0 4px;
+        left: -70px;
         z-index: 5;
+        border-radius: 4px;
+        background-color: #FFFFFF;
+        padding: 4px 6px;
+        width: 128px;
+
+        display: flex;
+        align-items: center;
         pointer-events: auto;
 
-        input[type=text].n3q-text {
-            margin: 6px;
+        textarea {
+            flex: 1;
+            margin: 0;
+            outline: 0;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            height: 2.75em;
+            overflow: hidden;
+            resize: none;
+            overflow-wrap: break-word;
         }
     }
 
@@ -1839,7 +1849,6 @@ div#n3q-display {
         height: 26px;
         width: calc(100% - 35px);
         overflow: hidden;
-        white-space: nowrap;
         resize: none;
         border-width: 0;
         overflow-wrap: break-word;
@@ -1854,10 +1863,6 @@ div#n3q-display {
         width: 14px;
         height: 14px;
         box-shadow: none;
-    }
-
-    div.n3q-chatin div.n3q-button-sendchat {
-        margin-right: 4px;
     }
 
 }

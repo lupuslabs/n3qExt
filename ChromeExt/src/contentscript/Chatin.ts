@@ -17,7 +17,7 @@ export class Chatin
         this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatin n3q-shadow-small" data-translate="children" />');
         this.setVisibility(false);
 
-        this.chatinInputElem = <HTMLInputElement> DomUtils.elemOfHtml('<input type="text" class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin" />');
+        this.chatinInputElem = <HTMLInputElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
         this.chatinInputElem.addEventListener('keydown', ev => this.onKeydown(ev));
         this.elem.appendChild(this.chatinInputElem);
 

@@ -175,7 +175,7 @@ export class Config
             ],
             chatinDefaultBottom: 35,
             chatinDefaultBottomAvatarHeightFactors: [
-                { avatarHeightMin: 101, bottomOffset: 100 },
+                { avatarHeightMin: 101, bottomOffset: 90 },
                 { avatarHeightMin: 0, bottomOffset: 35 },
             ],
             maxChatAgeSec: 60,
