@@ -1065,7 +1065,8 @@ export class BackgroundApp
 
     private handle_contentCommunicatorHeartbeat(tabId: number): void
     {
-        const tabData = this.getTabData(tabId);
+        this.configUpdater.maintain() // Required to detect XMPP server change.
+
         if (!this.isReady) {
             if (Utils.logChannel('pingBackground', true)) {
                 log.info('BackgroundApp.handle_contentCommunicatorHeartbeat: Ignored because not ready yet.', { tabId });
@@ -1077,6 +1078,7 @@ export class BackgroundApp
         }
         this.xmppManager.onPing()
 
+        const tabData = this.getTabData(tabId);
         if (tabData.requestState) {
             tabData.requestState = false;
             this.sendToTab(tabId, { 'type': ContentMessage.type_sendStateToBackground });

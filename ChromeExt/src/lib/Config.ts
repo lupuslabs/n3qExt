@@ -30,7 +30,6 @@ export class Config
             serviceUrl: 'https://webex.vulcan.weblin.com/Config',
             apiUrl: 'https://webit.vulcan.weblin.com/rpc',
             updateIntervalSec: 83567,
-            checkUpdateIntervalSec: 123,
             clusterName: 'prod',
         },
         test: {

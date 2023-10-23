@@ -29,7 +29,7 @@ export class ConfigUpdater
         }
         this.loadLastOnlineConfig()
             .catch(error => log.info('ConfigUpdater.start: loadLastOnlineConfig failed!', error))
-            .then(() => this.updateLoop())
+            .then(() => this.maintain())
     }
 
     public stop(): void
@@ -61,15 +61,13 @@ export class ConfigUpdater
         }
     }
 
-    private updateLoop(): void
+    public maintain(): void
     {
         const intervalSec = as.Int(Config.get('config.updateIntervalSec', 86331))
         const secsSinceUpdate = (Date.now() - this.lastUpdateTimeMs) / 1000
         if (secsSinceUpdate > intervalSec) {
             this.getUpdate()
         }
-        const updateCheckIntervalSec = as.Float(Config.get('config.checkUpdateIntervalSec'), 61)
-        this.updateCheckTimer = setTimeout(() => this.updateLoop(), updateCheckIntervalSec * 1000)
     }
 
     private getUpdate(): void
