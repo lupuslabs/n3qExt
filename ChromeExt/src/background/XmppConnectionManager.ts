@@ -254,7 +254,7 @@ export class XmppConnectionManager
         const toJid = as.String(stanza.attrs.to)
         let isConnectionPresence = false
         try {
-            isConnectionPresence = stanza.name === 'presence' && (!toJid.length || jid(toJid).getResource() === this.resource)
+            isConnectionPresence = stanza.name === 'presence' && toJid.length === 0
         } catch (error) {
             // Ignore toJid filled but unparsable.
         }
