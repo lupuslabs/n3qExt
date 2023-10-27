@@ -1,6 +1,5 @@
 import { as } from '../lib/as';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { BackpackSetItemData, ContentMessage } from '../lib/ContentMessage';
 import { BackgroundApp } from './BackgroundApp';
 import { Backpack } from './Backpack';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
@@ -22,7 +21,7 @@ export class Item
 
         if (changed) {
             if (!options.skipContentNotification) {
-                this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackSetItem, data: new BackpackSetItemData(this.itemId, props) });
+                this.backpack.sendUpdateToAllTabs([], [props]);
             }
 
             if (!options.skipPresenceUpdate) {

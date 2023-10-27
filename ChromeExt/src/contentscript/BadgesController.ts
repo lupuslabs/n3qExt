@@ -67,33 +67,14 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // API for ContentApp
 
-    public onBackpackShowItem(item: ItemProperties): void
+    public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[]): void
     {
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackShowItem', {item});
+            log.info('BadgesDisplay.onBackpackUpdate', { itemsShowOrSet, itemsHide });
         }
         if (this.isLocal) {
-            this.updateBadgeFromFullItem(this.makeBadgeKey(item), item);
-        }
-    }
-
-    public onBackpackSetItem(item: ItemProperties): void
-    {
-        if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackSetItem', {item});
-        }
-        if (this.isLocal) {
-            this.updateBadgeFromFullItem(this.makeBadgeKey(item), item);
-        }
-    }
-
-    public onBackpackHideItem(item: ItemProperties): void
-    {
-        if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackHideItem', {item});
-        }
-        if (this.isLocal) {
-            this.removeBadge(this.makeBadgeKey(item));
+            itemsHide.forEach(item => this.removeBadge(this.makeBadgeKey(item)));
+            itemsShowOrSet.forEach(item => this.updateBadgeFromFullItem(this.makeBadgeKey(item), item));
         }
     }
 
@@ -460,18 +441,12 @@ export class BadgesController
 
     private updateBadgesFromBackpack(): void
     {
-        BackgroundMessage.getBackpackState().then(response => {
-            if (!response?.ok) {
-                throw new ErrorWithData('BackgroundMessage.getBackpackState failed!', {response});
-            }
-            this.updateBadgesFromFullItems(Object.values<ItemProperties>(response.items));
-            if (this.debugLogEnabled) {
-                log.info('BadgesDisplay.updateBadgesFromBackpack: Done.');
-            }
-        }).catch(error => {
-            const msg = 'BadgesDisplay.updateBadgesFromBackpack: Update failed!';
-            this.app.onError(new ErrorWithData(msg, {error}));
-        });
+        const backpackWindow = this.app.getBackpackWindow();
+        if (backpackWindow) {
+            this.onBackpackUpdate([], backpackWindow.getItemsAsProperties());
+        } else {
+            BackgroundMessage.requestBackpackState().catch(ex => this.app.onError(ex));
+        }
     }
 
     private removeBadge(badgeKey: string): void

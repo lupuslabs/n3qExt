@@ -39,6 +39,8 @@ export class LocalStorageItemProvider implements IItemProvider
 
     private async loadLocalItems()
     {
+        const itemsShowOrSet: ItemProperties[] = [];
+
         let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
         if (itemIds == null || !Array.isArray(itemIds)) {
             log.warn('Backpack.loadLocalItems', this.getBackpackIdsKey(), 'not an array');
@@ -54,14 +56,17 @@ export class LocalStorageItemProvider implements IItemProvider
                 continue;
             }
 
-            let item = await this.backpack.createRepositoryItem(itemId, props);
+            let item = this.backpack.createRepositoryItem(itemId, props);
             if (item.isRezzed()) {
                 let roomJid = item.getProperties()[Pid.RezzedLocation];
                 if (roomJid) {
                     this.backpack.addToRoom(itemId, roomJid);
                 }
             }
+            itemsShowOrSet.push(props);
         }
+
+        this.backpack.sendUpdateToAllTabs([], itemsShowOrSet);
     }
 
     async persistentWriteItem(itemId: string): Promise<void>

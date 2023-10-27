@@ -19,7 +19,7 @@ import { Memory } from '../lib/Memory';
 import { AvatarGallery } from '../lib/AvatarGallery';
 import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
-import { ContentMessage } from '../lib/ContentMessage';
+import { BackpackUpdateData, ContentMessage } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
@@ -702,20 +702,12 @@ export class ContentApp extends AppWithDom
                     this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
                 } break;
 
-                case ContentMessage.type_onBackpackShowItem: {
-                    const properties = message.data.properties;
-                    this.backpackWindow?.onShowItem(message.data.id, properties);
-                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackShowItem(properties);
-                } break;
-                case ContentMessage.type_onBackpackSetItem: {
-                    const properties = message.data.properties;
-                    this.backpackWindow?.onSetItem(message.data.id, properties);
-                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackSetItem(properties);
-                } break;
-                case ContentMessage.type_onBackpackHideItem: {
-                    const properties = message.data.properties;
-                    this.backpackWindow?.onHideItem(message.data.id);
-                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackHideItem(properties);
+                case ContentMessage.type_onBackpackUpdate: {
+                    const updateData = <BackpackUpdateData> message.data;
+                    const itemsHide = updateData.itemsHide;
+                    const itemsShowOrSet = updateData.itemsShowOrSet;
+                    this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
+                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
                 } break;
 
                 case ContentMessage.type_chatMessagePersisted: {

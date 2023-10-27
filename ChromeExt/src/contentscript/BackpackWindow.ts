@@ -5,7 +5,6 @@ import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
 import { BackpackItem as BackpackItem } from './BackpackItem';
@@ -33,6 +32,11 @@ export class BackpackWindow extends Window<WindowOptions>
     getItem(itemId: string) { return this.items[itemId]; }
     getItems(): { [id: string]: BackpackItem; } { return this.items; }
 
+    public getItemsAsProperties(): ItemProperties[]
+    {
+        return Object.values(this.items).map(item => item.getProperties());
+    }
+
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
@@ -52,17 +56,7 @@ export class BackpackWindow extends Window<WindowOptions>
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.paneElem);
         this.contentElem.append(this.paneElem);
 
-        try {
-            const response = await BackgroundMessage.getBackpackState();
-            if (response && response.ok) {
-                this.populate(response.items);
-            }
-
-            // let pos = this.getFreeCoordinate();
-
-        } catch (ex) {
-            this.app.onError(ex);
-        }
+        BackgroundMessage.requestBackpackState().catch(ex => this.app.onError(ex));
     }
 
     protected onBeforeClose(): void
@@ -98,20 +92,24 @@ export class BackpackWindow extends Window<WindowOptions>
         // return f.getFreeCoordinate(this.paneElem);
     }
 
-    populate(items: { [id: string]: ItemProperties; })
+    public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
     {
-        for (const id in items) {
-            this.onShowItem(id, items[id]);
-        }
+        itemsHide.forEach(item => this.onHideItem(item));
+        itemsShowOrSet.forEach(item => this.onShowOrSetItem(item));
     }
 
-    onShowItem(itemId: string, properties: ItemProperties)
+    private onShowOrSetItem(properties: ItemProperties)
     {
-        if (as.Bool(properties[Pid.IsInvisible], false) && !Config.get('backpack.showInvisibleItems', false)) {
-            this.onHideItem(itemId);
-            return;
+        const isInvisible = as.Bool(properties[Pid.IsInvisible], false);
+        if (isInvisible) {
+            const showInvisibleItems = Config.get('backpack.showInvisibleItems', false);
+            if (!showInvisibleItems) {
+                this.onHideItem(properties);
+                return;
+            }
         }
 
+        const itemId = properties[Pid.Id];
         let item = this.items[itemId];
         if (item) {
             item.setProperties(properties);
@@ -123,13 +121,9 @@ export class BackpackWindow extends Window<WindowOptions>
         this.app.toFront(item.getElem(), ContentApp.LayerWindowContent);
     }
 
-    onSetItem(itemId: string, properties: ItemProperties)
+    private onHideItem(properties: ItemProperties)
     {
-        this.onShowItem(itemId, properties);
-    }
-
-    onHideItem(itemId: string)
-    {
+        const itemId = properties[Pid.Id];
         this.items[itemId]?.destroy();
         delete this.items[itemId];
     }

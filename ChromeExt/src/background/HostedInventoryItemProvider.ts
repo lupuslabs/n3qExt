@@ -293,13 +293,16 @@ export namespace HostedInventoryItemProvider
             if (!this.running) {
                 return;
             }
+            const itemsShowOrSet: ItemProperties[] = [];
             for (let itemId in multiItemProperties) {
                 const props = multiItemProperties[itemId];
                 const item = this.backpack.createRepositoryItem(itemId, props);
                 if (item.isRezzed()) {
                     this.backpack.addToRoom(itemId, item.getProperties()[Pid.RezzedLocation]);
                 }
+                itemsShowOrSet.push(item.getProperties());
             }
+            this.backpack.sendUpdateToAllTabs([], itemsShowOrSet);
         }
 
         async loadWeb3Items(): Promise<void>

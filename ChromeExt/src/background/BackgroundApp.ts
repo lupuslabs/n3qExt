@@ -12,7 +12,6 @@ import {
     BackgroundSuccessResponse,
     FindBackpackItemPropertiesResponse,
     GetBackpackItemPropertiesResponse,
-    GetBackpackStateResponse,
     IsBackpackItemResponse,
     ExecuteBackpackItemActionResponse,
     CreateBackpackItemResponse,
@@ -411,8 +410,8 @@ export class BackgroundApp
                 return this.handle_clientNotification(tabId, request.target, request.data);
             } break;
 
-            case BackgroundMessage.getBackpackState.name: {
-                return this.handle_getBackpackState();
+            case BackgroundMessage.requestBackpackState.name: {
+                return this.handle_requestBackpackState(tabId);
             } break;
 
             case BackgroundMessage.backpackIsItemStillInRepo.name: {
@@ -560,13 +559,14 @@ export class BackgroundApp
         return new GetConfigTreeResponse(Config.getOnlineTree());
     }
 
-    private handle_getBackpackState(): GetBackpackStateResponse
+    private handle_requestBackpackState(tabId: number): BackgroundSuccessResponse
     {
         if (!Utils.isBackpackEnabled()) {
             throw new ItemException(ItemException.Fact.NoItemsReceived, ItemException.Reason.ItemsNotAvailable);
         }
-        const items = this.backpack.getItems();
-        return new GetBackpackStateResponse(items);
+        const items = Object.values(this.backpack.getItems());
+        this.backpack.sendUpdateToTab(tabId, [], items);
+        return new BackgroundSuccessResponse();
     }
 
     private async handle_backpackIsItemStillInRepo(itemId: string): Promise<BackpackIsItemStillInRepoResponse>

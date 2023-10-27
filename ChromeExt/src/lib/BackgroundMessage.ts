@@ -133,11 +133,6 @@ export class FetchUrlDataResponse extends BackgroundSuccessResponse
     constructor(public data: any) { super(); }
 }
 
-export class GetBackpackStateResponse extends BackgroundSuccessResponse
-{
-    constructor(public items: { [id: string]: ItemProperties; }) { super(); }
-}
-
 export class BackpackIsItemStillInRepoResponse extends BackgroundSuccessResponse
 {
     constructor(public result: boolean) { super(); }
@@ -368,11 +363,10 @@ export class BackgroundMessage
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 
-    static async getBackpackState(): Promise<GetBackpackStateResponse>
+    static async requestBackpackState(): Promise<void>
     {
-        const request = { type: BackgroundMessage.getBackpackState.name }
-        const response = await BackgroundMessage.sendMessageCheckOk<GetBackpackStateResponse>(request)
-        return response
+        const request = { type: BackgroundMessage.requestBackpackState.name }
+        await BackgroundMessage.sendMessageCheckOk(request)
     }
 
     static async backpackIsItemStillInRepo(itemId: string): Promise<boolean>

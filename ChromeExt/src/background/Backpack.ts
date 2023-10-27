@@ -4,7 +4,7 @@ import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { BackpackShowItemData, BackpackRemoveItemData, ContentMessage } from '../lib/ContentMessage';
+import { ContentMessage, BackpackUpdateData } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundApp } from './BackgroundApp';
@@ -86,14 +86,30 @@ export class Backpack
 
     sendAddItemToAllTabs(itemId: string)
     {
-        const data = new BackpackShowItemData(itemId, this.getItem(itemId).getProperties());
-        this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackShowItem, data });
+        this.sendUpdateToAllTabs([], [this.getItem(itemId).getProperties()]);
     }
 
     sendRemoveItemToAllTabs(itemId: string)
     {
-        const data = new BackpackRemoveItemData(itemId, this.getItem(itemId).getProperties());
-        this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackHideItem, data });
+        this.sendUpdateToAllTabs([this.getItem(itemId).getProperties()], []);
+    }
+
+    public sendUpdateToAllTabs(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
+    {
+        if (!itemsShowOrSet.length && !itemsHide.length) {
+            return;
+        }
+        const data = new BackpackUpdateData(itemsHide, itemsShowOrSet);
+        this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackUpdate, data });
+    }
+
+    public sendUpdateToTab(tabId: number, itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
+    {
+        if (!itemsShowOrSet.length && !itemsHide.length) {
+            return;
+        }
+        const data = new BackpackUpdateData(itemsHide, itemsShowOrSet);
+        this.app.sendToTab(tabId, { type: ContentMessage.type_onBackpackUpdate, data });
     }
 
     public maintain(loadItems: boolean): void
