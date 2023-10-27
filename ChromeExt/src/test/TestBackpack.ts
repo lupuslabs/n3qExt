@@ -34,9 +34,9 @@ export class TestBackpack
             return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, requestHandler)
         }
         let ba = new BackgroundApp(communicatorMaker);
-        ba.assertThatThereIsAUserId();
+        await ba.assertThatThereIsAUserId();
         let rep = new Backpack(ba);
-        await rep.init(true);
+        rep.maintain(true);
 
         await rep.addItem('item1', { 'Provider': 'nine3q', 'Test1': 'Value1', 'Test2': '41', 'Test3': 'x', 'Test4': 'y' }, { skipPersistentStorage: true });
         await rep.addItem('item2', { 'Provider': 'nine3q', 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });

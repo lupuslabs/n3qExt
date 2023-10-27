@@ -21,6 +21,9 @@ export class LocalStorageItemProvider implements IItemProvider
     static BackpackPropsPrefix = 'BackpackItem-';
 
     private rpcClient: RpcClient = new RpcClient();
+    private itemsLoading: boolean = false;
+    private itemsLoaded: boolean = false;
+    private running: boolean = true;
 
     constructor(private backpack: Backpack, private id, private providerDescription: any)
     {
@@ -364,8 +367,26 @@ export class LocalStorageItemProvider implements IItemProvider
 
     // API
 
-    async init(): Promise<void>
+    stop(): void
     {
+        this.running = false;
+    }
+
+    maintain(): void
+    {
+        if (!this.running) {
+            return;
+        }
+        if (!this.itemsLoaded && !this.itemsLoading) {
+            this.itemsLoading = true;
+            this.loadItems()
+                .then(() => {
+                    this.itemsLoaded = true;
+                }).catch(error => log.info('loadItems failed!', error))
+                .finally(() => {
+                    this.itemsLoading = false;
+                });
+        }
     }
 
     async loadItems(): Promise<void>

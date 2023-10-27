@@ -6,7 +6,6 @@ import * as ltx from 'ltx'
 import * as jid from '@xmpp/jid'
 import { Config } from '../lib/Config'
 import { Memory } from '../lib/Memory'
-import { Backpack } from './Backpack'
 import { RandomNames } from '../lib/RandomNames'
 import { BackgroundApp } from './BackgroundApp'
 import { ContentMessage } from '../lib/ContentMessage'
@@ -229,7 +228,7 @@ export class RoomPresenceManager
         }
 
         try {
-            roomPresenceStanza = this.app.getBackpack()?.stanzaInFilter(roomPresenceStanza) ?? roomPresenceStanza
+            roomPresenceStanza = this.app.getBackpack().stanzaInFilter(roomPresenceStanza)
         } catch (error) {
             log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Backpack.stanzaInFilter failed!', { error, roomPresenceStanza, roomData })
             // Keep going with unfiltered presence.
@@ -512,11 +511,11 @@ export class RoomPresenceManager
             nickname: ownResourceInRoom,
         }
 
-        const backpack: null|Backpack = Utils.isBackpackEnabled() ? this.app.getBackpack() : null
+        const backpack = this.app.getBackpack()
 
         let avatarUrl = this.settingsAvatarUrl
         const avatarItemProps = { [Pid.AvatarAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
-        const itemAvatarUrl = as.String(backpack?.getFirstFilteredItemsPropertyValue(avatarItemProps, Pid.AvatarAnimationsUrl))
+        const itemAvatarUrl = as.String(backpack.getFirstFilteredItemsPropertyValue(avatarItemProps, Pid.AvatarAnimationsUrl))
         if (itemAvatarUrl.length) {
             avatarUrl = itemAvatarUrl
         }
@@ -525,7 +524,7 @@ export class RoomPresenceManager
         let points = 0
         if (Config.get('points.enabled', false)) {
             const pointsItemProps = { [Pid.PointsAspect]: 'true' }
-            points = as.Int(backpack?.getFirstFilteredItemsPropertyValue(pointsItemProps, Pid.PointsTotal))
+            points = as.Int(backpack.getFirstFilteredItemsPropertyValue(pointsItemProps, Pid.PointsTotal))
             if (points > 0) {
                 vpProps['Points'] = points
             }
@@ -573,7 +572,7 @@ export class RoomPresenceManager
             .c('x', { xmlns: 'http://jabber.org/protocol/muc' })
             .c('history', { seconds: '180', maxchars: '3000', maxstanzas: '10' })
 
-        presence = backpack?.stanzaOutFilter(presence) ?? presence
+        presence = backpack.stanzaOutFilter(presence)
         return presence
     }
 
@@ -623,11 +622,9 @@ export class RoomPresenceManager
     private getDesiredNick(): string
     {
         let nick: string = ''
-        const backpack = Utils.isBackpackEnabled() ? this.app.getBackpack() : null
-        if (backpack) {
-            const filterProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
-            nick = as.String(backpack.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
-        }
+        const backpack = this.app.getBackpack()
+        const filterProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
+        nick = as.String(backpack.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
         if (!nick.length) {
             nick = this.settingsNick
         }

@@ -14,17 +14,23 @@ import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { is } from '../lib/is';
+import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
 
 export class Backpack
 {
-    private items: { [id: string]: Item; } = {};
-    private rooms: { [jid: string]: Array<string>; } = {};
-    private providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
+    private readonly app: BackgroundApp
+    private readonly retryStrategyMaker: RetryStrategyMaker
+    private readonly lastProviderConfigJsons: Map<string, string> = new Map();
 
-    constructor(private app: BackgroundApp) { }
+    private readonly items: { [id: string]: Item; } = {};
+    private readonly rooms: { [jid: string]: Array<string>; } = {};
+    private readonly providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
 
-    getUserId(): string { return this.app.getUserId(); }
-    async getUserToken(): Promise<string> { return await this.app.getUserToken(); }
+    constructor(app: BackgroundApp)
+    {
+        this.app = app;
+        this.retryStrategyMaker = new RetryStrategyFactorGrowthMaker(1.0, 2.0, 120.0);
+    }
 
     isItem(itemId: string): boolean
     {
@@ -90,62 +96,65 @@ export class Backpack
         this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackHideItem, data });
     }
 
-    async init(loadItems: boolean): Promise<void>
+    public maintain(loadItems: boolean): void
     {
-        let providerConfigs = Config.get('itemProviders', {});
-        let enabledProviders = Config.getArray('items.enabledProviders', []);
-        for (let providerId in providerConfigs) {
+        const providerConfigs = Config.get('itemProviders', {});
+        const enabledProviders: string[] = Config.getArray('items.enabledProviders', []);
+
+        for (const providerId of this.providers.keys()) {
+            const provider = this.providers.get(providerId);
+            if (provider && !enabledProviders.includes(providerId)) {
+                this.disableProvider(providerId, provider);
+            }
+        }
+
+        for (const providerId in providerConfigs) {
+            const providerConfig = providerConfigs[providerId] ?? {};
+            const providerConfigJson = JSON.stringify(providerConfig);
+            if (providerConfigJson === this.lastProviderConfigJsons.get(providerId)) {
+                continue;
+            }
+            this.lastProviderConfigJsons.set(providerId, providerConfigJson);
             if (!enabledProviders.includes(providerId)) {
                 log.info('Backpack.init', 'provider disabled', providerId);
-            } else {
-                log.info('Backpack.init', 'provider initializing', providerId);
-                const providerConfig = providerConfigs[providerId];
-                if (providerConfig != null) {
-                    let provider: IItemProvider = null;
-                    switch (as.String(providerConfig.type, 'unknown')) {
-                        case LocalStorageItemProvider.type:
-                            provider = new LocalStorageItemProvider(this, providerId, providerConfig);
-                            break;
-                        case HostedInventoryItemProvider.Provider.type:
-                            provider = new HostedInventoryItemProvider.Provider(this.app, this, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
-                            break;
-                        default:
-                            break;
-                    }
-                    if (provider != null) {
-                        this.providers.set(providerId, provider);
-                    }
-                }
+                continue;
+            }
+            log.info('Backpack.init', 'provider initializing', providerId);
+            const provider = this.makeProvider(providerId, providerConfig, loadItems);
+            if (!provider) {
+                continue;
+            }
+            this.providers.set(providerId, provider);
+        }
+        this.providers.forEach(provider => provider.maintain());
+    }
+
+    private disableProvider(providerId: string, provider: IItemProvider): void
+    {
+        log.info('Backpack.init', 'formerly enabled provider became disabled', providerId);
+        provider.stop();
+        this.providers.delete(providerId);
+        for (const itemId in this.items) {
+            const item = this.items[itemId];
+            if (item.getProperties()[Pid.Provider] === providerId) {
+                this.sendRemoveItemToAllTabs(itemId);
+                this.deleteRepositoryItem(itemId);
             }
         }
+    }
 
-        {
-            let failedProviderIds = new Set<string>();
-            for (let [providerId, provider] of this.providers) {
-                try {
-                    await provider.init();
-                } catch (error) {
-                    failedProviderIds.add(providerId);
-                }
-            }
-            for (let providerId of failedProviderIds) {
-                log.info('Backpack.init', 'provider.init() failed, removing', providerId);
-                this.providers.delete(providerId);
-            }
-        }
-
-        if (loadItems) {
-            let failedProviderIds = new Set<string>();
-            for (let [providerId, provider] of this.providers) {
-                try {
-                    await provider.loadItems();
-                } catch (error) {
-                    failedProviderIds.add(providerId);
-                }
-            }
-            for (let providerId of failedProviderIds) {
-                log.info('Backpack.init', 'provider.loadItems() failed, removing', providerId);
-                this.providers.delete(providerId);
+    private makeProvider(providerId: string, providerConfig: {[p:string]:any}, loadItems: boolean): null|IItemProvider
+    {
+        switch (as.String(providerConfig.type, 'unknown')) {
+            case LocalStorageItemProvider.type: {
+                return new LocalStorageItemProvider(this, providerId, providerConfig);
+            } break;
+            case HostedInventoryItemProvider.Provider.type: {
+                return new HostedInventoryItemProvider.Provider(this.app, this, this.retryStrategyMaker, loadItems, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
+            } break;
+            default: {
+                log.info('Backpack.init', 'Unknown provider type!', { providerId, providerConfig });
+                return null;
             }
         }
     }
@@ -320,7 +329,7 @@ export class Backpack
 
     createRepositoryItem(itemId: string, props: ItemProperties): Item
     {
-        props[Pid.OwnerId] = this.getUserId();
+        props[Pid.OwnerId] = this.app.getUserId();
 
         let item = this.items[itemId];
         if (item == null) {
@@ -332,6 +341,13 @@ export class Backpack
 
     deleteRepositoryItem(itemId: string): void
     {
+        for (const roomJid in this.rooms) {
+            const roomItemIds = this.rooms[roomJid];
+            const itemIndex = roomItemIds.findIndex(elementId => elementId === itemId);
+            if (itemIndex > -1) {
+                roomItemIds.splice(itemIndex, 1);
+            }
+        }
         if (this.items[itemId]) {
             delete this.items[itemId];
         }

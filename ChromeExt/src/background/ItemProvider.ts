@@ -4,8 +4,8 @@ import { ItemProperties } from '../lib/ItemProperties';
 
 export interface IItemProvider
 {
-    init(): Promise<void>;
-    loadItems(): Promise<void>;
+    stop(): void;
+    maintain(): void;
 
     // Each element of itemsToGet has to contain the properties Provider, InventoryId and ID.
     // It may also contain the assumed current Version, which may be used by the

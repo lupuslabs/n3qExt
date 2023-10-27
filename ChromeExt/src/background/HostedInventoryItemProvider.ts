@@ -14,6 +14,7 @@ import { IItemProvider } from './ItemProvider';
 import { Config } from '../lib/Config';
 import { Client } from '../lib/Client';
 import { BackgroundApp } from './BackgroundApp';
+import { RetryStrategy, RetryStrategyMaker } from '../lib/RetryStrategy'
 const Web3Eth = require('web3-eth');
 
 export namespace HostedInventoryItemProvider
@@ -55,54 +56,200 @@ export namespace HostedInventoryItemProvider
         { }
     }
 
+    // Init state progression is strictly from left to right, top to bottom:
+    type ProviderInitState = 'start'
+        |'loadConfig'|'loadingConfig'|'afterConfigLoaded'
+        |'loadServerItems'|'loadingServerItems'|'afterServerItemsLoaded'
+        |'loadWeb3Items'|'loadingWeb3Items'|'afterWeb3ItemsLoaded'
+        |'running'|'stopped';
+
     export class Provider implements IItemProvider
     {
-        static type = 'HostedInventoryItemProvider';
-        private rpcClient: RpcClient = new RpcClient();
-        private userId: string;
-        private accessToken: string;
+        private readonly app: BackgroundApp;
+        private readonly backpack: Backpack;
+        private readonly retryStrategyMaker: RetryStrategyMaker
+        private readonly id: string;
+        private readonly providerDefinition: Definition
 
-        constructor(private app: BackgroundApp, private backpack: Backpack, private id, private providerDefinition: Definition) { }
+        static readonly type = 'HostedInventoryItemProvider';
+        private readonly rpcClient: RpcClient = new RpcClient();
+        private readonly userId: string;
+        private readonly accessToken: string;
+
+        private loadUserItems: boolean;
+        private running: boolean = false; // Whether this is configured and not stopped. Items may or may not be loaded.
+        private initState: ProviderInitState = 'start';
+        private retryStrategy: RetryStrategy;
+
+        constructor(app: BackgroundApp, backpack: Backpack, retryStrategyMaker: RetryStrategyMaker, loadUserItems: boolean, id: string, providerDefinition: Definition)
+        {
+            this.app = app;
+            this.backpack = backpack;
+            this.retryStrategyMaker = retryStrategyMaker;
+            this.loadUserItems = loadUserItems;
+            this.id = id;
+            this.providerDefinition = providerDefinition;
+            this.userId = this.app.getUserId();
+            this.accessToken = this.app.getUserToken();
+        }
 
         config(): Config
         {
             return this.providerDefinition.config;
         }
 
-        async init(): Promise<void>
+        stop(): void
         {
-            this.userId = this.backpack.getUserId();
-            this.accessToken = await this.backpack.getUserToken();
-
-            try {
-
-                let url = as.String(this.providerDefinition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
-                    .replace('{user}', encodeURIComponent(this.userId))
-                    .replace('{token}', encodeURIComponent(this.accessToken))
-                    .replace('{client}', encodeURIComponent(JSON.stringify(Client.getDetails())))
-                    ;
-                if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetch', url); }
-                let response = await fetch(url);
-                if (!response.ok) {
-                    log.info('HostedInventoryItemProvider.init', 'fetch failed', url, response);
-                } else {
-                    const config = await response.json();
-                    if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', config); }
-                    this.providerDefinition.config = config;
-                }
-            } catch (error) {
-                log.info('HostedInventoryItemProvider.init', error);
-                throw error;
-            }
+            this.initState = 'stopped';
+            this.maintain();
         }
 
-        async loadItems(): Promise<void>
-        {
-            await this.loadServerItems();
+        maintain(): void { switch (this.initState) {
 
-            if (Config.get('backpack.loadWeb3Items', false)) {
-                await this.loadWeb3Items();
+            case 'start': {
+                this.initState = 'loadConfig';
+                this.retryStrategy = this.retryStrategyMaker.makeRetryStrategy();
+                this.maintain();
+                return;
             }
+
+            case 'loadConfig': {
+                if (this.retryStrategy.getNoTriesLeft()) {
+                    log.info('loadConfig tries exhausted!');
+                    this.initState = 'stopped';
+                    this.maintain();
+                    return;
+                }
+                if (!this.retryStrategy.getTryNow(Date.now())) {
+                    return;
+                }
+                this.initState = 'loadingConfig';
+                this.loadConfig()
+                    .then(() => {
+                        if (this.initState === 'loadingConfig') {
+                            this.initState = 'afterConfigLoaded';
+                            this.maintain();
+                        }
+                    }).catch(error => {
+                        log.info('loadConfig failed!', error);
+                        if (this.initState === 'loadingConfig') {
+                            this.initState = 'loadConfig';
+                            this.maintain();
+                        }
+                    });
+                return;
+            }
+            case 'loadingConfig': {
+                return;
+            }
+            case 'afterConfigLoaded': {
+                this.retryStrategy = this.retryStrategyMaker.makeRetryStrategy();
+                this.initState = this.loadUserItems ? 'loadServerItems' : 'afterServerItemsLoaded';
+                this.running = true;
+                this.maintain();
+                return;
+            }
+
+            case 'loadServerItems': {
+                if (this.retryStrategy.getNoTriesLeft()) {
+                    log.info('loadServerItems tries exhausted!');
+                    this.loadUserItems = false;
+                    this.initState = 'afterServerItemsLoaded';
+                    this.maintain();
+                    return;
+                }
+                if (!this.retryStrategy.getTryNow(Date.now())) {
+                    return;
+                }
+                this.initState = 'loadingServerItems';
+                this.loadServerItems()
+                    .then(() => {
+                        if (this.initState === 'loadingServerItems') {
+                            this.initState = 'afterServerItemsLoaded';
+                            this.maintain();
+                        }
+                    }).catch(error => {
+                        log.info('loadServerItems failed!', error);
+                        if (this.initState === 'loadingServerItems') {
+                            this.initState = 'loadServerItems';
+                            this.maintain();
+                        }
+                    });
+                return;
+            }
+            case 'loadingServerItems': {
+                return;
+            }
+            case 'afterServerItemsLoaded': {
+                this.retryStrategy = this.retryStrategyMaker.makeRetryStrategy();
+                this.initState = this.loadUserItems ? 'loadWeb3Items' : 'afterWeb3ItemsLoaded';
+                this.maintain();
+                return;
+            }
+
+            case 'loadWeb3Items': {
+                if (!Config.get('backpack.loadWeb3Items', false)) {
+                    this.initState = 'afterWeb3ItemsLoaded';
+                    this.maintain();
+                    return;
+                }
+                if (this.retryStrategy.getNoTriesLeft()) {
+                    log.info('loadWeb3Items tries exhausted!');
+                    this.initState = 'afterWeb3ItemsLoaded';
+                    this.maintain();
+                    return;
+                }
+                if (!this.retryStrategy.getTryNow(Date.now())) {
+                    return;
+                }
+                this.initState = 'loadingWeb3Items';
+                this.loadWeb3Items()
+                    .then(() => {
+                        if (this.initState === 'loadingWeb3Items') {
+                            this.initState = 'afterWeb3ItemsLoaded';
+                            this.maintain();
+                        }
+                    }).catch(error => {
+                        log.info('loadWeb3Items failed!', error);
+                        if (this.initState === 'loadingWeb3Items') {
+                            this.initState = 'loadWeb3Items';
+                            this.maintain();
+                        }
+                    });
+                return;
+            }
+            case 'loadingWeb3Items': {
+                return;
+            }
+            case 'afterWeb3ItemsLoaded': {
+                this.initState = 'running';
+                this.maintain();
+                return;
+            }
+
+            case 'running': {
+                return;
+            }
+
+            default:
+            case 'stopped': {
+                this.running = false;
+                return;
+            }
+
+        }}
+
+        private async loadConfig(): Promise<void>
+        {
+            let url = as.String(this.providerDefinition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
+                .replace('{user}', encodeURIComponent(this.userId))
+                .replace('{token}', encodeURIComponent(this.accessToken))
+                .replace('{client}', encodeURIComponent(JSON.stringify(Client.getDetails())))
+                ;
+            if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetch', url); }
+            const config = await this.app.getUrlFetcher().fetchJson(url);
+            this.providerDefinition.config = config;
+            if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', config); }
         }
 
         public async getItemIds(): Promise<string[]>
@@ -143,9 +290,12 @@ export namespace HostedInventoryItemProvider
                 }
             }
 
+            if (!this.running) {
+                return;
+            }
             for (let itemId in multiItemProperties) {
                 const props = multiItemProperties[itemId];
-                const item = await this.backpack.createRepositoryItem(itemId, props);
+                const item = this.backpack.createRepositoryItem(itemId, props);
                 if (item.isRezzed()) {
                     this.backpack.addToRoom(itemId, item.getProperties()[Pid.RezzedLocation]);
                 }
@@ -656,38 +806,37 @@ export namespace HostedInventoryItemProvider
         avatarKnownByServer = '';
         stanzaOutFilter(stanza: ltx.Element): ltx.Element
         {
-            if (stanza.name === 'presence') {
-                if (as.String(stanza.attrs['type'], 'available') === 'available') {
-                    const vpPropsNode = stanza.getChildren('x').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props');
-                    if (vpPropsNode) {
-                        const attrs = vpPropsNode.attrs;
-                        if (attrs) {
-                            {
-                                const vpNickname = as.String(attrs.Nickname);
-                                if (vpNickname !== '' && vpNickname !== this.nicknameKnownByServer) {
-                                    this.nicknameKnownByServer = vpNickname;
-                                    /* (intentionally async) */ this.sendNicknameToServer(vpNickname).catch(error =>
-                                    {
-                                        log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
-                                    });
-                                }
-                            }
+            if (!this.running || stanza.name !== 'presence') {
+                return stanza;
+            }
+            const type = as.String(stanza.attrs['type'], 'available');
+            if (type !== 'available') {
+                return stanza;
+            }
 
-                            {
-                                const vpAvatar = as.String(attrs.AvatarUrl);
-                                if (vpAvatar !== '' && vpAvatar != this.avatarKnownByServer) {
-                                    this.avatarKnownByServer = vpAvatar;
-                                    /* (intentionally async) */ this.sendAvatarToServer(vpAvatar).catch(error =>
-                                    {
-                                        log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set avatar=', vpAvatar, ' at server failed', error);
-                                    });
-                                }
-                            }
+            const filter = stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'vp:props';
+            const vpPropsNode = stanza.getChildren('x').find(filter);
+            const attrs = vpPropsNode?.attrs;
+            if (!attrs) {
+                return stanza;
+            }
 
-                        }
-                    }
+            const vpNickname = as.String(attrs.Nickname);
+            if (vpNickname !== '' && vpNickname !== this.nicknameKnownByServer) {
+                this.nicknameKnownByServer = vpNickname;
+                /* (intentionally async) */ this.sendNicknameToServer(vpNickname).catch(error =>
+                {
+                    log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set nickname=', vpNickname, ' at server failed', error);
+                });
+            }
 
-                }
+            const vpAvatar = as.String(attrs.AvatarUrl);
+            if (vpAvatar !== '' && vpAvatar !== this.avatarKnownByServer) {
+                this.avatarKnownByServer = vpAvatar;
+                /* (intentionally async) */ this.sendAvatarToServer(vpAvatar).catch(error =>
+                {
+                    log.info('HostedInventoryItemProvider.stanzaOutFilter', 'set avatar=', vpAvatar, ' at server failed', error);
+                });
             }
 
             return stanza;
@@ -966,6 +1115,10 @@ export namespace HostedInventoryItemProvider
 
         onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): void
         {
+            if (!this.running) {
+                return;
+            }
+
             const vpProps = dependentPresence.getChildren('x').find(child => child.attrs?.xmlns === 'vp:props');
             if (vpProps) {
                 dependentPresence.attrs._incomplete = true;
@@ -1045,25 +1198,27 @@ export namespace HostedInventoryItemProvider
 
                     const itemsToGet = [...deferredRequest.itemIds.values()]
                         .map(itemId => ({ [Pid.Provider]: this.id, [Pid.InventoryId]: inventoryId, [Pid.Id]: itemId, [Pid.Version]: '' }));
-                    this.getItemsByInventoryItemIds(itemsToGet).then(items =>
-                    {
-                        for (let id of deferredRequest.itemIds) {
-                            this.itemsRequestedForDependendPresence.delete(id);
-                        }
-                        if (items.length === itemsToGet.length) {
-                            this.backpack.replayPresence(roomJid, participantNick);
-                            if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
-                                const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: Replayed presence.';
-                                log.info(msg, { items, roomJid, participantNick });
+                    this.getItemsByInventoryItemIds(itemsToGet)
+                        .then(items => {
+                            if (!this.running) {
+                                return;
                             }
-                        } else {
-                            const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: didn\'t get all items.';
-                            console.info(msg, { itemsToGet, items });
-                        }
-                    })
-                        .catch(error =>
-                        {
+                            if (items.length === itemsToGet.length) {
+                                this.backpack.replayPresence(roomJid, participantNick);
+                                if (Utils.logChannel('HostedInventoryItemProviderItemCache', true)) {
+                                    const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: Replayed presence.';
+                                    log.info(msg, { items, roomJid, participantNick });
+                                }
+                            } else {
+                                const msg = 'HostedInventoryItemProvider.requestItemPropertiesForDependentPresence: didn\'t get all items.';
+                                console.info(msg, { itemsToGet, items });
+                            }
+                        }).catch(error => {
                             console.info('HostedInventoryItemProvider.requestItemPropertiesForDependentPresence', error);
+                        }).finally(() => {
+                            for (let id of deferredRequest.itemIds) {
+                                this.itemsRequestedForDependendPresence.delete(id);
+                            }
                         });
                 }, Config.get('itemCache.clusterItemFetchSec', 0.1) * 1000);
                 let deferredRequest = new DeferredItemPropertiesRequest(timer, inventoryId, roomJid, participantNick);
