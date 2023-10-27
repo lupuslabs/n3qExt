@@ -316,7 +316,6 @@ export namespace HostedInventoryItemProvider
             let wallets = this.backpack.findItems(props => as.Bool(props[Pid.Web3WalletAspect], false));
             if (wallets.length === 0) {
                 if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3Items', 'No wallet item'); }
-                return;
             }
 
             for (const wallet of wallets) {
