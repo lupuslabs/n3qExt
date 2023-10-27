@@ -106,15 +106,15 @@ export class BadgesController
         }
         const sparseItems = this.parseBadgesStrFromPresence(badgesStr);
         BackgroundMessage.getItemsByInventoryItemIds(sparseItems)
-        .then(items => {
-            this.updateBadgesFromFullItems(items);
-            if (this.debugLogEnabled) {
-                log.info('BadgesDisplay.updateBadgesFromPresence: Done.', {badgesStr, sparseItems, items});
-            }
-        }).catch(error => {
-            const msg = 'BadgesDisplay.updateBadgesFromPresence: BackgroundMessage.getItemsByInventoryItemIds failed!';
-            this.app.onError(new ErrorWithData(msg, {error, badgesStr, sparseItems}));
-        }) ;
+            .then(items => {
+                this.updateBadgesFromFullItems(items);
+                if (this.debugLogEnabled) {
+                    log.info('BadgesDisplay.updateBadgesFromPresence: Done.', {badgesStr, sparseItems, items});
+                }
+            }).catch(error => {
+                const msg = 'BadgesDisplay.updateBadgesFromPresence: BackgroundMessage.getItemsByInventoryItemIds failed!';
+                this.app.onError(new ErrorWithData(msg, {error, badgesStr, sparseItems}));
+            });
     }
 
     public getBadgesStrForPresence(): string
@@ -246,8 +246,8 @@ export class BadgesController
         const [iconWidthHalf, iconHeightHalf] = [iconWidth / 2, iconHeight / 2];
         let [centerClientX, centerClientY] = [eventData.clientX, eventData.clientY];
         if (correctPointerOffset) {
-             centerClientX = centerClientX - eventData.startDomElementOffsetX + iconWidthHalf;
-             centerClientY = centerClientY - eventData.startDomElementOffsetY + iconHeightHalf;
+            centerClientX = centerClientX - eventData.startDomElementOffsetX + iconWidthHalf;
+            centerClientY = centerClientY - eventData.startDomElementOffsetY + iconHeightHalf;
         }
         const {avatarX, avatarY} = this.translateClientToAvatarPos(centerClientX, centerClientY);
         const {avatarXClipped, avatarYClipped} = this.clipBadgeAvatarPos(avatarX, avatarY, iconWidth, iconHeight);

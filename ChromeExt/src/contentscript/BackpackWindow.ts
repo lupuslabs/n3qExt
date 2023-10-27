@@ -26,11 +26,13 @@ export class BackpackWindow extends Window<WindowOptions>
         this.persistGeometry = true;
     }
 
-    getPane() { return this.paneElem; }
-    getHeight() { return this.getPane().offsetHeight; }
-    getWidth() { return this.getPane().offsetWidth; }
-    getItem(itemId: string) { return this.items[itemId]; }
-    getItems(): { [id: string]: BackpackItem; } { return this.items; }
+    public getPane() {
+        return this.paneElem;
+    }
+
+    public getItem(itemId: string) {
+        return this.items[itemId];
+    }
 
     public getItemsAsProperties(): ItemProperties[]
     {
@@ -74,7 +76,7 @@ export class BackpackWindow extends Window<WindowOptions>
         }
     }
 
-    getFreeCoordinate(): { x: number, y: number }
+    public getFreeCoordinate(): { x: number, y: number }
     {
         const width = $(this.paneElem).width();
         const height = $(this.paneElem).height();
@@ -92,13 +94,13 @@ export class BackpackWindow extends Window<WindowOptions>
         // return f.getFreeCoordinate(this.paneElem);
     }
 
-    public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
+    public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[]): void
     {
         itemsHide.forEach(item => this.onHideItem(item));
         itemsShowOrSet.forEach(item => this.onShowOrSetItem(item));
     }
 
-    private onShowOrSetItem(properties: ItemProperties)
+    private onShowOrSetItem(properties: ItemProperties): void
     {
         const isInvisible = as.Bool(properties[Pid.IsInvisible], false);
         if (isInvisible) {
@@ -121,42 +123,42 @@ export class BackpackWindow extends Window<WindowOptions>
         this.app.toFront(item.getElem(), ContentApp.LayerWindowContent);
     }
 
-    private onHideItem(properties: ItemProperties)
+    private onHideItem(properties: ItemProperties): void
     {
         const itemId = properties[Pid.Id];
         this.items[itemId]?.destroy();
         delete this.items[itemId];
     }
 
-    rezItemSync(itemId: string, room: string, x: number, destination: string) { this.rezItem(itemId, room, x, destination); }
-    async rezItem(itemId: string, room: string, x: number, destination: string)
+    public rezItem(itemId: string, room: string, x: number, destination: string): void
     {
-        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.rezItem', itemId, 'to', room); }
-        try {
-            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+        this.rezItemAsync(itemId, room, x, destination)
+            .catch (ex => this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', { itemId: itemId })));
+    }
 
-            if (as.Bool(props[Pid.ClaimAspect])) {
-                if (await this.app.getRoom().propsClaimYieldsToExistingClaim(props)) {
-                    throw new ItemException(ItemException.Fact.ClaimFailed, ItemException.Reason.ItemMustBeStronger, this.app.getRoom()?.getPageClaimItem()?.getDisplayName());
-                }
+    private async rezItemAsync(itemId: string, room: string, x: number, destination: string): Promise<void>
+    {
+        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.rezItemAsync', itemId, 'to', room); }
+        const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+
+        if (as.Bool(props[Pid.ClaimAspect])) {
+            if (await this.app.getRoom().propsClaimYieldsToExistingClaim(props)) {
+                throw new ItemException(ItemException.Fact.ClaimFailed, ItemException.Reason.ItemMustBeStronger, this.app.getRoom()?.getPageClaimItem()?.getDisplayName());
             }
+        }
 
-            if (as.Bool(props[Pid.AutorezAspect])) {
-                await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
+        if (as.Bool(props[Pid.AutorezAspect])) {
+            await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
+        }
+
+        const moveInsteadOfRez = as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room;
+        if (moveInsteadOfRez) {
+            await this.app.moveRezzedItemAsync(itemId, x);
+        } else {
+            if (as.Bool(props[Pid.IsRezzed])) {
+                await this.app.derezItemAsync(itemId);
             }
-
-            const moveInsteadOfRez = as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room;
-            if (moveInsteadOfRez) {
-                await this.app.moveRezzedItemAsync(itemId, x);
-            } else {
-                if (as.Bool(props[Pid.IsRezzed])) {
-                    await this.app.derezItemAsync(itemId);
-                }
-                await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
-            }
-
-        } catch (ex) {
-            this.app.onError(ErrorWithData.ofError(ex, 'Caught error!', { itemId: itemId }));
+            await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
         }
     }
 }

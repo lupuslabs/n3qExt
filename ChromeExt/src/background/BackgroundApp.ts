@@ -1138,40 +1138,37 @@ export class BackgroundApp
 
         this.pointsActivities = [];
 
-        if (Utils.isBackpackEnabled()) {
-            if (Config.get('points.enabled', false)) {
-                let points = await this.backpack.getOrCreatePointsItem();
-                if (points) {
-                    let itemId = as.String(points.getProperties()[Pid.Id], '');
-                    if (itemId !== '') {
-                        try {
-                            const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
-                            const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
-                            if (autoClaimed) {
-                                this.showToastInAllTabs(
-                                    'You Got Activity Points',
-                                    'Your activity points have been claimed automatically',
-                                    'PointsAutoClaimed',
-                                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
-                                    [],
-                                );
-                            }
-                            const showClaimReminder = as.Bool(result[Pid.ShowClaimReminder], false);
-                            if (showClaimReminder) {
-                                this.showToastInAllTabs(
-                                    'You Can Claim Activity Points',
-                                    'Activity points can be claimed',
-                                    'PointsClaimReminder',
-                                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
-                                    [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
-                                );
-                            }
-                        } catch (error) {
-                            log.info('BackgroundApp.submitPoints', error);
-                        }
-                    }
-                }
+        if (!Utils.isBackpackEnabled() || !Config.get('points.enabled', false)) {
+            return;
+        }
+        let itemId = this.backpack.getPointsItem()?.getProperties()[Pid.Id];
+        if (is.nil(itemId)) {
+            return;
+        }
+        try {
+            const result = await this.backpack.executeItemAction(itemId, 'Points.ChannelValues', args, [itemId], true);
+            const autoClaimed = as.Bool(result[Pid.AutoClaimed], false);
+            if (autoClaimed) {
+                this.showToastInAllTabs(
+                    'You Got Activity Points',
+                    'Your activity points have been claimed automatically',
+                    'PointsAutoClaimed',
+                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
+                    [],
+                );
             }
+            const showClaimReminder = as.Bool(result[Pid.ShowClaimReminder], false);
+            if (showClaimReminder) {
+                this.showToastInAllTabs(
+                    'You Can Claim Activity Points',
+                    'Activity points can be claimed',
+                    'PointsClaimReminder',
+                    WeblinClientApi.ClientNotificationRequest.iconType_notice,
+                    [{ text: 'Open backpack', 'href': 'client:toggleBackpack' }],
+                );
+            }
+        } catch (error) {
+            log.info('BackgroundApp.submitPoints', error);
         }
     }
 

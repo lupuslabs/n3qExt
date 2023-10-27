@@ -348,8 +348,8 @@ export class BackpackItem
     public rezItem(x: number)
     {
         const room = this.app.getRoom();
-        if (!is.nil(room)) {
-            this.backpackWindow.rezItemSync(this.itemId, room.getJid(), Math.round(x), room.getDestination());
+        if (room) {
+            this.backpackWindow.rezItem(this.itemId, room.getJid(), Math.round(x), room.getDestination());
         }
     }
 

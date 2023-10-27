@@ -313,34 +313,35 @@ export namespace HostedInventoryItemProvider
             }).map(item => item.getProperties()[Pid.Id]);
             let unverifiedWeb3ItemIds = currentWeb3SyncedItemIds;
 
-            let wallets = this.backpack.findItems(props => { return (as.Bool(props[Pid.Web3WalletAspect], false)); });
-            if (wallets.length == 0) {
+            let wallets = this.backpack.findItems(props => as.Bool(props[Pid.Web3WalletAspect], false));
+            if (wallets.length === 0) {
                 if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3Items', 'No wallet item'); }
                 return;
             }
 
-            for (let walletsIdx = 0; walletsIdx < wallets.length; walletsIdx++) {
-                let wallet = wallets[walletsIdx];
-                let walletAddress = wallet.getProperties()[Pid.Web3WalletAddress];
-                let network = wallet.getProperties()[Pid.Web3WalletNetwork];
+            for (const wallet of wallets) {
+                let walletAddress = wallet.getProperties()[Pid.Web3WalletAddress] ?? '';
+                let network = wallet.getProperties()[Pid.Web3WalletNetwork] ?? '';
 
                 let web3ItemIdsOfWallet = await this.loadWeb3ItemsForWallet(walletAddress, network);
 
                 for (let claimItemIdsOfWalletIdx = 0; claimItemIdsOfWalletIdx < web3ItemIdsOfWallet.length; claimItemIdsOfWalletIdx++) {
                     let id = web3ItemIdsOfWallet[claimItemIdsOfWalletIdx];
                     const index = unverifiedWeb3ItemIds.indexOf(id, 0);
-                    if (index > -1) { unverifiedWeb3ItemIds.splice(index, 1); }
+                    if (index > -1) {
+                        unverifiedWeb3ItemIds.splice(index, 1);
+                    }
                 }
             }
 
-            for (let previouWeb3ItemIdsIdx = 0; previouWeb3ItemIdsIdx < unverifiedWeb3ItemIds.length; previouWeb3ItemIdsIdx++) {
-                this.deleteItem(unverifiedWeb3ItemIds[previouWeb3ItemIdsIdx], {});
+            for (const itemId of unverifiedWeb3ItemIds) {
+                this.deleteItem(itemId, {});
             }
         }
 
         async loadWeb3ItemsForWallet(walletAddress: string, network: string): Promise<Array<string>>
         {
-            if (walletAddress == '' || network == '') {
+            if (walletAddress === '' || network === '') {
                 log.info('HostedInventoryItemProvider.loadWeb3ItemsFromWallet', 'Missing walletAddress=', walletAddress, 'network=', network);
                 return [];
             }
@@ -350,15 +351,13 @@ export namespace HostedInventoryItemProvider
             try {
                 let contractAddress = Config.get('web3.weblinItemContractAddess.' + network, '');
                 let contractABI = Config.get('web3.weblinItemContractAbi', null);
-                if (contractAddress == null || contractAddress == '' || contractABI == null) {
+                if (contractAddress == null || contractAddress === '' || contractABI == null) {
                     log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                 } else {
                     let httpProvider = Config.get('web3.provider.' + network, '');
                     if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'network=', network, 'httpProvider=', httpProvider); }
                     let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
-                    for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
-                        idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
-                    }
+                    idsCreatedByWallet.push(...idsCreatedByWalletAndContract);
                 }
             } catch (error) {
                 log.info(error);
@@ -371,15 +370,13 @@ export namespace HostedInventoryItemProvider
 
                     let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
                     let contractABI = Config.get('web3.minimumItemableContractAbi', null);
-                    if (contractAddress == null || contractAddress == '' || contractABI == null) {
+                    if (contractAddress === '' || contractABI == null) {
                         log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
                     } else {
                         let httpProvider = Config.get('web3.provider.' + network, '');
                         if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', { network, httpProvider }); }
                         let idsCreatedByWalletAndContract = await this.loadWeb3ItemsForWalletFromContract(network, walletAddress, httpProvider, contractAddress, contractABI);
-                        for (let i = 0; i < idsCreatedByWalletAndContract.length; i++) {
-                            idsCreatedByWallet.push(idsCreatedByWalletAndContract[i]);
-                        }
+                        idsCreatedByWallet.push(...idsCreatedByWalletAndContract);
                     }
 
                 }
@@ -404,7 +401,7 @@ export namespace HostedInventoryItemProvider
                 if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'tokenURI', tokenId, walletAddress, contractAddress }); }
                 let tokenUri = await contract.methods.tokenURI(tokenId).call();
 
-                if (Config.get('config.clusterName', 'prod') == 'dev') {
+                if (Config.get('config.clusterName', 'prod') === 'dev') {
                     tokenUri = tokenUri.replace('https://webit.vulcan.weblin.com/', 'https://localhost:5100/');
                     tokenUri = tokenUri.replace('https://item.weblin.com/', 'https://localhost:5100/');
                 }
@@ -417,9 +414,7 @@ export namespace HostedInventoryItemProvider
                     const metadata = await response.json();
 
                     let ids = await this.getOrCreateWeb3ItemFromMetadata(network, walletAddress, contractAddress, tokenId, metadata);
-                    for (let i = 0; i < ids.length; i++) {
-                        createdIds.push(ids[i]);
-                    }
+                    createdIds.push(...ids);
 
                 }
             }
@@ -449,9 +444,9 @@ export namespace HostedInventoryItemProvider
                     let domain = as.String(data[Pid.ClaimUrl], '');
                     let existingItems = this.backpack.findItems(props =>
                     {
-                        return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') == domain;
+                        return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.ClaimAspect], false) && as.String(props[Pid.ClaimUrl], '') === domain;
                     });
-                    if (existingItems.length == 0) {
+                    if (existingItems.length === 0) {
                         try {
                             let props = await this.createItem(this.config().createItemWiCryptoClaimAuth, 'ByTemplate', data);
                             let itemId = props[Pid.Id];
@@ -481,10 +476,10 @@ export namespace HostedInventoryItemProvider
         getGenericItemId(): string
         {
             let clientItemIds = this.backpack.findItems(
-                props => { return (as.Bool(props[Pid.N3qAspect], false) && as.String(props[Pid.Provider]) == this.id); }
+                props => { return (as.Bool(props[Pid.N3qAspect], false) && as.String(props[Pid.Provider]) === this.id); }
             ).map(item => item.getProperties()[Pid.Id]);
 
-            if (clientItemIds.length == 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }
+            if (clientItemIds.length === 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }
 
             return clientItemIds[0];
         }

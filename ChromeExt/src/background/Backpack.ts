@@ -32,7 +32,7 @@ export class Backpack
         this.retryStrategyMaker = new RetryStrategyFactorGrowthMaker(1.0, 2.0, 120.0);
     }
 
-    isItem(itemId: string): boolean
+    public isItem(itemId: string): boolean
     {
         let item = this.items[itemId];
         if (item) {
@@ -41,14 +41,14 @@ export class Backpack
         return false;
     }
 
-    getItem(itemId: string): Item
+    public getItem(itemId: string): Item
     {
         let item = this.items[itemId];
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
         return item;
     }
 
-    getItems(): { [id: string]: ItemProperties; }
+    public getItems(): { [id: string]: ItemProperties; }
     {
         let itemProperties: { [id: string]: ItemProperties; } = {};
         for (let id in this.items) {
@@ -58,7 +58,7 @@ export class Backpack
         return itemProperties
     }
 
-    getItemCount(): number
+    public getItemCount(): number
     {
         let count = 0;
         for (let id in this.items) {
@@ -67,7 +67,7 @@ export class Backpack
         return count;
     }
 
-    getRezzedItemCount(): number
+    public getRezzedItemCount(): number
     {
         let count = 0;
         for (let id in this.items) {
@@ -79,17 +79,17 @@ export class Backpack
         return count;
     }
 
-    requestSendPresenceFromTab(roomJid: string)
+    public requestSendPresenceFromTab(roomJid: string)
     {
         this.app.sendRoomPresence(roomJid);
     }
 
-    sendAddItemToAllTabs(itemId: string)
+    public sendAddItemToAllTabs(itemId: string)
     {
         this.sendUpdateToAllTabs([], [this.getItem(itemId).getProperties()]);
     }
 
-    sendRemoveItemToAllTabs(itemId: string)
+    public sendRemoveItemToAllTabs(itemId: string)
     {
         this.sendUpdateToAllTabs([this.getItem(itemId).getProperties()], []);
     }
@@ -175,33 +175,33 @@ export class Backpack
         }
     }
 
-    async loadWeb3Items(): Promise<void>
+    public async loadWeb3Items(): Promise<void>
     {
         return await this.getProviderFromName('n3q').loadWeb3Items();
     }
 
-    async applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>
+    public async applyItemToItem(activeId: string, passiveId: string): Promise<ItemProperties>
     {
         return await this.getProvider(activeId).applyItemToItem(activeId, passiveId);
     }
 
-    async transferAuthorize(itemId: string, duration: number): Promise<string>
+    public async transferAuthorize(itemId: string, duration: number): Promise<string>
     {
         return await this.getProvider(itemId).transferAuthorize(itemId, duration);
     }
 
-    async transferUnauthorize(itemId: string): Promise<void>
+    public async transferUnauthorize(itemId: string): Promise<void>
     {
         await this.getProvider(itemId).transferUnauthorize(itemId);
     }
 
-    async transferComplete(provider: string, senderInventory: string, senderItem: string, transferToken: string): Promise<string>
+    public async transferComplete(provider: string, senderInventory: string, senderItem: string, transferToken: string): Promise<string>
     {
         return await this.getProviderFromName(provider).transferComplete(senderInventory, senderItem, transferToken);
     }
 
     // Tests whether a known item has been deleted. Removes it from backpack if it isn't known by the repository:
-    async isItemStillInRepo(itemId: string): Promise<boolean>
+    public async isItemStillInRepo(itemId: string): Promise<boolean>
     {
         if (!this.isItem(itemId)) {
             // Item unknown now. Probably lost a race.
@@ -233,45 +233,29 @@ export class Backpack
         return false;
     }
 
-    async createItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
+    public async createItem(provider: string, auth: string, method: string, args: ItemProperties): Promise<ItemProperties>
     {
         return await this.getProviderFromName(provider).createItem(auth, method, args);
     }
 
-    async getOrCreatePointsItem(): Promise<Item>
+    public getPointsItem(): null|Item
     {
         let pointsItems = this.findItems(props => as.Bool(props[Pid.PointsAspect], false));
 
-        if (pointsItems.length > 1) {
-            let maxPoints = -1;
-            let maxItem: Item;
-            for (let i = 0; i < pointsItems.length; i++) {
-                let item = pointsItems[i];
-                let points = as.Int(item.getProperties()[Pid.PointsTotal], 0);
-                if (points > maxPoints) {
-                    maxPoints = points;
-                    maxItem = item;
-                }
+        let maxPoints = -1;
+        let maxItem: Item = null;
+        for (let i = 0; i < pointsItems.length; i++) {
+            let item = pointsItems[i];
+            let points = as.Int(item.getProperties()[Pid.PointsTotal], 0);
+            if (points > maxPoints) {
+                maxPoints = points;
+                maxItem = item;
             }
-            return maxItem;
-        } else if (pointsItems.length == 0) {
-            // Points item is now server based.
-            // Will be restored by Config call if deleted.
-            // Not created on the fly here as before
-
-            // let template = 'Points';
-            // try {
-            //     return await this.createItemByTemplate(template, {});
-            // } catch (error) {
-            //     log.info('Backpack.getOrCreatePointsItem', 'failed to create item', template, error);
-            // }
-            return null;
-        } else if (pointsItems.length == 1) {
-            return pointsItems[0]
         }
+        return maxItem;
     }
 
-    getProvider(itemId: string): IItemProvider
+    private getProvider(itemId: string): IItemProvider
     {
         const item = this.getItem(itemId);
         if (item) {
@@ -280,7 +264,7 @@ export class Backpack
         throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId + ' while Backpack.getProvider');
     }
 
-    getProviderFromProperties(props: ItemProperties): IItemProvider
+    private getProviderFromProperties(props: ItemProperties): IItemProvider
     {
         const providerName = as.String(props[Pid.Provider], '');
         try {
@@ -291,7 +275,7 @@ export class Backpack
         }
     }
 
-    getProviderFromName(name: string): IItemProvider
+    private getProviderFromName(name: string): IItemProvider
     {
         if (this.providers.has(name)) {
             return this.providers.get(name);
@@ -299,17 +283,17 @@ export class Backpack
         throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItemProvider, name);
     }
 
-    async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
+    public async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         await this.getProviderFromProperties(props).addItem(itemId, props, options);
     }
 
-    async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
+    public async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
     {
         await this.getProvider(itemId).deleteItem(itemId, options);
     }
 
-    findItems(filter: (props: ItemProperties) => boolean): Array<Item>
+    public findItems(filter: (props: ItemProperties) => boolean): Array<Item>
     {
         let found: Array<Item> = [];
 
@@ -325,7 +309,7 @@ export class Backpack
         return found;
     }
 
-    findItemsByProperties(filterProperties: ItemProperties): Item[]
+    private findItemsByProperties(filterProperties: ItemProperties): Item[]
     {
         const filterKVs = Object.entries(filterProperties);
         const filter = itemProps => filterKVs.every(([pid, value]) => itemProps[pid] === value);
@@ -343,7 +327,7 @@ export class Backpack
         return null;
     }
 
-    createRepositoryItem(itemId: string, props: ItemProperties): Item
+    public createRepositoryItem(itemId: string, props: ItemProperties): Item
     {
         props[Pid.OwnerId] = this.app.getUserId();
 
@@ -355,7 +339,7 @@ export class Backpack
         return item;
     }
 
-    deleteRepositoryItem(itemId: string): void
+    public deleteRepositoryItem(itemId: string): void
     {
         for (const roomJid in this.rooms) {
             const roomItemIds = this.rooms[roomJid];
@@ -369,7 +353,7 @@ export class Backpack
         }
     }
 
-    setRepositoryItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): void
+    public setRepositoryItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): void
     {
         let item = this.items[itemId];
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
@@ -377,14 +361,14 @@ export class Backpack
         item.setProperties(props, options);
     }
 
-    getRepositoryItemProperties(itemId: string): ItemProperties
+    public getRepositoryItemProperties(itemId: string): ItemProperties
     {
         let item = this.items[itemId];
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); } // throw unhandled, maybe return null?
         return item.getProperties();
     }
 
-    addToRoom(itemId: string, roomJid: string): void
+    public addToRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
         if (rezzedIds == null) {
@@ -394,7 +378,7 @@ export class Backpack
         rezzedIds.push(itemId);
     }
 
-    removeFromRoom(itemId: string, roomJid: string): void
+    public removeFromRoom(itemId: string, roomJid: string): void
     {
         let rezzedIds = this.rooms[roomJid];
         if (rezzedIds) {
@@ -408,34 +392,35 @@ export class Backpack
         }
     }
 
-    async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    public async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
         await this.getProvider(itemId).modifyItemProperties(itemId, changed, deleted, options);
     }
 
-    async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<ItemProperties>
+    public async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<ItemProperties>
     {
         return await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
     }
 
-    async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
+    public async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
     {
         await this.getProvider(itemId).rezItem(itemId, roomJid, rezzedX, destinationUrl, options);
     }
 
-    async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    public async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
         await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY, changed, deleted, options);
     }
 
-    getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
+    public async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
     {
         const itemsPromises = [...this.providers.values()]
-        .map(provider => provider.getItemsByInventoryItemIds(itemsToGet));
-        return Promise.all(itemsPromises).then(itemLists => [].concat(...itemLists));
+            .map(provider => provider.getItemsByInventoryItemIds(itemsToGet));
+        const itemLists = await Promise.all(itemsPromises);
+        return [].concat(...itemLists);
     }
 
-    stanzaOutFilter(stanza: ltx.Element): ltx.Element
+    public stanzaOutFilter(stanza: ltx.Element): ltx.Element
     {
         for (let [providerId, provider] of this.providers) {
             try {
@@ -460,7 +445,7 @@ export class Backpack
         return stanza;
     }
 
-    stanzaInFilter(stanza: ltx.Element): ltx.Element
+    public stanzaInFilter(stanza: ltx.Element): ltx.Element
     {
         if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
             const fromJid = jid(stanza.attrs.from);
@@ -483,7 +468,7 @@ export class Backpack
         return stanza;
     }
 
-    replayPresence(roomJid: string, participantNick: string): void
+    public replayPresence(roomJid: string, participantNick: string): void
     {
         this.app.replayPresence(roomJid, participantNick);
     }
