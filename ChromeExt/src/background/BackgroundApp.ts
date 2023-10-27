@@ -52,9 +52,14 @@ import { is } from '../lib/is';
 import { BrowserActionGui } from './BrowserActionGui';
 import { PopupManager } from './PopupManger'
 import { DirectUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
-import { BackgroundToContentCommunicator, BackgroundHeartbeatHandler, BackgroundRequestHandler } from '../lib/BackgroundToContentCommunicator'
+import {
+    BackgroundToContentCommunicator,
+    BackgroundHeartbeatHandler,
+    BackgroundRequestHandler,
+    BackgroundTabHeartbeatHandler,
+} from '../lib/BackgroundToContentCommunicator'
 
-export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
+export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
 interface PointsActivity
 {
@@ -95,9 +100,10 @@ export class BackgroundApp
     private readonly tabs: Map<number, BackgroundTabData> = new Map();
 
     public constructor(contentCommunicatorFactory: ContentCommunicatorFactory) {
-        const heartbeatHandler = (tabId: number) => this.handle_contentCommunicatorHeartbeat(tabId)
+        const heartbeatHandler = () => this.maintain()
+        const tabHeartbeatHandler = (tabId: number) => this.maintainTab(tabId)
         const requestHandler = (tabId: number, request: BackgroundRequest) => this.onContentRequest(tabId, request)
-        this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, requestHandler);
+        this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, tabHeartbeatHandler, requestHandler);
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);
         this.xmppManager = new XmppConnectionManager(this);
@@ -242,7 +248,7 @@ export class BackgroundApp
             await this.roomPresenceManager.startOrUpdateUserSettings();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
-            this.backpack.maintain(Utils.isBackpackEnabled());
+            this.maintain();
 
             this.sendToAllTabs({ type: ContentMessage.type_configChanged });
         })().catch(error => log.info(error));
@@ -254,8 +260,9 @@ export class BackgroundApp
             this.isReady = true;
             if (Utils.logChannel('startup', true)) { log.info('BackgroundApp', 'isReady'); }
 
+            this.maintain();
             for (const tabId of this.tabs.keys()) {
-                this.handle_contentCommunicatorHeartbeat(tabId);
+                this.maintainTab(tabId);
             }
         }
     }
@@ -1061,24 +1068,33 @@ export class BackgroundApp
         this.getRoomJid2TabIds(room).forEach(tabId => this.sendToTab(tabId, message));
     }
 
-    // Keep connection alive
+    // Heartbeat from content
 
-    private handle_contentCommunicatorHeartbeat(tabId: number): void
+    private maintain(): void
     {
+        if (Utils.logChannel('pingBackground', true)) {
+            log.info('BackgroundApp.maintain', { isReady: this.isReady });
+        }
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
 
         if (!this.isReady) {
+            return;
+        }
+        this.xmppManager.onPing()
+    }
+
+    private maintainTab(tabId: number): void
+    {
+        if (!this.isReady) {
             if (Utils.logChannel('pingBackground', true)) {
-                log.info('BackgroundApp.handle_contentCommunicatorHeartbeat: Ignored because not ready yet.', { tabId });
+                log.info('BackgroundApp.maintainTab: Ignored because not ready yet.', { tabId });
             }
             return;
         }
         if (Utils.logChannel('pingBackground', true)) {
-            log.info('BackgroundApp.handle_contentCommunicatorHeartbeat', { tabId });
+            log.info('BackgroundApp.maintainTab', { tabId });
         }
-        this.xmppManager.onPing()
-
         const tabData = this.getTabData(tabId);
         if (tabData.requestState) {
             tabData.requestState = false;

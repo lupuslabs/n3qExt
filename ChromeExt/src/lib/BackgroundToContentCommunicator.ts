@@ -13,7 +13,8 @@ export interface BackgroundMessagePipeProvider
     addOnMessagePipeConnectHandler(onConnectHandler: (messagePipe: BackgroundMessagePipe) => void): void
 }
 
-export type BackgroundHeartbeatHandler = (tabId: number) => void
+export type BackgroundHeartbeatHandler = () => void
+export type BackgroundTabHeartbeatHandler = (tabId: number) => void
 export type BackgroundRequestHandler = (tabId: number, message: BackgroundRequest) => Promise<BackgroundResponse>
 
 type UnsentRequest = {
@@ -48,16 +49,19 @@ export class BackgroundToContentCommunicator
     private readonly messagePipeProvider: BackgroundMessagePipeProvider
     private readonly onMessagePipeConnectHandler: (messagePipe: BackgroundMessagePipe) => void
     private readonly heartbeatHandler: BackgroundHeartbeatHandler
+    private readonly tabHeartbeatHandler: BackgroundTabHeartbeatHandler
     private readonly requestHandler: BackgroundRequestHandler
 
     private readonly tabs: Map<number,TabData> = new Map()
     private tabCookieLast: number = 0
     private running: boolean = false
+    private nextHeartbeatMs: number = 0
     private lastOwnMessageId: number = 0
 
-    public constructor(messagePipeProvider: BackgroundMessagePipeProvider, heartbeatHandler: BackgroundHeartbeatHandler, requestHandler: BackgroundRequestHandler) {
+    public constructor(messagePipeProvider: BackgroundMessagePipeProvider, heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) {
         this.messagePipeProvider = messagePipeProvider
         this.heartbeatHandler = heartbeatHandler
+        this.tabHeartbeatHandler = tabHeartbeatHandler
         this.requestHandler = requestHandler
         this.onMessagePipeConnectHandler = (messagePipe) => this.onContentMessagePipeConnection(messagePipe)
 
@@ -176,6 +180,7 @@ export class BackgroundToContentCommunicator
         if (request.type === 'ContentToBackgroundCommunicatorPing') {
             this.enqueueResponse(tabId, tabCookie, requestId, new BackgroundSuccessResponse())
             this.sendQueuedMessages(tabData)
+            this.callHeartbeatHandlers(tabData)
             return
         }
 
@@ -192,7 +197,7 @@ export class BackgroundToContentCommunicator
         }
 
         this.sendQueuedMessages(tabData)
-        this.callHeartbeatHandler(tabData)
+        this.callHeartbeatHandlers(tabData)
         this.requestHandler(tabId, requestEnvelope.request)
             .catch(error => BackgroundErrorResponse.ofError(error, { request }))
             .then((response: BackgroundResponse) => {
@@ -315,7 +320,7 @@ export class BackgroundToContentCommunicator
         }
 
         this.sendQueuedMessages(tabData)
-        this.callHeartbeatHandler(tabData)
+        this.callHeartbeatHandlers(tabData)
     }
 
     private onContentMessagePipeDisconnect(messagePipe: BackgroundMessagePipe): void
@@ -342,7 +347,13 @@ export class BackgroundToContentCommunicator
         }
     }
 
-    private callHeartbeatHandler(tabData: TabData): void
+    private callHeartbeatHandlers(tabData: TabData): void
+    {
+        this.callHeartbeatHandler()
+        this.callTabHeartbeatHandler(tabData)
+    }
+
+    private callTabHeartbeatHandler(tabData: TabData): void
     {
         // Rate-limit heartbeats for performance reasons and to reduce log spamming:
         const nowMs = Date.now()
@@ -350,13 +361,29 @@ export class BackgroundToContentCommunicator
             return;
         }
         const heartbeetIntervalSecs = Config.get('system.clientBackgroundKeepaliveMessageIntervalSec', 10)
-        const heartbeetIntervalMs = 1e3 / 2 * heartbeetIntervalSecs
+        const heartbeetIntervalMs = 1e3 * heartbeetIntervalSecs
         tabData.nextHeartbeatMs = nowMs + heartbeetIntervalMs;
-
         try {
-            this.heartbeatHandler(tabData.tabId)
+            this.tabHeartbeatHandler(tabData.tabId)
         } catch (error) {
-            log.info('ExtensionBackgroundToContentCommunicator.callHeartbeatHandler: heartbeatHandler failed!', { error, tabData })
+            log.info('ExtensionBackgroundToContentCommunicator.callHeartbeatHandlers: tabHeartbeatHandler failed!', { error, tabData })
+        }
+    }
+
+    private callHeartbeatHandler(): void
+    {
+        // Rate-limit heartbeats for performance reasons and to reduce log spamming:
+        const nowMs = Date.now()
+        if (this.nextHeartbeatMs > nowMs) {
+            return;
+        }
+        const heartbeetIntervalSecs = Config.get('system.clientBackgroundKeepaliveMessageIntervalSec', 10)
+        const heartbeetIntervalMs = 1e3 * heartbeetIntervalSecs
+        this.nextHeartbeatMs = nowMs + heartbeetIntervalMs;
+        try {
+            this.heartbeatHandler()
+        } catch (error) {
+            log.info('ExtensionBackgroundToContentCommunicator.callHeartbeatHandlers: heartbeatHandler failed!', { error })
         }
     }
 

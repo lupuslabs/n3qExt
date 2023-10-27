@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import * as ltx from 'ltx';
-import { BackgroundApp } from '../background/BackgroundApp';
+import { BackgroundApp, ContentCommunicatorFactory } from '../background/BackgroundApp';
 import { Backpack } from '../background/Backpack';
 import { as } from '../lib/as';
 import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
-import { BackgroundHeartbeatHandler, BackgroundRequestHandler, BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
+import { BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
 import { BackgroundMessagePipe } from '../lib/BackgroundMessage'
 
 export class TestBackpack
@@ -27,11 +27,11 @@ export class TestBackpack
                 enabledProviders: ['nine3q'],
             },
         });
-        const communicatorMaker = (heartbeatHandler: BackgroundHeartbeatHandler, requestHandler: BackgroundRequestHandler) => {
+        const communicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, tabHeartbeatHandler, requestHandler) => {
             const messagePipeProvider = {
                 addOnMessagePipeConnectHandler: (onConnectHandler: (messagePipe: BackgroundMessagePipe) => void): void => { },
             }
-            return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, requestHandler)
+            return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, tabHeartbeatHandler, requestHandler)
         }
         let ba = new BackgroundApp(communicatorMaker);
         await ba.assertThatThereIsAUserId();

@@ -48,7 +48,7 @@ export class Config
             tabStatsRecentChatAgeSecs: 1, // Keep this small. Indirectly used for edge detection in BrowserActionGui.
             clientBackgroundWaitReadyChecksMax: 100, // Content gives up until next navigation after that many failed checks. This has to account for slow config and backpack retrieval.
             clientBackgroundWaitReadyCheckIntervalSec: 1, // This also often is the minimum content start delay on first navigation when background isn't already running.
-            clientBackgroundKeepaliveMessageIntervalSec: 17, // Thirty seconds minus safety margin to keep background service worker alive.
+            clientBackgroundKeepaliveMessageIntervalSec: 1, // Thirty seconds minus safety margin to keep background service worker alive. Also the minimum maintenance interval for background components.
             clientBackgroundMessagePipeReopenIntervalSec: 241, // Five minutes minus safety margin to keep ports to background service worker alive.
             clientBackgroundSendTimeoutSec: 10, // How long before giving up sending a message.
             clientBackgroundResponseTimeoutSec: 600, // How long before giving up waiting for a response.

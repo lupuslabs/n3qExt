@@ -85,8 +85,8 @@ $(async function ()
     {
         log.debug('Background.activate');
         backgroundPipeProvider = new SamethreadBackgroundMessagePipeProvider()
-        const backgroundCommunicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, requestHandler) => {
-            backgroundCommunicator = new BackgroundToContentCommunicator(backgroundPipeProvider, heartbeatHandler, requestHandler)
+        const backgroundCommunicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, tabHeartbeatHandler, requestHandler) => {
+            backgroundCommunicator = new BackgroundToContentCommunicator(backgroundPipeProvider, heartbeatHandler, tabHeartbeatHandler, requestHandler)
             return backgroundCommunicator
         }
         backgroundApp = new BackgroundApp(backgroundCommunicatorMaker);

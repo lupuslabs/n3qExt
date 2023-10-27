@@ -44,9 +44,9 @@ function applyFirefoxCorsWorkaround() {
 }
 applyFirefoxCorsWorkaround()
 
-const communicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, requestHandler) => {
+const communicatorMaker: ContentCommunicatorFactory = (heartbeatHandler, tabHeartbeatHandler, requestHandler) => {
     const messagePipeProvider = new PortBackgroundMessagePipeProvider()
-    return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, requestHandler)
+    return new BackgroundToContentCommunicator(messagePipeProvider, heartbeatHandler, tabHeartbeatHandler, requestHandler)
 }
 // Must happen in first event loop cycle for browser to detect use of event listeners in background service
 // worker or the worker will not be restarted on coresponding incomming events if it stops for any reason:
