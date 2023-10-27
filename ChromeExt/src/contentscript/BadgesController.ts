@@ -621,8 +621,21 @@ export class BadgesController
 
     private mayAddBadge(badgeProperties: ItemProperties): boolean
     {
-       const publicBadgesCount = [...this.badges.values()].filter(b => !as.Bool(b.getProperties()[Pid.BadgeIsTool])).length;
-       return as.Bool(badgeProperties[Pid.BadgeIsTool]) || publicBadgesCount < this.badgesEnabledMax;
+        if (as.Bool(badgeProperties[Pid.BadgeIsPrivate])) {
+            return true;
+        }
+        return this.getPublicBadgeCount() < this.badgesEnabledMax;
+    }
+
+    private getPublicBadgeCount(): number
+    {
+        let publicBadgesCount = 0;
+        for (const badge of this.badges.values()) {
+            if (!as.Bool(badge.getProperties()[Pid.BadgeIsPrivate])) {
+                publicBadgesCount ++;
+            }
+        }
+        return publicBadgesCount;
     }
 
     //--------------------------------------------------------------------------
