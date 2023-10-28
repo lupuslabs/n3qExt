@@ -77,6 +77,7 @@ export namespace HostedInventoryItemProvider
         private readonly accessToken: string;
 
         private loadUserItems: boolean;
+        private userItemsLoaded: boolean = false; // Mainly whether the "default" item should be known.
         private running: boolean = false; // Whether this is configured and not stopped. Items may or may not be loaded.
         private initState: ProviderInitState = 'start';
         private retryStrategy: RetryStrategy;
@@ -166,6 +167,7 @@ export namespace HostedInventoryItemProvider
                     .then(() => {
                         if (this.initState === 'loadingServerItems') {
                             this.initState = 'afterServerItemsLoaded';
+                            this.userItemsLoaded = true;
                             this.maintain();
                         }
                     }).catch(error => {
@@ -472,13 +474,14 @@ export namespace HostedInventoryItemProvider
             return knownIds;
         }
 
-        getGenericItemId(): string
+        private getGenericItemId(): string
         {
-            let clientItemIds = this.backpack.findItems(
-                props => { return (as.Bool(props[Pid.N3qAspect], false) && as.String(props[Pid.Provider]) === this.id); }
-            ).map(item => item.getProperties()[Pid.Id]);
+            const filter = props => as.Bool(props[Pid.N3qAspect], false) && props[Pid.Provider] === this.id;
+            const clientItemIds = this.backpack.findItems(filter).map(item => item.getProperties()[Pid.Id]);
 
-            if (clientItemIds.length === 0) { throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, ''); }
+            if (clientItemIds.length === 0) {
+                throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, '');
+            }
 
             return clientItemIds[0];
         }
@@ -803,7 +806,7 @@ export namespace HostedInventoryItemProvider
         avatarKnownByServer = '';
         stanzaOutFilter(stanza: ltx.Element): ltx.Element
         {
-            if (!this.running || stanza.name !== 'presence') {
+            if (!this.running || !this.userItemsLoaded || stanza.name !== 'presence') {
                 return stanza;
             }
             const type = as.String(stanza.attrs['type'], 'available');
