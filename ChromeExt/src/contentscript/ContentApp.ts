@@ -348,11 +348,11 @@ export class ContentApp extends AppWithDom
             this.shadowDomAnchor?.remove();
             return;
         }
-        const variant = Client.getVariant();
+        this.stopIfEmbeddedAndExtensionPresent();
 
         // Move to end of body (prevent max z-index elements from rendering on top):
         const lastChildOfParent = this.appendToMe.lastElementChild;
-        if (variant === 'extension' && lastChildOfParent !== this.shadowDomAnchor) {
+        if (Environment.isExtension() && lastChildOfParent !== this.shadowDomAnchor) {
             this.appendToMe.append(this.shadowDomAnchor);
         }
 
@@ -362,7 +362,7 @@ export class ContentApp extends AppWithDom
         }
         const shadowDomAnchorStyle = 'all: revert !important; position: fixed !important; border: none !important; padding: 0 !important; width: 0 !important; height: 0 !important; overflow: hidden !important; z-index: 2147483647 !important; user-select: text !important;';
         this.shadowDomAnchor.setAttribute('id', 'n3q');
-        this.shadowDomAnchor.setAttribute('data-client-variant', variant);
+        this.shadowDomAnchor.setAttribute('data-client-variant', Client.getVariant());
         this.shadowDomAnchor.setAttribute('style', shadowDomAnchorStyle);
 
         // Use experimental popover API to get on top of topmost page content:
@@ -380,6 +380,20 @@ export class ContentApp extends AppWithDom
         if (Config.get('system.displayProtectShadowDomAnchor')) {
             this.appendToMeDomObserver.observe(this.appendToMe, { childList: true });
             this.shadowDomAnchorDomObserver.observe(this.shadowDomAnchor, { childList: true, attributes: true });
+        }
+    }
+
+    private stopIfEmbeddedAndExtensionPresent()
+    {
+        if (!Environment.isEmbedded()) {
+            return;
+        }
+        for (const elem of document.querySelectorAll('div[id="n3q"]')) {
+            if (elem !== this.shadowDomAnchor) {
+                log.debug('ContentApp.maintainDisplay: Extension shadow DOM root detected. Stopping embedded.');
+                this.stop();
+                return;
+            }
         }
     }
 

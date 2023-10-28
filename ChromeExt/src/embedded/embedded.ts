@@ -122,6 +122,7 @@ $(async function ()
                 } break;
                 case ContentAppNotification.type_stopped: {
                     deactivateContent();
+                    deactivateBackground();
                 } break;
                 case ContentAppNotification.type_restart: {
                     restartAll();
