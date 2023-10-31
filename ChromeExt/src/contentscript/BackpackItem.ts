@@ -161,6 +161,11 @@ export class BackpackItem
         this.app.toFront(this.getElem(), ContentApp.LayerWindowContent);
     }
 
+    public setFilteredStyle(isMatchingFilter: boolean): void
+    {
+        DomUtils.setElemClassPresent(this.elem, 'filterHide', !isMatchingFilter);
+    }
+
     private onUnmodifiedLeftClick(ev: PointerEventData): void
     {
         this.toFront();

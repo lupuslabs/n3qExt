@@ -160,6 +160,11 @@ export namespace DomUtils {
     //------------------------------------------------------------------------------
     // Other element properties
 
+    export function setElemClassPresent(elem: null|Element, className: string, hasClass: boolean): void
+    {
+        elem?.classList[hasClass ? 'add' : 'remove'](className)
+    }
+
     export function hasElemAnyClass(elem: Element, classNames: Set<string>): boolean
     {
         const elemClassnames = elem.classList

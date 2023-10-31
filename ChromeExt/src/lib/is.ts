@@ -32,9 +32,9 @@ export class is {
         return !this.nil(val) && typeof val === is.typeObject;
     }
 
-    static array<T>(val: unknown): val is Array<T>
+    static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is Array<T>
     {
-        return val instanceof Array;
+        return val instanceof Array && (is.nil(elemGuard) || !val.some(elem => !elemGuard(elem)));
     }
 
     static fun<T>(val: unknown): val is Function

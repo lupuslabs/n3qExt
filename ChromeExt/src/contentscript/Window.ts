@@ -31,12 +31,14 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected onClose: null|(() => void) = null;
     protected readonly viewportResizeListener: () => void;
 
+    protected windowId: string;
     protected windowName: string = 'Default';
     protected style: WindowStyle = 'window';
     protected windowCssClasses: string[] = ['n3q-window'];
     protected contentCssClasses: string[] = ['n3q-window-content'];
     protected showHidden:       boolean = false;
     protected withTitlebar:     boolean = true;
+    protected withButtonbar:    boolean = true;
     protected closeIsHide:      boolean = false;
     protected isMovable:        boolean = true;
     protected isResizable:      boolean = false;
@@ -64,6 +66,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected windowElem: null|HTMLElement = null;
     protected windowElemPointerDispatcher: null|PointerEventDispatcher = null;
     protected titlebarElem: null|HTMLElement = null;
+    protected buttonbarElem: null|HTMLElement = null;
     protected contentElem: null|HTMLElement = null;
 
     protected guiLayer: number|string = ContentApp.LayerWindow;
@@ -75,6 +78,7 @@ export abstract class Window<OptionsType extends WindowOptions>
     public constructor(app: ContentApp)
     {
         this.app = app;
+        this.windowId = Utils.randomString(15);
         this.viewportResizeListener = () => this.onViewportResize();
     }
 
@@ -142,15 +146,16 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeWindowFrameAndDecorations(): void
     {
-        const windowId = Utils.randomString(15);
-
-        this.windowElem = DomUtils.elemOfHtml(`<div id="${windowId}" data-translate="children"></div>`);
+        this.windowElem = DomUtils.elemOfHtml(`<div id="${this.windowId}" data-translate="children"></div>`);
         this.windowElem.classList.add(...this.windowCssClasses, `n3q-window-style-${this.style}`);
         this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
         this.windowElemPointerDispatcher = PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.windowElem);
 
         if (this.withTitlebar) {
             this.makeTitlebar();
+        }
+        if (this.withButtonbar) {
+            this.makeButtonbar();
         }
 
         this.contentElem = DomUtils.elemOfHtml('<div data-translate="children"></div>');
@@ -278,6 +283,18 @@ export abstract class Window<OptionsType extends WindowOptions>
         dispatcher.setIgnoreOpacity(true);
         dispatcher.setDragCssCursor(dragCssCursor);
         dispatcher.setDragStartDistance(0);
+    }
+
+    protected makeButtonbar(): void
+    {
+        this.buttonbarElem = DomUtils.elemOfHtml('<div class="n3q-window-button-bar hidden" data-translate="children"></div>');
+        this.windowElem.append(this.buttonbarElem);
+        this.setButtonBarVisibleState(false);
+    }
+
+    protected setButtonBarVisibleState(isVisible: boolean): void
+    {
+        DomUtils.setElemClassPresent(this.buttonbarElem, 'hidden', !isVisible);
     }
 
     /**

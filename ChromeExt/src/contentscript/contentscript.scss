@@ -1180,6 +1180,15 @@ div#n3q-display {
             //border-bottom: 1px solid #808080;
         }
 
+        .n3q-window-button-bar {
+            border-top: 1px solid hsl(0deg 0% 25% / 50%);
+            overflow: hidden;
+            background: #fff;
+        }
+        .n3q-window-button-bar.hidden {
+            display: none;
+        }
+
         div.n3q-window-title {
             display: block;
             position: absolute;
@@ -1691,6 +1700,59 @@ div#n3q-display {
     //     background-color: #808080;
     // }
 
+    .n3q-backpackwindow .n3q-window-button-bar .filters {
+        display: flex;
+        padding: 6px;
+        min-width: 0;
+        overflow: hidden;
+
+        input[type="radio"] {
+            display: none;
+        }
+        label {
+            display: flex;
+            margin-right: 1px;
+            outline: 1px solid hsl(0deg, 0%, 25%, 25%);
+            box-shadow: 1px 1px 3px hsl(0deg, 0%, 25%, 50%);
+            background: hsl(0deg, 0%, 100%, 100%);
+            padding: 1px 6px 1px 4px;
+            white-space: nowrap;
+            cursor: default;
+            user-select: none;
+            min-width: 14px;
+
+            .icon {
+                display: block;
+                height: 14px;
+                flex-shrink: 0;
+            }
+            .text {
+                display: block;
+                padding: 2px 0 2px 2px;
+                flex-shrink: 1;
+                overflow: hidden;
+            }
+        }
+        label.hidden {
+            display: none;
+        }
+        label:hover {
+            background: hsl(0deg, 0%, 90%, 100%);
+        }
+        input[type="radio"]:checked + label {
+            box-shadow: 1px 1px 1px inset hsl(0deg, 0%, 25%, 50%);
+            background: hsl(0deg, 0%, 90%, 100%);
+            padding: 2px 5px 0 5px;
+        }
+        input[type="radio"]:checked + label .icon {
+            filter: drop-shadow(-1px 0 1px white) drop-shadow(1px 0 1px white);
+        }
+        input[type="radio"]:checked + label .text {
+            filter: drop-shadow(0 0 1px white) drop-shadow(0 0 2px white) drop-shadow(0 0 2px white);
+        }
+
+    }
+
     div.n3q-backpack-pane {
         position: relative;
         width: 100%;
@@ -1704,7 +1766,7 @@ div#n3q-display {
     div.n3q-backpack-item {
         display: block;
         position: absolute;
-        box-shadow: 1px 1px 3px #505050;
+        box-shadow: 1px 1px 3px hsl(0, 0%, 31%);
         background-color: rgba(255, 255, 255, 0.8);
         pointer-events: auto;
         touch-action: none;
@@ -1746,9 +1808,25 @@ div#n3q-display {
         pointer-events: none;
     }
 
+    /* Filter-hidden item in backpack: */
+    div.n3q-backpack-item.filterHide {
+        z-index: 1 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        pointer-events: none !important;
+
+        .n3q-backpack-item-image {
+            opacity: 0.1 !important;
+            filter: grayscale(0.75) blur(2px) !important;
+        }
+        .n3q-backpack-item-label {
+            display: none !important;
+        }
+    }
+
     /* Rezzed item in backpack: */
     div.n3q-backpack-item.n3q-backpack-item-rezzed {
-        box-shadow: rgb(180, 180, 180) 1px 1px 3px;
+        box-shadow: 1px 1px 3px hsl(0, 0%, 31%, 50%);
     }
     div.n3q-backpack-item.n3q-backpack-item-rezzed .n3q-backpack-item-image {
         opacity: 0.5;

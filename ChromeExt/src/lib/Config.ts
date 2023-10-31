@@ -351,6 +351,7 @@ export class Config
                 'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
                 '-----END PUBLIC KEY-----\n',
             showInvisibleItems: false,
+            filters: [],
         },
         SimpleItemTransfer: {
             enabled: true,
