@@ -124,7 +124,7 @@ $(async function ()
         log.debug('Contentscript.onVisibilitychange', { visibilityState })
         if (visibilityState !== 'hidden') {
             if (visibilityState !== 'visible') {
-                $('body').append($('<div style="position:fixedright:0bottom:0width:100pxheight:100pxbackground-color:red"></div>'))
+                $('body').append($('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"></div>'))
             }
             activateContent()
         } else {
