@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.3.0', 'Manifest3Firefox', [
             ['Add', 'Now also available for Firefox'],
+            ['Add', 'Item filters in the backpack window tame the chaos'],
             ['Add', 'Privacy policy to about window'],
             ['Change', 'Chrome extension manifest v3'],
             ['Fix', 'Text of changes window not selectable'],
