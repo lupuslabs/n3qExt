@@ -5,6 +5,7 @@ import { as } from '../lib/as';
 import { Iter } from '../lib/Iter'
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
+import { Memory } from '../lib/Memory'
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ContentApp } from './ContentApp';
@@ -113,8 +114,12 @@ export class BackpackWindow extends Window<WindowOptions>
 
     public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[]): void
     {
+        const isFilterToBeRestored = Object.values(this.items).length === 0;
         itemsHide.forEach(item => this.onHideItem(item));
         itemsShowOrSet.forEach(item => this.onShowOrSetItem(item));
+        if (isFilterToBeRestored) {
+            this.restoreItemFilterIdFromMemory();
+        }
     }
 
     private onShowOrSetItem(properties: ItemProperties): void
@@ -206,7 +211,7 @@ export class BackpackWindow extends Window<WindowOptions>
 
             const stateElem = DomUtils.elemOfHtml(`<input type="radio" id="${stateElemId}" name="n3q-backpack-filter" value="${filterId}"/>`);
             this.filterButtonsBarElem.append(stateElem);
-            stateElem.addEventListener('change', ev => this.selectFilter(filterId));
+            stateElem.addEventListener('change', ev => this.userSelectFilter(filterId));
 
             const buttonElemId = this.makeFilterButtonElemId(filterId);
             const buttonElem = DomUtils.elemOfHtml(`<label id="${buttonElemId}" for="${stateElemId}"></label>`);
@@ -288,6 +293,25 @@ export class BackpackWindow extends Window<WindowOptions>
         }
         filterId = Iter.next(this.itemFilters.keys());
         return filterId;
+    }
+
+    private restoreItemFilterIdFromMemory(): void
+    {
+        Memory.getLocal(`window.${this.windowName}.currentItemFilterId`, this.currentItemFilterId)
+            .then(filterId => this.selectFilter(filterId))
+            .catch(error => this.app.onError(error));
+    }
+
+    private storeItemFilterIdInMemory(): void
+    {
+        Memory.setLocal(`window.${this.windowName}.currentItemFilterId`, this.currentItemFilterId)
+            .catch(error => this.app.onError(error));
+    }
+
+    private userSelectFilter(filterId: null|string): void
+    {
+        this.selectFilter(filterId);
+        this.storeItemFilterIdInMemory();
     }
 
     private selectFilter(filterId: null|string): void
