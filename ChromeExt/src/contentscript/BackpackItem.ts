@@ -163,6 +163,10 @@ export class BackpackItem
 
     public setFilteredStyle(isMatchingFilter: boolean): void
     {
+        if (!isMatchingFilter) {
+            this.info?.close();
+            this.info = null;
+        }
         DomUtils.setElemClassPresent(this.elem, 'filterHide', !isMatchingFilter);
     }
 
