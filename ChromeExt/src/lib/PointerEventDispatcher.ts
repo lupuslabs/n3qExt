@@ -210,11 +210,13 @@ export class PointerEventDispatcher {
         }
 
         if (logButtons) {
+            this.logListenerCalls.add('clickstart');
             this.logListenerCalls.add('buttondown');
             this.logListenerCalls.add('buttonup');
             this.logListenerCalls.add('click');
             this.logListenerCalls.add('longclick');
             this.logListenerCalls.add('doubleclick');
+            this.logListenerCalls.add('clickend');
         }
         if (logDrag) {
             this.logListenerCalls.add('dragstart');
@@ -457,7 +459,7 @@ export class PointerEventDispatcher {
         const isClick = PointerEventDispatcher.mouseclickEventTypes.has(ev.type);
         if (isClick && this.swallowNextMouseclickEvent) {
             // Event represents already-handled click.
-            this.stopEventProcessing(ev, !this.allowDefaultActions, !this.allowDefaultActions);
+            this.stopEventProcessing(ev, true, !this.allowDefaultActions);
             this.swallowNextMouseclickEvent = false;
             if (this.logEventsIn.has(ev.type)) {
                 const msg = `PointerEventDispatcher.swallowIgnoreOrRerouteMouseEvent: Swallowing mouse click because swallowNextMouseclickEvent was true.`;
@@ -480,7 +482,7 @@ export class PointerEventDispatcher {
         // Handle remaining events that are for us:
         if (this.isOpaqueAtEventLocation(ev)) {
             const preventDefault = !this.allowDefaultActions || this.dragOngoing;
-            this.stopEventProcessing(ev, preventDefault, preventDefault);
+            this.stopEventProcessing(ev, true, preventDefault);
             return;
         }
 
@@ -618,7 +620,7 @@ export class PointerEventDispatcher {
         }
 
         const preventDefault = !this.allowDefaultActions || this.dragOngoing;
-        this.stopEventProcessing(ev, preventDefault, preventDefault);
+        this.stopEventProcessing(ev, true, preventDefault);
     }
 
     private handleButtonEvent(ev: PointerEvent, isConcurrent: boolean, lastButtonsState: ButtonsState): void
@@ -652,7 +654,7 @@ export class PointerEventDispatcher {
                 this.handleHovering(ev);
                 this.callEventListener(new PointerEventData('buttondown', ev, this.domElem));
             }
-            if (isInitialDown && this.dragEnabled) {
+            if (isInitialDown) {
                 DomUtils.capturePointer(this.domElem, ev.pointerId);
             }
         }
@@ -690,13 +692,6 @@ export class PointerEventDispatcher {
         }
     }
 
-    private clickHandlingReleasesPointer(): void
-    {
-        if (this.buttonsResetOngoing) {
-            this.handleButtonsReset();
-        }
-    }
-
     private handleButtonsReset(): void
     {
         this.buttonsDownEventStart = null;
@@ -728,6 +723,10 @@ export class PointerEventDispatcher {
             this.dragHandleMove(ev);
             this.hoverLeaveAll(null); // No hover while dragging.
             return;
+        }
+
+        if (this.clickOngoing) {
+            this.clickHandleMoveEvent(ev);
         }
 
         let isHovering
@@ -809,6 +808,7 @@ export class PointerEventDispatcher {
                     }
                     this.clickDownEventStart = eventDown;
                     this.clickMoveEventLast = eventDown;
+                    this.callEventListener(new PointerEventData('clickstart', eventDown, this.domElem));
                 }
                 this.clickDownEventLast = eventDown;
             } break;
@@ -848,24 +848,36 @@ export class PointerEventDispatcher {
         }
     }
 
+    private clickHandleMoveEvent(eventMove: PointerEvent): void
+    {
+        if (this.clickOngoing) {
+            this.clickMoveEventLast = eventMove;
+            if (DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
+                this.clickEnd(true);
+            }
+        }
+    }
+
     private clickEnd(discard: boolean): void
     {
         window.clearTimeout(this.clickTimeoutHandle);
         this.clickTimeoutHandle = null;
-        if (true
-            && this.clickOngoing
-            && this.clickCount !== 0
-            && !discard
-            && !DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
-        ) {
-            const type = this.getClickType();
-            const data = new PointerEventData(type, this.clickDownEventLast, this.domElem, {
-                posEvent: this.clickDownEventStart,
-                modifierKeys: this.clickMoveEventLast,
-            });
-            if (this.callEventListener(data)) {
-                this.swallowNextMouseclickEvent = true; // We handled the click, so swallow the browser generated click event.
+        if (this.clickOngoing) {
+            if (true
+                && this.clickCount !== 0
+                && !discard
+                && !DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
+            ) {
+                const type = this.getClickType();
+                const data = new PointerEventData(type, this.clickDownEventLast, this.domElem, {
+                    posEvent: this.clickDownEventStart,
+                    modifierKeys: this.clickMoveEventLast,
+                });
+                if (this.callEventListener(data)) {
+                    this.swallowNextMouseclickEvent = true; // We handled the click, so swallow the browser generated click event.
+                }
             }
+            this.callEventListener(new PointerEventData('clickend', this.clickMoveEventLast, this.domElem));
         }
         this.clickOngoing = false;
         this.clickIsLong = false;
@@ -873,7 +885,9 @@ export class PointerEventDispatcher {
         this.clickDownEventStart = null;
         this.clickDownEventLast = null;
         this.clickMoveEventLast = null;
-        this.clickHandlingReleasesPointer();
+        if (this.buttonsResetOngoing) {
+            this.handleButtonsReset();
+        }
     }
 
     private getClickType(): 'longclick'|'click'|'doubleclick'

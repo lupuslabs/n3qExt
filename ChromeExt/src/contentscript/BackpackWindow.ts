@@ -216,6 +216,7 @@ export class BackpackWindow extends Window<WindowOptions>
             const buttonElemId = this.makeFilterButtonElemId(filterId);
             const buttonElem = DomUtils.elemOfHtml(`<label id="${buttonElemId}" for="${stateElemId}"></label>`);
             buttonElem.setAttribute('title', filter.getHelpText(language));
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, buttonElem);
             this.filterButtonsBarElem.append(buttonElem);
 
             const iconUrl = filter.getIconUrl();

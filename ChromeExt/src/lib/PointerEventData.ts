@@ -11,9 +11,11 @@ export type PointerEventType =
     | 'buttondown'  // Pointer button down or touch
     | 'buttonup'    // Pointer button up or touch release
 
+    | 'clickstart'  // Start of a potential click or tap
     | 'click'       // Single click or tap
     | 'longclick'   // Long-pressed single click or tap. Falls back to click.
     | 'doubleclick' // Double click or tap
+    | 'clickend'    // Click or tap completed or canceled
 
     | 'dragstart'   // Start dragging or swiping
     | 'dragmove'    // Still dragging or swiping
