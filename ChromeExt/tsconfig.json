@@ -10,6 +10,7 @@
     "lib": ["ES2021", "DOM", "dom.iterable", "webworker"]
   },
   "include": [
+    "importableSvgs.d.ts",
     "src/background",
     "src/contentscript",
     "src/embedded",

@@ -51,13 +51,6 @@ function makeBaseConfig() {
                     test: /\.(png|jpg|gif|svg|mp3)$/,
                     type: 'asset/inline',
                 },
-                {
-                    // This allows
-                    // import * as imgDefaultAvatar from '../assets/DefaultAvatar.png'
-                    // to work in Typescript code:
-                    resourceQuery: /raw/,
-                    type: 'asset/source',
-                },
             ],
         },
         plugins: [

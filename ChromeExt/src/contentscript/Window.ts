@@ -7,6 +7,7 @@ import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
+import * as windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg';
 
 export type WindowOptions = {
     onClose?:      () => void,
@@ -202,12 +203,8 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeUndockButton(): void
     {
-        const button = DomUtils.elemOfHtml(
-            `<div class="n3q-base n3q-window-button n3q-window-button-2" title="Undock" data-translate="attr:title:Common">
-                <div class="n3q-base n3q-button-symbol n3q-button-undock"></div>
-            </div>`
-        );
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, button).addUnmodifiedLeftClickListener(ev => this.undock());
+        const helpText = this.app.translateText('Common.Undock', 'Undock');
+        const button = this.app.makeWindowButton(() => this.undock(), 'window', 'undock', windowUndockIconDataUrl, helpText);
         (this.titlebarElem ?? this.contentElem).append(button);
     }
 

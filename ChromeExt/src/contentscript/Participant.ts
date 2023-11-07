@@ -36,8 +36,8 @@ import { RootMenu, } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { AnimationsDefinition } from './AnimationsXml';
-import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { TutorialWindow } from './TutorialWindow';
+import * as introYouCloseIconDataUrl from '../assets/icons/inverse-close-circle-o.svg';
 
 export class Participant extends Entity
 {
@@ -116,11 +116,12 @@ export class Participant extends Entity
                     + '  </svg>'
                     + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
                     + '</div>');
-                const closeElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-overlay-button n3q-shadow-small" title="Got it" data-translate="attr:title:Intro"><div class="n3q-base n3q-button-symbol n3q-button-close-small"></div></div>');
-                PointerEventDispatcher.makeOpaqueDispatcher(this.app, closeElem).addUnmodifiedLeftClickListener(ev => {
+                const onClose = () => {
                     Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
                     introYouElem.remove();
-                });
+                };
+                const helpText = this.app.translateText('Intro.Got it', 'Got it');
+                const closeElem = this.app.makeWindowButton(onClose, 'overlay', 'close', introYouCloseIconDataUrl, helpText);
                 introYouElem.append(closeElem);
                 this.app.translateElem(introYouElem);
                 this.getElem().append(introYouElem);

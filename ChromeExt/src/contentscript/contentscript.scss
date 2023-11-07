@@ -266,29 +266,6 @@ div#n3q-display {
         filter: brightness(0.8);
     }
 
-    div.n3q-overlay-button {
-        @extend .n3q-shadow-small;
-        position: absolute;
-        right: -7px;
-        top: -7px;
-        z-index: 9999;
-        background-color: #FFF;
-        color: #000000;
-        cursor: default;
-        user-select: none;
-        border-radius: 100%;
-        pointer-events: auto;
-    }
-
-    div.n3q-overlay-button:hover {
-        filter: brightness(0.9);
-    }
-    div.n3q-overlay-button:active {
-        right: -8px;
-        top: -6px;
-        // filter: brightness(0.8);
-    }
-
     div.n3q-button-inline {
         display: inline-block;
         vertical-align: middle;
@@ -303,10 +280,78 @@ div#n3q-display {
         height: 14px;
     }
 
-    div.n3q-button-close-small {
-        background: url(../assets/icons/ci-close-small.svg) no-repeat center center / contain;
+    .n3q-window-button {
+        display: inline-block;
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        background: #ffffff;
+        right: 4px;
+        top: 4px;
+        user-select: none;
+        pointer-events: auto;
+
+        &:hover {
+            filter: brightness(0.9);
+        }
+        &.active {
+            .icon {
+                margin: 1px 0 0 1px;
+            }
+            box-shadow: inset 1px 1px 5px #404040;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+
+        + .n3q-window-button {
+            right: 30px;
+            + .n3q-window-button {
+               right: 56px;
+            }
+        }
+
+        &.close {
+        }
+
+        &.undock {
+            border-radius: 0;
+        }
+    }
+
+    .n3q-popup-button {
+        @extend .n3q-shadow-small;
+        position: absolute;
+        right: -7px;
+        top: -7px;
+        z-index: 9999;
+        border-radius: 100%;
+        background-color: #FFF;
         width: 14px;
         height: 14px;
+        cursor: default;
+        user-select: none;
+        pointer-events: auto;
+
+        &:hover {
+            filter: brightness(0.9);
+        }
+        &.active {
+            margin: 1px -1px 0 0;
+            filter: brightness(0.9);
+        }
+
+        .icon {
+            width: 14px;
+            height: 14px;
+            pointer-events: none;
+        }
+
+        &.close {
+        }
     }
 
     // Entity
@@ -435,27 +480,23 @@ div#n3q-display {
                 }
             }
 
-            div.n3q-overlay-button {
+            .n3q-popup-button.close {
                 right: 10px;
                 background-color: #9fc415;
 
-                div.n3q-button-close-small {
-                    background: url(../assets/icons/inverse-close-circle-o.svg) no-repeat center center / contain;
-                    width: 14px;
-                    height: 14px;
+                &.active {
+                    right: 9px;
+                    top: -6px;
                 }
 
-                div.n3q-button-symbol:hover {
-                    filter: brightness(1.1);
+                .icon {
+                    &:hover {
+                        filter: brightness(1.1);
+                    }
+                    &:active {
+                        filter: brightness(1.1);
+                    }
                 }
-                div.n3q-button-symbol:active {
-                    filter: brightness(1.1);
-                }
-            }
-
-            div.n3q-overlay-button:active {
-                right: 9px;
-                top: -6px;
             }
 
         //    div.n3q-shadow-small {
@@ -1138,10 +1179,6 @@ div#n3q-display {
             margin-right: 4px;
         }
 
-        div.n3q-overlay-button {
-            margin: 0;
-        }
-
         .n3q-backpack-activate {
             margin-top: 4px;
 
@@ -1212,42 +1249,6 @@ div#n3q-display {
             // text-overflow: ellipsis;
             // overflow: hidden;
             user-select: none;
-        }
-
-        div.n3q-window-button {
-            display: inline-block;
-            position: absolute;
-            height: 20px;
-            width: 20px;
-            background: #ffffff;
-            right: 4px;
-            top: 4px;
-            user-select: none;
-            pointer-events: auto;
-
-            div.n3q-button-close {
-                background: url(../assets/icons/carbon_close-outline.svg) no-repeat center center / contain;
-                width: 20px;
-                height: 20px;
-            }
-
-            div.n3q-button-undock {
-                background: url(../assets/icons/clarity_pop-out-line.svg) no-repeat center center / contain;
-                width: 20px;
-                height: 20px;
-            }
-        }
-
-        div.n3q-window-button:hover {
-            filter: brightness(0.9);
-        }
-        div.n3q-window-button:active {
-            box-shadow: inset 1px 1px 5px #404040;
-            // filter: brightness(0.8);
-        }
-
-        div.n3q-window-button-2 {
-            right: 30px;
         }
 
         div.n3q-window-content {

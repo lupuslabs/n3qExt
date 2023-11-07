@@ -40,6 +40,8 @@ import { Entity } from './Entity';
 import { Avatar } from './Avatar';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomUtils } from '../lib/DomUtils';
+import ButtonId = DomUtils.ButtonId
+import ModifierKeyId = DomUtils.ModifierKeyId
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -47,6 +49,8 @@ import { ChatUtils } from '../lib/ChatUtils';
 import { ViewportEventDispatcher } from '../lib/ViewportEventDispatcher'
 import { ContentToBackgroundCommunicator, ContentRequestHandler } from '../lib/ContentToBackgroundCommunicator'
 import { BackgroundMessageUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
+import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.svg';
+import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg';
 
 interface ILocationMapperResponse
 {
@@ -1460,22 +1464,44 @@ export class ContentApp extends AppWithDom
     }
 
     public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
-        const button = document.createElement('div');
-        if (style === 'window') {
-            button.classList.add('n3q-base', 'n3q-window-button');
-        } else {
-            button.classList.add('n3q-base', 'n3q-overlay-button');
+        let iconUrl: string;
+        switch (style) {
+            case 'window': iconUrl = windowCloseIconDataUrl; break;
+            case 'popup':
+            case 'overlay':
+            default: iconUrl = popupCloseIconDataUrl; break;
         }
-        button.setAttribute('title', this.translateText('Common.Close', 'Close'));
-        PointerEventDispatcher.makeOpaqueDispatcher(this, button).addUnmodifiedLeftClickListener(ev => onClose());
-        const btnIcon = document.createElement('div');
-        if (style === 'window') {
-            btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close');
-        } else {
-            btnIcon.classList.add('n3q-base', 'n3q-button-symbol', 'n3q-button-close-small');
+        const helpText = this.translateText('Common.Close', 'Close');
+        return this.makeWindowButton(onClose, style, 'close', iconUrl, helpText);
+    }
+
+    public makeWindowButton(onClick: () => void, style: WindowStyle, cssClass: string, iconUrl: string, helpText: string): HTMLElement {
+        let buttonBaseCssClass: string;
+        switch (style) {
+            case 'window': buttonBaseCssClass = 'n3q-window-button'; break;
+            case 'popup':
+            case 'overlay':
+            default: buttonBaseCssClass = 'n3q-popup-button'; break;
         }
-        button.appendChild(btnIcon);
-        return button;
+
+        const buttonElem = DomUtils.elemOfHtml('<div></div>');
+        buttonElem.classList.add(buttonBaseCssClass, cssClass);
+        buttonElem.setAttribute('title', helpText);
+        const dispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this, buttonElem);
+        dispatcher.addUnmodifiedLeftClickListener(ev => onClick());
+        dispatcher.addListener('clickstart', ButtonId.first, ModifierKeyId.none, ev => {
+            buttonElem.classList.add('active');
+        });
+        dispatcher.addListener('clickend', null, null, ev => {
+            buttonElem.classList.remove('active');
+        });
+
+        const iconElem = DomUtils.elemOfHtml(`<img class="icon" alt=""/>`);
+        this.fetchUrlAsDataUrl(iconUrl)
+            .then(iconDataUrl => iconElem.setAttribute('src', iconDataUrl));
+        buttonElem.appendChild(iconElem);
+
+        return buttonElem;
     }
 
 }
