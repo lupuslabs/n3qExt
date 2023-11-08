@@ -742,12 +742,17 @@ div#n3q-display {
         height: 14px;
         /* Flat color makes it opaque for pointer event handler: */
         background: no-repeat center center / contain #FFFFFF;
-    }
-    span.n3q-menu-open-button-open {
-        background-image: url(../assets/icons/close-circle-o.svg);
-    }
-    span.n3q-menu-open-button-closed {
-        background-image: url(../assets/icons/menu.svg);
+
+        .icon-wrap {
+            .icon {
+                display: block; /* Prevents Firefox from moving it down */
+                height: 14px;
+            }
+        }
+        &.open .icon-wrap.closed,
+        &:not(.open) .icon-wrap.open {
+            display: none;
+        }
     }
 
     div.n3q-menu-pointer-catcher {
@@ -790,6 +795,7 @@ div#n3q-display {
     }
 
     div.n3q-menu-item {
+        @extend .n3q-shadow-small;
         position: relative;
         color: black;
         background-color: white;
@@ -799,25 +805,44 @@ div#n3q-display {
         pointer-events: auto;
         user-select: none;
 
+        &.n3q-submenu-menu-item {
+            padding-right: 13px;
+        }
+
+        &:not(.disabled):hover {
+            filter: brightness(0.9);
+        }
+        &:not(.disabled):active {
+            filter: brightness(0.8);
+        }
+
         * {
             pointer-events: none;
         }
 
-        div.n3q-menu-icon {
-            display: inline-block;
-            vertical-align: middle;
-            width:14px;
-            height:14px;
+        .icon-wrap {
+            display: none;
+            padding-left: 3px;
+            width: 13px;
+            height: 14px;
+            .icon {
+                display: inline-block;
+                vertical-align: middle;
+                height: 13px;
+                &.hidden {
+                    visibility: hidden;
+                }
+            }
         }
 
-        div.n3q-text {
+        .text {
             display: inline-block;
             vertical-align: middle;
             margin-left: 3px;
             min-width: 50px;
         }
 
-        div.n3q-submenu-arrow {
+        .submenu-arrow {
             position: absolute;
             top: 4px;
             right: 4px;
@@ -828,34 +853,42 @@ div#n3q-display {
             border-left: 5px solid black;
         }
 
+        &.disabled * {
+            opacity: 0.6;
+        }
+
+        &.disabled .submenu-arrow {
+            opacity: 0.25;
+        }
+
+        &.menu-item-getWeblin .icon {
+            margin-top: -2px;
+            margin-left: 1px;
+            height: 12px;
+        }
+        &.menu-item-stayHere .icon {
+            margin-top: -2px;
+            margin-left: 1px;
+            height: 12px;
+        }
+        &.menu-item-emotes .icon {
+            height: 12px;
+        }
+        &.menu-item-help .icon {
+            margin-top: -2px;
+            margin-left: 1px;
+            height: 12px;
+        }
+
+        &.menu-item-bye .icon {
+            margin-top: -2px;
+            margin-left: 1px;
+            height: 12px;
+        }
     }
-
-    div.n3q-submenu-menu-item {
-        padding-right: 13px;
+    .n3q-menu-column.with-icons .n3q-menu-item .icon-wrap {
+        display: inline-block;
     }
-
-    div.n3q-menu-icon-checkbox-unchecked { background: url(../assets/icons/checkbox-unchecked.svg) no-repeat center center / auto 0.9em; }
-    div.n3q-menu-icon-checkbox-checked { background: url(../assets/icons/checkbox-checked.svg) no-repeat center center / auto 0.9em; }
-
-    div.n3q-menu-icon-chat { background: url(../assets/icons/ic_baseline-chat-bubble-outline.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-inventory { background: url(../assets/icons/bi_grid-3x2-gap-fill.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-badgesEditMode { background: url(../assets/icons/ic_badgesEditMode.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-vidconf { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-chatwin { background: url(../assets/icons/ic_outline-chat.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-settings { background: url(../assets/icons/ic_baseline-settings.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-getweblin { background: url(../assets/icons/weblin.png) no-repeat center center / contain; }
-    div.n3q-menu-icon-privatevidconf { background: url(../assets/icons/mdi_monitor-eye.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-privatechat { background: url(../assets/icons/ri_chat-private-line.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-greet { background: url(../assets/icons/mdi_human-greeting.svg) no-repeat center center / contain; }
-    div.n3q-menu-icon-bye { background: url(../assets/icons/bye-32.png) no-repeat center center / contain; }
-    div.n3q-menu-icon-emotes { background: url(../assets/icons/smiley.svg) no-repeat center center / auto 0.9em; }
-    div.n3q-menu-icon-help { background: url(../assets/icons/weblin.png) no-repeat center center / auto 1.1em; }
-
-    div.n3q-menu-item:not(.n3q-menu-item-disabled):hover { filter: brightness(0.9); }
-    div.n3q-menu-item:not(.n3q-menu-item-disabled):active { filter: brightness(0.8); }
-
-    div.n3q-menu-item.n3q-menu-item-disabled * { opacity: 0.6; }
-    div.n3q-menu-item.n3q-menu-item-disabled div.n3q-submenu-arrow { opacity: 0.25; }
 
     // Chatout
 
@@ -1722,10 +1755,15 @@ div#n3q-display {
             user-select: none;
             min-width: 14px;
 
-            .icon {
-                display: block;
-                height: 14px;
-                flex-shrink: 0;
+            .icon-wrap {
+                .icon {
+                    display: block;
+                    height: 14px;
+                    flex-shrink: 0;
+                    &.hidden {
+                        display: none;
+                    }
+                }
             }
             .text {
                 display: block;

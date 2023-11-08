@@ -1449,9 +1449,10 @@ export class ContentApp extends AppWithDom
 
     // CORS-rules-evading content retrieval:
 
-    async fetchUrlAsDataUrl(url: string): Promise<string>
+    async fetchUrlAsDataUrl(url: null|string): Promise<string>
     {
-        if (url.startsWith('data:')) {
+        url ??= '';
+        if (!is.nonEmptyString(url) || url.startsWith('data:')) {
             return url;
         }
         try {
@@ -1461,6 +1462,19 @@ export class ContentApp extends AppWithDom
             this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, errorResponse }));
             return url;
         }
+    }
+
+    // GUI helpers:
+
+    public makeIcon(iconUrl: null|string): HTMLElement
+    {
+        const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>');
+        const iconElem = DomUtils.elemOfHtml('<img class="icon"/>');
+        iconElem.addEventListener('error', (ev) => iconElem.classList.add('hidden'));
+        this.fetchUrlAsDataUrl(iconUrl)
+            .then(dataUrl => iconElem.setAttribute('src', dataUrl));
+        iconWrapElem.append(iconElem);
+        return iconWrapElem;
     }
 
     public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
@@ -1496,9 +1510,7 @@ export class ContentApp extends AppWithDom
             buttonElem.classList.remove('active');
         });
 
-        const iconElem = DomUtils.elemOfHtml(`<img class="icon" alt=""/>`);
-        this.fetchUrlAsDataUrl(iconUrl)
-            .then(iconDataUrl => iconElem.setAttribute('src', iconDataUrl));
+        const iconElem = this.makeIcon(iconUrl);
         buttonElem.appendChild(iconElem);
 
         return buttonElem;

@@ -8,48 +8,43 @@ import { DomUtils } from '../lib/DomUtils';
 
 abstract class MenuItem
 {
-    protected app: ContentApp;
-    protected column: MenuColumn;
-    protected extraCssClasses: string[] = [];
-    protected iconId: string;
-    protected text: string;
+    protected readonly app: ContentApp;
+    protected readonly column: MenuColumn;
+    protected readonly id: string;
+    protected readonly extraCssClasses: string[] = [];
+    protected readonly iconUrl: null|string;
+    protected readonly text: string;
 
     protected itemElem: HTMLElement;
 
-    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
+    public constructor(app: ContentApp, column: MenuColumn, id: string, iconUrl: null|string, text: string) {
         this.app = app;
         this.column = column;
-        this.iconId = iconId;
+        this.id = id;
+        this.iconUrl = iconUrl;
         this.text = text;
     }
 
     public hasIcon(): boolean
     {
-        return !is.nil(this.iconId);
+        return is.nonEmptyString(this.iconUrl);
     }
 
-    public render(renderIcon: boolean): HTMLElement
+    public render(): HTMLElement
     {
         const itemElem = document.createElement('div');
         this.itemElem = itemElem;
-        itemElem.classList.add('n3q-base', 'n3q-menu-item', 'n3q-shadow-small', ...this.extraCssClasses);
+        itemElem.classList.add('n3q-menu-item', `menu-item-${this.id}`, ...this.extraCssClasses);
         itemElem.setAttribute('data-translate', 'children');
         if (this.isDisabled()) {
-            itemElem.classList.add('n3q-menu-item-disabled');
+            itemElem.classList.add('disabled');
         }
         this.initEventHandling();
 
-        if (renderIcon) {
-            const iconElem = document.createElement('div');
-            iconElem.classList.add('n3q-base', 'n3q-menu-icon');
-            if (!is.nil(this.iconId)) {
-                iconElem.classList.add(`n3q-menu-icon-${this.iconId}`);
-            }
-            itemElem.appendChild(iconElem);
-        }
+        itemElem.append(this.app.makeIcon(this.iconUrl));
 
         const textElem = document.createElement('div');
-        textElem.classList.add('n3q-base', 'n3q-text');
+        textElem.classList.add('text');
         textElem.setAttribute('data-translate', 'text:Menu');
         textElem.innerText = this.text;
         itemElem.appendChild(textElem);
@@ -137,13 +132,13 @@ abstract class MenuItem
 
 class ActionMenuItem extends MenuItem
 {
-    protected onClick: () => void;
+    protected readonly onClick: () => void;
 
-    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string, onClick: null|(() => void))
+    public constructor(app: ContentApp, column: MenuColumn, id: string, iconUrl: null|string, text: string, onClick: null|(() => void))
     {
-        super(app, column, iconId, text);
+        super(app, column, id, iconUrl, text);
         this.onClick = onClick;
-        this.extraCssClasses.push('n3q-action-menu-item');
+        this.extraCssClasses.unshift('n3q-action-menu-item');
     }
 
     protected isDisabled(): boolean
@@ -161,22 +156,22 @@ class ActionMenuItem extends MenuItem
 class LabelMenuItem extends MenuItem
 {
 
-    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
-        super(app, column, iconId, text);
-        this.extraCssClasses.push('n3q-label-menu-item');
+    public constructor(app: ContentApp, column: MenuColumn, id: string, iconUrl: null|string, text: string) {
+        super(app, column, id, iconUrl, text);
+        this.extraCssClasses.unshift('n3q-label-menu-item');
     }
 
 }
 
 class SubmenuMenuItem extends MenuItem
 {
-    protected menu: Submenu;
+    protected readonly menu: Submenu;
     protected openTimeoutHandle: null|number;
 
-    public constructor(app: ContentApp, column: MenuColumn, iconId: null|string, text: string) {
-        super(app, column, iconId, text);
+    public constructor(app: ContentApp, column: MenuColumn, id: string, iconUrl: null|string, text: string) {
+        super(app, column, id, iconUrl, text);
         this.menu = new Submenu(this.app, this);
-        this.extraCssClasses.push('n3q-submenu-menu-item');
+        this.extraCssClasses.unshift('n3q-submenu-menu-item');
     }
 
     public getMenu(): Submenu
@@ -184,11 +179,11 @@ class SubmenuMenuItem extends MenuItem
         return this.menu;
     }
 
-    public render(renderIcon: boolean): HTMLElement
+    public render(): HTMLElement
     {
-        super.render(renderIcon);
+        super.render();
         const arrowElem = document.createElement('div');
-        arrowElem.classList.add('n3q-base', 'n3q-submenu-arrow');
+        arrowElem.classList.add('submenu-arrow');
         this.itemElem.appendChild(arrowElem);
         return this.itemElem;
     }
@@ -274,10 +269,10 @@ class SubmenuMenuItem extends MenuItem
 
 export class MenuColumn
 {
-    protected app: ContentApp;
-    protected menu: Menu;
-    protected id: string;
-    protected items: MenuItem[] = [];
+    protected readonly app: ContentApp;
+    protected readonly menu: Menu;
+    protected readonly id: string;
+    protected readonly items: MenuItem[] = [];
 
     public constructor(app: ContentApp, menu: Menu, id: string)
     {
@@ -296,31 +291,34 @@ export class MenuColumn
         return this.items.length === 0;
     }
 
-    public addActionItem(iconId: null|string, text: string, onClick: null|(() => void)): void
+    public addActionItem(id: string, iconUrl: null|string, text: string, onClick: () => void): void
     {
-        this.items.push(new ActionMenuItem(this.app, this, iconId, text, onClick));
+        this.items.push(new ActionMenuItem(this.app, this, id, iconUrl, text, onClick));
     }
 
-    public addLabelItem(iconId: null|string, text: string): void
+    public addLabelItem(id: string, iconUrl: null|string, text: string): void
     {
-        this.items.push(new LabelMenuItem(this.app, this, iconId, text));
+        this.items.push(new LabelMenuItem(this.app, this, id, iconUrl, text));
     }
 
-    public addSubmenuItem(iconId: null|string, text: string): Submenu
+    public addSubmenuItem(id: string, iconUrl: null|string, text: string): Submenu
     {
-        const item = new SubmenuMenuItem(this.app, this, iconId, text);
+        const item = new SubmenuMenuItem(this.app, this, id, iconUrl, text);
         this.items.push(item);
         return item.getMenu();
     }
 
     public render(): HTMLElement
     {
+        const renderIcons = this.items.some(item => item.hasIcon());
         const columnElem = document.createElement('div');
         columnElem.classList.add('n3q-base', 'n3q-menu-column', `n3q-menu-column-${this.id}`);
+        if (renderIcons) {
+            columnElem.classList.add('with-icons');
+        }
         columnElem.setAttribute('data-translate', 'children');
-        const renderIcons = this.items.some(item => item.hasIcon());
         for (let item of this.items) {
-            columnElem.appendChild(item.render(renderIcons));
+            columnElem.appendChild(item.render());
         }
         return columnElem;
     }
@@ -340,8 +338,8 @@ export class MenuColumn
 
 abstract class Menu
 {
-    protected app: ContentApp;
-    protected extraCssClasses: string[] = [];
+    protected readonly app: ContentApp;
+    protected readonly extraCssClasses: string[] = [];
     protected columns: MenuColumn[] = [];
 
     protected menuElem: null|HTMLElement;
@@ -492,7 +490,7 @@ export class RootMenu extends Menu
 
 export class Submenu extends Menu
 {
-    protected parentItem: SubmenuMenuItem;
+    protected readonly parentItem: SubmenuMenuItem;
 
     public constructor(app: ContentApp, parentItem: SubmenuMenuItem)
     {

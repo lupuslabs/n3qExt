@@ -17,6 +17,11 @@ export class is {
         return typeof val === is.typeString;
     }
 
+    static nonEmptyString(val: unknown): val is string
+    {
+        return this.string(val) && val.length !== 0;
+    }
+
     static boolean(val: unknown): val is boolean
     {
         return typeof val === is.typeBoolean;

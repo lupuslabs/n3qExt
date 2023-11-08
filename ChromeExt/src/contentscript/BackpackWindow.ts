@@ -219,14 +219,7 @@ export class BackpackWindow extends Window<WindowOptions>
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, buttonElem);
             this.filterButtonsBarElem.append(buttonElem);
 
-            const iconUrl = filter.getIconUrl();
-            if (!is.nil(iconUrl)) {
-                const labelIconElem = DomUtils.elemOfHtml(`<img class="icon"/>`);
-                labelIconElem.addEventListener('error', (ev) => { labelIconElem.style.display='none'; });
-                this.app.fetchUrlAsDataUrl(filter.getIconUrl())
-                    .then(dataUrl => labelIconElem.setAttribute('src', dataUrl));
-                buttonElem.append(labelIconElem);
-            }
+            buttonElem.append(this.app.makeIcon(filter.getIconUrl()));
 
             const labelTextElem = DomUtils.elemOfHtml(`<span class="text"></span>`);
             labelTextElem.innerText = filter.getLabelText(language);
