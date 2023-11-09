@@ -174,11 +174,11 @@ div#n3q-display {
         height: 100px;
         opacity: 0.1;
         background-color: #abc115;
-    }
-
-    div.n3q-dropzone-hilite {
-        opacity: 0.2;
         pointer-events: auto;
+
+        &.n3q-dropzone-hilite {
+            opacity: 0.2;
+        }
     }
 
     // General
@@ -352,6 +352,13 @@ div#n3q-display {
 
         &.close {
         }
+    }
+
+    .n3q-user-selection-rect {
+        position: absolute;
+        box-sizing: border-box;
+        border: 1px solid hsla(211, 100%, 50%, 0.5);
+        background-color: hsla(211, 100%, 50%, 0.25);
     }
 
     // Entity
@@ -1800,6 +1807,14 @@ div#n3q-display {
         touch-action: pan-x pan-y;
         background: #FFFFFF; // Makes it opaque for drag and drop handling.
         box-shadow: inset 0 4px 5px -4px #404040;
+
+        &.drop-target {
+            background-color: hsl(68, 80%, 42%, 0.1);
+
+            &.highlight {
+                background-color: hsl(68, 80%, 42%, 0.2);
+            }
+        }
     }
 
     div.n3q-backpack-item {
@@ -1839,6 +1854,14 @@ div#n3q-display {
             right: 0;
             background-color: rgba(255, 255, 255, 0);
             pointer-events: none !important;
+        }
+
+        &.selected:not(.selection-rect-remove), &.selection-rect-add {
+            box-shadow: 1px 1px 3px hsl(211, 50%, 50%);
+            background-color: hsla(211, 100%, 90%, 0.8);
+            .n3q-backpack-item-label {
+                background-color: hsla(211, 100%, 92%, 0.8); /* Slightly brighter to offset layering effect */
+            }
         }
     }
 

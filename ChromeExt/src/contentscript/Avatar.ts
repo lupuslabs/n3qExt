@@ -67,7 +67,7 @@ export class Avatar implements IObserver
         entity.getElem().append(this.elem);
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.imageElem);
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
+        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-badge');
 
         this.pointerEventDispatcher.addHoverEnterListener(ev => this.entity.onMouseEnterAvatar(ev));
         this.pointerEventDispatcher.addHoverLeaveListener(ev => this.entity.onMouseLeaveAvatar(ev));
@@ -94,6 +94,7 @@ export class Avatar implements IObserver
             this.app.toFront(dragElem, ContentApp.LayerDrag);
 
             if (this.entity instanceof RoomItem && this.entity.isMyItem()) {
+                this.app.getBackpackWindow()?.setIsDropTargetStyle(true)
                 const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
                 this.dragBadgeElem = badges?.makeDraggedBadgeIcon(this.entity.getProperties());
             }
@@ -108,7 +109,7 @@ export class Avatar implements IObserver
 
             const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
             const properties = this.entity instanceof RoomItem ? this.entity.getProperties() : {};
-            let targetIsBadges = badges?.isValidEditModeBadgeDrop(ev, properties);
+            let targetIsBadges = badges?.isValidEditModeBadgeDrop(ev, properties) ?? false;
             if (targetIsBadges) {
                 badges?.showDraggedBadgeIconInside(properties, ev, this.dragBadgeElem);
             } else {
@@ -122,12 +123,15 @@ export class Avatar implements IObserver
                 this.dragElem.style.top = `${ev.clientY - ev.startDomElementOffsetY}px`;
                 this.dragElem.classList.remove('n3q-hidden');
             }
+
+            const backpack = this.app.getBackpackWindow()
+            backpack?.setIsDropTargetStyle(true, backpack?.getIsDropTargetInBackpack(ev) ?? false)
         });
 
         this.pointerEventDispatcher.addDragEnterListener(ev => {
             const dropTargetElem = ev.dropTarget;
             if (this.entity instanceof RoomItem
-            && this.app.getEntityByelem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
+            && this.app.getEntityByElem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
                 dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
             }
         });
@@ -138,9 +142,9 @@ export class Avatar implements IObserver
         });
 
         this.pointerEventDispatcher.addDragDropListener(ev => {
-            if (this.entity instanceof RoomItem && ev.dropTarget instanceof HTMLElement
-            && ev.dropTarget.classList.contains('n3q-backpack-pane')) {
-                this.onRoomItemDropOnBackpack(ev, this.entity, ev.dropTarget);
+            const backpack = this.app.getBackpackWindow()
+            if (this.entity instanceof RoomItem && (backpack?.getIsDropTargetInBackpack(ev) ?? false)) {
+                this.onRoomItemDropOnBackpack(ev, this.entity);
                 return;
             }
             if (this.entity instanceof RoomItem) {
@@ -152,7 +156,7 @@ export class Avatar implements IObserver
                     return;
                 }
 
-                const dropTargetEntity = this.app.getEntityByelem(ev.dropTarget);
+                const dropTargetEntity = this.app.getEntityByElem(ev.dropTarget);
                 if (dropTargetEntity?.isValidDropTargetForItem(this.entity)) {
                     dropTargetEntity.onGotItemDroppedOn(this.entity);
                     return;
@@ -173,9 +177,10 @@ export class Avatar implements IObserver
         this.dragElem?.parentElement?.removeChild(this.dragElem);
         const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
         this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
+        this.app.getBackpackWindow()?.setIsDropTargetStyle(false)
     }
 
-    private onRoomItemDropOnBackpack(eventData: PointerEventData, roomItem: RoomItem, bpPaneElem: HTMLElement): void
+    private onRoomItemDropOnBackpack(eventData: PointerEventData, roomItem: RoomItem): void
     {
         if (!roomItem.isMyItem()) {
             const toast = new SimpleToast(
@@ -186,19 +191,22 @@ export class Avatar implements IObserver
             toast.show();
             return;
         }
+        const backpack = this.app.getBackpackWindow()
+        if (!backpack) {
+            return;
+        }
         const itemProps = roomItem.getProperties();
-        const paneElemDims = bpPaneElem.getBoundingClientRect();
 
         const drggedElemVpX = eventData.clientX - eventData.startDomElementOffsetX;
-        const drggedElemBackpackX = drggedElemVpX - paneElemDims.x + bpPaneElem.scrollLeft;
-        const x = Math.round(drggedElemBackpackX + as.Float(itemProps?.Width) / 2);
         const drggedElemVpY = eventData.clientY - eventData.startDomElementOffsetY;
-        const drggedElemBackpackY = drggedElemVpY - paneElemDims.y + bpPaneElem.scrollTop;
+        const [drggedElemBackpackX, drggedElemBackpackY]
+            = backpack.translateClientPosToBackpackPos(drggedElemVpX, drggedElemVpY)
+        const x = Math.round(drggedElemBackpackX + as.Float(itemProps.Width) / 2);
         const LabelHeightHalf = 7;
-        const y = Math.round(drggedElemBackpackY + as.Float(itemProps?.Height) / 2 + LabelHeightHalf);
+        const y = Math.round(drggedElemBackpackY + as.Float(itemProps.Height) / 2 + LabelHeightHalf);
 
         this.app.derezItem(roomItem.getItemId(), x, y); // x, y is center of item with label in backpack.
-        this.app.getBackpackWindow()?.getItem(roomItem.getItemId())?.toFront();
+        backpack.getItem(roomItem.getItemId())?.toFront();
     }
 
     addClass(className: string): void

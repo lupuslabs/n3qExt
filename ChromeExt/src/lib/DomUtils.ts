@@ -189,6 +189,17 @@ export namespace DomUtils {
         return contentLocalRect
     }
 
+    export function setElemBox(elem: null|HTMLElement, box: DOMRectReadOnly): void
+    {
+        if (!elem) {
+            return
+        }
+        elem.style.left = `${box.left}px`
+        elem.style.top = `${box.top}px`
+        elem.style.width = `${box.width}px`
+        elem.style.height = `${box.height}px`
+    }
+
     //------------------------------------------------------------------------------
     // Event handling
 

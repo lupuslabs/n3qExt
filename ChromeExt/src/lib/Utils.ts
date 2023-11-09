@@ -27,6 +27,8 @@ export type BoxEdges = {
     readonly left: number,
 }
 
+export const dummyBoxEdges: BoxEdges = { top: 0, right: 0, bottom: 0, left: 0 };
+
 export type BoxEdgeMovements = Partial<BoxEdges>
 
 export class ErrorWithData extends Error
@@ -387,6 +389,36 @@ export class Utils
             label = url;
         }
         return label;
+    }
+
+    static isDomRectOverlappingDomRect(rectA: DOMRectReadOnly, rectB: DOMRectReadOnly): boolean
+    {
+        return rectA.top < rectB.bottom && rectA.bottom > rectB.top
+            && rectA.left < rectB.right && rectA.right > rectB.left
+    }
+
+    static addMarginsToDomRect(rectToModify: DOMRectReadOnly, margins: BoxEdges): DOMRectReadOnly
+    {
+        const { top, right, bottom, left} = margins
+        const width = rectToModify.width + left + right
+        const height = rectToModify.height + top + bottom
+        return new DOMRectReadOnly(rectToModify.left - left, rectToModify.top - top, width, height)
+    }
+
+    static clipDomRectInDomRect(rectToFit: DOMRectReadOnly, rectToFitIn: DOMRectReadOnly): DOMRectReadOnly
+    {
+        const left = Math.max(rectToFitIn.left, Math.min(rectToFit.left, rectToFitIn.right))
+        const right = Math.min(rectToFitIn.right, Math.max(rectToFit.right, rectToFitIn.left))
+        const top = Math.max(rectToFitIn.top, Math.min(rectToFit.top, rectToFitIn.bottom))
+        const bottom = Math.min(rectToFitIn.bottom, Math.max(rectToFit.bottom, rectToFitIn.top))
+        return new DOMRectReadOnly(left, top, right - left, bottom - top)
+    }
+
+    static fitDomRectInDomRectNoResizeHonorTopLeft(rectToFit: DOMRectReadOnly, rectToFitIn: DOMRectReadOnly): DOMRectReadOnly
+    {
+        const left = Math.max(rectToFitIn.left, Math.min(rectToFit.left, rectToFitIn.right - rectToFit.width))
+        const top = Math.max(rectToFitIn.top, Math.min(rectToFit.top, rectToFitIn.bottom - rectToFit.height))
+        return new DOMRectReadOnly(left, top, rectToFit.width, rectToFit.height)
     }
 
 }

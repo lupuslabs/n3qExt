@@ -1,6 +1,6 @@
 ﻿import { is } from './is'
 import { as } from './as'
-import { Iter } from './Iter'
+import { iter } from './Iter'
 import { ErrorWithData } from './Utils'
 import { ItemProperties } from './ItemProperties'
 
@@ -200,7 +200,7 @@ export namespace ItemFilters {
 
         protected getLangText(langTexts: Map<string,string>, language: string): string
         {
-            return langTexts.get(language) ?? langTexts.get('en-US') ?? Iter.next(langTexts.values()) ?? ''
+            return langTexts.get(language) ?? langTexts.get('en-US') ?? iter(langTexts.values()).getNext() ?? ''
         }
 
     }

@@ -32,6 +32,11 @@ export class is {
         return typeof val === is.typeNumber;
     }
 
+    static float(val: unknown): val is number
+    {
+        return is.number(val) && !isNaN(val);
+    }
+
     static object(val: unknown): val is {[p: string]: unknown}
     {
         return !this.nil(val) && typeof val === is.typeObject;
@@ -45,6 +50,16 @@ export class is {
     static fun<T>(val: unknown): val is Function
     {
         return typeof val === is.typeFunction;
+    }
+
+    static iterator<T>(val: unknown): val is Iterator<T>
+    {
+        return is.object(val) && is.fun(val['next']);
+    }
+
+    static iterable<T>(val: unknown): val is Iterable<T>
+    {
+        return is.object(val) && is.fun((<Iterator<T>>(<any>val))[Symbol.iterator])
     }
 
 }

@@ -90,7 +90,7 @@ export class Config
             pointerLongclickMinSec: 0.5,
             pointerDoubleclickMaxSec: 0.25,
             pointerDragStartDistance: 3.0,
-            pointerDropTargetUpdateIntervalSec: 0.5,
+            pointerDropTargetUpdateIntervalSec: 0.25,
 
             // These are here to avoid them being affected by log.all:
             logIncommingPointer: false, // Enter/leave and move excluded if logWithEnterLeave and logWithMove are false.

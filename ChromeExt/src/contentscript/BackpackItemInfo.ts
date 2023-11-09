@@ -2,12 +2,9 @@ import { as } from '../lib/as'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { Config } from '../lib/Config'
 import { is } from '../lib/is'
-import { ItemException } from '../lib/ItemException'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
-import { Utils } from '../lib/Utils'
 import { BackpackItem } from './BackpackItem'
 import { ContentApp } from './ContentApp'
-import { SimpleErrorToast } from './Toast'
 import { DomUtils } from '../lib/DomUtils'
 import { Window, WindowOptions } from './Window'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -164,11 +161,11 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             if (as.Bool(props[Pid.IsRezable], true)) {
                 const rezBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-rez" data-translate="text:Backpack">Rez item</div>')
                 PointerEventDispatcher.makeOpaqueDispatcher(this.app, rezBtn).addUnmodifiedLeftClickListener(ev => {
-                    const rezzedX = as.Int(props[Pid.RezzedX], -1)
-                    this.backpackItem.rezItem(rezzedX)
-                    this.close()
-                })
-                buttonListElem.append(rezBtn)
+                    const rezzedX = as.Int(props[Pid.RezzedX], -1);
+                    this.app.rezItemInCurrentRoom(props[Pid.Id], rezzedX);
+                    this.close();
+                });
+                buttonListElem.append(rezBtn);
             }
         }
 

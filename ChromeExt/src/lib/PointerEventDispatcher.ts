@@ -8,7 +8,7 @@ import { PointerEventData, PointerEventType } from './PointerEventData';
 
 type ButtonsState = {isButtonsUp: boolean, buttons: number};
 
-export type PointerEventListener = (ev: PointerEventData) => void;
+export type PointerEventListener = ((ev: PointerEventData) => void) | (() => void);
 
 export type PointerEventDispatcherOptions = {
     ignoreOpacity?: boolean,
@@ -225,7 +225,6 @@ export class PointerEventDispatcher {
                 this.logListenerCalls.add('dragleave');
             }
             this.logListenerCalls.add('dragdrop');
-            this.logListenerCalls.add('dragcancel');
             this.logListenerCalls.add('dragend');
             if (logWithMove) {
                 this.logListenerCalls.add('dragmove');
@@ -292,7 +291,13 @@ export class PointerEventDispatcher {
     public addAnyButtonDownListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('buttondown', null, null, listener);
     }
+    public addAnyLeftButtonDownListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('buttondown', DomUtils.ButtonId.first, null, listener);
+    }
 
+    public addAnyLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('click', DomUtils.ButtonId.first, null, listener);
+    }
     public addUnmodifiedLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('click', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, listener);
     }
@@ -338,9 +343,6 @@ export class PointerEventDispatcher {
     public addDragDropListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('dragdrop', null, null, listener);
     }
-    public addDragCancelListener(listener: PointerEventListener): PointerEventDispatcher {
-        return this.addListener('dragcancel', null, null, listener);
-    }
     public addDragEndListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('dragend', null, null, listener);
     }
@@ -367,7 +369,6 @@ export class PointerEventDispatcher {
             case 'dragenter':
             case 'dragleave':
             case 'dragdrop':
-            case 'dragcancel':
             case 'dragend': {
                 this.dragEnabled = true;
             } break;
@@ -938,6 +939,13 @@ export class PointerEventDispatcher {
             this.dragCancel(true);
         } else {
 
+            this.callEventListener(new PointerEventData('dragdrop', eventUpLast, this.domElem, {
+                startEvent: this.dragDownEventStart,
+                buttons: this.dragDownEventLast,
+                dropTarget: this.dragDropTargetLast,
+                dropTargetLast: this.dragDropTargetLast,
+            }));
+
             if (this.dragDropTargetLast) {
                 this.callEventListener(new PointerEventData('dragleave', eventUpLast, this.domElem, {
                     startEvent: this.dragDownEventStart,
@@ -945,13 +953,6 @@ export class PointerEventDispatcher {
                     dropTargetLast: this.dragDropTargetLast,
                 }));
             }
-
-            this.callEventListener(new PointerEventData('dragdrop', eventUpLast, this.domElem, {
-                startEvent: this.dragDownEventStart,
-                buttons: this.dragDownEventLast,
-                dropTarget: this.dragDropTargetLast,
-                dropTargetLast: this.dragDropTargetLast,
-            }));
 
             this.callEventListener(new PointerEventData('dragend', eventUpLast, this.domElem, {
                 startEvent: this.dragDownEventStart,
@@ -1054,11 +1055,6 @@ export class PointerEventDispatcher {
                         dropTargetLast: this.dragDropTargetLast,
                     }));
                 }
-
-                this.callEventListener(new PointerEventData('dragcancel', moveEventLast, this.domElem, {
-                    startEvent: this.dragDownEventStart,
-                    buttons: this.dragDownEventLast,
-                }));
 
                 this.callEventListener(new PointerEventData('dragend', moveEventLast, this.domElem, {
                     startEvent: this.dragDownEventStart,

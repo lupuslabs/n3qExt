@@ -9,6 +9,7 @@ export class _Changes
         ['1.3.0', 'Manifest3Firefox', [
             ['Add', 'Now also available for Firefox'],
             ['Add', 'Item filters in the backpack window tame the chaos'],
+            ['Add', 'Selecting and dragging of multiple items in the backpack window helps aids in individual chaos taming'],
             ['Add', 'Privacy policy to about window'],
             ['Change', 'Chrome extension manifest v3'],
             ['Fix', 'Text of changes window not selectable'],

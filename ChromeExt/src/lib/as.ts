@@ -54,44 +54,39 @@ export class as
         return res;
     }
 
+    static IntOrNull(val: unknown): null|number
+    {
+        const valFloat = as.FloatOrNull(val);
+        return is.nil(valFloat) ? null : Math.round(valFloat);
+    }
+
     static Int(val: unknown, alt?: number): number
     {
-        let res = alt ?? 0;
-        try {
-            if (is.number(val)) {
-                res = Math.round(val);
-            } else {
-                if (is.string(val)) {
-                    res = parseInt(val);
-                    if (isNaN(res)) {
-                        res = alt ?? 0;
-                    }
-                }
-            }
-        } catch (error) {
-            // alt
+        return Math.round(as.Float(val, alt));
+    }
+
+    static FloatOrNull(val: unknown): null|number
+    {
+        if (is.float(val)) {
+            return val;
         }
-        return res;
+        if (is.string(val)) {
+            try {
+                const result = parseFloat(val);
+                if (isNaN(result)) {
+                    return null;
+                }
+                return result;
+            } catch (error) {
+                return null;
+            }
+        }
+        return null;
     }
 
     static Float(val: unknown, alt?: number): number
     {
-        let res = alt ?? 0.0;
-        try {
-            if (is.number(val)) {
-                res = val;
-            } else {
-                if (is.string(val)) {
-                    res = parseFloat(val);
-                    if (isNaN(res)) {
-                        res = alt ?? 0;
-                    }
-                }
-            }
-        } catch (error) {
-            // alt
-        }
-        return res;
+        return as.FloatOrNull(val) ?? alt ?? 0.0;
     }
 
     static Html(val: unknown, alt?: string): string

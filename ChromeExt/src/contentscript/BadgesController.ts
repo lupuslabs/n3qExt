@@ -67,7 +67,7 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // API for ContentApp
 
-    public onBackpackUpdate(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[]): void
+    public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
     {
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.onBackpackUpdate', { itemsShowOrSet, itemsHide });
@@ -441,12 +441,7 @@ export class BadgesController
 
     private updateBadgesFromBackpack(): void
     {
-        const backpackWindow = this.app.getBackpackWindow();
-        if (backpackWindow) {
-            this.onBackpackUpdate([], backpackWindow.getItemsAsProperties());
-        } else {
-            BackgroundMessage.requestBackpackState().catch(ex => this.app.onError(ex));
-        }
+        this.onBackpackUpdate([], [...this.app.getOwnItems().values()]);
     }
 
     private removeBadge(badgeKey: string): void

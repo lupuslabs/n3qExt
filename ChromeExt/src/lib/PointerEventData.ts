@@ -22,7 +22,6 @@ export type PointerEventType =
     | 'dragenter'   // Dragging over the opaque area of an element
     | 'dragleave'   // Dragging outside the opaque area of an element
     | 'dragdrop'    // Completed drag or swipe
-    | 'dragcancel'  // Drag or swipe canceled
     | 'dragend'     // Drag or swipe completed or canceled
 
 type ExtraData = {

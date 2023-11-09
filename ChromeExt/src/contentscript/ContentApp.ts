@@ -51,6 +51,8 @@ import { ContentToBackgroundCommunicator, ContentRequestHandler } from '../lib/C
 import { BackgroundMessageUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
 import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.svg';
 import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg';
+import { BadgesController } from './BadgesController'
+import { PointerEventData } from '../lib/PointerEventData'
 
 interface ILocationMapperResponse
 {
@@ -92,6 +94,7 @@ export class ContentApp extends AppWithDom
     private shadowDomAnchorDomObserver: null|MutationObserver;
     private shadowDomRoot: null|ShadowRoot;
     private display: null|HTMLElement;
+    private dropzoneELem: null|HTMLElement = null;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
     private pageUrl: string;
@@ -111,6 +114,7 @@ export class ContentApp extends AppWithDom
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
     private toasts: Set<Toast> = new Set();
+    private readonly ownItems: Map<string,ItemProperties> = new Map();
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -130,7 +134,9 @@ export class ContentApp extends AppWithDom
     getLanguage(): string { return this.language; }
 
     getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
+    getMyBadgesDisplay(): null|BadgesController { return this.room?.getMyParticipant()?.getBadgesDisplay() ?? null; }
 
+    getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 
     getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
@@ -255,6 +261,7 @@ export class ContentApp extends AppWithDom
         }
 
         BackgroundMessage.signalContentAppStartToBackground().catch(error => this.onError(error));
+        BackgroundMessage.requestBackpackState().catch(ex => this.onError(ex));
 
         // this.enterPage();
         await this.checkPageUrlChanged();
@@ -496,7 +503,7 @@ export class ContentApp extends AppWithDom
         return this.getMyParticipant()?.getElem();
     }
 
-    getEntityByelem(elem: Element | null): Entity | null
+    getEntityByElem(elem: Element | null): Entity | null
     {
         if (!(elem instanceof HTMLElement)) {
             return null;
@@ -721,11 +728,8 @@ export class ContentApp extends AppWithDom
                 } break;
 
                 case ContentMessage.type_onBackpackUpdate: {
-                    const updateData = <BackpackUpdateData> message.data;
-                    const itemsHide = updateData.itemsHide;
-                    const itemsShowOrSet = updateData.itemsShowOrSet;
-                    this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
-                    this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
+                    const { itemsHide, itemsShowOrSet } = <BackpackUpdateData> message.data;
+                    this.onBackpackUpdate(itemsHide, itemsShowOrSet)
                 } break;
 
                 case ContentMessage.type_chatMessagePersisted: {
@@ -740,6 +744,14 @@ export class ContentApp extends AppWithDom
             return BackgroundErrorResponse.ofError(error);
         }
         return { ok: true };
+    }
+
+    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
+    {
+        itemsHide.forEach(item => this.ownItems.delete(item[Pid.Id]));
+        itemsShowOrSet.forEach(item => this.ownItems.set(item[Pid.Id], item));
+        this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
+        this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
     }
 
     handle_sendStateToBackground(): void
@@ -1116,36 +1128,27 @@ export class ContentApp extends AppWithDom
     }
     isFront(elem: HTMLElement, layer: number)
     {
-        return (as.Int(elem.style.zIndex) == this.getFrontIndex(layer));
+        return as.Int(elem.style.zIndex) === this.getFrontIndex(layer);
     }
 
-    private dropzoneELem: HTMLElement = null;
-    showDropzone()
+    public setDropzoneVisibility(isVisible: boolean, isHighlighted: boolean = false): void
     {
-        this.hideDropzone();
-
-        this.dropzoneELem = <HTMLElement>$('<div class="n3q-base n3q-dropzone" />').get(0);
-        $(this.display).append(this.dropzoneELem);
-        this.toFront(this.dropzoneELem, ContentApp.LayerAboveEntities);
-    }
-
-    hideDropzone()
-    {
-        if (this.dropzoneELem) {
-            $(this.dropzoneELem).remove();
-            this.dropzoneELem = null;
+        if (!isVisible) {
+            this.dropzoneELem?.remove()
+            this.dropzoneELem = null
+            return
         }
+        if (is.nil(this.dropzoneELem)) {
+            this.dropzoneELem = DomUtils.elemOfHtml('<div class="n3q-base n3q-dropzone"></div>')
+            this.display.append(this.dropzoneELem)
+            this.toFront(this.dropzoneELem, ContentApp.LayerAboveEntities)
+        }
+        DomUtils.setElemClassPresent(this.dropzoneELem, 'n3q-dropzone-hilite', isHighlighted)
     }
 
-    hiliteDropzone(state: boolean)
+    public getIsDropTargetInDropzone(ev: PointerEventData): boolean
     {
-        if (this.dropzoneELem) {
-            if (state) {
-                $(this.dropzoneELem).addClass('n3q-dropzone-hilite');
-            } else {
-                $(this.dropzoneELem).removeClass('n3q-dropzone-hilite');
-            }
-        }
+        return ev.dropTarget?.classList.contains('n3q-dropzone') ?? false
     }
 
     // i18n
@@ -1303,6 +1306,92 @@ export class ContentApp extends AppWithDom
     }
 
     // Item helpers
+
+    public setItemBackpackPosition(itemId: string, newX: number, newY: number): void
+    {
+        const item = this.ownItems.get(itemId)
+        if (!item) {
+            return // Item got deleted
+        }
+        const newXStr = Math.round(newX).toString()
+        const newYStr = Math.round(newY).toString()
+        const oldXStr: undefined|string = item[Pid.InventoryX]
+        const oldYStr: undefined|string = item[Pid.InventoryY]
+        if (oldXStr === newXStr && oldYStr === newYStr) {
+            return
+        }
+
+        // Simulate change locally:
+        this.onBackpackUpdate([], [{
+            ...item,
+            [Pid.InventoryX]: newXStr,
+            [Pid.InventoryY]: newYStr,
+        }])
+
+        BackgroundMessage.modifyBackpackItemProperties(
+            itemId,
+            {
+                [Pid.InventoryX]: newXStr,
+                [Pid.InventoryY]: newYStr,
+            },
+            [],
+            { skipPresenceUpdate: true }
+        ).catch(error => {
+            this.onError(error)
+
+            // Undo local change if not overwritten by concurrent change:
+            const item = this.ownItems.get(itemId)
+            if (item && item[Pid.InventoryX] === newXStr && item[Pid.InventoryY] === newYStr) {
+                this.onBackpackUpdate([], [{
+                    ...item,
+                    [Pid.InventoryX]: oldXStr,
+                    [Pid.InventoryY]: oldYStr,
+                }])
+            }
+
+        })
+    }
+
+    public rezItemInCurrentRoom(itemId: string, x: number): void
+    {
+        const room = this.getRoom();
+        if (room) {
+            this.rezItem(itemId, room.getJid(), x, room.getDestination());
+        }
+    }
+
+    public rezItem(itemId: string, room: string, x: number, destination: string): void
+    {
+        x = Math.round(x);
+        this.rezItemAsync(itemId, room, x, destination)
+            .catch (ex => this.onError(ErrorWithData.ofError(ex, 'Caught error!', { itemId: itemId })));
+    }
+
+    private async rezItemAsync(itemId: string, room: string, x: number, destination: string): Promise<void>
+    {
+        if (Utils.logChannel('backpackWindow', true)) { log.info('BackpackWindow.rezItemAsync', itemId, 'to', room); }
+        const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+
+        if (as.Bool(props[Pid.ClaimAspect])) {
+            if (await this.getRoom().propsClaimYieldsToExistingClaim(props)) {
+                throw new ItemException(ItemException.Fact.ClaimFailed, ItemException.Reason.ItemMustBeStronger, this.getRoom()?.getPageClaimItem()?.getDisplayName());
+            }
+        }
+
+        if (as.Bool(props[Pid.AutorezAspect])) {
+            await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
+        }
+
+        const moveInsteadOfRez = as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room;
+        if (moveInsteadOfRez) {
+            await this.moveRezzedItemAsync(itemId, x);
+        } else {
+            if (as.Bool(props[Pid.IsRezzed])) {
+                await this.derezItemAsync(itemId);
+            }
+            await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
+        }
+    }
 
     /**
      * Triggers the derezzing of the item with

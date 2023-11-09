@@ -125,6 +125,17 @@ export class ItemProperties
 {
     [pid: string]: string
 
+    static getId(item: ItemProperties): string
+    {
+        return item[Pid.Id];
+    }
+
+    static getIsVisibleInBackpack(item: ItemProperties): boolean
+    {
+        const isInvisible = as.Bool(item[Pid.IsInvisible], false);
+        return !isInvisible || as.Bool(Config.get('backpack.showInvisibleItems', false));
+    }
+
     static getDisplay(props: ItemProperties): ItemProperties
     {
         let display: ItemProperties = {};
@@ -231,6 +242,21 @@ export class ItemProperties
         }
     }
 
+    static getIsRezable(item: ItemProperties): boolean
+    {
+        return as.Bool(item[Pid.IsRezable], true);
+    }
+
+    static getIsRezzed(item: ItemProperties): boolean
+    {
+        return as.Bool(item[Pid.IsRezzed]);
+    }
+
+    static getRezzedX(item: ItemProperties): null|number
+    {
+        return as.IntOrNull(item[Pid.RezzedX]);
+    }
+
     static getIsBadge(itemProperties: ItemProperties): boolean
     {
         return as.Bool(itemProperties[Pid.BadgeAspect]);
@@ -247,7 +273,9 @@ export class ItemProperties
         try {
             const parsed = JSON.parse(itemProperties[Pid.BadgeToolOptions]);
             Object.assign(options, parsed);
-        } catch {}
+        } catch {
+            // Nothing to do.
+        }
         return options;
     }
 
