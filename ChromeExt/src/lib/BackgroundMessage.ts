@@ -19,7 +19,7 @@ export type TabStats = {
     hasNewPrivateChat: boolean, // Whether new private chat messages occured.
 };
 
-export function MakeZeroTabStats(): TabStats
+export function makeZeroTabStats(): TabStats
 {
     return {
         toastCount: 0,
@@ -336,12 +336,6 @@ export class BackgroundMessage
     static async sendRoomPresence(presenceData: TabRoomPresenceData): Promise<void>
     {
         const request = { type: BackgroundMessage.sendRoomPresence.name, presenceData }
-        await BackgroundMessage.sendMessageCheckOk(request)
-    }
-
-    static async sendIsGuiEnabled(isGuiEnabled: boolean): Promise<void>
-    {
-        const request = { type: BackgroundMessage.sendIsGuiEnabled.name, isGuiEnabled }
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 

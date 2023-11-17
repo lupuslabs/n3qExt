@@ -348,6 +348,7 @@ export class ContentApp extends AppWithDom
         }
 
         this.maintainDisplay();
+        this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
     }
 
     private maintainDisplay()
@@ -758,7 +759,6 @@ export class ContentApp extends AppWithDom
     {
         this.room?.sendStateToBackground();
         this.sendTabStatsToBackground();
-        BackgroundMessage.sendIsGuiEnabled(this.isGuiEnabled).catch(error => this.onError(error));
     }
 
     handle_configChanged(): void

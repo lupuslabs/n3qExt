@@ -24,7 +24,7 @@ import {
     IsTabDisabledResponse,
     NewChatMessageResponse,
     TabStats,
-    MakeZeroTabStats,
+    makeZeroTabStats,
     TabRoomPresenceData,
     PopupDefinition,
     GetItemsByInventoryItemIdsResponse,
@@ -294,7 +294,7 @@ export class BackgroundApp
                 tabId,
                 requestState: true,
                 isGuiEnabled: true,
-                stats: MakeZeroTabStats(),
+                stats: makeZeroTabStats(),
             };
             this.tabs.set(tabId, tabData);
         }
@@ -324,17 +324,20 @@ export class BackgroundApp
 
     private onSignalContentAppStart(tabId: number): void
     {
-        this.tabs.delete(tabId); // Reset tab state.
-        this.browserActionGui.forgetTab(tabId);
+        const tabData = this.getTabData(tabId);
+        tabData.stats = makeZeroTabStats();
+        tabData.requestState = true;
         this.browserActionGui.updateBrowserActionGui(tabId);
         this.sendIsGuiEnabledStateToTab(tabId);
     }
 
     private onSignalContentAppStop(tabId: number): void
     {
-        this.tabs.delete(tabId);
+        const tabData = this.getTabData(tabId);
+        tabData.stats = makeZeroTabStats();
+        tabData.requestState = false;
         this.roomPresenceManager?.onTabUnavailable(tabId);
-        this.browserActionGui.forgetTab(tabId);
+        this.browserActionGui.updateBrowserActionGui(tabId);
         this.contentCommunicator.forgetTab(tabId);
     }
 
@@ -391,10 +394,6 @@ export class BackgroundApp
 
             case BackgroundMessage.getConfigTree.name: {
                 return this.handle_getConfigTree(request.name);
-            } break;
-
-            case BackgroundMessage.sendIsGuiEnabled.name: {
-                return this.handle_sendIsGuiEnabled(tabId, request.isGuiEnabled);
             } break;
 
             case BackgroundMessage.sendStanza.name: {
@@ -843,13 +842,6 @@ export class BackgroundApp
     private getAllTabIds(): number[]
     {
         return [...this.tabs.keys()];
-    }
-
-    private handle_sendIsGuiEnabled(tabId: number, isGuiEnabled: boolean): BackgroundSuccessResponse
-    {
-        this.getTabData(tabId).isGuiEnabled = isGuiEnabled;
-        this.browserActionGui.updateBrowserActionGui(tabId);
-        return new BackgroundSuccessResponse();
     }
 
     // send/recv stanza

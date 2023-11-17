@@ -4,7 +4,7 @@ import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Memory } from '../lib/Memory';
 import { ContentMessage } from '../lib/ContentMessage';
-import { MakeZeroTabStats, TabStats } from '../lib/BackgroundMessage';
+import { makeZeroTabStats, TabStats } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 
 type AttentionLevel = 0 | 1 | 2; // normal | highlight | blinking.
@@ -27,7 +27,7 @@ class TabState {
 
 export class BrowserActionGui
 {
-    static readonly dummyTabState: TabState = new TabState(MakeZeroTabStats(), 0, 0, null);
+    static readonly dummyTabState: TabState = new TabState(makeZeroTabStats(), 0, 0, null);
 
     protected readonly app: BackgroundApp;
     protected readonly hasBrowserActionFeature: boolean;
