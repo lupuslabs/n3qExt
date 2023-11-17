@@ -21,7 +21,6 @@ export class Toast extends Window<ToastOptions>
 
     protected hasDontShowAgainOption = true;
     protected isModal = false;
-    protected onClose: () => void;
 
     protected status: ToastStatus = 'closed';
 
@@ -59,14 +58,8 @@ export class Toast extends Window<ToastOptions>
 
     public close(): void
     {
+        super.close();
         this.status = 'closed';
-        const elem = this.windowElem;
-        if (!is.nil(elem)) {
-            this.windowElem = null;
-            this.onClose?.();
-            elem.remove();
-            this.app.onToastInvisible(this);
-        }
     }
 
     public setVisibility(visible: boolean): void
@@ -154,6 +147,7 @@ export class Toast extends Window<ToastOptions>
         }
 
         this.windowElem?.classList.remove('n3q-hidden');
+        this.app.onToastVisible(this);
     }
 
     protected onCapturePhasePointerDownInside(ev: PointerEvent): void
