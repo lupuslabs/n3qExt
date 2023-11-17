@@ -100,14 +100,17 @@ export class ContentToBackgroundCommunicator
 
     private sendToBackground(messageEnvelope: BackgroundRequestEnvelope|BackgroundResponseEnvelope, inResponseTo?: BackgroundRequestEnvelope): void
     {
-        if (Utils.logChannel('clientBackgroundMessages', true)) {
-            const isRequest = !messageEnvelope['response']
-            if (isRequest) {
-                const request = (<BackgroundRequestEnvelope>messageEnvelope).request
+        const isRequest = !messageEnvelope['response']
+        if (isRequest) {
+            const request = (<BackgroundRequestEnvelope>messageEnvelope).request
+            const logChannel = request.type === 'ContentToBackgroundCommunicatorPing' ? 'clientBackgroundMessagePipeManagement' : 'clientBackgroundMessages'
+            if (Utils.logChannel(logChannel, true)) {
                 const logData = { type: request.type, request: request }
                 const logMsg: string = 'ExtensionContentToBackgroundCommunicator.sendToBackground: Sending request.'
                 log.info(logMsg, logData)
-            } else {
+            }
+        } else {
+            if (Utils.logChannel('clientBackgroundMessages', true)) {
                 const response = (<BackgroundResponseEnvelope>messageEnvelope).response
                 const logData = { ok: response.ok, response: response }
                 if (inResponseTo) {
@@ -160,16 +163,17 @@ export class ContentToBackgroundCommunicator
             }
             return
         }
-        if (Utils.logChannel('clientBackgroundMessages', true)) {
+        const request = unreceivedResponse.requestEnvelope.request
+        const response = responseEnvelope.response
+        const logChannel = request.type === 'ContentToBackgroundCommunicatorPing' ? 'clientBackgroundMessagePipeManagement' : 'clientBackgroundMessages'
+        if (Utils.logChannel(logChannel, true)) {
             const logMsg: string = 'ExtensionContentToBackgroundCommunicator.handleResponseFromBackground: Received response.'
-            const request = unreceivedResponse.requestEnvelope.request
-            const response = responseEnvelope.response
             log.info(logMsg, { type: request.type, ok: response.ok, response, inResponseTo: request })
         }
 
         this.unreceivedResponses.delete(responseEnvelope.requestId)
         window.clearTimeout(unreceivedResponse.responseTimeoutHandle)
-        unreceivedResponse.responsePromiseResolver(responseEnvelope.response)
+        unreceivedResponse.responsePromiseResolver(response)
     }
 
     private handleRequestFromBackground(request: BackgroundRequestEnvelope): void

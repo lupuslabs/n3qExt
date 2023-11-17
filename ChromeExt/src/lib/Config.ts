@@ -65,8 +65,8 @@ export class Config
             startup: false,
             backgroundTraffic: false,
             backgroundPresenceManagement: false,
-            clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, discarding of messages caused by closure or timeouts.
-            clientBackgroundMessages: false, // All messages going to or coming from the background!
+            clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.
+            clientBackgroundMessages: false, // All messages but pings going to or coming from the background!
             room2tab: false,
             contentTraffic: false,
             rpcClient: false,
