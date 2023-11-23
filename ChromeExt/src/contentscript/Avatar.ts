@@ -125,7 +125,8 @@ export class Avatar implements IObserver
             }
 
             const backpack = this.app.getBackpackWindow()
-            backpack?.setIsDropTargetStyle(true, backpack?.getIsDropTargetInBackpack(ev) ?? false)
+            const isMyItem = this.entity instanceof RoomItem && this.entity.isMyItem();
+            backpack?.setIsDropTargetStyle(isMyItem, backpack?.getIsDropTargetInBackpack(ev) ?? false)
         });
 
         this.pointerEventDispatcher.addDragEnterListener(ev => {
