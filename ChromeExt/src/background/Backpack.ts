@@ -15,6 +15,7 @@ import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { is } from '../lib/is';
 import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
+import { iter } from '../lib/Iter'
 
 export class Backpack
 {
@@ -117,38 +118,28 @@ export class Backpack
         const providerConfigs = Config.get('itemProviders', {});
         const enabledProviders: string[] = Config.getArray('items.enabledProviders', []);
 
-        for (const providerId of this.providers.keys()) {
-            const provider = this.providers.get(providerId);
-            if (provider && !enabledProviders.includes(providerId)) {
+        for (const [providerId, provider] of this.providers.entries()) {
+            if (!enabledProviders.includes(providerId)) {
+                log.info('Backpack.maintain', 'formerly enabled provider became disabled', { providerId });
                 this.disableProvider(providerId, provider);
             }
         }
 
-        for (const providerId in providerConfigs) {
+        for (const providerId of enabledProviders) {
             const providerConfig = providerConfigs[providerId] ?? {};
-            const providerConfigJson = JSON.stringify(providerConfig);
-            if (providerConfigJson === this.lastProviderConfigJsons.get(providerId)) {
-                continue;
-            }
-            this.lastProviderConfigJsons.set(providerId, providerConfigJson);
-            if (!enabledProviders.includes(providerId)) {
-                log.info('Backpack.init', 'provider disabled', providerId);
-                continue;
-            }
-            log.info('Backpack.init', 'provider initializing', providerId);
-            const provider = this.makeProvider(providerId, providerConfig, loadItems);
-            if (!provider) {
-                continue;
-            }
-            this.providers.set(providerId, provider);
+            this.maintainProvider(providerId, providerConfig, loadItems);
         }
-        this.providers.forEach(provider => provider.maintain());
     }
 
     private disableProvider(providerId: string, provider: IItemProvider): void
     {
-        log.info('Backpack.init', 'formerly enabled provider became disabled', providerId);
-        provider.stop();
+        log.info('Backpack.disableProvider', 'Provider stopping.', { providerId });
+        try {
+            provider.stop();
+        } catch (error) {
+            log.info('Backpack.disableProvider', 'Provider stopping failed!', { providerId }, error);
+        }
+        this.lastProviderConfigJsons.delete(providerId);
         this.providers.delete(providerId);
         for (const itemId in this.items) {
             const item = this.items[itemId];
@@ -156,6 +147,38 @@ export class Backpack
                 this.sendRemoveItemToAllTabs(itemId);
                 this.deleteRepositoryItem(itemId);
             }
+        }
+    }
+
+    private maintainProvider(providerId: string, providerConfig: {[p:string]:any}, loadItems: boolean): void
+    {
+        const providerConfigJson = JSON.stringify(providerConfig);
+        let provider: null|IItemProvider = this.providers.get(providerId) ?? null;
+
+        if (providerConfigJson !== this.lastProviderConfigJsons.get(providerId)) {
+            if (provider) {
+                log.info('Backpack.maintainProvider', 'Enabled provider\'s config changed.', { providerId });
+                this.disableProvider(providerId, provider);
+                provider = null;
+            }
+            log.info('Backpack.maintainProvider', 'Provider initializing.', providerId);
+
+            try {
+                provider = this.makeProvider(providerId, providerConfig, loadItems);
+            } catch (error) {
+                log.info('Backpack.maintainProvider', 'Provider initialization failed!', { providerId }, error);
+                return;
+            }
+            this.lastProviderConfigJsons.set(providerId, providerConfigJson);
+            if (provider) {
+                this.providers.set(providerId, provider);
+            }
+        }
+
+        try {
+            provider?.maintain();
+        } catch (error) {
+            log.info('Backpack.maintainProvider', 'Provider maintenance failed!', { providerId }, error);
         }
     }
 
@@ -169,7 +192,7 @@ export class Backpack
                 return new HostedInventoryItemProvider.Provider(this.app, this, this.retryStrategyMaker, loadItems, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
             } break;
             default: {
-                log.info('Backpack.init', 'Unknown provider type!', { providerId, providerConfig });
+                log.info('Backpack.makeProvider', 'Unknown provider type!', { providerId, providerConfig });
                 return null;
             }
         }
