@@ -349,6 +349,9 @@ export class BackgroundToContentCommunicator
 
     private callHeartbeatHandlers(tabData: TabData): void
     {
+        if (!this.running) {
+            return
+        }
         this.callHeartbeatHandler()
         this.callTabHeartbeatHandler(tabData)
     }
