@@ -10,11 +10,11 @@ import { ContentMessage } from '../lib/ContentMessage'
 import { BackgroundApp } from './BackgroundApp'
 
 type XmppConfig = {
-    service:  string,
-    domain:   string,
-    resource: string,
-    username: string,
-    password: string,
+    readonly service:  string,
+    readonly domain:   string,
+    readonly resource: string,
+    readonly username: string,
+    readonly password: string,
 }
 
 type XmppConnectionManagerStats = {
@@ -32,6 +32,7 @@ export class XmppConnectionManager
     private xmpp: any = null
     private lastServerPresenceTimeMs: number = 0;
 
+    private currentConnectionId: number = 0
     private isConnecting: boolean = false
     private isConnected: boolean = false
     private xmppJid: null|string = null
@@ -58,22 +59,23 @@ export class XmppConnectionManager
         return {...this.stats}
     }
 
-    public getXmppResource(): null|string
+    public getXmppResource(): string
     {
-        return this.resource ?? null
+        return this.resource
     }
 
     public getXmppJid(): null|string
     {
-        return this.xmppJid ?? null
+        return this.xmppJid
     }
 
     public stop()
     {
         this.isConnecting = false
         this.isConnected = false
-        this.xmpp?.stop().catch(error => log.info(error))
+        this.xmpp?.stop().catch((error: any) => log.info('XmppConnectionManager.stop: xmpp.stop failed!', error))
         this.xmpp = null
+        this.xmppConfig = null
     }
 
     public onPing(): void
@@ -89,8 +91,6 @@ export class XmppConnectionManager
         (async () => {
             const xmppConfigNew = await this.makeXmppConfig()
             if (!this.xmppConfig || !this.areXmppConfigsEqual(xmppConfigNew, this.xmppConfig)) { // If config changed.
-                this.xmppConfig = xmppConfigNew
-                this.stop()
                 this.startXmpp(xmppConfigNew)
             }
         })().catch(error => log.info(error))
@@ -128,42 +128,25 @@ export class XmppConnectionManager
 
     private startXmpp(xmppConfig: XmppConfig): void
     {
-        this.isConnecting = true;
-        (async () => {
+        if (this.isConnecting) {
+            this.stop()
+        }
+        this.isConnecting = true
+        this.xmppConfig = xmppConfig
+        this.currentConnectionId++
+        const connectionId = this.currentConnectionId
+        try {
             this.xmpp = client(xmppConfig)
-
-            this.xmpp.on('error', (err: any) => log.info('xmpp.on.error', err))
-
-            this.xmpp.on('offline', () => {
-                log.info('XMPP offline.')
-                this.isConnecting = true
-                this.isConnected = false
-            })
-
-            this.xmpp.on('online', (address: string) =>
-            {
-                log.info('XMPP online', { address, xmppConfig })
-                this.xmppJid = address
-                this.stats.xmppConnectCount++
-                this.isConnecting = false
-                this.isConnected = true
-                Memory.setLocal('me.lastWorkingXmppConfig', this.xmppConfig).catch(error => log.info(error))
-
-                this.sendServerPresence(Date.now())
-                while (this.stanzaQ.length > 0) {
-                    const stanza = this.stanzaQ.shift()
-                    this.sendStanzaUnbuffered(stanza)
-                }
-
-                try {
-                    this.app.onXmppOnline()
-                } catch (error) { log.info(error) }
-            })
-
-            this.xmpp.on('stanza', (stanza: ltx.Element) => this.recvStanza(stanza))
-
-            this.xmpp.start().catch(error => log.info(error))
-        })().catch(error => log.info(error))
+        } catch (error) {
+            log.info('XmppConnectionManager.startXmpp: XMPP client construction failed!', error)
+            this.stop()
+            return
+        }
+        this.xmpp.on('error', (error: any) => this.onXmppError(connectionId, error))
+        this.xmpp.on('offline', () => this.onXmppOffline(connectionId))
+        this.xmpp.on('online', (address: string) => this.onXmppOnline(connectionId, address, xmppConfig))
+        this.xmpp.on('stanza', (stanza: ltx.Element) => this.onXmppStanza(connectionId, stanza))
+        this.xmpp.start().catch((error: any) => this.onXmppStartError(connectionId, error))
     }
 
     public sendStanza(stanza: ltx.Element): void
@@ -187,7 +170,7 @@ export class XmppConnectionManager
 
             this.xmpp.send(stanza)
         } catch (error) {
-            log.debug('BackgroundApp.sendStanza', error.message ?? '')
+            log.debug('XmppConnectionManager.sendStanzaUnbuffered', error)
         }
     }
 
@@ -237,7 +220,7 @@ export class XmppConnectionManager
                 roomJid = jid(stanza.attrs.from ?? stanza.attrs.to).bare().toString()
             }
         } catch (error) {
-            // Ignore from or to JID not parsable or none present. Stanza will just be send to all tabs.
+            // Ignore from or to JID not parsable or present. Stanza will just be sent to all tabs.
         }
         const type = ContentMessage.type_xmppIo
         const direction = isIncomming ? 'in' : 'out'
@@ -259,6 +242,71 @@ export class XmppConnectionManager
             // Ignore toJid filled but unparsable.
         }
         return isConnectionPresence
+    }
+
+    private onXmppStartError(connectionId: number, error: any)
+    {
+        const isCurrentConnection = connectionId === this.currentConnectionId
+        log.info('XmppConnectionManager.onXmppStartError', { isCurrentConnection }, error)
+        if (isCurrentConnection) {
+            this.stop()
+        }
+    }
+
+    private onXmppError(connectionId: number, error: any)
+    {
+        const isCurrentConnection = connectionId === this.currentConnectionId
+        log.info('XmppConnectionManager.onXmppError', { isCurrentConnection }, error)
+    }
+
+    private onXmppOffline(connectionId: number)
+    {
+        const isCurrentConnection = connectionId === this.currentConnectionId
+        log.info('XmppConnectionManager.onXmppOffline', { isCurrentConnection })
+        if (isCurrentConnection) {
+            this.isConnecting = true
+            this.isConnected = false
+        }
+    }
+
+    private onXmppOnline(connectionId: number, address: string, xmppConfig: XmppConfig)
+    {
+        const isCurrentConnection = connectionId === this.currentConnectionId
+        log.info('XmppConnectionManager.onXmppOnline', { isCurrentConnection, address, xmppConfig })
+        if (!isCurrentConnection) {
+            return
+        }
+
+        this.xmppJid = address
+        this.stats.xmppConnectCount++
+        this.isConnecting = false
+        this.isConnected = true
+        Memory.setLocal('me.lastWorkingXmppConfig', this.xmppConfig)
+            .catch(error => log.info('XmppConnectionManager.onXmppOnline: Memory.setLocal failed!', error))
+
+        this.sendServerPresence(Date.now())
+        while (this.stanzaQ.length > 0) {
+            const stanza = this.stanzaQ.shift()
+            this.sendStanzaUnbuffered(stanza)
+        }
+
+        try {
+            this.app.onXmppOnline()
+        } catch (error) {
+            log.info('XmppConnectionManager.onXmppOnline: app.onXmppOnline failed!', error)
+        }
+    }
+
+    private onXmppStanza(connectionId: number, stanza: ltx.Element)
+    {
+        const isCurrentConnection = connectionId === this.currentConnectionId
+        const isErrorStanza = (stanza.attrs.type ?? '') === 'error'
+        if (!isCurrentConnection) {
+            log.info('XmppConnectionManager.onXmppStanza: Received stanza for old connection.', { isCurrentConnection, isErrorStanza, stanza })
+        } else if (isErrorStanza) {
+            log.info('XmppConnectionManager.onXmppStanza: Received stanza is an error stanza.', { isCurrentConnection, isErrorStanza, stanza })
+        }
+        this.recvStanza(stanza)
     }
 
 }
