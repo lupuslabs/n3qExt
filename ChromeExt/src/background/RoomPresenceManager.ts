@@ -1,4 +1,5 @@
-﻿import { as } from '../lib/as'
+﻿import { is } from '../lib/is'
+import { as } from '../lib/as'
 import { Pid } from '../lib/ItemProperties'
 import { Utils } from '../lib/Utils'
 import * as log from 'loglevel'
@@ -207,7 +208,14 @@ export class RoomPresenceManager
         }
 
         // Nick denial detection:
-        if (roomData.pendingNick && errorCode === 409) { // Forbidden resource/nick
+        if (errorCode === 409) { // Forbidden resource/nick
+            if (is.nil(roomData.pendingNick)) {
+                log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Already accepted nick has been denied now! Starting room enter procedure.', { roomPresenceStanza, roomData })
+                roomData.confirmedNick = null
+                roomData.desiredNick = null
+                this.scheduleSendRoomPresence(roomData)
+                return
+            }
             roomData.enterRetryCount++
             if (roomData.enterRetryCount > as.Int(Config.get('xmpp.maxMucEnterRetries', 4))) {
                 log.info('RoomPresenceManager.onReceivedRoomPresenceStanza: Too many room enter retries!', { roomPresenceStanza, roomData })
