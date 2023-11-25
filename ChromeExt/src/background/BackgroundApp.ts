@@ -169,7 +169,7 @@ export class BackgroundApp
         return this.xmppManager.getXmppResource();
     }
 
-    public getXmppJid(): null|string
+    public getXmppJid(): null|jid.JID
     {
         return this.xmppManager.getXmppJid();
     }
@@ -1069,11 +1069,7 @@ export class BackgroundApp
         }
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
-
-        if (!this.isReady) {
-            return;
-        }
-        this.xmppManager.onPing()
+        this.xmppManager.maintain()
     }
 
     private maintainTab(tabId: number): void

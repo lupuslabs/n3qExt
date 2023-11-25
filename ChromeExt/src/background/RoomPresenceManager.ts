@@ -462,7 +462,8 @@ export class RoomPresenceManager
         const ownResource = roomData.confirmedNick
         if (ownResource) { // Only if actually in the room.
             const from = this.makeToJid(roomJid, ownResource)
-            const attrs = { type: 'unavailable', 'from': from, 'to': this.app.getXmppJid() ?? '', _isSelf: true }
+            const to = this.app.getXmppJid()?.toString() ?? ''
+            const attrs = { type: 'unavailable', 'from': from, 'to': to, _isSelf: true }
             const stanza = new ltx.Element('presence', attrs)
             this.app.sendToTab(unavailableTabId, { type: ContentMessage.type_recvStanza, stanza })
         }
