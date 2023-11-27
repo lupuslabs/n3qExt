@@ -155,18 +155,19 @@ export class Backpack
         const providerConfigJson = JSON.stringify(providerConfig);
         let provider: null|IItemProvider = this.providers.get(providerId) ?? null;
 
-        if (providerConfigJson !== this.lastProviderConfigJsons.get(providerId)) {
+        const lastProviderConfigJson = this.lastProviderConfigJsons.get(providerId)
+        if (providerConfigJson !== lastProviderConfigJson) {
             if (provider) {
-                log.info('Backpack.maintainProvider', 'Enabled provider\'s config changed.', { providerId });
+                log.info('Backpack.maintainProvider', 'Enabled provider\'s config changed.', { providerId, providerConfigJson, lastProviderConfigJson });
                 this.disableProvider(providerId, provider);
                 provider = null;
             }
-            log.info('Backpack.maintainProvider', 'Provider initializing.', providerId);
+            log.info('Backpack.maintainProvider', 'Provider initializing.', { providerId, providerConfig });
 
             try {
                 provider = this.makeProvider(providerId, providerConfig, loadItems);
             } catch (error) {
-                log.info('Backpack.maintainProvider', 'Provider initialization failed!', { providerId }, error);
+                log.info('Backpack.maintainProvider', 'Provider initialization failed!', { providerId, providerConfig, error }, error);
                 return;
             }
             this.lastProviderConfigJsons.set(providerId, providerConfigJson);
@@ -178,7 +179,7 @@ export class Backpack
         try {
             provider?.maintain();
         } catch (error) {
-            log.info('Backpack.maintainProvider', 'Provider maintenance failed!', { providerId }, error);
+            log.info('Backpack.maintainProvider', 'Provider maintenance failed!', { providerId, providerConfig, error }, error);
         }
     }
 
