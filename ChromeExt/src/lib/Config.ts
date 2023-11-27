@@ -226,6 +226,7 @@ export class Config
             verboseVersionQuery: false,
             sendVerboseVersionQueryResponse: true,
             verboseVersionQueryWeakAuth: 'K4QfJptO750u',
+            stanzaOutQueueMaxAgeSec: 30,
         },
         avatars: {
             animationsProxyUrlTemplate: 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}',

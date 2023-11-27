@@ -24,6 +24,11 @@ type XmppConnectionManagerStats = {
     stanzasInCount: number,
 }
 
+type QueuedStanza = {
+    readonly stanza: ltx.Element,
+    readonly creationTimestamp: number,
+}
+
 type ClientStatus = 'offline'|'connecting'|'online'|'disconnecting'
 
 export class XmppConnectionManager
@@ -48,7 +53,7 @@ export class XmppConnectionManager
         stanzasInCount: 0,
     }
 
-    private readonly stanzaQ: Array<ltx.Element> = []
+    private readonly stanzaQ: QueuedStanza[] = []
 
     constructor(app: BackgroundApp) {
         this.app = app
@@ -98,10 +103,7 @@ export class XmppConnectionManager
                         .catch(error => log.info('XmppConnectionManager.maintain: Memory.setLocal failed!', { error }, error))
 
                     this.sendServerPresence(Date.now())
-                    while (this.stanzaQ.length > 0) {
-                        const stanza = this.stanzaQ.shift()
-                        this.sendStanzaUnbuffered(stanza)
-                    }
+                    this.maintainStanzaOutQueue()
 
                     try {
                         this.app.onXmppOnline()
@@ -232,13 +234,25 @@ export class XmppConnectionManager
 
     public sendStanza(stanza: ltx.Element): void
     {
-        this.stats.stanzasOutCount++
-        if (this.clientStatus === 'online') {
-            this.sendStanzaUnbuffered(stanza)
-        } else if (this.isConnectionPresence(stanza)) {
-            // Don't buffer connection presences.
-        } else {
-            this.stanzaQ.push(stanza)
+        this.stanzaQ.push({ stanza, creationTimestamp: Date.now() })
+        this.maintainStanzaOutQueue()
+    }
+
+    private maintainStanzaOutQueue(): void
+    {
+        const isOnline = this.clientStatus === 'online'
+        const maxAgeSecs = as.Float(Config.get('xmpp.stanzaOutQueueMaxAgeSec'), 30)
+        const oldestCreationTimestamp = Date.now() - 1e3 * maxAgeSecs
+        while (this.stanzaQ.length > 0) {
+            const { stanza, creationTimestamp } = this.stanzaQ[0]
+            if (creationTimestamp < oldestCreationTimestamp) {
+                this.stanzaQ.shift()
+            } else if (isOnline) {
+                this.stanzaQ.shift()
+                this.sendStanzaUnbuffered(stanza)
+            } else {
+                break
+            }
         }
     }
 
@@ -250,13 +264,16 @@ export class XmppConnectionManager
             }
             this.logStanzaToRelevantTabs('out', stanza)
         }
+        this.stats.stanzasOutCount++
         this.client.send(stanza).catch(error => log.debug('XmppConnectionManager.sendStanzaUnbuffered', error))
     }
 
     private sendServerPresence(timeMs: number): void
     {
-        this.lastServerPresenceTimeMs = timeMs;
-        this.sendStanza(new ltx.Element('presence'))
+        if (this.clientStatus === 'online') {
+            this.lastServerPresenceTimeMs = timeMs
+            this.sendStanzaUnbuffered(new ltx.Element('presence'))
+        }
     }
 
     private logStanzaToRelevantTabs(direction: 'in'|'out', stanza: ltx.Element): void
