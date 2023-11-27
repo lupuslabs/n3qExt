@@ -747,8 +747,6 @@ div#n3q-display {
         vertical-align: middle;
         width: 14px;
         height: 14px;
-        /* Flat color makes it opaque for pointer event handler: */
-        background: no-repeat center center / contain #FFFFFF;
 
         .icon-wrap {
             .icon {

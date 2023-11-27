@@ -43,7 +43,7 @@ export class Nickname implements IObserver
         const menuElem = document.createElement('span');
         this.menuElem = menuElem;
         menuElem.classList.add('n3q-base', 'n3q-menu-open-button');
-        const menuEventdispatcher = new PointerEventDispatcher(this.app, menuElem);
+        const menuEventdispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, menuElem);
         menuEventdispatcher.addListener('buttondown', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, ev => {
             this.participant.openMenu();
         });
