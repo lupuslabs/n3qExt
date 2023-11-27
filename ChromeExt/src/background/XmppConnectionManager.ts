@@ -185,7 +185,6 @@ export class XmppConnectionManager
         this.clientStatus = 'connecting'
         this.currentClientId++
         const clientId = this.currentClientId
-        log.info('XmppConnectionManager.startXmpp: Creating new XMPP client.', { clientId, xmppConfig })
         let client: Client;
         try {
             client = clientMaker(xmppConfig)
@@ -198,9 +197,10 @@ export class XmppConnectionManager
         client.on('offline', () => this.onXmppOffline(clientId))
         client.on('online', address => this.onXmppOnline(clientId, client, address))
         client.on('stanza', stanza => this.onXmppStanza(clientId, client, stanza))
-        client.start().catch((error: any) => this.onXmppStartError(clientId, error))
+        client.start().catch((error: any) => { /* Already handled by onXmppError */ })
         this.client = client
         this.xmppConfigChanged = false
+        log.info('XmppConnectionManager.startXmpp: Created new XMPP client.', { clientId, client, xmppConfig })
     }
 
     private stopClient(clientId: number, client: null|Client)
@@ -208,11 +208,11 @@ export class XmppConnectionManager
         if ((client?.status ?? 'offline') === 'offline') {
             return
         }
-        if (client === this.client) {
-            log.info('XmppConnectionManager.stopClient: Stopping current XMPP client.', { clientId })
+        const isCurrent = clientId === this.currentClientId
+        const isCurrentStr = isCurrent ? 'current' : 'old'
+        log.info(`XmppConnectionManager.stopClient: Stopping ${isCurrentStr} XMPP client.`, { clientId, clientStatus: client.status })
+        if (isCurrent) {
             this.clientStatus = 'disconnecting'
-        } else {
-            log.info('XmppConnectionManager.stopClient: Stopping old XMPP client.', { clientId })
         }
         try {
             client.reconnect?.stop?.()
@@ -222,12 +222,8 @@ export class XmppConnectionManager
         client.stop().catch((error: any) => {
             log.info('XmppConnectionManager.stopClient: xmppClient.stop failed!', { clientId, error }, error)
         }).then(() => {
-            log.info('XmppConnectionManager.stopClient: Stopped XMPP client.', {
-                clientId,
-                client: {...client},
-                clientSocket: {...client.socket ?? {}},
-                clientTransport_0: {...client.transports[0] ?? {}},
-            })
+            const isCurrentStr = clientId === this.currentClientId ? 'current' : 'old'
+            log.info(`XmppConnectionManager.stopClient: Stopped ${isCurrentStr} XMPP client.`, { clientId })
             this.maintain()
         })
     }
@@ -307,48 +303,36 @@ export class XmppConnectionManager
         return isConnectionPresence
     }
 
-    private onXmppStartError(clientId: number, error: any)
-    {
-        const isCurrentConnection = clientId === this.currentClientId
-        if (isCurrentConnection) {
-            log.info('XmppConnectionManager.onXmppStartError: Current XMPP client start failed!', { clientId, error }, error)
-            this.stopClient(this.currentClientId, this.client)
-        } else {
-            log.info('XmppConnectionManager.onXmppStartError: Old XMPP client start failed.', { clientId, error }, error)
-        }
-    }
-
     private onXmppError(clientId: number, client: Client, error: any)
     {
-        const isCurrentConnection = clientId === this.currentClientId
-        if (isCurrentConnection) {
-            log.info('XmppConnectionManager.onXmppError: Current XMPP client error!', { clientId, error }, error)
-        } else {
-            log.info('XmppConnectionManager.onXmppError: Old XMPP client error.', { clientId, error }, error)
+        const isCurrent = clientId === this.currentClientId
+        const isCurrentStr = isCurrent ? 'Current' : 'Old'
+        log.info(`XmppConnectionManager.onXmppError: ${isCurrentStr} XMPP client error.`, { clientId, error }, error)
+        if (!isCurrent) {
             this.stopClient(clientId, client)
         }
     }
 
     private onXmppOffline(clientId: number)
     {
-        const isCurrentConnection = clientId === this.currentClientId
-        if (!isCurrentConnection) {
-            log.info('XmppConnectionManager.onXmppOffline: Old XMPP client offline.', { clientId })
+        const isCurrent = clientId === this.currentClientId
+        const isCurrentStr = isCurrent ? 'Current' : 'Old'
+        log.info(`XmppConnectionManager.onXmppOffline: ${isCurrentStr}} XMPP client offline.`, { clientId })
+        if (!isCurrent) {
             return
         }
-        log.info('XmppConnectionManager.onXmppOffline: Current XMPP client offline.', { clientId })
         this.maintain()
     }
 
     private onXmppOnline(clientId: number, client: Client, address: JID)
     {
-        const isCurrentConnection = clientId === this.currentClientId
-        if (!isCurrentConnection) {
-            log.info('XmppConnectionManager.onXmppOnline: Old XMPP client online!', { clientId, address })
+        const isCurrent = clientId === this.currentClientId
+        const isCurrentStr = isCurrent ? 'Current' : 'Old'
+        log.info(`XmppConnectionManager.onXmppOnline: ${isCurrentStr} XMPP client online!`, { clientId, address: address.toString() })
+        if (!isCurrent) {
             this.stopClient(clientId, client)
             return
         }
-        log.info('XmppConnectionManager.onXmppOnline: Current XMPP client online.', { clientId, address })
         this.xmppJid = address
         this.stats.xmppConnectCount++
         this.maintain()
@@ -358,20 +342,21 @@ export class XmppConnectionManager
     {
         this.stats.stanzasInCount++
 
-        const isCurrentConnection = clientId === this.currentClientId
+        const isCurrent = clientId === this.currentClientId
         const isErrorStanza = (stanza.attrs.type ?? '') === 'error'
-        if (!isCurrentConnection) {
-            log.info('XmppConnectionManager.onXmppStanza: Received stanza for old connection.', { clientId, isErrorStanza, stanza })
+        if (!isCurrent) {
+            log.info(`XmppConnectionManager.onXmppStanza: Old XMPP client received stanza.`, { clientId, isErrorStanza, stanza })
             this.stopClient(clientId, client)
             this.logStanzaToRelevantTabs('in', stanza)
         } else if (isErrorStanza) {
-            log.info('XmppConnectionManager.onXmppStanza: Received error stanza!', { clientId, stanza })
+            log.info('XmppConnectionManager.onXmppStanza: Current XMPP client received error stanza!', { clientId, stanza })
             this.logStanzaToRelevantTabs('in', stanza)
         } else if (this.isConnectionPresence(stanza)) {
             // Ignore connection presence.
         } else {
             if (Utils.logChannel('backgroundTraffic', true)) {
-                log.info('XmppConnectionManager.onXmppStanza: Received stanza.', { clientId, stanza, type: stanza.attrs.type, name: stanza.name, to: stanza.attrs.to })
+                log.info('XmppConnectionManager.onXmppStanza: Current XMPP client received stanza.',
+                    { clientId, stanza, type: stanza.attrs.type, name: stanza.name, to: stanza.attrs.to })
             }
             this.logStanzaToRelevantTabs('in', stanza)
         }
