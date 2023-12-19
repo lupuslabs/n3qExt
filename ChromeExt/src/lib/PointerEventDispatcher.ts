@@ -86,6 +86,7 @@ export class PointerEventDispatcher {
     private clickIsLong: boolean = false;
     private clickDownEventStart: PointerEvent|null = null;
     private clickDownEventLast: PointerEvent|null = null;
+    private clickUpEventLast: PointerEvent|null = null;
     private clickMoveEventLast: PointerEvent|null = null;
     private clickTimeoutHandle: number|null = null;
 
@@ -814,12 +815,15 @@ export class PointerEventDispatcher {
                 this.clickDownEventLast = eventDown;
             } break;
             case 1: {
-                if (eventDown.buttons === this.clickDownEventLast.buttons) {
-                    // Double click detected.
-                    this.clickMoveEventLast = eventDown;
-                    this.clickCount = 2;
-                    this.clickEnd(false);
+                if (eventDown.buttons !== this.clickDownEventLast.buttons
+                || DomUtils.pointerMovedDistance(this.clickDownEventStart, eventDown, this.dragStartDistance)) {
+                    this.clickEnd(true);
                 }
+                // Double click detected.
+                this.clickDownEventLast = eventDown;
+                this.clickMoveEventLast = eventDown;
+                this.clickCount = 2;
+                this.clickEnd(false);
             } break;
         }
     }
@@ -831,6 +835,7 @@ export class PointerEventDispatcher {
         switch (this.clickCount) {
             case 0: {
                 // Initial full buttons up - this is at least a click but might also become a doubleclick.
+                this.clickUpEventLast = eventUp;
                 this.clickMoveEventLast = eventUp;
                 this.clickCount = 1;
                 const handler = () => {
@@ -853,7 +858,8 @@ export class PointerEventDispatcher {
     {
         if (this.clickOngoing) {
             this.clickMoveEventLast = eventMove;
-            if (DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
+            if (eventMove.buttons !== 0 // Don't cancel already performed single click while waiting for next button down to make it a double click.
+            && DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)) {
                 this.clickEnd(true);
             }
         }
@@ -867,12 +873,12 @@ export class PointerEventDispatcher {
             if (true
                 && this.clickCount !== 0
                 && !discard
-                && !DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickMoveEventLast, this.dragStartDistance)
+                && !DomUtils.pointerMovedDistance(this.clickDownEventStart, this.clickUpEventLast ?? this.clickMoveEventLast, this.dragStartDistance)
             ) {
                 const type = this.getClickType();
                 const data = new PointerEventData(type, this.clickDownEventLast, this.domElem, {
                     posEvent: this.clickDownEventStart,
-                    modifierKeys: this.clickMoveEventLast,
+                    modifierKeys: this.clickUpEventLast,
                 });
                 if (this.callEventListener(data)) {
                     this.swallowNextMouseclickEvent = true; // We handled the click, so swallow the browser generated click event.
@@ -885,6 +891,7 @@ export class PointerEventDispatcher {
         this.clickCount = 0;
         this.clickDownEventStart = null;
         this.clickDownEventLast = null;
+        this.clickUpEventLast = null;
         this.clickMoveEventLast = null;
         if (this.buttonsResetOngoing) {
             this.handleButtonsReset();
