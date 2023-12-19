@@ -1,5 +1,6 @@
 ﻿import { is } from '../lib/is'
 import { as } from '../lib/as'
+import { iter } from '../lib/Iter'
 import { Pid } from '../lib/ItemProperties'
 import { Utils } from '../lib/Utils'
 import * as log from 'loglevel'
@@ -173,6 +174,8 @@ export class RoomPresenceManager
         if (tabPresenceOld) {
             const tabPresenceNew = {...tabPresenceOld, isAvailable: false}
             this.sendTabRoomPresence(tabId, tabPresenceNew)
+        } else {
+            this.deleteTab(tabId)
         }
     }
 
@@ -333,9 +336,6 @@ export class RoomPresenceManager
 
     private scheduleSendRoomPresence(roomData: RoomData, delaySecs?: number): void
     {
-        if (!roomData.tabIds.size) {
-            return
-        }
         roomData.presenceDataToSend = this.getMergedRoomPresenceData(roomData)
         const { logPresenceType, defaultDelaySecs } = this.getLogPresenceTypeAndDelayOfRoomData(roomData)
         delaySecs = delaySecs ?? defaultDelaySecs
@@ -471,7 +471,7 @@ export class RoomPresenceManager
 
     private getMergedRoomPresenceData(roomData: RoomData): TabRoomPresenceData
     {
-        const tabPresences = [...roomData.tabIds.values()].map(tabId => this.tabPresences.get(tabId))
+        const tabPresences = iter(roomData.tabIds.values()).map(tabId => this.tabPresences.get(tabId)).toArray()
         const cmpByTimestampDesc = (a, b) => {
             if (a.timestamp < b.timestamp) { return 1 }
             if (a.timestamp === b.timestamp) { return 0 }
@@ -483,12 +483,9 @@ export class RoomPresenceManager
         const newestAvailablePresence = tabPresences.filter(filterForIsAvailable).pop() ?? null
 
         const roomPresence: TabRoomPresenceData = {
-            ...newestPresence[0] ?? {
-                roomJid: roomData.roomJid,
-                ownResourceInRoom: roomData.pendingNick ?? roomData.confirmedNick,
-                badges: newestPresence?.badges ?? '',
-                timestamp: newestPresence?.timestamp ?? Utils.utcStringOfDate(new Date()),
-            },
+            roomJid: roomData.roomJid,
+            badges: newestPresence?.badges ?? '',
+            timestamp: newestPresence?.timestamp ?? Utils.utcStringOfDate(new Date()),
             isAvailable: tabPresences.some(tabPresence => tabPresence.isAvailable),
             showAvailability: newestAvailablePresence?.showAvailability ?? newestPresence?.showAvailability ?? '',
             statusMessage: newestAvailablePresence?.statusMessage ?? newestPresence?.statusMessage ?? '',
@@ -496,7 +493,7 @@ export class RoomPresenceManager
 
         if (Utils.logChannel('backgroundPresenceManagement', true)) {
             log.info('RoomPresenceManager.getMergedRoomPresenceData: Merged tab presences.', {
-                tabPresences, newestPresence, newestAvailablePresence, roomPresence
+                tabPresences, newestPresence, newestAvailablePresence, roomPresence, roomData
             })
         }
         return roomPresence
@@ -615,10 +612,11 @@ export class RoomPresenceManager
         return { tabIsNew, roomData }
     }
 
-    private deleteTab(tabId): void
+    private deleteTab(tabId: number): void
     {
         const roomJid = this.tabPresences.get(tabId)?.roomJid ?? ''
         const roomData = this.rooms.get(roomJid) ?? null
+        this.tabPresences.delete(tabId)
         const hasBeenRemoved = roomData?.tabIds.delete(tabId)
         if (hasBeenRemoved && Utils.logChannel('room2tab', true)) {
             log.info('RoomPresenceManager.deleteTab: Removed room2tab mapping.', { roomJid, tabId })
