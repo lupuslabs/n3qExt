@@ -138,12 +138,19 @@ export class BrowserActionGui
         }
         const title = this.app.translateText(titleKey);
 
-        (async () => {
-            await (chrome.action ?? chrome.browserAction).setIcon({ tabId, path });
-            await (chrome.action ?? chrome.browserAction).setTitle({ tabId, title });
-            await (chrome.action ?? chrome.browserAction).setBadgeBackgroundColor({ tabId, color });
-            await (chrome.action ?? chrome.browserAction).setBadgeText({ tabId, text });
-        })().catch(error => log.info('BrowserActionGui.updateBrowserActionGui', error));
+        const errorHandler = () => {
+            if (chrome.runtime.lastError && this.lastTabStates.get(tabId)) {
+                if (chrome.runtime.lastError.message.startsWith('No tab with ')) {
+                    this.forgetTab(tabId);
+                } else {
+                    log.info('BrowserActionGui.updateBrowserActionGui', chrome.runtime.lastError.message, {error: chrome.runtime.lastError});
+                }
+            }
+        }
+        (chrome.action ?? chrome.browserAction).setIcon({ tabId, path }, errorHandler);
+        (chrome.action ?? chrome.browserAction).setTitle({ tabId, title }, errorHandler);
+        (chrome.action ?? chrome.browserAction).setBadgeBackgroundColor({ tabId, color }, errorHandler);
+        (chrome.action ?? chrome.browserAction).setBadgeText({ tabId, text }, errorHandler);
 
         lastStats = {...stats};
         this.lastTabStates.set(tabId, { lastStats, attentionLevel, animationStart, timeoutHandle });
