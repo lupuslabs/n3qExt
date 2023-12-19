@@ -144,9 +144,9 @@ export class BackgroundApp
 
         this.configUpdater.start(() => this.onConfigUpdated());
 
-        if (Environment.isExtension() && chrome?.browserAction?.onClicked) {
-            chrome.tabs.onActivated.addListener(activeInfo => this.onBrowserTabActivated(activeInfo.tabId));
-            chrome.tabs.onRemoved.addListener((tabId, activeInfo) => this.onBrowserTabRemoved(tabId));
+        if (typeof chrome !== 'undefined') {
+            chrome?.tabs?.onActivated?.addListener(activeInfo => this.onBrowserTabActivated(activeInfo.tabId));
+            chrome?.tabs?.onRemoved?.addListener((tabId, activeInfo) => this.onBrowserTabRemoved(tabId));
         }
     }
 
