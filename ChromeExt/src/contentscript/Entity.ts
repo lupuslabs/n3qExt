@@ -27,6 +27,7 @@ export class Entity
     {
         this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-entity n3q-hidden"></div>');
         app.getDisplay()?.append(this.elem);
+        this.app.toFront(this.elem, ContentApp.LayerEntity);
     }
 
     getRoom(): Room { return this.room; }

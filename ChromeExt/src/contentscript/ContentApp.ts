@@ -1141,7 +1141,7 @@ export class ContentApp extends AppWithDom
         if (is.nil(this.dropzoneELem)) {
             this.dropzoneELem = DomUtils.elemOfHtml('<div class="n3q-base n3q-dropzone"></div>')
             this.display.append(this.dropzoneELem)
-            this.toFront(this.dropzoneELem, ContentApp.LayerAboveEntities)
+            this.toFront(this.dropzoneELem, ContentApp.LayerBelowEntities)
         }
         DomUtils.setElemClassPresent(this.dropzoneELem, 'n3q-dropzone-hilite', isHighlighted)
     }
