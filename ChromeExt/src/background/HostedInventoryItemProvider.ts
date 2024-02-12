@@ -31,7 +31,6 @@ export namespace HostedInventoryItemProvider
         type: string;
         description: string;
         configUrl: string;
-        config: Config,
     }
 
     class ItemCacheEntry
@@ -70,6 +69,7 @@ export namespace HostedInventoryItemProvider
         private readonly retryStrategyMaker: RetryStrategyMaker
         private readonly id: string;
         private readonly providerDefinition: Definition
+        private config: null|Config = null;
 
         static readonly type = 'HostedInventoryItemProvider';
         private readonly rpcClient: RpcClient = new RpcClient();
@@ -92,11 +92,6 @@ export namespace HostedInventoryItemProvider
             this.providerDefinition = providerDefinition;
             this.userId = this.app.getUserId();
             this.accessToken = this.app.getUserToken();
-        }
-
-        config(): Config
-        {
-            return this.providerDefinition.config;
         }
 
         stop(): void
@@ -241,6 +236,14 @@ export namespace HostedInventoryItemProvider
 
         }}
 
+        private getConfig(): Config
+        {
+            if (this.config === null) {
+                throw new Error('Config not initialized!');
+            }
+            return this.config;
+        }
+
         private async loadConfig(): Promise<void>
         {
             let url = as.String(this.providerDefinition.configUrl, 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}')
@@ -249,9 +252,8 @@ export namespace HostedInventoryItemProvider
                 .replace('{client}', encodeURIComponent(JSON.stringify(Client.getDetails())))
                 ;
             if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetch', url); }
-            const config = await this.app.getUrlFetcher().fetchJson(url);
-            this.providerDefinition.config = config;
-            if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', config); }
+            this.config = await this.app.getUrlFetcher().fetchJson(url);
+            if (Utils.logChannel('startup', true)) { log.info('HostedInventoryItemProvider.init', 'fetched', this.config); }
         }
 
         public async getItemIds(): Promise<string[]>
@@ -259,7 +261,7 @@ export namespace HostedInventoryItemProvider
             let itemIds = [];
             try {
                 let request = new RpcProtocol.UserGetItemIdsRequest(this.userId, this.accessToken, this.app.getLanguage(), this.userId);
-                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
+                const response = <RpcProtocol.UserGetItemIdsResponse>await this.rpcClient.call(this.getConfig().itemApiUrl, request);
                 itemIds = response.items;
             } catch (error) {
                 // this.handleException(ex);
@@ -284,7 +286,7 @@ export namespace HostedInventoryItemProvider
             if (itemIds.length > 0) {
                 try {
                     const request = new RpcProtocol.UserGetItemPropertiesRequest(this.userId, this.accessToken, this.app.getLanguage(), this.userId, itemIds);
-                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
+                    const response = <RpcProtocol.UserGetItemPropertiesResponse>await this.rpcClient.call(this.getConfig().itemApiUrl, request);
                     multiItemProperties = response.multiItemProperties;
                 } catch (error) {
                     // this.handleException(ex);
@@ -449,7 +451,7 @@ export namespace HostedInventoryItemProvider
                     });
                     if (existingItems.length === 0) {
                         try {
-                            let props = await this.createItem(this.config().createItemWiCryptoClaimAuth, 'ByTemplate', data);
+                            let props = await this.createItem(this.getConfig().createItemWiCryptoClaimAuth, 'ByTemplate', data);
                             let itemId = props[Pid.Id];
                             knownIds.push(itemId);
                             if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId, data); }
@@ -639,7 +641,7 @@ export namespace HostedInventoryItemProvider
                     involvedIds
                 );
                 request.responseMode = 'items';
-                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.config().itemApiUrl, request);
+                const response = <RpcProtocol.UserItemActionResponse>await this.rpcClient.call(this.getConfig().itemApiUrl, request);
 
                 createdIds = response.created;
                 deletedIds = response.deleted;
@@ -1041,7 +1043,7 @@ export namespace HostedInventoryItemProvider
                 log.info('HostedInventoryItemProvider.performInventoryItemsRequest', { inventoryId, itemIds });
             }
             const request = new RpcProtocol.UserGetItemPropertiesRequest(userId, token, this.app.getLanguage(), inventoryId, itemIds);
-            this.rpcClient.call(this.config().itemApiUrl, request)
+            this.rpcClient.call(this.getConfig().itemApiUrl, request)
                 .then(response => this.handleInventoryItemsResponse(
                     inventoryId, itemIdCacheKeysToRequest, <RpcProtocol.UserGetItemPropertiesResponse>response
                 )).catch(error =>

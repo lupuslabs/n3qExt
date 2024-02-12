@@ -422,10 +422,6 @@ export class Config
                 type: 'HostedInventoryItemProvider',
                 description: 'Things on web pages',
                 configUrl: 'https://webit.vulcan.weblin.com/Config?user={user}&token={token}&client={client}',
-                config: {
-                    itemApiUrl: 'https://webit.vulcan.weblin.com/ItemApi',
-                    createItemWiCryptoClaimAuth: 'YrQGnYAfnqAJwfU8Im6C',
-                },
             }
         },
         web3: {
