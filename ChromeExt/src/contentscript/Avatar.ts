@@ -32,6 +32,7 @@ export class Avatar implements IObserver
     private pointerEventDispatcher: PointerEventDispatcher;
     private dragElem?: HTMLElement;
     private dragBadgeElem?: HTMLImageElement;
+    private oldBadgesEditMode: boolean = false;
     private hasAnimation = false;
     private animations: AnimationsDefinition;
     private defaultGroup: string;
@@ -97,6 +98,10 @@ export class Avatar implements IObserver
                 this.app.getBackpackWindow()?.setIsDropTargetStyle(true)
                 const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
                 this.dragBadgeElem = badges?.makeDraggedBadgeIcon(this.entity.getProperties());
+
+                this.oldBadgesEditMode = badges?.getIsInEditMode() ?? false;
+                const wantedBadgesEditMode = badges?.isValidBadge(this.entity.getProperties()) ?? false;
+                badges?.setEditMode(wantedBadgesEditMode)
             }
 
             this.entity.onDragAvatarStart(ev);
@@ -179,6 +184,8 @@ export class Avatar implements IObserver
         const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay();
         this.dragBadgeElem = badges?.disposeDraggedBadgeIcon(this.dragBadgeElem);
         this.app.getBackpackWindow()?.setIsDropTargetStyle(false)
+
+        this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay()?.setEditMode(this.oldBadgesEditMode);
     }
 
     private onRoomItemDropOnBackpack(eventData: PointerEventData, roomItem: RoomItem): void

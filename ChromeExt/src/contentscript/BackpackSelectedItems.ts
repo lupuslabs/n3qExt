@@ -21,6 +21,7 @@ export class BackpackSelectedItems
     private areAllRezzed: boolean = false
 
     private inDrag: boolean = false
+    private oldBadgesEditMode: boolean = false
     private dragEvDispatcher: null|PointerEventDispatcher = null
     private dragLastMoveEvent: null|PointerEventData = null
     private dragItems: Map<string,BackpackSelectionDraggedItem> = new Map()
@@ -137,7 +138,7 @@ export class BackpackSelectedItems
 
     public onDragStart(evDispatcher: PointerEventDispatcher, ev: PointerEventData): void
     {
-        if (this.inDrag) {
+        if (this.inDrag || this.getIsEmpty()) {
             evDispatcher.cancelDrag()
             this.dragEvDispatcher.cancelDrag()
             return
@@ -156,6 +157,13 @@ export class BackpackSelectedItems
             = this.backpack.translateClientPosToBackpackPos(ev.clientX, ev.clientY)
         this.dragStartOffsetFactorX = (backpackDragX - boundingBoxInBackpack.left) / boundingBoxInBackpack.width
         this.dragStartOffsetFactorY = (backpackDragY - boundingBoxInBackpack.top) / boundingBoxInBackpack.height
+
+        const badges = this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay()
+        this.oldBadgesEditMode = badges?.getIsInEditMode() ?? false
+        const wantedBadgesEditMode
+            =  this.getIsSingle()
+            && (badges?.isValidBadge(iter(this.items.values()).getNext().getProperties()) ?? false)
+        badges?.setEditMode(wantedBadgesEditMode)
 
         this.inDrag = true
     }
@@ -271,6 +279,8 @@ export class BackpackSelectedItems
         iter(this.dragItems.keys()).forEach(itemId => this.deleteDraggedItem(itemId))
         this.dragItems.clear()
         this.inDrag = false
+
+        this.app.getRoom()?.getMyParticipant()?.getBadgesDisplay()?.setEditMode(this.oldBadgesEditMode)
     }
 
     private calcDragSelectionClientBox(ev: PointerEventData): {

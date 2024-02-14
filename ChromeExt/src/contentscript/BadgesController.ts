@@ -154,6 +154,15 @@ export class BadgesController
         return this.isInEditMode;
     }
 
+    public setEditMode(enterEditMode: boolean): void
+    {
+        if (enterEditMode) {
+            this.enterEditMode()
+        } else {
+            this.exitEditMode()
+        }
+    }
+
     public enterEditMode(): void
     {
         if (!this.isLocal || this.isInEditMode) {
@@ -215,7 +224,7 @@ export class BadgesController
     // Drag 'n drop related API
 
     public makeDraggedBadgeIcon(item: ItemProperties, iconDataUrl?: string): HTMLImageElement|null {
-        if (!ItemProperties.getIsBadge(item)) {
+        if (!this.isValidBadge(item)) {
             return null;
         }
         const iconElem = document.createElement('img');
@@ -280,11 +289,16 @@ export class BadgesController
         return null;
     }
 
+    public isValidBadge(item: ItemProperties): boolean
+    {
+        return ItemProperties.getIsBadge(item);
+    }
+
     public isValidEditModeBadgeDrop(eventData: PointerEventData, item: ItemProperties): boolean
     {
         if (!this.isInEditMode
-        || !ItemProperties.getIsBadge(item)
-        || eventData.dropTarget instanceof HTMLElement && eventData.dropTarget !== this.containerElem) {
+        || !this.isValidBadge(item)
+        || eventData.dropTarget !== this.containerElem) {
             return false;
         }
         const {avatarX, avatarY} = this.translateClientToAvatarPos(eventData.clientX, eventData.clientY);
