@@ -795,7 +795,7 @@ div#n3q-display {
     div.n3q-menu-column {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 3px;
         align-items: stretch;
     }
 
@@ -809,6 +809,13 @@ div#n3q-display {
         padding: 2px 4px 2px 2px;
         pointer-events: auto;
         user-select: none;
+
+        &.n3q-separator-menu-item {
+            opacity: 0;
+            padding: 0;
+            height: 3px;
+            pointer-events: none;
+        }
 
         &.n3q-submenu-menu-item {
             padding-right: 13px;

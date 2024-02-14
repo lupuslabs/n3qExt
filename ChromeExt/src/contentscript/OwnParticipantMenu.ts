@@ -51,6 +51,8 @@ export class OwnParticipantMenu extends ParticipantMenu
             column.addActionItem('badgesEditMode', badgesEditModeIconUrl, 'BadgesEditMode', onClick);
         }
 
+        column.addSeparatorItem('separator');
+
         column.addActionItem('videoConference', videoConferenceIconUrl, 'Video Conference', () => this.app.showVidconfWindow());
 
         column.addActionItem('chat', chatIconUrl, 'Chat', () => this.participant.toggleChatin());
@@ -58,6 +60,8 @@ export class OwnParticipantMenu extends ParticipantMenu
         column.addActionItem('chatHistory', chatHistoryIconUrl, 'Chat Window', () => this.app.toggleChatWindow());
 
         this.makeEmotesMenuAndItem(column);
+
+        column.addSeparatorItem('separator');
 
         this.makeHelpMenuAndItem(column);
 

@@ -163,6 +163,16 @@ class LabelMenuItem extends MenuItem
 
 }
 
+class SeparatorMenuItem extends MenuItem
+{
+
+    public constructor(app: ContentApp, column: MenuColumn, id: string) {
+        super(app, column, id, null, '');
+        this.extraCssClasses.unshift('n3q-separator-menu-item');
+    }
+
+}
+
 class SubmenuMenuItem extends MenuItem
 {
     protected readonly menu: Submenu;
@@ -299,6 +309,11 @@ export class MenuColumn
     public addLabelItem(id: string, iconUrl: null|string, text: string): void
     {
         this.items.push(new LabelMenuItem(this.app, this, id, iconUrl, text));
+    }
+
+    public addSeparatorItem(id: string): void
+    {
+        this.items.push(new SeparatorMenuItem(this.app, this, id));
     }
 
     public addSubmenuItem(id: string, iconUrl: null|string, text: string): Submenu
