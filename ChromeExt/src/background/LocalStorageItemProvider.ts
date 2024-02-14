@@ -72,7 +72,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async persistentWriteItem(itemId: string): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
         let props = item.getProperties();
         let itemIds = await Memory.getLocal(this.getBackpackIdsKey(), []);
@@ -426,7 +426,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>
     {
         let item = await this.backpack.createRepositoryItem(itemId, props);
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
         if (item.isRezzed()) {
             let roomJid = item.getProperties()[Pid.RezzedLocation];
@@ -451,7 +451,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
         if (item.isRezzed()) {
             let roomJid = item.getProperties()[Pid.RezzedLocation];
@@ -478,7 +478,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
         let clonedProps = Utils.cloneObject(item.getProperties());
 
@@ -562,7 +562,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.NoSuchItem, itemId); }
         if (item.isRezzed()) { throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemAlreadyRezzed); }
 
         this.backpack.addToRoom(itemId, roomJid);
@@ -596,7 +596,7 @@ export class LocalStorageItemProvider implements IItemProvider
     async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.NoSuchItem, itemId); }
         if (!item.isRezzed()) { return; }
         if (!item.isRezzedTo(roomJid)) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemNotRezzedHere); }
 
@@ -646,7 +646,7 @@ export class LocalStorageItemProvider implements IItemProvider
     getDependentPresence(itemId: string, roomJid: string): ltx.Element
     {
         let item = this.backpack.getItem(itemId);
-        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.NoSuchItem, itemId); }
 
         const props = item.getProperties();
         const presence = new ltx.Element('presence', { 'from': roomJid + '/' + itemId });

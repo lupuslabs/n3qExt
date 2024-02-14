@@ -582,7 +582,7 @@ export namespace HostedInventoryItemProvider
         async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
         {
             let item = this.backpack.getItem(itemId);
-            if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+            if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
             try {
                 if (as.Int(changed[Pid.RezzedX], -1) >= 0) {
@@ -889,7 +889,7 @@ export namespace HostedInventoryItemProvider
         getDependentPresence(itemId: string, roomJid: string): ltx.Element
         {
             let item = this.backpack.getItem(itemId);
-            if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.ItemDoesNotExist, itemId); }
+            if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.NoSuchItem, itemId); }
 
             const props = item.getProperties();
             const presence = new ltx.Element('presence', { 'from': roomJid + '/' + as.String(props[Pid.InventoryId], '') + itemId });

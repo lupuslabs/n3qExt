@@ -45,7 +45,7 @@ export class Backpack
     public getItem(itemId: string): Item
     {
         let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
         return item;
     }
 
@@ -380,7 +380,7 @@ export class Backpack
     public setRepositoryItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): void
     {
         let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); }
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
 
         item.setProperties(props, options);
     }
@@ -388,7 +388,7 @@ export class Backpack
     public getRepositoryItemProperties(itemId: string): ItemProperties
     {
         let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemDoesNotExist, itemId); } // throw unhandled, maybe return null?
+        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); } // throw unhandled, maybe return null?
         return item.getProperties();
     }
 

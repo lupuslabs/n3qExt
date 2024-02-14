@@ -129,7 +129,6 @@ export namespace ItemException
         ItemAlreadyRezzed,
         ItemCapacityLimit,
         ItemDepleted,
-        ItemDoesNotExist,
         ItemIsAlreadyRezzed,
         ItemIsNotMovable,
         ItemIsNotRezable,
