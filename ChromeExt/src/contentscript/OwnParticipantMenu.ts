@@ -51,17 +51,17 @@ export class OwnParticipantMenu extends ParticipantMenu
             column.addActionItem('badgesEditMode', badgesEditModeIconUrl, 'BadgesEditMode', onClick);
         }
 
-        column.addActionItem('settings', settingsIconUrl, 'Settings', () => this.app.showSettings(this.participant.getElem()));
-
         column.addActionItem('videoConference', videoConferenceIconUrl, 'Video Conference', () => this.app.showVidconfWindow());
 
-        column.addActionItem('chatHistory', chatHistoryIconUrl, 'Chat Window', () => this.app.toggleChatWindow());
-
         column.addActionItem('chat', chatIconUrl, 'Chat', () => this.participant.toggleChatin());
+
+        column.addActionItem('chatHistory', chatHistoryIconUrl, 'Chat Window', () => this.app.toggleChatWindow());
 
         this.makeEmotesMenuAndItem(column);
 
         this.makeHelpMenuAndItem(column);
+
+        column.addActionItem('settings', settingsIconUrl, 'Settings', () => this.app.showSettings(this.participant.getElem()));
 
         if (Environment.isDevelopment()) {
             this.makeDebugMenuAndItem(column);
