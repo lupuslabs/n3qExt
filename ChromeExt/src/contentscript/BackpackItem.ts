@@ -136,13 +136,8 @@ export class BackpackItem
 
     private applyPosition(): void
     {
-        let x = as.Int(this.properties[Pid.InventoryX], -1)
-        let y = as.Int(this.properties[Pid.InventoryY], -1)
-        if (x < 0 || y < 0) {
-            const pos = this.backpackWindow.getFreeCoordinate()
-            x = pos.x
-            y = pos.y
-        }
+        let x = as.Int(this.properties[Pid.InventoryX])
+        let y = as.Int(this.properties[Pid.InventoryY])
 
         // fix position
         // const bounds = {

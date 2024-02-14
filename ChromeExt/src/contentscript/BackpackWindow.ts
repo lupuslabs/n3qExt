@@ -1,5 +1,7 @@
+import { as } from '../lib/as'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'
+import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { Window, WindowOptions } from './Window'
 import { BackpackItem } from './BackpackItem'
 import { FreeSpace } from './FreeSpace'
@@ -62,7 +64,7 @@ export class BackpackWindow extends Window<WindowOptions>
         return this.selectedItems.getSelectedItemIds()
     }
 
-    public getFreeCoordinate(): { x: number, y: number }
+    private getFreeCoordinate(): { x: number, y: number }
     {
         const { width, height } = this.paneElem.getBoundingClientRect()
 
@@ -331,6 +333,7 @@ export class BackpackWindow extends Window<WindowOptions>
     {
         const itemId = properties[Pid.Id]
         let item = this.backpackItems.get(itemId)
+        this.fixItemPosition(item, properties)
         if (item) {
             item.setProperties(properties)
         } else {
@@ -347,5 +350,33 @@ export class BackpackWindow extends Window<WindowOptions>
         this.backpackItems.delete(itemId)
     }
 
-}
+    private fixItemPosition(itemOld: null|BackpackItem, propertiesNew: ItemProperties): void
+    {
+        let x = as.IntOrNull(propertiesNew[Pid.InventoryX])
+        let y = as.IntOrNull(propertiesNew[Pid.InventoryY])
+        if (x !== null && y !== null) {
+            return
+        }
 
+        const propertiesOld = itemOld?.getProperties()
+        x = as.IntOrNull(propertiesOld?.[Pid.InventoryX])
+        y = as.IntOrNull(propertiesOld?.[Pid.InventoryY])
+        if (x === null || y === null) {
+            ({x, y} = this.getFreeCoordinate())
+        }
+
+        const xStr = as.String(x)
+        const yStr = as.String(y)
+        propertiesNew[Pid.InventoryX] = xStr
+        propertiesNew[Pid.InventoryY] = yStr
+        if (document.visibilityState === 'visible') {
+            this.app.setItemBackpackPosition(ItemProperties.getId(propertiesNew), x, y)
+            BackgroundMessage.modifyBackpackItemProperties(
+                ItemProperties.getId(propertiesNew),
+                { [Pid.InventoryX]: xStr, [Pid.InventoryY]: yStr },
+                [],
+                { skipPresenceUpdate: true }
+            ).catch(error => this.app.onError(error))
+        }
+    }
+}
