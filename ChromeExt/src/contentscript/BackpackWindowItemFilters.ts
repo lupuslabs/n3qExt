@@ -7,6 +7,7 @@ import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { ItemFilters } from '../lib/ItemFilters'
 import ItemFilter = ItemFilters.ItemFilter
 import parseItemFilters = ItemFilters.parseItemFilters
+import { iter } from '../lib/Iter'
 
 type ItemFilterRecord = {
     filter: ItemFilter,
@@ -159,7 +160,10 @@ export class BackpackWindowItemFilters
         if ((newFilterRecord?.matchingItemIds.size ?? 0) !== 0) {
             return filterId
         }
-        return null
+        filterId = iter(this.itemFilters.values())
+            .filter(filter => filter.matchingItemIds.size !== 0)
+            .getNext()?.filter.getId() ?? null
+        return filterId
     }
 
     private storeItemFilterIdInMemory(): void

@@ -56,6 +56,17 @@ abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         }
     }
 
+    public filter(acceptFun: (element: T) => boolean): Iter<T>
+    {
+        return new IteratorIter(function*(iterable){
+            for (const element of iterable) {
+                if (acceptFun(element)) {
+                    yield element
+                }
+            }
+        }(this))
+    }
+
     public fold<Out>(state: Out, foldFun: (state: Out, element: T) => Out): Out
     {
         for (const element of this) {
