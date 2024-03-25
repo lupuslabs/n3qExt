@@ -625,7 +625,7 @@ export class RoomItem extends Entity
             } else {
                 tokenOptions['properties'] = this.properties;
             }
-            const contextToken = await Payload.getContextToken(userId, this.getItemId(), this.app.getLanguage(), 600, { 'room': room.getJid() }, tokenOptions);
+            const contextToken = Payload.getContextToken(userId, this.getItemId(), this.app.getLanguage(), 600, { 'room': room.getJid() }, tokenOptions);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -660,48 +660,20 @@ export class RoomItem extends Entity
 
     private openFrame(): void
     {
-        (async () =>
-        {
-            let iframeUrl = as.String(this.properties[Pid.IframeUrl]);
-            const room = this.app.getRoom();
-            const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
-            const itemId = this.getItemId();
-            if (iframeUrl === '' || !room || userId === '') {
+        try {
+            const iframeUrlTpl = as.String(this.properties[Pid.IframeUrl]);
+            if (!is.nonEmptyString(iframeUrlTpl)) {
                 return;
             }
-            //iframeUrl = 'https://jitsi.vulcan.weblin.com/{room}#userInfo.displayName="{name}"';
-            //iframeUrl = 'https://jitsi.vulcan.weblin.com/8lgGTypkGd#userInfo.displayName="{name}"';
-            //iframeUrl = 'https://meet.jit.si/example-103#interfaceConfig.TOOLBAR_BUTTONS=%5B%22microphone%22%2C%22camera%22%2C%22desktop%22%2C%22fullscreen%22%2C%22hangup%22%2C%22profile%22%2C%22settings%22%2C%22videoquality%22%5D&interfaceConfig.SETTINGS_SECTIONS=%5B%22devices%22%2C%22language%22%5D&interfaceConfig.TOOLBAR_ALWAYS_VISIBLE=false';
-            //iframeUrl = 'https://webex.vulcan.weblin.com/Vidconf?room=weblin{room}&name={name}';
-            //iframeUrl = 'https://video.weblin.io/Vidconf?room=weblin{room}&name={name}';
 
+            const userId = this.app.getUserId();
+            const itemId = this.getItemId();
+            const langId = this.app.getLanguage()
+            const room = this.getRoom();
             const roomJid = room.getJid();
-
-            const tokenOptions = {};
-            if (as.String(this.properties[Pid.Provider], '') === 'n3q') {
-                tokenOptions['properties'] = {
-                    [Pid.Id]: itemId,
-                    [Pid.Provider]: 'n3q',
-                    [Pid.InventoryId]: this.properties[Pid.InventoryId],
-                };
-            } else {
-                tokenOptions['properties'] = this.properties;
-            }
-
-            const contextToken = await Payload.getContextToken(userId, itemId, this.app.getLanguage(), 600, { 'room': roomJid }, tokenOptions);
-
-            iframeUrl = iframeUrl
-                .replace('{context}', encodeURIComponent(contextToken))
-                .replace('{room}', encodeURIComponent(roomJid))
-                ;
-
-            const participant = this.room.getMyParticipant();
-            if (participant) {
-                const participantDisplayName = participant.getDisplayName();
-                iframeUrl = iframeUrl.replace('{name}', encodeURIComponent(participantDisplayName));
-            }
-
-            iframeUrl = iframeUrl.replace(/"/g, '%22');
+            const participant = room.getMyParticipant();
+            const participantDisplayName = participant?.getDisplayName() ?? null;
+            const iframeUrl = Payload.makeItemIframeUrl(userId, langId, roomJid, participantDisplayName, itemId, this.properties, iframeUrlTpl);
 
             const iframeOptions = ItemProperties.getParsedIframeOptions(this.properties);
 
@@ -725,10 +697,9 @@ export class RoomItem extends Entity
                     break;
             }
 
-        })().catch(error =>
-        {
+        } catch (error) {
             this.app.onError(ErrorWithData.ofError(error));
-        });
+        }
     }
 
     closeFrame(): void

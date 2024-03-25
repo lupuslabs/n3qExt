@@ -97,6 +97,7 @@ export class ContentApp extends AppWithDom
     private dropzoneELem: null|HTMLElement = null;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
+    private userId: string = '';
     private pageUrl: string;
     private presetPageUrl: string;
     private roomJid: string = '';
@@ -130,6 +131,7 @@ export class ContentApp extends AppWithDom
     getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }
     getDisplay(): HTMLElement { return this.display; }
     getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
+    public getUserId(): string { return this.userId; }
     getRoom(): Room|null { return this.room; }
     getLanguage(): string { return this.language; }
 
@@ -187,6 +189,14 @@ export class ContentApp extends AppWithDom
             Panic.now();
         }
         if (Panic.isOn) { return; }
+
+        const userId = await Memory.getLocal(Utils.localStorageKey_Id(), null);
+        if (!is.nonEmptyString(userId)) {
+            log.debug('No user ID!');
+            Panic.now();
+            return;
+        }
+        this.userId = userId;
 
         if (!await this.getActive()) {
             log.info('Avatar disabled');
