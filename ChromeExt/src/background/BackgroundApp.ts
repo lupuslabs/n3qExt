@@ -460,6 +460,10 @@ export class BackgroundApp
                 return this.handle_executeBackpackItemAction(request.itemId, request.action, request.args, request.involvedIds);
             } break;
 
+            case BackgroundMessage.executeBackpackItemActionOnGenericitem.name: {
+                return this.handle_executeBackpackItemActionOnGenericitem(request.action, request.args, request.involvedIds);
+            } break;
+
             case BackgroundMessage.getItemsByInventoryItemIds.name: {
                 return this.handle_getItemsByInventoryItemIds(request.itemsToGet);
             } break;
@@ -674,6 +678,15 @@ export class BackgroundApp
             throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
         }
         const result = await this.backpack.executeItemAction(itemId, action, args, involvedIds, false);
+        return new ExecuteBackpackItemActionResponse(result);
+    }
+
+    private async handle_executeBackpackItemActionOnGenericitem(action: string, args: any, involvedIds: Array<string>): Promise<ExecuteBackpackItemActionResponse>
+    {
+        if (!Utils.isBackpackEnabled()) {
+            throw new ItemException(ItemException.Fact.NotChanged, ItemException.Reason.ItemsNotAvailable);
+        }
+        const result = await this.backpack.executeItemActionOnGenericitem(action, args, involvedIds, true);
         return new ExecuteBackpackItemActionResponse(result);
     }
 

@@ -15,7 +15,6 @@ import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { is } from '../lib/is';
 import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
-import { iter } from '../lib/Iter'
 
 export class Backpack
 {
@@ -424,6 +423,17 @@ export class Backpack
     public async executeItemAction(itemId: string, action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<ItemProperties>
     {
         return await this.getProvider(itemId).itemAction(itemId, action, args, involvedIds, allowUnrezzed);
+    }
+
+    public async executeItemActionOnGenericitem(action: string, args: any, involvedIds: Array<string>, allowUnrezzed: boolean): Promise<ItemProperties>
+    {
+        const filter = { [Pid.N3qAspect]: 'true', [Pid.Provider]: 'n3q' }
+        const items = this.findItemsByProperties(filter)
+        if (items.length === 0) {
+            throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, 'Generic item missing for action!')
+        }
+        const itemId = items[0].getId()
+        return await this.executeItemAction(itemId, action, args, involvedIds, allowUnrezzed)
     }
 
     public async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
