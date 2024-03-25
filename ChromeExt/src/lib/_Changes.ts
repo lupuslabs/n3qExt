@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.3.1', 'Great menu overhaul', [
+            ['Add', 'Memorize other persons as items in your backpack'],
             ['Change', 'Changed menu item spacing and grouped own avatar menu items'],
         ]],
         ['1.3.0', 'Manifest3Firefox', [

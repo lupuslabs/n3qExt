@@ -581,6 +581,9 @@ export class Config
                     'Menu.Private Chat': 'Private Chat',
                     'Menu.Private Videoconf': 'Private Videoconference',
                     'Menu.Get weblin everywhere': 'Weblin für überall',
+                    'Menu.Person': 'Person',
+                    'Menu.Forget': 'Forget',
+                    'Menu.Remember': 'Remember',
 
                     'Chatwindow.Chat History': 'Chat',
                     'Chatwindow.entered the room': '**entered the room**',
@@ -906,6 +909,9 @@ export class Config
                     'Menu.Private Chat': 'Privater Chat',
                     'Menu.Private Videoconf': 'Private Videokonferenz',
                     'Menu.Get weblin everywhere': 'Get weblin everywhere',
+                    'Menu.Person': 'Person',
+                    'Menu.Forget': 'Vergessen',
+                    'Menu.Remember': 'Merken',
 
                     'Chatwindow.Chat History': 'Chat',
                     'Chatwindow.entered the room': '**hat den Raum betreten**',

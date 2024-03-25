@@ -59,6 +59,8 @@ export enum Pid
     ClaimAccumulatedDuration = 'ClaimAccumulatedDuration',
     N3qAspect = 'N3qAspect',
     PageEffectAspect = 'PageEffectAspect',
+    PersonAspect = 'PersonAspect',
+    PersonId = 'PersonId',
     PointsAspect = 'PointsAspect',
     SettingsAspect = 'SettingsAspect',
     AvatarAspect = 'AvatarAspect',
@@ -332,6 +334,16 @@ export class ItemProperties
             linkUrl: as.String(itemProperties[Pid.BadgeLinkUrl]),
             linkLabel: as.String(itemProperties[Pid.BadgeLinkLabel]),
         }
+    }
+
+    static getIsPerson(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.PersonAspect]);
+    }
+
+    static getPersonId(itemProperties: ItemProperties): string
+    {
+        return as.String(itemProperties[Pid.PersonId]);
     }
 
 }
