@@ -47,6 +47,7 @@ export enum Pid
     IframeAutoRange = 'IframeAutoRange',
     IframeLive = 'IframeLive',
     ImageUrl = 'ImageUrl',
+    InventoryIframeUrl = 'InventoryIframeUrl',
     AnimationsUrl = 'AnimationsUrl',
     Width = 'Width',
     Height = 'Height',
@@ -240,6 +241,11 @@ export class ItemProperties
         } catch (error) {
             return {};
         }
+    }
+
+    static getInventoryIframeUrl(item: ItemProperties): string
+    {
+        return as.String(item[Pid.InventoryIframeUrl]);
     }
 
     static getIsRezable(item: ItemProperties): boolean

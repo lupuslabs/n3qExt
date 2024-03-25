@@ -8,6 +8,9 @@ import { ContentApp } from './ContentApp'
 import { DomUtils } from '../lib/DomUtils'
 import { Window, WindowOptions } from './Window'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { Payload } from '../lib/Payload'
+import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
+import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 export type BackpackItemInfoOptions = WindowOptions & {
     top: number,
@@ -18,10 +21,13 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 {
     protected readonly backpackItem: BackpackItem
     protected readonly headerContainer: HTMLElement
+    protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
     protected readonly debuginfoContainer: HTMLElement
 
     protected drawHeader: boolean = true
+    protected iframeUrlTpl: string = ''
+    protected iframeElem: null|HTMLIFrameElement = null
 
     public getElem(): HTMLElement { return this.contentElem }
 
@@ -31,6 +37,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.backpackItem = backpackItem
         this.onClose = onClose
         this.headerContainer = DomUtils.elemOfHtml('<div class="header-container" data-translate="children"></div>')
+        this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
         this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
         this.debuginfoContainer = DomUtils.elemOfHtml('<div class="debuginfo-container" data-translate="children"></div>')
     }
@@ -42,8 +49,33 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         }
         this.drawHeader = ItemProperties.getInventoryIframeUrl(this.backpackItem.getProperties()).length === 0
         this.updateHeader()
+        this.updateIframe()
         this.updateButtons()
         this.updateDebugInfo()
+    }
+
+    public async handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): Promise<WeblinClientApi.Response>
+    {
+        try {
+            switch (request.type) {
+                case WeblinClientIframeApi.WindowPositionRequest.type:
+                    return this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
+            }
+        } catch (error) {
+            this.app.onError(error)
+            return new WeblinClientApi.ErrorResponse(error)
+        }
+        return new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
+    }
+
+    protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
+    {
+        if (!this.iframeElem) {
+            return new WeblinClientApi.ErrorResponse('Item inventory iframe not found!')
+        }
+        this.iframeElem.style.width = `${request.width}px`
+        this.iframeElem.style.height = `${request.height}px`
+        return new WeblinClientApi.SuccessResponse()
     }
 
     protected prepareMakeDom(): void
@@ -67,6 +99,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
     {
         await super.makeContent()
         this.contentElem.append(this.headerContainer)
+        this.contentElem.append(this.iframeContainer)
         this.contentElem.append(this.buttonsContainer)
         this.contentElem.append(this.debuginfoContainer)
         this.update()
@@ -131,6 +164,30 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             this.headerContainer.append(listElem)
         }
         this.app.translateElem(this.headerContainer)
+    }
+
+    protected updateIframe(): void
+    {
+        const itemProps = this.backpackItem.getProperties()
+        const iframeUrlTpl = ItemProperties.getInventoryIframeUrl(itemProps)
+        if (iframeUrlTpl === this.iframeUrlTpl) {
+            // Iframe content takes care of updating itself.
+            return
+        }
+        this.iframeUrlTpl = iframeUrlTpl
+
+        this.iframeElem?.remove()
+        this.iframeElem = null
+        if (iframeUrlTpl.length === 0) {
+            return
+        }
+
+        const userId = this.app.getUserId()
+        const langId = this.app.getLanguage()
+        const itemId = this.backpackItem.getItemId()
+        const iframeUrl = Payload.makeItemIframeUrl(userId, langId, null, null, itemId, itemProps, iframeUrlTpl);
+        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${iframeUrl}"></iframe>`)
+        this.iframeContainer.append(this.iframeElem)
     }
 
     protected updateButtons(): void

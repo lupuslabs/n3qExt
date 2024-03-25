@@ -53,6 +53,7 @@ import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.sv
 import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg';
 import { BadgesController } from './BadgesController'
 import { PointerEventData } from '../lib/PointerEventData'
+import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 
 interface ILocationMapperResponse
 {
@@ -763,6 +764,15 @@ export class ContentApp extends AppWithDom
         itemsShowOrSet.forEach(item => this.ownItems.set(item[Pid.Id], item));
         this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
+    }
+
+    public async handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): Promise<WeblinClientApi.Response>
+    {
+        const response = this.getBackpackWindow()?.handleItemInventoryiframeApiRequest(request)
+        if (response) {
+            return response
+        }
+        return new WeblinClientApi.ErrorResponse('Item inventory iframe not found!')
     }
 
     handle_sendStateToBackground(): void

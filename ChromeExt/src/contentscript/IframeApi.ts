@@ -423,6 +423,11 @@ export class IframeApi
                 return;
             }
 
+            if (!is.nonEmptyString(request['room'])) {
+                // Inventory item iframe
+                return await this.app.handleItemInventoryiframeApiRequest(request);
+            }
+
             switch (request.type) {
 
                 case WeblinClientIframeApi.ItemActionRequest.legacyType:
