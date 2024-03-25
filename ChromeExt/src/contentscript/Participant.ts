@@ -49,11 +49,12 @@ export class Participant extends Entity
     private chatoutDisplay: Chatout;
     private chatinDisplay: Chatin;
     private isFirstPresence: boolean = true;
-    private userId: string;
+    private userId: string = '';
     private privateChatWindow: PrivateChatWindow;
     private privateVidconfWindow: PrivateVidconfWindow;
     private decorationsVisibleByLongclick: boolean = false;
     private hideDecorationsTimeoutHandle: number|null = null;
+    private supportsPersonApi: boolean = false;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
@@ -83,6 +84,7 @@ export class Participant extends Entity
     getBadgesDisplay(): BadgesController|null { return this.badgesDisplay; }
     getChatout(): Chatout { return this.chatoutDisplay; }
     getUserId(): string { return this.userId; }
+    getSupportsPersonApi(): boolean { return this.supportsPersonApi; }
 
     getDisplayName(): string
     {
@@ -229,7 +231,9 @@ export class Participant extends Entity
                 const url = as.String(attrs.src);
                 const digest = as.String(attrs.digest);
                 const jid = as.String(attrs.jid, url);
-                this.userId = as.String(attrs.id, jid);
+                if (this.userId.length === 0) {
+                    this.userId = as.String(attrs.id, jid);
+                }
 
                 if (url !== '') {
                     hasIdentityUrl = true;
@@ -252,6 +256,11 @@ export class Participant extends Entity
                     vpImageUrl = as.String(attrs.ImageUrl);
                     vpPoints = as.String(attrs.Points);
                     vpBadges = as.String(attrs.Badges);
+                    const vpUserId = as.String(attrs.userId);
+                    if (vpUserId.length !== 0) {
+                        this.userId = vpUserId;
+                        this.supportsPersonApi = true;
+                    }
                 }
             }
         }

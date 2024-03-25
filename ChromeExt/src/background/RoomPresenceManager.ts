@@ -516,6 +516,9 @@ export class RoomPresenceManager
             Nickname: ownResourceInRoom,
             nickname: ownResourceInRoom,
         }
+        if (Utils.isBackpackEnabled()) {
+            vpProps['userId'] = this.app.getUserId()
+        }
 
         const backpack = this.app.getBackpack()
 
