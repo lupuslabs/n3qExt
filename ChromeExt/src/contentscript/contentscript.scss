@@ -897,6 +897,11 @@ div#n3q-display {
             margin-left: 1px;
             height: 12px;
         }
+        &.menu-item-person .icon {
+            margin-top: -1px;
+            margin-left: 2px;
+            height: 13px;
+        }
     }
     .n3q-menu-column.with-icons .n3q-menu-item .icon-wrap {
         display: inline-block;
