@@ -12,6 +12,8 @@ import { BackpackWindowItemFilters } from './BackpackWindowItemFilters'
 import { PointerEventData } from '../lib/PointerEventData'
 import { BackpackSelectedItems } from './BackpackSelectedItems'
 import { BackpackUserSelectionRect } from './BackpackUserSelectionRect'
+import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
+import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 export class BackpackWindow extends Window<WindowOptions>
 {
@@ -102,6 +104,11 @@ export class BackpackWindow extends Window<WindowOptions>
     {
         const [left, top] = this.translateClientPosToBackpackPos(clientBox.left, clientBox.top)
         return new DOMRectReadOnly(left, top, clientBox.width, clientBox.height)
+    }
+
+    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): null|Promise<WeblinClientApi.Response>
+    {
+        return this.backpackItems.get(request.item)?.handleItemInventoryiframeApiRequest(request) ?? null
     }
 
     protected prepareMakeDom(): void

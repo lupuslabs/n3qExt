@@ -1148,6 +1148,12 @@ div#n3q-display {
         background-color: #ffffff;
         padding: 8px;
 
+        .iframe-container iframe {
+            border: none;
+            width: 0;
+            height: 0;
+        }
+
         div.n3q-button-list {
             margin-top: 8px;
         }
