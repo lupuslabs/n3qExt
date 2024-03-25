@@ -475,6 +475,13 @@ export class BackgroundMessage
         return response.result
     }
 
+    static async executeBackpackItemActionOnGenericitem(action: string, args: {[p: string]: any}, involvedIds: Array<string> = []): Promise<ItemProperties>
+    {
+        const request = { type: BackgroundMessage.executeBackpackItemActionOnGenericitem.name, action, args, involvedIds }
+        const response = await BackgroundMessage.sendMessageCheckOk<ExecuteBackpackItemActionResponse>(request);
+        return response.result
+    }
+
     static async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>
     {
         const request = { type: BackgroundMessage.getItemsByInventoryItemIds.name, itemsToGet }
