@@ -16,7 +16,12 @@ export type BackpackItemInfoOptions = WindowOptions & {
 
 export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 {
-    protected backpackItem: BackpackItem
+    protected readonly backpackItem: BackpackItem
+    protected readonly headerContainer: HTMLElement
+    protected readonly buttonsContainer: HTMLElement
+    protected readonly debuginfoContainer: HTMLElement
+
+    protected drawHeader: boolean = true
 
     public getElem(): HTMLElement { return this.contentElem }
 
@@ -25,6 +30,20 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         super(app)
         this.backpackItem = backpackItem
         this.onClose = onClose
+        this.headerContainer = DomUtils.elemOfHtml('<div class="header-container" data-translate="children"></div>')
+        this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
+        this.debuginfoContainer = DomUtils.elemOfHtml('<div class="debuginfo-container" data-translate="children"></div>')
+    }
+
+    public update(): void
+    {
+        if (!this.isOpen()) {
+            return
+        }
+        this.drawHeader = ItemProperties.getInventoryIframeUrl(this.backpackItem.getProperties()).length === 0
+        this.updateHeader()
+        this.updateButtons()
+        this.updateDebugInfo()
     }
 
     protected prepareMakeDom(): void
@@ -47,23 +66,23 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent()
+        this.contentElem.append(this.headerContainer)
+        this.contentElem.append(this.buttonsContainer)
+        this.contentElem.append(this.debuginfoContainer)
         this.update()
     }
 
     protected onBeforeClose(): void
     {
         super.onBeforeClose()
-        this.contentElem?.remove()
-        this.contentElem = null
     }
 
-    public update(): void
+    protected updateHeader(): void
     {
-        if (!this.isOpen()) {
+        this.headerContainer.innerHTML = ''
+        if (!this.drawHeader) {
             return
         }
-        this.contentElem.innerHTML = ''
-
         const props = this.backpackItem.getProperties()
 
         let label = as.String(props[Pid.Label])
@@ -72,23 +91,20 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         }
         if (label) {
             const labelElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-title" data-translate="text:ItemLabel">${as.Html(label)}</div>`)
-            this.contentElem.append(labelElem)
+            this.headerContainer.append(labelElem)
         }
 
         const description = as.String(props[Pid.Description])
         if (description) {
             const descriptionElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-description">${as.Html(description)}</div>`)
-            this.contentElem.append(descriptionElem)
+            this.headerContainer.append(descriptionElem)
         }
 
         const display = ItemProperties.getDisplay(props)
-
         if (as.Bool(props[Pid.IsRezzed])) {
             display[Pid.IsRezzed] = props[Pid.IsRezzed]
             display[Pid.RezzedDestination] = props[Pid.RezzedDestination]
         }
-
-
         const listElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>')
         let hasStats = false
         for (const pid in display) {
@@ -111,10 +127,17 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 listElem.append(lineElem)
             }
         }
-
         if (hasStats) {
-            this.contentElem.append(listElem)
+            this.headerContainer.append(listElem)
         }
+        this.app.translateElem(this.headerContainer)
+    }
+
+    protected updateButtons(): void
+    {
+        this.buttonsContainer.innerHTML = ''
+        const itemId = this.backpackItem.getItemId()
+        const props = this.backpackItem.getProperties()
 
         const buttonListElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button-list" data-translate="children"></div>')
 
@@ -129,7 +152,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 (async () =>
                 {
                     const isChecked = activateCheckbox.checked
-                    await BackgroundMessage.executeBackpackItemAction(this.backpackItem.getItemId(), 'Activatable.SetState', { 'Value': isChecked }, [this.backpackItem.getItemId()])
+                    await BackgroundMessage.executeBackpackItemAction(itemId, 'Activatable.SetState', { 'Value': isChecked }, [itemId])
 
                     if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
                         this.app.getRoom()?.sendPresence()
@@ -144,7 +167,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         if (as.Bool(props[Pid.IsRezzed])) {
             const derezBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-derez" data-translate="text:Backpack">Derez item</div>')
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, derezBtn).addUnmodifiedLeftClickListener(ev => {
-                this.app.derezItem(this.backpackItem.getItemId())
+                this.app.derezItem(itemId)
                 this.close()
             })
             buttonListElem.append(derezBtn)
@@ -172,27 +195,27 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-backpack-delete" data-translate="text:Backpack">Delete item</div>')
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, delBtn).addUnmodifiedLeftClickListener(ev => {
-                this.app.deleteItemAsk(this.backpackItem.getItemId())
+                this.app.deleteItemAsk(itemId)
                 this.close()
             })
             buttonListElem.append(delBtn)
         }
 
         if (buttonListElem.children.length > 0) {
-            this.contentElem.append(buttonListElem)
+            this.buttonsContainer.append(buttonListElem)
         }
-
-        if (Config.get('backpack.itemInfoExtended', false)) {
-            this.extend()
-        }
-
-        this.app.translateElem(this.contentElem)
+        this.app.translateElem(this.buttonsContainer)
     }
 
-    private extend(): void
+    protected updateDebugInfo(): void
     {
-        this.windowElem.style.maxWidth = '400px'
+        this.debuginfoContainer.innerHTML = ''
+        if (!Config.get('backpack.itemInfoExtended', false)) {
+            return
+        }
         const props = this.backpackItem.getProperties()
+
+        this.windowElem.style.maxWidth = '400px'
 
         let keys = []
         for (const pid in props) { keys.push(pid) }
@@ -208,6 +231,8 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 + '</div>')
             completeListElem.append(lineElem)
         }
-        this.contentElem.append(completeListElem)
+        this.debuginfoContainer.append(completeListElem)
+
+        this.app.translateElem(this.debuginfoContainer)
     }
 }
