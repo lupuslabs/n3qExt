@@ -32,6 +32,15 @@ export class Config
             updateIntervalSec: 83567,
             clusterName: 'prod',
         },
+        websocketServer: {
+            serviceUrl: 'wss://websocket.vulcan.weblin.com/websocket',
+            unreceivedResponseTimeoutSecs: 30,
+            heartbeatSendIntervalSecs: 17, // Send a ping request if not sent anything for this amount of seconds.
+            heartbeatTimeoutSecs: 30, // Reconnect if not receiving anything for this amount of seconds.
+            connectRetryStrategyFirstRetryDelaySecs: 1,
+            connectRetryStrategyDelayGrowthFactor: 2,
+            connectRetryStrategyRetryDelayMaxSecs: 120,
+        },
         test: {
             itemServiceRpcUrl: 'http://localhost:5000/ItemApi',
         },
@@ -64,6 +73,7 @@ export class Config
             all: false,
             startup: false,
             backgroundTraffic: false,
+            websocketServerConnection: false,
             backgroundPresenceManagement: false,
             clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.
             clientBackgroundMessages: false, // All messages but pings going to or coming from the background!

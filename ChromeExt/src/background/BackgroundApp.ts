@@ -38,6 +38,7 @@ import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { Memory } from '../lib/Memory';
 import { ConfigUpdater } from './ConfigUpdater';
+import { WebsocketManager } from './WebsocketManager';
 import { XmppConnectionManager } from './XmppConnectionManager'
 import { RoomPresenceManager } from './RoomPresenceManager';
 import { Backpack } from './Backpack';
@@ -79,6 +80,7 @@ export class BackgroundApp
     private readonly contentCommunicator: BackgroundToContentCommunicator;
     private readonly urlFetcher: DirectUrlFetcher;
     private readonly configUpdater: ConfigUpdater;
+    private readonly websocketManager: WebsocketManager;
     private readonly xmppManager: XmppConnectionManager;
     private readonly roomPresenceManager: RoomPresenceManager;
     private readonly chatHistoryStorage: ChatHistoryStorage;
@@ -106,6 +108,7 @@ export class BackgroundApp
         this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, tabHeartbeatHandler, requestHandler);
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);
+        this.websocketManager = new WebsocketManager(this);
         this.xmppManager = new XmppConnectionManager(this);
         this.roomPresenceManager = new RoomPresenceManager(this);
         this.chatHistoryStorage = new ChatHistoryStorage(this);
@@ -246,6 +249,7 @@ export class BackgroundApp
 
             this.browserActionGui.onConfigUpdated();
             await this.roomPresenceManager.startOrUpdateUserSettings();
+            this.websocketManager.onConfigUpdated();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
             this.maintain();
@@ -276,6 +280,7 @@ export class BackgroundApp
 
         this.contentCommunicator.stop()
 
+        this.websocketManager.stop();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
         this.popupManager.stop();
@@ -1082,6 +1087,7 @@ export class BackgroundApp
         }
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
+        this.websocketManager.maintain()
         this.xmppManager.maintain()
     }
 
