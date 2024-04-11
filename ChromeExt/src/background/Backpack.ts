@@ -79,6 +79,70 @@ export class Backpack
         return count;
     }
 
+    public onItemUpdateFromProvider(itemsDeleted: ReadonlyArray<string>, itemsCreatedOrUpdated: ReadonlyArray<ItemProperties>): void
+    {
+        const changedRooms = new Set<string>();
+        itemsCreatedOrUpdated.forEach(item => this.onCreateOrUpdateItem(item, changedRooms));
+        itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, changedRooms));
+        for (let room of changedRooms) {
+            this.requestSendPresenceFromTab(room);
+        }
+    }
+
+    private onCreateOrUpdateItem(propsNew: ItemProperties, changedRoomsAccu: Set<string>): void
+    {
+        const itemId = as.String(propsNew[Pid.Id]);
+        let backpackItem: null|Item = this.items[itemId] ?? null;
+        const propsOld = backpackItem?.getProperties() ?? {};
+        const versionOld = as.Int(propsOld[Pid.Version]);
+        const versionNew = as.Int(propsNew[Pid.Version]);
+        if (versionOld > versionNew) {
+            return;
+        }
+        const isRezzedOld = backpackItem?.isRezzed() ?? false;
+        const roomOld = as.String(propsOld[Pid.RezzedLocation]);
+
+        if (backpackItem) {
+            // Also sends update message to tabs:
+            this.setRepositoryItemProperties(itemId, propsNew, { skipPresenceUpdate: true });
+        } else {
+            // Doesn't send create message to tabs:
+            backpackItem = this.createRepositoryItem(itemId, propsNew);
+            this.sendAddItemToAllTabs(itemId);
+        }
+
+        const isRezzedNew = backpackItem.isRezzed();
+        const roomNew = backpackItem.getProperties()[Pid.RezzedLocation];
+        if (isRezzedOld && (!isRezzedNew || roomOld !== roomNew)) {
+            this.removeFromRoom(itemId, roomOld);
+            changedRoomsAccu.add(roomOld);
+        }
+        if (isRezzedNew) {
+            if (!isRezzedOld || roomOld !== roomNew) {
+                this.addToRoom(itemId, roomNew);
+            }
+            changedRoomsAccu.add(roomNew);
+        }
+    }
+
+    private onDeleteItem(itemId: string, changedRoomsAccu: Set<string>): void
+    {
+        const backpackItem: null|Item = this.items[itemId] ?? null;
+        if (!backpackItem) {
+            return;
+        }
+        const isRezzedOld = backpackItem.isRezzed();
+        const roomOld = as.String(backpackItem.getProperties()[Pid.RezzedLocation]);
+
+        this.sendRemoveItemToAllTabs(itemId);
+        this.deleteRepositoryItem(itemId);
+
+        if (isRezzedOld) {
+            this.removeFromRoom(itemId, roomOld);
+            changedRoomsAccu.add(roomOld);
+        }
+    }
+
     public requestSendPresenceFromTab(roomJid: string)
     {
         this.app.sendRoomPresence(roomJid);

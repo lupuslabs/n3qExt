@@ -677,66 +677,8 @@ export namespace HostedInventoryItemProvider
             //     }
             // }
 
-            let changedRooms = new Set<string>();
-
-            Object.values(multiItemProperties ?? {}).forEach(item => this.onCreateOrUpdateItem(item, changedRooms));
-            (deletedIds ?? []).forEach(itemId => this.onDeleteItem(itemId, changedRooms));
-
-            for (let room of changedRooms) {
-                this.backpack.requestSendPresenceFromTab(room);
-            }
-
+            this.backpack.onItemUpdateFromProvider(deletedIds ?? [], Object.values(multiItemProperties ?? {}));
             return result;
-        }
-
-        private onCreateOrUpdateItem(newItem: ItemProperties, changedRoomsAccu: Set<string>): void
-        {
-            const itemId = newItem[Pid.Id];
-            if (this.backpack.isItem(itemId)) {
-                const backpackItem = this.backpack.getItem(itemId);
-                const wasRezzed = backpackItem.isRezzed();
-                const oldRoom = backpackItem.getProperties()[Pid.RezzedLocation];
-
-                // Also sends update message to tabs:
-                this.backpack.setRepositoryItemProperties(itemId, newItem, { skipPresenceUpdate: true });
-
-                const isRezzed = backpackItem.isRezzed();
-                const newRoom = backpackItem.getProperties()[Pid.RezzedLocation];
-                if (wasRezzed && (!isRezzed || oldRoom !== newRoom)) {
-                    this.backpack.removeFromRoom(itemId, oldRoom);
-                    changedRoomsAccu.add(oldRoom);
-                }
-                if (isRezzed) {
-                    if (!wasRezzed || oldRoom !== newRoom) {
-                        this.backpack.addToRoom(itemId, newRoom);
-                    }
-                    changedRoomsAccu.add(newRoom);
-                }
-            } else {
-                // Doesn't send create message to tabs:
-                const backpackItem = this.backpack.createRepositoryItem(itemId, newItem);
-                this.backpack.sendAddItemToAllTabs(itemId);
-                if (backpackItem.isRezzed()) {
-                    const room = backpackItem.getProperties()[Pid.RezzedLocation];
-                    this.backpack.addToRoom(itemId, room);
-                    changedRoomsAccu.add(room);
-                }
-            }
-        }
-
-        private onDeleteItem(itemId: string, changedRoomsAccu: Set<string>): void
-        {
-            if (this.backpack.isItem(itemId)) {
-                const item = this.backpack.getItem(itemId);
-                const wasRezzed = item.isRezzed();
-                if (wasRezzed) {
-                    const oldRoom = item.getProperties()[Pid.RezzedLocation];
-                    this.backpack.removeFromRoom(itemId, oldRoom);
-                    changedRoomsAccu.add(oldRoom);
-                }
-                this.backpack.sendRemoveItemToAllTabs(itemId);
-                this.backpack.deleteRepositoryItem(itemId);
-            }
         }
 
         async genericAction(action: string, args: ItemProperties): Promise<ItemProperties>
@@ -1074,17 +1016,13 @@ export namespace HostedInventoryItemProvider
             }
             const isOwnBackpack = inventoryId === this.userId;
 
-            const changedRooms = new Set<string>();
             for (const item of items) {
                 const itemId = item[Pid.Id];
                 const cacheKey = itemIdCacheKeysToRequest.get(itemId);
                 itemIdCacheKeysToRequest.delete(itemId);
 
-                const cacheEntry = new ItemCacheEntry(item);
-
-                if (isOwnBackpack) {
-                    this.onCreateOrUpdateItem(item, changedRooms)
-                } else {
+                if (!isOwnBackpack) {
+                    const cacheEntry = new ItemCacheEntry(item);
                     this.itemCache.set(cacheKey, cacheEntry);
                 }
 
@@ -1093,9 +1031,8 @@ export namespace HostedInventoryItemProvider
                 callbacks.forEach(resolve => resolve(item));
             }
             if (isOwnBackpack) {
-                [...itemIdCacheKeysToRequest.keys()].forEach(itemId => this.onDeleteItem(itemId, changedRooms));
+                this.backpack.onItemUpdateFromProvider([...itemIdCacheKeysToRequest.keys()], items);
             }
-            changedRooms.forEach(room => this.backpack.requestSendPresenceFromTab(room));
 
             itemIdCacheKeysToRequest.forEach((cacheKey, itemId) =>
             {
