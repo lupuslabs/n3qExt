@@ -412,7 +412,7 @@ export class IframeApi
         }
     }
 
-    async handle_IframeApi(request: WeblinClientIframeApi.Request)
+    async handle_IframeApi(request: WeblinClientIframeApi.Request): Promise<void>
     {
         let response: WeblinClientApi.Response = null;
 
@@ -425,7 +425,8 @@ export class IframeApi
 
             if (!is.nonEmptyString(request['room'])) {
                 // Inventory item iframe
-                return await this.app.handleItemInventoryiframeApiRequest(request);
+                this.app.handleItemInventoryiframeApiRequest(request);
+                return;
             }
 
             switch (request.type) {

@@ -766,13 +766,9 @@ export class ContentApp extends AppWithDom
         this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
     }
 
-    public async handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): Promise<WeblinClientApi.Response>
+    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
-        const response = this.getBackpackWindow()?.handleItemInventoryiframeApiRequest(request)
-        if (response) {
-            return response
-        }
-        return new WeblinClientApi.ErrorResponse('Item inventory iframe not found!')
+        this.getBackpackWindow()?.handleItemInventoryiframeApiRequest(request)
     }
 
     handle_sendStateToBackground(): void

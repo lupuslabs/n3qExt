@@ -10,7 +10,6 @@ import { BackpackItemInfo } from './BackpackItemInfo'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
-import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 export class BackpackItem
 {
@@ -79,9 +78,9 @@ export class BackpackItem
         return this.itemId
     }
 
-    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): null|Promise<WeblinClientApi.Response>
+    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
-        return this.info?.handleItemInventoryiframeApiRequest(request) ?? null
+        this.info?.handleItemInventoryiframeApiRequest(request)
     }
 
     private applyImage(): void

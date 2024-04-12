@@ -54,28 +54,41 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.updateDebugInfo()
     }
 
-    public async handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): Promise<WeblinClientApi.Response>
+    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
+        if (!this.iframeElem) {
+            this.sendMessageToIframe(new WeblinClientApi.ErrorResponse('Item inventory iframe not found!'))
+            return
+        }
         try {
             switch (request.type) {
                 case WeblinClientIframeApi.WindowPositionRequest.type:
-                    return this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
+                    this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
+                    return
+                default:
+                    this.sendMessageToIframe(new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type))
+                    return
             }
         } catch (error) {
             this.app.onError(error)
-            return new WeblinClientApi.ErrorResponse(error)
+            this.sendMessageToIframe(new WeblinClientApi.ErrorResponse(error))
         }
-        return new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
     }
 
-    protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
+    protected sendMessageToIframe(notification: WeblinClientApi.Message): void
     {
         if (!this.iframeElem) {
-            return new WeblinClientApi.ErrorResponse('Item inventory iframe not found!')
+            return
         }
+        notification[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
+        this.iframeElem?.contentWindow.postMessage(notification, '*');
+    }
+
+    protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): void
+    {
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
-        return new WeblinClientApi.SuccessResponse()
+        this.sendMessageToIframe(new WeblinClientApi.SuccessResponse())
     }
 
     protected prepareMakeDom(): void
