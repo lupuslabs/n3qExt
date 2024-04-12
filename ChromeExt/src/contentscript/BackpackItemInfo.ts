@@ -52,6 +52,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.updateIframe()
         this.updateButtons()
         this.updateDebugInfo()
+        this.sendPropertiesUpdateToIframe()
     }
 
     public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
@@ -65,6 +66,9 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 case WeblinClientIframeApi.WindowPositionRequest.type:
                     this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
                     return
+                case WeblinClientIframeApi.ItemGetPropertiesRequest.type:
+                    this.handleItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request)
+                    return
                 default:
                     this.sendMessageToIframe(new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type))
                     return
@@ -73,6 +77,17 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             this.app.onError(error)
             this.sendMessageToIframe(new WeblinClientApi.ErrorResponse(error))
         }
+    }
+
+    protected sendPropertiesUpdateToIframe(): void
+    {
+        if (!this.iframeElem) {
+            return
+        }
+        const itemId = this.backpackItem.getItemId()
+        const props = this.backpackItem.getProperties()
+        const notification = new WeblinClientIframeApi.ItemPropertiesChangedNotification(itemId, props)
+        this.sendMessageToIframe(notification);
     }
 
     protected sendMessageToIframe(notification: WeblinClientApi.Message): void
@@ -89,6 +104,13 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
         this.sendMessageToIframe(new WeblinClientApi.SuccessResponse())
+    }
+
+    protected handleItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): void
+    {
+        const props = this.backpackItem.getProperties()
+        const propsFiltered = ItemProperties.getStrings(props, request.pids)
+        this.sendMessageToIframe(new WeblinClientIframeApi.ItemGetPropertiesResponse(propsFiltered))
     }
 
     protected prepareMakeDom(): void

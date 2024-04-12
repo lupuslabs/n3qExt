@@ -204,7 +204,7 @@ export class ItemProperties
      */
     static getStrings(
         item: undefined | ItemProperties | { [pid: string]: unknown },
-        pids?: undefined | Array<Pid>,
+        pids?: undefined | Array<string>,
     ): { [pid: string]: string }
     {
         const vals: { [pid: string]: string } = {};

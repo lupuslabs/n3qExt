@@ -68,7 +68,7 @@ export class BackpackItem
         return this.elem
     }
 
-    public getProperties(): ItemProperties
+    public getProperties(): Readonly<ItemProperties>
     {
         return this.properties
     }

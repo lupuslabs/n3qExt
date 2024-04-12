@@ -55,17 +55,12 @@ export class RoomItem extends Entity
     public getDisplayName(): string { return as.String(this.getProperties()[Pid.Label], this.getItemId()); }
     public getOwnerName(): string { return this.ownerName; }
 
-    public getProperties(pids: Array<string> = null): ItemProperties
+    public getProperties(pids: Array<string> = null): Readonly<ItemProperties>
     {
         if (pids == null) {
             return this.properties;
         }
-        const filteredProperties = new ItemProperties();
-        for (const pid in this.properties) {
-            if (pids.includes(pid)) {
-                filteredProperties[pid] = this.properties[pid];
-            }
-        }
+        const filteredProperties = ItemProperties.getStrings(this.properties, pids);
         return filteredProperties;
     }
 
