@@ -1149,14 +1149,16 @@ div#n3q-display {
 
     div.n3q-itemprops {
         position: absolute;
-        max-width: 150px;
         background-color: #ffffff;
         padding: 8px;
 
-        .iframe-container iframe {
-            border: none;
-            width: 0;
-            height: 0;
+        .iframe-container {
+            width: fit-content;
+            iframe {
+                border: none;
+                width: 0;
+                height: 0;
+            }
         }
 
         div.n3q-button-list {
@@ -1176,6 +1178,7 @@ div#n3q-display {
             overflow: hidden;
             text-overflow: ellipsis;
             margin-top: 4px;
+            max-width: 384px;
 
             span.n3q-itemprops-key {
                 font-weight: bold;
@@ -1218,8 +1221,6 @@ div#n3q-display {
 
     div.n3q-backpackiteminfo {
         position: absolute;
-        min-width: 140px;
-        max-width: 220px;
 
         div.n3q-itemprops {
             padding: 8px;

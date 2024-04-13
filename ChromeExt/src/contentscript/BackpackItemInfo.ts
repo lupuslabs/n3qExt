@@ -20,6 +20,7 @@ export type BackpackItemInfoOptions = WindowOptions & {
 export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
 {
     protected readonly backpackItem: BackpackItem
+    protected readonly contentPaddingWrapper: HTMLElement
     protected readonly headerContainer: HTMLElement
     protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
@@ -36,6 +37,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         super(app)
         this.backpackItem = backpackItem
         this.onClose = onClose
+        this.contentPaddingWrapper = DomUtils.elemOfHtml('<div class="n3q-itemprops" data-translate="children"></div>')
         this.headerContainer = DomUtils.elemOfHtml('<div class="header-container" data-translate="children"></div>')
         this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
         this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
@@ -53,6 +55,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.updateButtons()
         this.updateDebugInfo()
         this.sendPropertiesUpdateToIframe()
+        this.updateGeometryFromContent()
     }
 
     public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
@@ -104,6 +107,7 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
         this.sendMessageToIframe(new WeblinClientApi.SuccessResponse())
+        this.updateGeometryFromContent()
     }
 
     protected handleItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): void
@@ -119,7 +123,6 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.style = 'overlay'
         this.guiLayer = ContentApp.LayerWindowContent
         this.windowCssClasses.push('n3q-backpackiteminfo')
-        this.contentCssClasses.push('n3q-itemprops')
         this.withTitlebar = false
         this.geometryInitstrategy = 'afterContent'
 
@@ -133,16 +136,36 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent()
-        this.contentElem.append(this.headerContainer)
-        this.contentElem.append(this.iframeContainer)
-        this.contentElem.append(this.buttonsContainer)
-        this.contentElem.append(this.debuginfoContainer)
+        this.contentElem.append(this.contentPaddingWrapper)
+        this.contentPaddingWrapper.append(this.headerContainer)
+        this.contentPaddingWrapper.append(this.iframeContainer)
+        this.contentPaddingWrapper.append(this.buttonsContainer)
+        this.contentPaddingWrapper.append(this.debuginfoContainer)
         this.update()
     }
 
     protected onBeforeClose(): void
     {
         super.onBeforeClose()
+    }
+
+    protected updateGeometryFromContent(): void
+    {
+        DomUtils.execOnNextRenderComplete(() => {
+            if (!this.isOpen()) {
+                return
+            }
+            let height = 0
+            let width = 0
+            for (const elem of this.contentElem.children) {
+                const elemRect = elem.getBoundingClientRect()
+                width = Math.max(width, elemRect.width)
+                height += elemRect.height
+            }
+            const left = this.geometry.left
+            const bottom = this.geometry.bottom + this.geometry.height - height
+            this.setGeometry({ left, bottom, width, height })
+        })
     }
 
     protected updateHeader(): void
@@ -306,8 +329,6 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
             return
         }
         const props = this.backpackItem.getProperties()
-
-        this.windowElem.style.maxWidth = '400px'
 
         let keys = []
         for (const pid in props) { keys.push(pid) }
