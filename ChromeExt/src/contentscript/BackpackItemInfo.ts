@@ -1,7 +1,8 @@
+import log = require('loglevel');
+import { is } from '../lib/is'
 import { as } from '../lib/as'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { Config } from '../lib/Config'
-import { is } from '../lib/is'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { BackpackItem } from './BackpackItem'
 import { ContentApp } from './ContentApp'
@@ -11,6 +12,8 @@ import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { Payload } from '../lib/Payload'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { WeblinClientApi } from '../lib/WeblinClientApi'
+import { ItemException } from '../lib/ItemException'
+import { ItemExceptionToast } from './Toast'
 
 export type BackpackItemInfoOptions = WindowOptions & {
     top: number,
@@ -61,25 +64,30 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
     public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
         if (!this.iframeElem) {
-            this.sendMessageToIframe(new WeblinClientApi.ErrorResponse('Item inventory iframe not found!'))
+            this.sendResponseToIframe(request, new WeblinClientApi.ErrorResponse('Item inventory iframe not found!'))
             return
         }
-        try {
+        (async () => {
+            let response: WeblinClientApi.Response
             switch (request.type) {
-                case WeblinClientIframeApi.WindowPositionRequest.type:
-                    this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
-                    return
-                case WeblinClientIframeApi.ItemGetPropertiesRequest.type:
-                    this.handleItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request)
-                    return
-                default:
-                    this.sendMessageToIframe(new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type))
-                    return
+                case WeblinClientIframeApi.WindowPositionRequest.type: {
+                    response = this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
+                } break;
+                case WeblinClientIframeApi.ItemGetPropertiesRequest.type: {
+                    response = this.handleItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request)
+                } break;
+                case WeblinClientIframeApi.ItemActionRequest.type: {
+                    response = await this.handleItemActionRequest(<WeblinClientIframeApi.ItemActionRequest>request)
+                } break;
+                default: {
+                    response = new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
+                } break;
             }
-        } catch (error) {
+            this.sendResponseToIframe(request, response)
+        })().catch(error => {
             this.app.onError(error)
-            this.sendMessageToIframe(new WeblinClientApi.ErrorResponse(error))
-        }
+            this.sendResponseToIframe(request, new WeblinClientApi.ErrorResponse(error))
+        })
     }
 
     protected sendPropertiesUpdateToIframe(): void
@@ -93,28 +101,57 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.sendMessageToIframe(notification);
     }
 
-    protected sendMessageToIframe(notification: WeblinClientApi.Message): void
+    protected sendResponseToIframe(request: WeblinClientIframeApi.Request, response: WeblinClientApi.Message): void
+    {
+        response['id'] = request.id;
+        this.sendMessageToIframe(response)
+    }
+
+    protected sendMessageToIframe(message: WeblinClientApi.Message): void
     {
         if (!this.iframeElem) {
             return
         }
-        notification[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
-        this.iframeElem?.contentWindow.postMessage(notification, '*');
+        message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
+        this.iframeElem?.contentWindow.postMessage(message, '*')
     }
 
-    protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): void
+    protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
     {
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
-        this.sendMessageToIframe(new WeblinClientApi.SuccessResponse())
         this.updateGeometryFromContent()
+        return new WeblinClientApi.SuccessResponse()
     }
 
-    protected handleItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): void
+    protected handleItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): WeblinClientApi.Response
     {
         const props = this.backpackItem.getProperties()
         const propsFiltered = ItemProperties.getStrings(props, request.pids)
-        this.sendMessageToIframe(new WeblinClientIframeApi.ItemGetPropertiesResponse(propsFiltered))
+        return new WeblinClientIframeApi.ItemGetPropertiesResponse(propsFiltered)
+    }
+
+    protected async handleItemActionRequest(request: WeblinClientIframeApi.ItemActionRequest): Promise<WeblinClientApi.Response>
+    {
+        const itemId = this.backpackItem.getItemId();
+        const actionName = request.action;
+        const args = request.args;
+        const involvedIds = [itemId];
+        try {
+            const result = await BackgroundMessage.executeBackpackItemAction(itemId, actionName, args, involvedIds);
+            return new WeblinClientIframeApi.ItemActionResponse(result);
+        } catch (error) {
+            const fact = ItemException.factFrom(error.fact);
+            const reason = ItemException.reasonFrom(error.reason);
+            const detail = as.String(error.detail, error.message);
+            const ex = new ItemException(fact, reason, detail);
+            if (request.ignoreError) {
+                log.info('IframeApi.handle_ItemActionRequest', error);
+            } else {
+                new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
+            }
+            return new WeblinClientIframeApi.ItemErrorResponse(ItemException.fact2String(fact), ItemException.reason2String(reason), detail);
+        }
     }
 
     protected prepareMakeDom(): void
