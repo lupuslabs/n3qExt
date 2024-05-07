@@ -1837,16 +1837,18 @@ div#n3q-display {
     div.n3q-backpack-item {
         display: block;
         position: absolute;
-        box-shadow: 1px 1px 3px hsl(0, 0%, 31%);
+        box-shadow: 1px 1px 3px hsla(0, 0%, 31%, 1);
         background-color: rgba(255, 255, 255, 0.8);
         pointer-events: auto;
         touch-action: none;
+        transition: box-shadow 0.15s ease-in;
 
         .n3q-backpack-item-image {
             position: absolute;
             left: 2px;
             top: 2px;
             pointer-events: none !important;
+            transition: opacity 0.15s ease-in, filter 0.1s ease-in;
         }
 
         .n3q-backpack-item-label {
@@ -1861,6 +1863,7 @@ div#n3q-display {
             text-overflow: ellipsis;
             padding: 2px 2px;
             pointer-events: none !important;
+            transition: opacity 0.15s ease-in;
         }
 
         .n3q-backpack-item-cover {
@@ -1890,7 +1893,7 @@ div#n3q-display {
     /* Filter-hidden item in backpack: */
     div.n3q-backpack-item.filterHide {
         z-index: 1 !important;
-        box-shadow: none !important;
+        box-shadow: 1px 1px 3px hsla(0, 0%, 31%, 0) !important;
         background: transparent !important;
         pointer-events: none !important;
 
@@ -1899,7 +1902,7 @@ div#n3q-display {
             filter: grayscale(0.75) blur(2px) !important;
         }
         .n3q-backpack-item-label {
-            display: none !important;
+            opacity: 0 !important;
         }
     }
 
