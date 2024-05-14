@@ -64,12 +64,8 @@ export class RoomPresenceManager
         this.app = app
     }
 
-    public async startOrUpdateUserSettings(): Promise<void>
+    public async start(): Promise<void>
     {
-        if (!this.isStopped) {
-            this.onUserSettingsChanged()
-            return
-        }
         await this.onUserSettingsChangedAsync()
         this.isStopped = false
     }

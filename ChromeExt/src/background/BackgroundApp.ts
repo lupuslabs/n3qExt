@@ -88,6 +88,7 @@ export class BackgroundApp
     private readonly popupManager: PopupManager;
     private readonly backpack: Backpack;
 
+    private isFirstConfig: boolean = true;
     private isReady: boolean = false;
     private userId: string = '';
     private userToken: string = '';
@@ -239,7 +240,12 @@ export class BackgroundApp
     private onConfigUpdated(): void
     {
         (async () => {
-            this.contentCommunicator.start();
+            const isFirstConfig = this.isFirstConfig;
+            this.isFirstConfig = false;
+            if (isFirstConfig) {
+                this.contentCommunicator.start();
+            }
+
             this.language = Client.getUserLanguage()
             const translationTable = Config.get('i18n.translations', {})[this.language];
             this.babelfish = new Translator(translationTable, this.language, Config.get('i18n.serviceUrl', ''), this.urlFetcher);
@@ -248,7 +254,11 @@ export class BackgroundApp
             this.urlFetcher.setMaintenanceIntervalSecs(Config.get('httpCache.maintenanceIntervalSec', 60));
 
             this.browserActionGui.onConfigUpdated();
-            await this.roomPresenceManager.startOrUpdateUserSettings();
+            if (isFirstConfig) {
+                await this.roomPresenceManager.start();
+            } else {
+                this.roomPresenceManager.onUserSettingsChanged();
+            }
             this.websocketManager.onConfigUpdated();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
@@ -315,7 +325,7 @@ export class BackgroundApp
 
     private onBrowserTabRemoved(tabId: number): void
     {
-        this.roomPresenceManager?.onTabUnavailable(tabId);
+        this.roomPresenceManager.onTabUnavailable(tabId);
         this.browserActionGui.forgetTab(tabId);
         this.tabs.delete(tabId);
         this.contentCommunicator.forgetTab(tabId);
@@ -341,7 +351,7 @@ export class BackgroundApp
         const tabData = this.getTabData(tabId);
         tabData.stats = makeZeroTabStats();
         tabData.requestState = false;
-        this.roomPresenceManager?.onTabUnavailable(tabId);
+        this.roomPresenceManager.onTabUnavailable(tabId);
         this.browserActionGui.updateBrowserActionGui(tabId);
         this.contentCommunicator.forgetTab(tabId);
     }
@@ -854,7 +864,7 @@ export class BackgroundApp
 
     private getRoomJid2TabIds(roomJid: string): number[]
     {
-        return this.roomPresenceManager?.getTabIdsByRoomJid(roomJid) ?? [];
+        return this.roomPresenceManager.getTabIdsByRoomJid(roomJid);
     }
 
     private getAllTabIds(): number[]
@@ -1114,14 +1124,12 @@ export class BackgroundApp
     public handle_userSettingsChanged(): BackgroundResponse
     {
         log.debug('BackgroundApp.handle_userSettingsChanged');
-        this.roomPresenceManager?.onUserSettingsChanged();
-        this.chatHistoryStorage?.onUserConfigUpdate();
-        this.sendToAllTabs({ type: ContentMessage.type_userSettingsChanged });
+        this.onConfigUpdated();
 
         const oldDevConfig = Config.getDevTree();
         Client.initDevConfig().then(() => {
             if (Config.getDevTree() !== oldDevConfig) {
-                this.sendToAllTabs({ type: ContentMessage.type_configChanged });
+                this.onConfigUpdated();
             }
         });
 

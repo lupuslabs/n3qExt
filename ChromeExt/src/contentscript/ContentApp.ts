@@ -723,10 +723,6 @@ export class ContentApp extends AppWithDom
                     }
                 } break;
 
-                case ContentMessage.type_userSettingsChanged: {
-                    this.handle_userSettingsChanged();
-                } break;
-
                 case ContentMessage.type_clientNotification: {
                     this.handle_clientNotification(message.data);
                 } break;
@@ -781,10 +777,11 @@ export class ContentApp extends AppWithDom
     {
         BackgroundMessage.getConfigTree(Config.onlineConfigName)
             .then(config => Config.setOnlineTree(config))
-            .catch (error => log.debug(error.message));
-        BackgroundMessage.getConfigTree(Config.devConfigName)
+            .catch (error => log.debug(error.message))
+            .then(() => BackgroundMessage.getConfigTree(Config.devConfigName))
             .then(config => Config.setDevTree(config))
-            .catch (error => log.debug(error.message));
+            .catch (error => log.debug(error.message))
+            .then(() => this.room?.onUserSettingsChanged());
     }
 
     handle_recvStanza(jsStanza: unknown): void
@@ -800,13 +797,6 @@ export class ContentApp extends AppWithDom
             case 'iq': this.onIq(stanza); break;
         }
         this.onTabStatsChanged();
-    }
-
-    handle_userSettingsChanged(): any
-    {
-        if (this.room) {
-            this.room.onUserSettingsChanged();
-        }
     }
 
     handle_clientNotification(request: WeblinClientApi.ClientNotificationRequest): any
