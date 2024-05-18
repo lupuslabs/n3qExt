@@ -49,9 +49,9 @@ export class Nickname implements IObserver
         });
         this.elem.appendChild(menuElem);
 
-        const closedIcon = this.app.makeIcon(menuClosedIconUrl);
+        const [closedIcon, _closedIconReady] = this.app.makeIcon(menuClosedIconUrl);
         closedIcon.classList.add('closed');
-        const openIcon = this.app.makeIcon(menuOpenIconUrl);
+        const [openIcon, _openIconReady] = this.app.makeIcon(menuOpenIconUrl);
         openIcon.classList.add('open');
         menuElem.append(closedIcon, openIcon);
 

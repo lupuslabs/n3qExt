@@ -1,6 +1,6 @@
 ﻿import { is } from './is'
 import { as } from './as'
-import { ErrorWithData, LeftBottomRect } from './Utils'
+import { ErrorWithData, LeftBottomRect, BoxEdges } from './Utils'
 import { PointerEventData } from './PointerEventData'
 
 export namespace DomUtils {
@@ -402,6 +402,109 @@ export namespace DomUtils {
             [suffixLen, factor] = [1, 1.0]
         }
         return factor * as.Float(duration.substring(0, duration.length - suffixLen))
+    }
+
+    export function getInnerDomRectDistances(outerRect: DOMRectReadOnly, innerRect: DOMRectReadOnly): BoxEdges
+    {
+        const top = innerRect.top - outerRect.top
+        const right = outerRect.right - innerRect.right
+        const bottom = outerRect.bottom - innerRect.bottom
+        const left = innerRect.left - outerRect.left
+        return { top, right, bottom, left }
+    }
+
+    export function getImageData(imageSrc: CanvasImageSource, imageSrcWidth: number, imageSrcHeight: number, width: number, height: number): null|ImageData
+    {
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const context2d = canvas.getContext('2d')
+        if (!context2d) {
+            return null
+        }
+        context2d.drawImage(imageSrc, 0, 0, imageSrcWidth, imageSrcHeight, 0, 0, width, height)
+        return context2d.getImageData(0, 0, width, height)
+    }
+
+    export function getNonTransparentRectOfImageData(imgData: ImageData, opacityMin: number): null|DOMRectReadOnly
+    {
+        const [imgWidth, imgHeight] = [imgData.width, imgData.height]
+        let [top, right, bottom, left] = [imgHeight, 0, 0, imgWidth]
+        const imgBytes = imgData.data
+        const rowBytesCount = 4 * imgWidth
+        let index = imgHeight * rowBytesCount - 1
+        for (let y = imgHeight - 1; y >= 0; y--) {
+            for (let x = imgWidth - 1; x >= 0; x--, index -= 4) {
+                if (imgBytes[index] > opacityMin) {
+                    top = Math.min(top, y)
+                    right = Math.max(right, x)
+                    bottom = Math.max(bottom, y)
+                    left = Math.min(left, x)
+                }
+            }
+        }
+        return new DOMRectReadOnly(left, top, right - left, bottom - top)
+    }
+
+    export function getNativeNonTransparentRectOfImageElem(imageSrc: HTMLImageElement, opacityMin: number): null|DOMRectReadOnly
+    {
+        const [imgWidth, imgHeight] = [imageSrc.naturalWidth, imageSrc.naturalHeight]
+        if (imgWidth === 0 || imgHeight === 0) {
+            return null;
+        }
+        const imgData = getImageData(imageSrc, imgWidth, imgHeight, imgWidth, imgHeight)
+        if (!imgData) {
+            return null
+        }
+        return getNonTransparentRectOfImageData(imgData, opacityMin)
+    }
+
+    export function clipImageElemByBoxDistances(imgElem: null|HTMLElement, offsets: BoxEdges): void
+    {
+        if (!imgElem || !(imgElem instanceof HTMLImageElement)) {
+            return
+        }
+        imgElem.style.clipPath = `inset(${offsets.top}px ${offsets.right}px ${offsets.bottom}px ${offsets.left}px)`
+        imgElem.style.margin = `-${offsets.top}px -${offsets.right}px -${offsets.bottom}px -${offsets.left}px`
+    }
+
+    export function calcScaleToFitBox(nativeWidth: number, nativeHeight: number, availableWidth: number, availableHeight: number): number
+    {
+        const scaleWidthF = availableWidth / nativeWidth
+        const scaleHeightF = availableHeight / nativeHeight
+        return Math.min(scaleWidthF, scaleHeightF)
+    }
+
+    export function clipImageElemByOpacityAndLimitDimensions(imgElem: null|Element, opacityMin: number = 10, availableWidth: number, availableHeight: number): boolean
+    {
+        if (!imgElem || !(imgElem instanceof HTMLImageElement)) {
+            return false
+        }
+        const nativeContentArea = getNativeNonTransparentRectOfImageElem(imgElem, opacityMin)
+        if (!nativeContentArea) {
+            return false
+        }
+
+        // Fit content area:
+        const [nativeImgWidth, nativeImgHeight] = [imgElem.naturalWidth, imgElem.naturalHeight]
+        const [nativeAreaWidth, nativeAreaHeight] = [nativeContentArea.width, nativeContentArea.height]
+        const scaleF = calcScaleToFitBox(nativeAreaWidth, nativeAreaHeight, availableWidth, availableHeight)
+        const scaledImgWidth = scaleF * nativeImgWidth
+        const scaledImgHeight = scaleF * nativeImgHeight
+        const scaledAreaX = scaleF * nativeContentArea.x
+        const scaledAreaY = scaleF * nativeContentArea.y
+        const scaledAreaWidth = scaleF * nativeContentArea.width
+        const scaledAreaHeigt = scaleF * nativeContentArea.height
+        const scaledArea = new DOMRectReadOnly(scaledAreaX, scaledAreaY, scaledAreaWidth, scaledAreaHeigt)
+
+        // Set dimensions and apply clipping:
+        imgElem.style.width = `${scaledImgWidth}px`
+        imgElem.style.height = `${scaledImgHeight}px`
+        const scaledImgRect = new DOMRectReadOnly(0, 0, scaledImgWidth, scaledImgHeight)
+        const offsets: BoxEdges = getInnerDomRectDistances(scaledImgRect, scaledArea)
+        clipImageElemByBoxDistances(imgElem, offsets)
+
+        return true
     }
 
 }

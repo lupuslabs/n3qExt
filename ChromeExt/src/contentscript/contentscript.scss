@@ -1109,6 +1109,13 @@ div#n3q-display {
         .n3q-toast-icon.n3q-toast-icon-notice { background: url(../assets/icons/fe_warning.svg) no-repeat center center / contain; }
         .n3q-toast-icon.n3q-toast-icon-question { background: url(../assets/icons/question.svg) no-repeat center center / contain; }
 
+        .icon-wrap {
+            display: block;
+            float: left;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
         .n3q-toast-body-container {
             margin-bottom: 6px;
             display: flex;

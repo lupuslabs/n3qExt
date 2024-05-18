@@ -1561,15 +1561,53 @@ export class ContentApp extends AppWithDom
 
     // GUI helpers:
 
-    public makeIcon(iconUrl: null|string): HTMLElement
+    public fetchImage(iconUrl: null|string): [HTMLImageElement, Promise<boolean>]
+    {
+        const image = new Image();
+        const loadedPromise = new Promise<boolean>((resolve) => {
+            image.addEventListener('error', (ev) => {
+                resolve(false);
+            });
+            image.addEventListener('load', (ev) => {
+                resolve(true);
+            });
+            this.fetchUrlAsDataUrl(iconUrl).then(dataUrl => {
+                image.crossOrigin = 'anonymous';
+                image.src = dataUrl;
+            });
+        });
+        return [image, loadedPromise];
+    }
+
+    public makeIcon(iconUrl: null|string): [HTMLElement, Promise<boolean>]
     {
         const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>');
-        const iconElem = DomUtils.elemOfHtml('<img class="icon"/>');
-        iconElem.addEventListener('error', (ev) => iconElem.classList.add('hidden'));
-        this.fetchUrlAsDataUrl(iconUrl)
-            .then(dataUrl => iconElem.setAttribute('src', dataUrl));
-        iconWrapElem.append(iconElem);
-        return iconWrapElem;
+        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl);
+        const readyPromise = isLoadedPromise.then(ok => {
+            if (ok) {
+                iconElem.classList.add('icon');
+                iconWrapElem.append(iconElem);
+            }
+            return ok;
+        });
+        return [iconWrapElem, readyPromise];
+    }
+
+    public makeScaledAndClippedIcon(iconUrl: null|string, opacityMin: number = 10, availableWidth: number, availableHeight: number): [HTMLElement, Promise<boolean>]
+    {
+        const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>');
+        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl);
+        const readyPromise = isLoadedPromise.then(ok => {
+            if (ok) {
+                ok = DomUtils.clipImageElemByOpacityAndLimitDimensions(iconElem, opacityMin, availableWidth, availableHeight);
+            }
+            if (ok) {
+                iconElem.classList.add('icon');
+                iconWrapElem.append(iconElem);
+            }
+            return ok;
+        });
+        return [iconWrapElem, readyPromise];
     }
 
     public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
@@ -1605,7 +1643,7 @@ export class ContentApp extends AppWithDom
             buttonElem.classList.remove('active');
         });
 
-        const iconElem = this.makeIcon(iconUrl);
+        const [iconElem, _iconElemReady] = this.makeIcon(iconUrl);
         buttonElem.appendChild(iconElem);
 
         return buttonElem;

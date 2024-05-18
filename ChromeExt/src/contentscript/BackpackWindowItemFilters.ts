@@ -114,7 +114,8 @@ export class BackpackWindowItemFilters
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, buttonElem)
             filterButtonsBarElem.append(buttonElem)
 
-            buttonElem.append(this.app.makeIcon(filter.getIconUrl()))
+            const [buttonIconElem, _buttonIconElemReady] = this.app.makeIcon(filter.getIconUrl())
+            buttonElem.append(buttonIconElem)
 
             const labelTextElem = DomUtils.elemOfHtml(`<span class="text"></span>`)
             labelTextElem.innerText = filter.getLabelText(language)

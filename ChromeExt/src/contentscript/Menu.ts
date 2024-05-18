@@ -41,7 +41,8 @@ abstract class MenuItem
         }
         this.initEventHandling();
 
-        itemElem.append(this.app.makeIcon(this.iconUrl));
+        const [itemIconElem, _itemIconElemReady] = this.app.makeIcon(this.iconUrl);
+        itemElem.append(itemIconElem);
 
         const textElem = document.createElement('div');
         textElem.classList.add('text');

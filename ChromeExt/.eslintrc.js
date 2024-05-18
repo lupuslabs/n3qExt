@@ -9,6 +9,7 @@ module.exports = {
     },
     globals: {
         DocumentOrShadowRoot: 'readonly', // Should have be included by env.browser but somehow isn't (yet?)
+        CanvasImageSource: 'readonly', // Should have be included by env.browser but somehow isn't (yet?)
     },
     extends: [],
     overrides: [],
