@@ -683,20 +683,4 @@ export class Room
         return 'https://' + url;
     }
 
-    getAllScriptedItems(): Array<string>
-    {
-        const scriptItemIds = new Array<string>();
-
-        const itemIds = this.getItemIds();
-        for (let i = 0; i < itemIds.length; i++) {
-            const itemId = itemIds[i];
-            const props = this.getItemByItemId(itemId).getProperties();
-            if (as.Bool(props[Pid.IframeLive])) {
-                scriptItemIds.push(itemId);
-            }
-        }
-
-        return scriptItemIds;
-    }
-
 }

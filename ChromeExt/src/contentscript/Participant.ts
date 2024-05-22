@@ -986,9 +986,10 @@ export class Participant extends Entity
             isSelf: this.getIsSelf(),
         };
 
-        const itemIds = this.room.getAllScriptedItems();
-        for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantMovedNotification(participantData));
+        const itemIds = this.room.getItemIds();
+        const message = new WeblinClientIframeApi.ParticipantMovedNotification(participantData)
+        for (const itemId of itemIds) {
+            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
         }
     }
 
@@ -1001,9 +1002,10 @@ export class Participant extends Entity
             isSelf: this.getIsSelf(),
         };
 
-        const itemIds = this.room.getAllScriptedItems();
-        for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantChatNotification(participantData, text));
+        const itemIds = this.room.getItemIds();
+        const message = new WeblinClientIframeApi.ParticipantChatNotification(participantData, text)
+        for (const itemId of itemIds) {
+            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
         }
     }
 
@@ -1016,9 +1018,10 @@ export class Participant extends Entity
             isSelf: this.getIsSelf(),
         };
 
-        const itemIds = this.room.getAllScriptedItems();
-        for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ParticipantEventNotification(participantData, data));
+        const itemIds = this.room.getItemIds();
+        const message = new WeblinClientIframeApi.ParticipantEventNotification(participantData, data)
+        for (const itemId of itemIds) {
+            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
         }
     }
 

@@ -45,7 +45,7 @@ export enum Pid
     AutorezIsActive = 'AutorezIsActive',
     IframeAuto = 'IframeAuto',
     IframeAutoRange = 'IframeAutoRange',
-    IframeLive = 'IframeLive',
+    IframeLive = 'IframeLive', // Deprecated. Todo: Remove after all clients updated.
     ImageUrl = 'ImageUrl',
     InventoryIframeUrl = 'InventoryIframeUrl',
     AnimationsUrl = 'AnimationsUrl',

@@ -305,12 +305,6 @@ export class RoomItem extends Entity
             this.app.decrementRezzedItems(this.getProperties()[Pid.Label] + ' ' + this.getProperties()[Pid.Id]);
         }
 
-        if (as.Bool(this.getProperties()[Pid.IframeAspect])) {
-            if (as.Bool(this.getProperties()[Pid.IframeLive])) {
-                this.closeFrame();
-            }
-        }
-
         if (as.Bool(Config.get('roomItem.chatlogItemDisappeared'), true)) {
             this.room?.showChatMessage(null, 'itemStatus', this.getDisplayName(), 'disappeared');
         }
@@ -510,17 +504,13 @@ export class RoomItem extends Entity
                     this.app.onError(errorResponse);
                     return new ItemProperties();
                 });
-            if (as.Bool(props[Pid.IframeLive])) {
-
-                const itemData = {
-                    id: itemId,
-                    x: newX,
-                    isOwn: this.myItem,
-                    properties: this.properties,
-                };
-
-                this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemMovedNotification(itemData, newX));
-            }
+            const itemData = {
+                id: itemId,
+                x: newX,
+                isOwn: this.myItem,
+                properties: this.properties,
+            };
+            this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemMovedNotification(itemData, newX));
         }
 
         this.onMoved(newX);
@@ -822,17 +812,19 @@ export class RoomItem extends Entity
             properties: this.getProperties([Pid.Template, Pid.OwnerId]),
         };
 
-        const itemIds = this.room.getAllScriptedItems();
-        for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemEventNotification(itemData, data));
+        const itemIds = this.room.getItemIds();
+        const message = new WeblinClientIframeApi.ItemEventNotification(itemData, data);
+        for (const itemId of itemIds) {
+            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
         }
     }
 
     protected sendItemPropertiesToAllScriptFrames(): void
     {
-        const itemIds = this.room.getAllScriptedItems();
-        for (let i = 0; i < itemIds.length; i++) {
-            this.room.getItemByItemId(itemIds[i])?.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemPropertiesChangedNotification(this.getItemId(), this.properties));
+        const itemIds = this.room.getItemIds();
+        const message = new WeblinClientIframeApi.ItemPropertiesChangedNotification(this.getItemId(), this.properties)
+        for (const itemId of itemIds) {
+            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
         }
     }
 
