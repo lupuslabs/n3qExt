@@ -29,6 +29,8 @@ export class Toast extends Window<ToastOptions>
 
     protected bodyElem: HTMLElement;
     protected buttons: ToastButtonInfo[] = [];
+    protected defaultAction: () => void = () => {};
+    protected inButtonHandler: boolean = false;
     private delayedTransitionTimeoutHandle: null|ReturnType<typeof setTimeout> = null;
 
     protected hasDontShowAgainOption = true;
@@ -67,8 +69,29 @@ export class Toast extends Window<ToastOptions>
 
     public actionButton(label: string, action?: () => void): void
     {
-        action ??= () => {};
-        this.buttons.push({ label, action });
+        const wrappedAction = () => {
+            this.inButtonHandler = true;
+            try {
+                action?.();
+            } catch (error) {
+                this.app.onError(error);
+            }
+            this.inButtonHandler = false;
+        };
+        this.buttons.push({ label, action: wrappedAction });
+    }
+
+    public addClosingActionButton(label: string, action: () => void): void
+    {
+        this.actionButton(label, () => { action(); this.close() });
+    }
+
+    /**
+     * action is executed when toast is closed without any button
+     */
+    public setDefaultAction(action: () => void): void
+    {
+        this.defaultAction = action;
     }
 
     public show(onCloseOrOptions?: ToastOptions|(() => void)): void
@@ -86,8 +109,18 @@ export class Toast extends Window<ToastOptions>
 
     public close(): void
     {
+        if (this.status === 'closed') {
+            return;
+        }
         super.close();
         this.status = 'closed';
+        if (!this.inButtonHandler) {
+            try {
+                (this.defaultAction)();
+            } catch (error) {
+                this.app.onError(error);
+            }
+        }
     }
 
     public setVisibility(visible: boolean): void
@@ -166,7 +199,7 @@ export class Toast extends Window<ToastOptions>
             const buttonElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">${as.Html(label)}</div>`);
             this.bodyElem.append(buttonElem);
             this.app.translateElem(buttonElem);
-            PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftClickListener(ev => action?.());
+            PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftClickListener(ev => action());
         }
 
         const newStatus = 'fadingIn';

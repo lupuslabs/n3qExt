@@ -1488,41 +1488,28 @@ export class ContentApp extends AppWithDom
         onDeleted?: (itemId: string) => void,
         onCanceled?: (itemId: string) => void,
         onFailed?: (itemId: string) => void, // For cleanups. Defaults to onCanceled.
-    ): void
-    {
-        (async () =>
-        {
-            const props = await BackgroundMessage.getBackpackItemProperties(itemId);
+    ): void {
+        try {
+            const props = this.ownItems.get(itemId);
+            if (!props) {
+                (onFailed ?? onCanceled)?.(itemId);
+                return;
+            }
+            const onYes = () => this.deleteItem(props, onDeleted, onFailed ?? onCanceled);
+            const onNo = () => onCanceled?.(itemId);
             const itemName = props[Pid.Label] ?? props[Pid.Template];
             const duration = Config.get('backpack.deleteToastDurationSec', 1000);
             const text = this.translateText('ItemLabel.' + itemName) + '\n' + itemId;
             const toast = new SimpleToast(
                 this, 'backpack-reallyDelete', duration, 'question', 'Really delete?', text);
-            let inOnAnswer = false;
-            const onYes = () =>
-            {
-                if (!inOnAnswer) {
-                    inOnAnswer = true;
-                    toast.close();
-                    this.deleteItem(props, onDeleted, onFailed ?? onCanceled);
-                }
-            };
-            const onNo = () =>
-            {
-                if (!inOnAnswer) {
-                    inOnAnswer = true;
-                    toast.close();
-                    onCanceled?.(itemId);
-                }
-            };
-            toast.actionButton('Yes, delete item', onYes);
-            toast.actionButton('No, keep it', onNo);
+            toast.setDefaultAction(onNo);
+            toast.addClosingActionButton('Yes, delete item', onYes);
+            toast.addClosingActionButton('No, keep it', onNo);
             toast.setDontShow(false);
             toast.show(onNo);
-        })().catch(error =>
-        {
+        } catch (error) {
             this.onError(ErrorWithData.ofError(error, 'Toast preparation failed!', { itemId: itemId }));
-        });
+        }
     }
 
     public deleteItem(
