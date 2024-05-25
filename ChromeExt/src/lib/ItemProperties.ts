@@ -61,6 +61,7 @@ export enum Pid
     PageEffectAspect = 'PageEffectAspect',
     PersonAspect = 'PersonAspect',
     UserId = 'UserId',
+    UserFriendStatus = 'UserFriendStatus',
     PointsAspect = 'PointsAspect',
     SettingsAspect = 'SettingsAspect',
     AvatarAspect = 'AvatarAspect',
@@ -124,6 +125,26 @@ export enum Pid
     EditableProperties = 'EditableProperties',
 }
 
+export const userFriendStatuses = ['No', 'ProposedByOwner', 'ProposedByOther', 'Yes'] as const;
+export type UserFriendStatus = typeof userFriendStatuses[number];
+
+export function isUserFriendStatus(val: unknown): val is UserFriendStatus
+{
+    return userFriendStatuses.some(elem => elem === val);
+}
+export function asUserFriendStatus(val: unknown): UserFriendStatus
+{
+    return isUserFriendStatus(val) ? val : 'No';
+}
+
+export type PersonData = {
+    userId: string,
+    userName: string,
+    userImageUrl: string,
+    ownFriendStatus: UserFriendStatus,
+    ownPersonItem: null|ItemProperties,
+}
+
 export class ItemProperties
 {
     [pid: string]: string
@@ -131,6 +152,16 @@ export class ItemProperties
     static getId(item: ItemProperties): string
     {
         return item[Pid.Id];
+    }
+
+    static getLabel(itemProperties: ItemProperties): string
+    {
+        return as.String(itemProperties[Pid.Label]);
+    }
+
+    static getImageUrl(itemProperties: ItemProperties): string
+    {
+        return as.String(itemProperties[Pid.ImageUrl]);
     }
 
     static getIsVisibleInBackpack(item: ItemProperties): boolean
@@ -344,6 +375,22 @@ export class ItemProperties
     static getUserId(itemProperties: ItemProperties): string
     {
         return as.String(itemProperties[Pid.UserId]);
+    }
+
+    static getUserFriendStatus(itemProperties: ItemProperties): UserFriendStatus
+    {
+        return asUserFriendStatus(itemProperties[Pid.UserFriendStatus]);
+    }
+
+    static getPersonData(itemProperties: ItemProperties): PersonData
+    {
+        return {
+            userId: ItemProperties.getUserId(itemProperties),
+            userName: ItemProperties.getLabel(itemProperties),
+            userImageUrl: ItemProperties.getImageUrl(itemProperties),
+            ownFriendStatus: ItemProperties.getUserFriendStatus(itemProperties),
+            ownPersonItem: itemProperties,
+        }
     }
 
 }

@@ -90,6 +90,11 @@ export class Room
         return null;
     }
 
+    getParticipantByUserId(userId: string): null|Participant
+    {
+        return Object.values(this.participants).filter(participant => participant.getUserId() === userId)[0] ?? null
+    }
+
     getItemIds(): Array<string>
     {
         const itemIds = [];

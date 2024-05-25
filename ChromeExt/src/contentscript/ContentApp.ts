@@ -144,6 +144,8 @@ export class ContentApp extends AppWithDom
     getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 
+    getPersonManager(): ContentPersonManager { return this.personManager; }
+
     getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
 
     /**
@@ -1497,6 +1499,20 @@ export class ContentApp extends AppWithDom
             }
             const onYes = () => this.deleteItem(props, onDeleted, onFailed ?? onCanceled);
             const onNo = () => onCanceled?.(itemId);
+
+            if (ItemProperties.getIsPerson(props)) {
+                this.getPersonManager().showPersonActionConfirmationToast(
+                    ItemProperties.getPersonData(props),
+                    'Person.forgetPersonToastTitle',
+                    'Person.forgetPersonToastText',
+                    'person.forget', false,
+                    'Person.forgetPersonToastConfirmButtonLabel', onYes,
+                    'Person.forgetPersonToastCancelButtonLabel', onNo,
+                    onNo,
+                );
+                return;
+            }
+
             const itemName = props[Pid.Label] ?? props[Pid.Template];
             const duration = Config.get('backpack.deleteToastDurationSec', 1000);
             const text = this.translateText('ItemLabel.' + itemName) + '\n' + itemId;

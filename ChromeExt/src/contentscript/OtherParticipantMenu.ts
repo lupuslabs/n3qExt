@@ -7,7 +7,6 @@ import * as byeIconUrl from '../assets/icons/bye-32.png';
 import * as personIconUrl from '../assets/icons/person.svg'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
-import { iter } from '../lib/Iter'
 
 export class OtherParticipantMenu extends ParticipantMenu
 {
@@ -36,20 +35,61 @@ export class OtherParticipantMenu extends ParticipantMenu
 
     protected makePersonMenuAndItem(column: MenuColumn): void
     {
+        const personData = this.app.getPersonManager().getOtherPersonData(this.participant.getUserId())
+        if (!personData) {
+            return;
+        }
+        const { userId, userName, userImageUrl, ownFriendStatus, ownPersonItem } = personData;
+
         const menuItem = column.addSubmenuItem('person', personIconUrl, 'Person');
         const menuColumn = menuItem.addColumn('person');
-        const userId = this.participant.getUserId()
-        const item = iter(this.app.getOwnItems().values())
-            .filter(item => ItemProperties.getIsPerson(item) && ItemProperties.getUserId(item) === userId)
-            .getNext()
-        if (item) {
-            menuColumn.addActionItem('forget', null, 'Forget', () => this.app.deleteItem(item))
-        } else if (userId.length !== 0) {
+
+        if (!ownPersonItem) {
             menuColumn.addActionItem('remember', null, 'Remember', () => {
                 const method = 'N3q.MemorizePerson';
                 const props = { [Pid.UserId]: this.participant.getUserId() };
                 BackgroundMessage.executeBackpackItemActionOnGenericitem(method, props)
                     .catch(error => this.app.onError(error))
+            });
+        }
+
+        const menuItemId = `friendship${ownFriendStatus}`;
+        switch (ownFriendStatus) {
+            default:
+            case 'No': {
+                menuColumn.addActionItem(menuItemId, null, 'ProposeFriendship', () => {
+                    this.app.getPersonManager().showProposeFriendshipToast(personData);
+                });
+            } break;
+            case 'ProposedByOwner': {
+                menuColumn.addActionItem(menuItemId, null, 'CancelFriendshipProposal', () => {
+                    const props = { [Pid.UserId]: userId };
+                    BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', props)
+                        .catch(error => this.app.onError(error))
+                });
+            } break;
+            case 'ProposedByOther': {
+                menuColumn.addActionItem(menuItemId, null, 'AcceptFriendshipProposal', () => {
+                    const props = { [Pid.UserId]: userId };
+                    BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.AcceptFriendship', props)
+                        .catch(error => this.app.onError(error))
+                });
+                menuColumn.addActionItem(menuItemId, null, 'DeclineFriendshipProposal', () => {
+                    const props = { [Pid.UserId]: userId };
+                    BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', props)
+                        .catch(error => this.app.onError(error))
+                });
+            } break;
+            case 'Yes': {
+                menuColumn.addActionItem(menuItemId, null, 'CancelFriendship', () => {
+                    this.app.getPersonManager().showCancelFriendshipToast(personData);
+                });
+            } break;
+        }
+
+        if (ownPersonItem) {
+            menuColumn.addActionItem('forget', null, 'Forget', () => {
+                this.app.deleteItemAsk(ItemProperties.getId(ownPersonItem));
             });
         }
     }

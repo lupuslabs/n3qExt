@@ -1,4 +1,5 @@
-﻿import { Pid } from '../lib/ItemProperties'
+import { iter } from '../lib/Iter'
+import { ItemProperties, PersonData, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp';
 import { FriendshipProposalsState, FriendshipProposalState } from '../lib/ContentMessage'
 import { SimpleToast, Toast } from './Toast'
@@ -11,16 +12,86 @@ export class ContentPersonManager
     private readonly proposals: Map<string,FriendshipProposalState> = new Map()
     private openProposals: Map<string,Toast> = new Map() // proposingUserId => toastId
 
+    //--------------------------------------------------------------------------
+    // Public API
+
     public constructor(app: ContentApp)
     {
         this.app = app
+    }
+
+    public getOtherPersonData(otherUserId: string): null|PersonData
+    {
+        const itemPersonData = this.getOtherPersonDataFromBackpack(otherUserId)
+        const proposalPersonData = this.getOtherPersonDataFromFriendshipProposal(otherUserId)
+        if (itemPersonData?.ownFriendStatus === 'No' && proposalPersonData) {
+            itemPersonData.ownFriendStatus = 'ProposedByOther'
+        }
+        if (itemPersonData) {
+            return itemPersonData
+        }
+        if (proposalPersonData) {
+            return proposalPersonData
+        }
+        return this.getOtherPersonDataFromRoom(otherUserId)
+    }
+
+    public showProposeFriendshipToast(otherPersonData: PersonData): Toast
+    {
+        const actionArgs = { [Pid.UserId]: otherPersonData.userId }
+        const acceptBtnAction = () => BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.ProposeFriendship', actionArgs)
+            .catch(error => this.app.onError(error))
+        return this.showPersonActionConfirmationToast(
+            otherPersonData, 'Person.proposeFriendshipToastTitle', 'Person.proposeFriendshipToastText',
+            'FriendshipProposal', false,
+            'Person.proposeFriendshipToastConfirmButtonLabel', acceptBtnAction,
+            'Person.proposeFriendshipToastCancelButtonLabel', () => {},
+            () => {},
+        )
+    }
+
+    public showCancelFriendshipToast(otherPersonData: PersonData): Toast
+    {
+        const actionArgs = { [Pid.UserId]: otherPersonData.userId }
+        const acceptBtnAction = () => BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', actionArgs)
+            .catch(error => this.app.onError(error))
+        return this.showPersonActionConfirmationToast(
+            otherPersonData, 'Person.cancelFriendshipToastTitle', 'Person.cancelFriendshipToastText',
+            'CancelFriendship', false,
+            'Person.cancelFriendshipToastConfirmButtonLabel', acceptBtnAction,
+            'Person.cancelFriendshipToastCancelButtonLabel', () => {},
+            () => {},
+        )
+    }
+
+    public showPersonActionConfirmationToast(
+        otherPersonData: PersonData, titleId: string, textId: string, actionId: string, allowBlocklist: boolean,
+        action1LabelId: string, action1: () => void, action2LabelId: string, action2: () => void, defaultAction: () => void,
+    ): Toast {
+        const toastId = `${actionId}.${otherPersonData.userId}`
+        const type = 'question'
+        const title = this.translateText(otherPersonData, titleId)
+        const text = this.translateText(otherPersonData, textId)
+        const toast = new SimpleToast(this.app, toastId, 0, type, title, text)
+        toast.setIcon(otherPersonData.userImageUrl, 10, 64, 64);
+
+        toast.addClosingActionButton(this.translateText(otherPersonData, action1LabelId), action1)
+        toast.addClosingActionButton(this.translateText(otherPersonData, action2LabelId), action2)
+        toast.setDefaultAction(defaultAction)
+
+        toast.setDontShow(allowBlocklist)
+        toast.show()
+        return toast
     }
 
     public onStateFromBackground(state: FriendshipProposalsState): void
     {
         this.proposals.clear()
         for (const proposal of state.proposed) {
-            this.proposals.set(proposal.proposingUserId, proposal)
+            const personData = this.getOtherPersonData(proposal.proposingUserId)
+            if (!personData || personData.ownFriendStatus !== 'Yes') {
+                this.proposals.set(proposal.proposingUserId, proposal)
+            }
         }
 
         for (const [openProposingUserId, toast] of this.openProposals.entries()) {
@@ -35,43 +106,82 @@ export class ContentPersonManager
                 return proposalA.firstNotificationTime.valueOf() - proposalB.firstNotificationTime.valueOf()
             }
             const proposal = [...this.proposals.values()].sort(cmpFun)[0]
-            const toast = this.showProposalFromOtherConfirmationToast(proposal)
-            this.openProposals.set(proposal.proposingUserId, toast)
+            const otherUserData = this.getOtherPersonData(proposal.proposingUserId)
+            if (otherUserData?.ownFriendStatus === 'ProposedByOther') {
+                const toast = this.showProposalFromOtherConfirmationToast(otherUserData)
+                this.openProposals.set(proposal.proposingUserId, toast)
+            }
         }
     }
 
-    private showProposalFromOtherConfirmationToast(proposal: FriendshipProposalState): Toast
+    //--------------------------------------------------------------------------
+    // Private toast helpers
+
+    private showProposalFromOtherConfirmationToast(otherPersonData: PersonData): Toast
     {
-        const toastId = `FriendshipProposal.${proposal.proposingUserId}`
-        const type = 'question'
-        const title = this.translateText(proposal, 'FriendshipProposals.proposalToastTitle')
-        const text = this.translateText(proposal, 'FriendshipProposals.proposalToastText')
-        const toast = new SimpleToast(this.app, toastId, 0, type, title, text)
-        toast.setIcon(proposal.proposingUserImageUrl, 10, 32, 64);
-
-        const acceptBtnText = this.translateText(proposal, 'FriendshipProposals.proposalToastAcceptButtonLabel')
-        const acceptBtnAction = () => {
-            const action = 'N3q.AcceptFriendship'
-            const args = { action, [Pid.UserId]: proposal.proposingUserId }
-            BackgroundMessage.executeBackpackItemActionOnGenericitem(action, args).catch(error => this.app.onError(error))
-        }
-        toast.actionButton(acceptBtnText, acceptBtnAction)
-
-        const declineBtnText = this.translateText(proposal, 'FriendshipProposals.proposalToastDeclineButtonLabel')
-        const declineBtnAction = () => {
-            const action = 'N3q.CancelFriendship'
-            const args = { action, [Pid.UserId]: proposal.proposingUserId }
-            BackgroundMessage.executeBackpackItemActionOnGenericitem(action, args).catch(error => this.app.onError(error))
-        }
-        toast.actionButton(declineBtnText, declineBtnAction)
-
-        toast.setDontShow(true)
-        toast.show()
-        return toast
+        const actionArgs = { [Pid.UserId]: otherPersonData.userId }
+        const acceptBtnAction = () => BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.AcceptFriendship', actionArgs)
+            .catch(error => this.app.onError(error))
+        const declineBtnAction = () => BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', actionArgs)
+            .catch(error => this.app.onError(error))
+        return this.showPersonActionConfirmationToast(
+            otherPersonData, 'Person.friendshipProposalFromOtherToastTitle', 'Person.friendshipProposalFromOtherToastText',
+            'OtherFriendshipProposal', true,
+            'Person.friendshipProposalFromOtherToastAcceptButtonLabel', acceptBtnAction,
+            'Person.friendshipProposalFromOtherToastDeclineButtonLabel', declineBtnAction,
+            () => {}
+        )
     }
 
-    private translateText(proposal: FriendshipProposalState, textId: string): string
+    private translateText(otherPersonData: PersonData, textId: string): string
     {
-        return this.app.translateText(textId).replace('{proposingUserName}', proposal.proposingUserName)
+        return this.app.translateText(textId).replace('{otherUserName}', otherPersonData.userName)
+    }
+
+    //--------------------------------------------------------------------------
+    // Private person data retrieval
+
+    private getOtherPersonDataFromBackpack(otherUserId: string): null|PersonData
+    {
+        return iter(this.app.getOwnItems().values())
+            .filter(item => ItemProperties.getIsPerson(item) && ItemProperties.getUserId(item) === otherUserId)
+            .map(item => ItemProperties.getPersonData(item))
+            .getNext()
+    }
+
+    private getOtherPersonDataFromFriendshipProposal(otherUserId: string): null|PersonData
+    {
+        const proposal = this.proposals.get(otherUserId)
+        if (!proposal) {
+            return null
+        }
+        return {
+            userId: proposal.proposingUserId,
+            userName: proposal.proposingUserName,
+            userImageUrl: proposal.proposingUserImageUrl,
+            ownFriendStatus: 'ProposedByOther',
+            ownPersonItem: null,
+        }
+    }
+
+    private getOtherPersonDataFromRoom(otherUserId: string): null|PersonData
+    {
+        const participant = this.app.getRoom()?.getParticipantByUserId(otherUserId)
+        if (!(participant?.getSupportsPersonApi() ?? false)) {
+            return null
+        }
+        const userName = participant.getDisplayName()
+        if ((userName?.length ?? 0) === 0) {
+            return null
+        }
+        const userAvatar = participant?.getAvatar()
+        if (!userAvatar) {
+            return null
+        }
+        const userImageUrl = userAvatar.getAnimationByGroup(userAvatar.getDefaultGroup())?.url ?? null
+        if ((userImageUrl?.length ?? 0) === 0) {
+            return null
+        }
+        return { userId: otherUserId, userName, userImageUrl, ownFriendStatus: 'No', ownPersonItem: null }
     }
 }

@@ -19,7 +19,7 @@ export class Entity
     protected rangeElem: HTMLElement;
     protected visible: boolean = false;
     protected hasHover: boolean = false;
-    protected avatarDisplay: Avatar;
+    protected avatarDisplay: null|Avatar = null;
     protected defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
     protected onMoveTransitionEndHandler: null|((ev: TransitionEvent) => void) = null;
 
@@ -34,7 +34,7 @@ export class Entity
     getRoomNick(): string { return this.roomNick; }
     getElem(): HTMLElement { return this.elem; }
     getDefaultAvatar(): string { return imgDefaultAvatar; }
-    getAvatar(): Avatar { return this.avatarDisplay; }
+    getAvatar(): null|Avatar { return this.avatarDisplay; }
     getIsSelf(): boolean { return this.isSelf; }
 
     show(visible: boolean, durationSec: number = 0.0): void
