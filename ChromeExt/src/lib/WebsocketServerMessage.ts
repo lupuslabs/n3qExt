@@ -93,6 +93,18 @@ export namespace WebsocketServerMessage {
                     messageData.ItemsDeleted,
                 )
             }
+            case FriendshipProposalNotification.name: return new FriendshipProposalNotification(
+                String(messageData.Id),
+                String(messageData.ActorId),
+                String(messageData.ActorName),
+                String(messageData.ActorImageUrl),
+                String(messageData.OtherId),
+            )
+            case FriendshipProposalCanceledNotification.name: return new FriendshipProposalCanceledNotification(
+                String(messageData.Id),
+                String(messageData.ActorId),
+                String(messageData.OtherId),
+            )
         }
         throw new Error(`Unknown type ${type}!`)
     }
@@ -270,6 +282,32 @@ export namespace WebsocketServerMessage {
             public readonly ItemsUpdatedOrCreated: Readonly<Readonly<{[p: string]: string}>[]>,
             public readonly ItemsDeleted: Readonly<string[]>,
         ) { super(Id) }
+    }
+
+    export abstract class PersonActionNotification extends Notification {
+        public constructor(
+            Id: string,
+            public readonly ActorId: string,
+            public readonly OtherId: string,
+        ) { super(Id) }
+    }
+
+    export class FriendshipProposalNotification extends PersonActionNotification {
+        public constructor(
+            Id: string,
+            ActorId: string,
+            public readonly ActorName: string,
+            public readonly ActorImageUrl: string,
+            OtherId: string,
+        ) { super(Id, ActorId, OtherId) }
+    }
+
+    export class FriendshipProposalCanceledNotification extends PersonActionNotification {
+        public constructor(
+            Id: string,
+            ActorId: string,
+            OtherId: string,
+        ) { super(Id, ActorId, OtherId) }
     }
 
 }

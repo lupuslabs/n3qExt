@@ -138,20 +138,26 @@ export class WebsocketManager
         if (notification instanceof Message.ItemsNotification) {
             return this.handleItemsNotification(notification)
         }
+        if (notification instanceof Message.FriendshipProposalNotification) {
+            return this.app.getFriendshipProposalManager().handleFriendshipProposalNotification(notification)
+        }
+        if (notification instanceof Message.FriendshipProposalCanceledNotification) {
+            return this.app.getFriendshipProposalManager().handleFriendshipProposalCanceledNotification(notification)
+        }
         this.logDebug('WebsocketManager.handleNotification: Ignored unhandled notification.', notification)
     }
 
     private async handleItemsNotification(notification: Message.ItemsNotification): Promise<void> {
         if (notification.InventoryId !== this.app.getUserId()) {
-            this.logInfo('WebsocketManager.handleNotification: ItemsNotification isn\'t for our backpack.', notification)
+            this.logInfo('WebsocketManager.handleItemsNotification: ItemsNotification isn\'t for our backpack.', notification)
             return
         }
         if (!Utils.isBackpackEnabled()) {
-            this.logInfo('WebsocketManager.handleNotification: Ignored ItemsNotification for our backpack because backpack is disabled.', notification)
+            this.logInfo('WebsocketManager.handleItemsNotification: Ignored ItemsNotification for our backpack because backpack is disabled.', notification)
             return
         }
         this.app.getBackpack().onItemUpdateFromProvider(notification.ItemsDeleted, notification.ItemsUpdatedOrCreated)
-        this.logDebug('WebsocketManager.handleNotification: Updated backpack.', notification)
+        this.logDebug('WebsocketManager.handleItemsNotification: Updated backpack.', notification)
     }
 
     private logDebug(msg: string, ...data: any[]): void {

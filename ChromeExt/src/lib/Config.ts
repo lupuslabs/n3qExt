@@ -94,6 +94,7 @@ export class Config
             badges: false,
             SimpleItemTransfer: false,
             chatHistory: false,
+            friendshipProposals: false,
         },
         pointerEventDispatcher: {
             pointerOpaqueOpacityMin: 0.03, // works with Photoshop 3% Opacity (e.g. Screen item)
@@ -413,6 +414,9 @@ export class Config
             displayAvatarXLeft: -80,
             infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
+        friendshipProposals: {
+            enabled: true,
+        },
         items: {
             'enabledProviders': ['n3q']
         },
@@ -700,6 +704,11 @@ export class Config
                     'SimpleItemTransfer.recipientCanceledText': '{sender} revoked the offer of {item}.',
                     'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Item Received',
                     'SimpleItemTransfer.recipientRetrieveCompleteText': 'Received {item} from {sender}.',
+
+                    'FriendshipProposals.proposalToastTitle': 'Friendship Proposal',
+                    'FriendshipProposals.proposalToastText': '{proposingUserName} would like to be your friend.',
+                    'FriendshipProposals.proposalToastAcceptButtonLabel': 'Accept',
+                    'FriendshipProposals.proposalToastDeclineButtonLabel': 'Decline',
 
                     'iframeApi.avatarCreateTitle': 'Accept Avatar',
                     'iframeApi.avatarActivateTitle': 'Activate Avatar',
@@ -1073,6 +1082,11 @@ export class Config
                         '{sender} hat das Angebot zurückgezogen und behält {item}.',
                     'SimpleItemTransfer.recipientRetrieveCompleteTitle': 'Gegenstand erhalten',
                     'SimpleItemTransfer.recipientRetrieveCompleteText': '{item} von {sender} erhalten.',
+
+                    'FriendshipProposals.proposalToastTitle': 'Freundschaftsanfrage',
+                    'FriendshipProposals.proposalToastText': '{proposingUserName} möchte dein Freund sein.',
+                    'FriendshipProposals.proposalToastAcceptButtonLabel': 'Annehmen',
+                    'FriendshipProposals.proposalToastDeclineButtonLabel': 'Ablehnen',
 
                     'iframeApi.avatarCreateTitle': 'Avatar erstellen',
                     'iframeApi.avatarActivateTitle': 'Avatar aktivieren',

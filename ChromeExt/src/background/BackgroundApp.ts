@@ -59,6 +59,7 @@ import {
     BackgroundRequestHandler,
     BackgroundTabHeartbeatHandler,
 } from '../lib/BackgroundToContentCommunicator'
+import { BackgroundFriendshipProposalManager } from './BackgroundFriendshipProposalManager'
 
 export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
@@ -87,6 +88,7 @@ export class BackgroundApp
     private readonly browserActionGui: BrowserActionGui;
     private readonly popupManager: PopupManager;
     private readonly backpack: Backpack;
+    private readonly friendshipProposalManager: BackgroundFriendshipProposalManager;
 
     private isFirstConfig: boolean = true;
     private isReady: boolean = false;
@@ -116,6 +118,7 @@ export class BackgroundApp
         this.browserActionGui = new BrowserActionGui(this);
         this.popupManager = new PopupManager(this);
         this.backpack = new Backpack(this);
+        this.friendshipProposalManager = new BackgroundFriendshipProposalManager(this);
     }
 
     public getLanguage(): string { return this.language; }
@@ -181,6 +184,11 @@ export class BackgroundApp
     public getBackpack(): Backpack
     {
         return this.backpack;
+    }
+
+    public getFriendshipProposalManager(): BackgroundFriendshipProposalManager
+    {
+        return this.friendshipProposalManager;
     }
 
     public async assertThatThereIsAUserId()
@@ -259,6 +267,7 @@ export class BackgroundApp
             } else {
                 this.roomPresenceManager.onUserSettingsChanged();
             }
+            this.friendshipProposalManager.onConfigUpdated();
             this.websocketManager.onConfigUpdated();
             this.xmppManager.onConfigUpdated();
             this.chatHistoryStorage.onUserConfigUpdate();
@@ -290,6 +299,7 @@ export class BackgroundApp
 
         this.contentCommunicator.stop()
 
+        this.friendshipProposalManager.stop();
         this.websocketManager.stop();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
@@ -344,6 +354,7 @@ export class BackgroundApp
         tabData.requestState = true;
         this.browserActionGui.updateBrowserActionGui(tabId);
         this.sendIsGuiEnabledStateToTab(tabId);
+        this.friendshipProposalManager.onNewTab(tabId);
     }
 
     private onSignalContentAppStop(tabId: number): void
@@ -1097,6 +1108,7 @@ export class BackgroundApp
         }
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
+        this.friendshipProposalManager.maintain()
         this.websocketManager.maintain()
         this.xmppManager.maintain()
     }

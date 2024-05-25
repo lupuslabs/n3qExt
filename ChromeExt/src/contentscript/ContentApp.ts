@@ -54,6 +54,7 @@ import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg';
 import { BadgesController } from './BadgesController'
 import { PointerEventData } from '../lib/PointerEventData'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
+import { ContentPersonManager } from './ContentPersonManager'
 
 interface ILocationMapperResponse
 {
@@ -117,6 +118,7 @@ export class ContentApp extends AppWithDom
     private avatarGallery: AvatarGallery;
     private toasts: Set<Toast> = new Set();
     private readonly ownItems: Map<string,ItemProperties> = new Map();
+    private readonly personManager: ContentPersonManager;
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -170,6 +172,7 @@ export class ContentApp extends AppWithDom
         const requestHandler = request => this.onBackgroundRequest(request)
         this.backgroundCommunicator = contentCommunicatorFactory(requestHandler);
         this.urlFetcher = new BackgroundMessageUrlFetcher()
+        this.personManager = new ContentPersonManager(this);
     }
 
     async start(params: ContentAppParams)
@@ -745,6 +748,10 @@ export class ContentApp extends AppWithDom
                 } break;
                 case ContentMessage.type_chatHistoryDeleted: {
                     this.getRoom()?.onChatHistoryDeleted(message.data.deletions);
+                } break;
+
+                case ContentMessage.type_friendshipProposalsState: {
+                    this.personManager.onStateFromBackground(message.data);
                 } break;
             }
         } catch (error) {

@@ -6,8 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.3.3', 'Persons', [
-            ['Add', 'Memorize other persons as items in your backpack'],
+        ['1.3.3', 'Friends', [
+            ['Add', 'Memorize other persons as items in your backpack and become friends'],
         ]],
         ['1.3.2', 'PointsLegend', [
             ['Add', 'Description of point and stars'],
