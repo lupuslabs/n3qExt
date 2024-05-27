@@ -150,7 +150,7 @@ export namespace WeblinClientIframeApi
         room: string;
         pids: string[];
     }
-    export class ItemData 
+    export class ItemData
     {
         id: string;
         x: number;
@@ -165,7 +165,7 @@ export namespace WeblinClientIframeApi
         item: string;
         room: string;
     }
-    export class ParticipantData 
+    export class ParticipantData
     {
         id: string;
         nickname: string;
@@ -180,7 +180,7 @@ export namespace WeblinClientIframeApi
         item: string;
         room: string;
     }
-    export class RoomInfo 
+    export class RoomInfo
     {
         jid: string;
         url: string;
@@ -253,4 +253,20 @@ export namespace WeblinClientIframeApi
         nodeText?: boolean;
     }
     export class PageDomQueryResponse extends WeblinClientApi.ContentResponse { constructor(public value: string) { super('Page.DomQuery.Response'); } }
+
+    export const PersonItemApiRequestTypePrefix = 'PersonItemApi.'
+    export class PersonItemApiShowProposeFriendshipToastRequest extends Request
+    {
+        static type = `${PersonItemApiRequestTypePrefix}ShowProposeFriendshipToast`
+        constructor(id: string, public userId: string) {
+            super(PersonItemApiShowProposeFriendshipToastRequest.type, id)
+        }
+    }
+    export class PersonItemApiShowCancelFriendshipToastRequest extends Request
+    {
+        static type = `${PersonItemApiRequestTypePrefix}ShowCancelFriendshipToast`
+        constructor(id: string, public userId: string) {
+            super(PersonItemApiShowCancelFriendshipToastRequest.type, id)
+        }
+    }
 }

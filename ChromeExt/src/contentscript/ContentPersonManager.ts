@@ -1,9 +1,12 @@
+import { as } from '../lib/as'
 import { iter } from '../lib/Iter'
+import { ErrorWithData } from '../lib/Utils'
 import { ItemProperties, PersonData, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp';
 import { FriendshipProposalsState, FriendshipProposalState } from '../lib/ContentMessage'
 import { SimpleToast, Toast } from './Toast'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
+import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 
 export class ContentPersonManager
 {
@@ -111,6 +114,23 @@ export class ContentPersonManager
                 const toast = this.showProposalFromOtherConfirmationToast(otherUserData)
                 this.openProposals.set(proposal.proposingUserId, toast)
             }
+        }
+    }
+
+    public handlePersonItemApiRequest(request: WeblinClientIframeApi.Request): void
+    {
+        const personData: null|PersonData = this.getOtherPersonDataFromBackpack(as.String(request['userId']))
+        if (!personData) {
+            throw new ErrorWithData('PersonItemApi request contains no own person item\'s ID in item property!', { request })
+        }
+        switch (as.String(request.type)) {
+            case WeblinClientIframeApi.PersonItemApiShowProposeFriendshipToastRequest.type: {
+                this.showProposeFriendshipToast(personData)
+            } break
+            case WeblinClientIframeApi.PersonItemApiShowCancelFriendshipToastRequest.type: {
+                this.showCancelFriendshipToast(personData)
+            } break
+            default: throw new ErrorWithData('Unhandled PersonItemApi request type!', { request })
         }
     }
 

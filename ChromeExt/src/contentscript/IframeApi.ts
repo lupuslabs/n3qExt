@@ -423,6 +423,11 @@ export class IframeApi
                 return;
             }
 
+            if (as.String(request.type).startsWith(WeblinClientIframeApi.PersonItemApiRequestTypePrefix)) {
+                this.app.getPersonManager().handlePersonItemApiRequest(request)
+                return;
+            }
+
             if (!is.nonEmptyString(request['room'])) {
                 // Inventory item iframe
                 this.app.handleItemInventoryiframeApiRequest(request);
