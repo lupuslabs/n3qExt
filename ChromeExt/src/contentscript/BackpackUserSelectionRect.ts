@@ -9,6 +9,8 @@ import { ContentApp } from './ContentApp'
 import { BackpackWindow } from './BackpackWindow'
 import { BackpackItem } from './BackpackItem'
 
+type SelectionMode = 'replace'|'add'|'remove'
+
 export class BackpackUserSelectionRect
 {
     private readonly app: ContentApp
@@ -42,13 +44,11 @@ export class BackpackUserSelectionRect
             return
         }
 
-        let selectionModeAdd = false
-        let selectionModeRemove = false
+        let selectionMode: SelectionMode = 'replace'
         switch (ev.modifierKeys) {
-            case ModifierKeyId.shift: { selectionModeAdd = true } break
-            case ModifierKeyId.control: { selectionModeRemove = true } break
+            case ModifierKeyId.shift: { selectionMode = 'add' } break
+            case ModifierKeyId.control: { selectionMode = 'remove' } break
         }
-        const selectionModeEx = !(selectionModeAdd || selectionModeRemove)
 
         const [dragStartX, dragStartY] = this.dragStartClientPos
         const { clientX, clientY } = ev
@@ -69,11 +69,27 @@ export class BackpackUserSelectionRect
         for (const [itemId, item] of this.backpack.getAllItems()) {
             if (!visibleItemIds.has(itemId)) {
                 this.setItemCssClasses(item, false, false)
+                continue
             }
-            const isSelected = selectedItemIds.has(itemId)
+
             const isInRect = Utils.isDomRectOverlappingDomRect(item.getItemBackpackBoundingBox(), backpackBox)
-            const willBeAdded = !selectionModeRemove && isInRect && !isSelected
-            const willBeRemoved = isSelected && ((selectionModeRemove && isInRect) || (selectionModeEx && !isInRect))
+            let isSelected = selectedItemIds.has(itemId)
+            let willBeAdded = false
+            let willBeRemoved = false
+            switch (selectionMode) {
+                default:
+                case 'replace': {
+                    willBeAdded = isInRect && !isSelected
+                    willBeRemoved = !isInRect && isSelected
+                } break
+                case 'add': {
+                    willBeAdded = isInRect && !isSelected
+                } break
+                case 'remove': {
+                    willBeRemoved = isSelected && isInRect
+                } break
+            }
+
             const willBeSelected = willBeAdded || (isSelected && !willBeRemoved)
             if (willBeSelected) {
                 this.newSelection.push(item)
