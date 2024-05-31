@@ -1,8 +1,5 @@
-import * as imgDefaultItem from '../assets/DefaultItem.png'
-
 import { is } from '../lib/is'
 import { as } from '../lib/as'
-import { Config } from '../lib/Config'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'
 import { BackpackWindow } from './BackpackWindow'
@@ -13,6 +10,19 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 
 export class BackpackItem
 {
+    static nonImageWidth: number = 0
+    static nonImageHeight: number = 0
+
+    private static updateNonImageSize(item: BackpackItem)
+    {
+        if (BackpackItem.nonImageHeight > 0) {
+            return
+        }
+        const { width, height } = item.elem.getBoundingClientRect()
+        BackpackItem.nonImageWidth = width - item.imageWidth
+        BackpackItem.nonImageHeight = height - item.imageHeight
+    }
+
     private readonly app: ContentApp
     private readonly backpackWindow: BackpackWindow
     private readonly itemId: string
@@ -20,15 +30,14 @@ export class BackpackItem
     private readonly elem: HTMLElement
     private readonly imageElem: HTMLElement
     private readonly textElem: HTMLElement
-    private readonly coverElem: HTMLElement
     private readonly pointerEventDispatcher: PointerEventDispatcher
 
     private properties: ItemProperties
-    private x: number = -1
-    private y: number = -1
+    private x: number = 0
+    private y: number = 0
     private imageUrl: string = ''
-    private imageWidth: number = -1
-    private imageHeight: number = -1
+    private imageWidth: number = 0
+    private imageHeight: number = 0
 
     private info: BackpackItemInfo = null
 
@@ -40,13 +49,11 @@ export class BackpackItem
         this.properties = properties
         this.itemId = itemId
 
-        this.elem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-backpack-item" data-id="${this.itemId}"></div>`)
-        this.imageElem = DomUtils.elemOfHtml('<img class="n3q-base n3q-backpack-item-image" src=""/>')
+        this.elem = DomUtils.elemOfHtml(`<div class="n3q-backpack-item" data-id="${this.itemId}"></div>`)
+        this.imageElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-image"></div>')
         this.elem.append(this.imageElem)
-        this.textElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-item-label"></div>')
+        this.textElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-label"></div>')
         this.elem.append(this.textElem)
-        this.coverElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-item-cover"></div>')
-        this.elem.append(this.coverElem)
         this.backpackWindow.getPane().append(this.elem)
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem)
@@ -85,11 +92,14 @@ export class BackpackItem
 
     private applyImage(): void
     {
-        const imageUrl = this.properties[Pid.ImageUrl] ?? imgDefaultItem
+        const imageUrl = ItemProperties.getImageUrl(this.properties)
         if (imageUrl !== this.imageUrl) {
             this.imageUrl = imageUrl
-            this.app.fetchUrlAsDataUrl(imageUrl)
-                .then(dataUrl => this.imageElem.setAttribute('src', dataUrl))
+            const [wrapperElem, donePromise] = this.app.makeScaledAndClippedIcon(this.imageUrl, 10, this.imageWidth, this.imageHeight)
+            donePromise.then(() => {
+                this.imageElem.firstElementChild?.remove()
+                this.imageElem.append(wrapperElem)
+            })
         }
     }
 
@@ -104,16 +114,17 @@ export class BackpackItem
         this.elem.setAttribute('title', text)
     }
 
-    private getWidth(): number { return this.imageWidth + Config.get('backpack.itemBorderWidth', 2) * 2 }
-    private getHeight(): number { return this.imageHeight + Config.get('backpack.itemBorderWidth', 2) * 2 + Config.get('backpack.itemLabelHeight', 12) }
+    private getSize(): [number, number] {
+        BackpackItem.updateNonImageSize(this)
+        return [this.imageWidth + BackpackItem.nonImageWidth, this.imageHeight + BackpackItem.nonImageHeight]
+    }
 
     /**
-     * All coordinate system origin is the top left corner of the backpack area and values increase to the bottom right.
+     * Coordinate system origin is the top left corner of the backpack area and values increase to the bottom right.
      */
     public getItemBackpackBoundingBox(): DOMRectReadOnly
     {
-        const width = this.getWidth()
-        const height = this.getHeight()
+        const [width, height] = this.getSize()
         const y = this.y - height / 2
         const x = this.x - width / 2
         return new DOMRectReadOnly(x, y, width, height)
@@ -135,35 +146,19 @@ export class BackpackItem
         this.imageWidth = imageWidth
         this.imageHeight = imageHeight
         this.imageElem.style.width = `${this.imageWidth}px`
+        this.textElem.style.width = `${this.imageWidth}px`
         this.imageElem.style.height = `${this.imageHeight}px`
-        this.elem.style.width = `${this.getWidth()}px`
-        this.elem.style.height = `${this.getHeight()}px`
     }
 
     private applyPosition(): void
     {
         let x = as.Int(this.properties[Pid.InventoryX])
         let y = as.Int(this.properties[Pid.InventoryY])
-
-        // fix position
-        // const bounds = {
-        //     left: this.getWidth() / 2,
-        //     top: this.getHeight() / 2,
-        //     right: this.backpackWindow.getWidth() - this.getWidth() / 2,
-        //     bottom: this.backpackWindow.getHeight() - this.getHeight() / 2
-        // }
-        // if (x < bounds.left) { x = bounds.left }
-        // if (x > bounds.right) { x = bounds.right }
-        // if (y < bounds.top) { y = bounds.top }
-        // if (y > bounds.bottom) { y = bounds.bottom }
-
-        if (x !== this.x || y !== this.y) {
-            this.x = x
-            this.y = y
-
-            this.elem.style.left = `${x - this.getWidth() / 2}px`
-            this.elem.style.top = `${y - this.getHeight() / 2}px`
-        }
+        this.x = x
+        this.y = y
+        const [width, height] = this.getSize()
+        this.elem.style.left = `${x - width / 2}px`
+        this.elem.style.top = `${y - height / 2}px`
     }
 
     public toFront(): void
@@ -206,9 +201,9 @@ export class BackpackItem
         this.properties = properties
 
         this.applyText()
-        this.applyImage()
         this.applySize()
         this.applyPosition()
+        this.applyImage()
 
         if (as.Bool(properties[Pid.IsRezzed])) {
             this.elem.classList.add('n3q-backpack-item-rezzed')

@@ -1843,7 +1843,8 @@ div#n3q-display {
     }
 
     div.n3q-backpack-item {
-        display: block;
+        display: flex;
+        flex-direction: column;
         position: absolute;
         box-shadow: 1px 1px 3px hsla(0, 0%, 31%, 1);
         background-color: rgba(255, 255, 255, 0.8);
@@ -1851,37 +1852,31 @@ div#n3q-display {
         touch-action: none;
         transition: box-shadow 0.15s ease-in;
 
-        .n3q-backpack-item-image {
-            position: absolute;
-            left: 2px;
-            top: 2px;
+        * {
             pointer-events: none !important;
+        }
+
+        .n3q-backpack-item-image {
+            position: relative;
+            margin: 2px;
             transition: opacity 0.15s ease-in, filter 0.1s ease-in;
+            > .icon-wrap {
+                display: flex;
+                align-items: center;
+                justify-content: center
+            }
         }
 
         .n3q-backpack-item-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            padding: 2px;
             height: 12px;
             background-color: rgba(255, 255, 255, 0.8);
             overflow: hidden;
             white-space: nowrap;
+            font: normal 11px/12px Arial, sans-serif;
+            color: black;
             text-overflow: ellipsis;
-            padding: 2px 2px;
-            pointer-events: none !important;
             transition: opacity 0.15s ease-in;
-        }
-
-        .n3q-backpack-item-cover {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            right: 0;
-            background-color: rgba(255, 255, 255, 0);
-            pointer-events: none !important;
         }
 
         &.selected:not(.selection-rect-remove), &.selection-rect-add {

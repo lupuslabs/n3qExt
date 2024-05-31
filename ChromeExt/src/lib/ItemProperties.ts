@@ -5,6 +5,7 @@ import { is } from './is';
 import { Config } from './Config';
 const NodeRSA = require('node-rsa');
 
+import * as defaultItemImageUrl from '../assets/DefaultItem.png'
 
 export enum Pid
 {
@@ -161,7 +162,8 @@ export class ItemProperties
 
     static getImageUrl(itemProperties: ItemProperties): string
     {
-        return as.String(itemProperties[Pid.ImageUrl]);
+        const url = as.String(itemProperties[Pid.ImageUrl]);
+        return url.length !== 0 ? url : defaultItemImageUrl;
     }
 
     static getIsVisibleInBackpack(item: ItemProperties): boolean
