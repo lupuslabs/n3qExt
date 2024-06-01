@@ -739,7 +739,8 @@ export class Config
                     'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceText': 'The server doesn\'t like your new name. Please use another name.',
                     'Toast.Open settings': 'Open settings',
 
-                    'Activity.TotalPoints': 'Total activity points',
+                    'Activity.TotalPoints': 'Total activity points:',
+                    'Activity.CurrentChannels': 'Current activities:',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Greet',
@@ -748,6 +749,17 @@ export class Config
                     'Activity.PointsChannelItemApply': 'Item activity',
                     'Activity.PointsChannelPageOwned': 'Page ownership',
                     'Activity.PointsChannelSocial': 'Social network activity',
+
+                    'Star.9': 'White crown (262144)',
+                    'Star.8': 'Black crown (65536)',
+                    'Star.7': 'Blue diamond (16384)',
+                    'Star.6': 'Gold star (4096)',
+                    'Star.5': 'Silver star(1024)',
+                    'Star.4': 'Copper star (256)',
+                    'Star.3': 'Gold dot (64)',
+                    'Star.2': 'Silber dot (16)',
+                    'Star.1': 'Copper dot (4)',
+                    'Star.0': 'Single point (1)',
 
                     'ErrorFact.UnknownError': 'Error',
                     'ErrorFact.NotRezzed': 'Item Not Dropped',
@@ -846,7 +858,9 @@ export class Config
                     'ItemValue.You': 'You',
                     'ItemValue.unknown': 'unknown',
 
+                    'ItemLabel.Points': 'Points',
                     'ItemLabel.Dot1': '1 Point',
+                    'ItemLabel.PublicViewing': 'Public Viewing',
                 },
                 'de-DE': {
                     'Extension.Disable': 'weblin.io ausschalten',
@@ -1066,7 +1080,8 @@ export class Config
                     'Toast.FallenBackToOldNickBecauseServerIgbnoredPresenceText': 'Der Server mag deinen neuen Namen nicht. Bitte wähle einen anderen Namen.',
                     'Toast.Open settings': 'Einstellungen öffnen',
 
-                    'Activity.TotalPoints': 'Alle Aktivitätspunkte',
+                    'Activity.TotalPoints': 'Alle Aktivitätspunkte:',
+                    'Activity.CurrentChannels': 'Aktuelle Aktivitäten:',
                     'Activity.PointsChannelChat': 'Chat',
                     'Activity.PointsChannelEmote': 'Emote',
                     'Activity.PointsChannelGreet': 'Grüßen',
@@ -1075,6 +1090,17 @@ export class Config
                     'Activity.PointsChannelItemApply': 'Gegenstandsinteraktionen',
                     'Activity.PointsChannelPageOwned': 'Webseitenbesitz',
                     'Activity.PointsChannelSocial': 'Aktivität in sozialen Netzen',
+
+                    'Star.9': 'Weiße Krone (262144)',
+                    'Star.8': 'Schwarze Krone (65536)',
+                    'Star.7': 'Blauer Diamant (16384)',
+                    'Star.6': 'Goldstern (4096)',
+                    'Star.5': 'Silberstern (1024)',
+                    'Star.4': 'Kupferstern (256)',
+                    'Star.3': 'Goldpunkt (64)',
+                    'Star.2': 'Silberpunkt (16)',
+                    'Star.1': 'Kupferpunkt (4)',
+                    'Star.0': 'Einzelpunkt (1)',
 
                     'ErrorFact.UnknownError': 'Fehler',
                     'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
@@ -1252,7 +1278,7 @@ export class Config
     static setDevTree(tree: { [p: string]: unknown })
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
-            log.info('Config.setDevTree', { tree: {...tree} });
+            log.info('Config.setDevTree', { tree: { ...tree } });
         }
         this.devConfig = tree;
     }
@@ -1260,7 +1286,7 @@ export class Config
     static setOnlineTree(tree: { [p: string]: unknown }): void
     {
         if (Config.get('log.all', false) || Config.get('log.startup', true)) {
-            log.info('Config.setOnlineTree', { tree: {...tree} });
+            log.info('Config.setOnlineTree', { tree: { ...tree } });
         }
         this.onlineConfig = tree;
     }

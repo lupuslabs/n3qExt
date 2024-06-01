@@ -20,7 +20,7 @@ export class PointsBar implements IObserver
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-points" />').get(0);
+        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-points" data-translate="children" />').get(0);
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
@@ -66,15 +66,25 @@ export class PointsBar implements IObserver
             Config.get('points.fullLevels', 2),
             Config.get('points.fractionalLevels', 1)
         );
-        let digits = pg.getDigitList(points);
+        let digits = pg.getDigitList(this.points);
         let parts = pg.getPartsList(digits);
-        let stars = parts.map(part => <HTMLDivElement>$('<div class="n3q-base n3q-points-icon n3q-points-icon-' + part + '" />').get(0));
+        let stars = parts.map(part => <HTMLDivElement>$('<div class="n3q-base n3q-points-icon n3q-points-icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
         $(this.elem).append(stars);
+
+        this.app.translateElem(this.elem);
     }
 
     async showTitleWithActivities(): Promise<void>
     {
-        let title = this.app.translateText('Activity.TotalPoints') + ': ' + String(this.points);
+        let title = this.app.translateText('Activity.TotalPoints') + ' ' + String(this.points);
+
+        let pg = new PointsGenerator(4,
+            Config.get('points.fullLevels', 2),
+            Config.get('points.fractionalLevels', 1)
+        );
+        let digits = pg.getDigitList(this.points);
+        let stars = digits.map(digit => digit.count + ' x ' + this.app.translateText('Star.' + digit.exp));
+        title += '\r\n= ' + stars.join('\r\n+ ');
 
         if (Utils.isBackpackEnabled()) {
             let activitiesConfig = Config.get('points.activities', {});
@@ -84,6 +94,7 @@ export class PointsBar implements IObserver
                     return new ItemPropertiesSet();
                 });
             for (let id in propSet) {
+                title += '\r\n' + this.app.translateText('Activity.CurrentChannels');
                 let props = propSet[id];
                 for (let channel in activitiesConfig) {
                     if (props[channel]) {
