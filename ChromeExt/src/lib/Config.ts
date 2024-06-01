@@ -754,7 +754,7 @@ export class Config
                     'Star.8': 'Black crown (65536)',
                     'Star.7': 'Blue diamond (16384)',
                     'Star.6': 'Gold star (4096)',
-                    'Star.5': 'Silver star(1024)',
+                    'Star.5': 'Silver star (1024)',
                     'Star.4': 'Copper star (256)',
                     'Star.3': 'Gold dot (64)',
                     'Star.2': 'Silber dot (16)',
