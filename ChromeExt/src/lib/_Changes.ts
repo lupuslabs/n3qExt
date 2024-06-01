@@ -6,7 +6,10 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.3.1', 'Great menu overhaul', [
+        ['1.3.2', 'PointsLegend', [
+            ['Add', 'Description of point and stars'],
+        ]],
+        ['1.3.1', 'GreatMenuOverhaul', [
             ['Change', 'Changed menu item spacing and grouped own avatar menu items'],
         ]],
         ['1.3.0', 'Manifest3Firefox', [
