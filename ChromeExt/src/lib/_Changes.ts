@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.3.3', 'Friends', [
+            ['Add', 'Small overlay icons visually marking backpack items having selected features'],
             ['Add', 'Memorize other persons as items in your backpack and become friends'],
         ]],
         ['1.3.2', 'PointsLegend', [

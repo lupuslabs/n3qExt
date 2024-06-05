@@ -55,6 +55,7 @@ import { BadgesController } from './BadgesController'
 import { PointerEventData } from '../lib/PointerEventData'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentPersonManager } from './ContentPersonManager'
+import { ItemOverlays } from './ItemOverlays'
 
 interface ILocationMapperResponse
 {
@@ -117,8 +118,9 @@ export class ContentApp extends AppWithDom
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
     private toasts: Set<Toast> = new Set();
-    private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['n3q-backpack-item', 'n3q-badge'];
+    private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['n3q-backpack-item', 'n3q-badge', 'icon-wrap'];
     private readonly ownItems: Map<string,ItemProperties> = new Map();
+    private readonly itemOverlays: ItemOverlays
     private readonly personManager: ContentPersonManager;
 
     // private stayHereIsChecked: boolean = false;
@@ -144,6 +146,7 @@ export class ContentApp extends AppWithDom
 
     getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
     getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
+    getItemOverlays(): ItemOverlays { return this.itemOverlays; }
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 
     getPersonManager(): ContentPersonManager { return this.personManager; }
@@ -176,6 +179,7 @@ export class ContentApp extends AppWithDom
         const requestHandler = request => this.onBackgroundRequest(request)
         this.backgroundCommunicator = contentCommunicatorFactory(requestHandler);
         this.urlFetcher = new BackgroundMessageUrlFetcher()
+        this.itemOverlays = new ItemOverlays(this)
         this.personManager = new ContentPersonManager(this);
     }
 
@@ -769,6 +773,7 @@ export class ContentApp extends AppWithDom
     {
         itemsHide.forEach(item => this.ownItems.delete(item[Pid.Id]));
         itemsShowOrSet.forEach(item => this.ownItems.set(item[Pid.Id], item));
+        this.itemOverlays.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
     }

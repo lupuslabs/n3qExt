@@ -1886,6 +1886,27 @@ div#n3q-display {
                 background-color: hsla(211, 100%, 92%, 0.8); /* Slightly brighter to offset layering effect */
             }
         }
+
+        .n3q-backpack-item-overlays {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            z-index: 1;
+            line-height: 0;
+            .icon-wrap {
+                display: inline-block;
+                pointer-events: auto !important; /* To make title attribute work */
+                padding-top: 1px;
+                line-height: 0;
+                img {
+                    height: 12px;
+                }
+            }
+            .icon-wrap:first-child {
+                border-top-left-radius: 3px;
+                padding-left: 1px;
+            }
+        }
     }
 
     div.n3q-backpack-item.n3q-dragging {

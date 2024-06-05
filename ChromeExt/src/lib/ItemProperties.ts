@@ -48,6 +48,8 @@ export enum Pid
     IframeAutoRange = 'IframeAutoRange',
     IframeLive = 'IframeLive', // Deprecated. Todo: Remove after all clients updated.
     ImageUrl = 'ImageUrl',
+    ItemOverlayDefinitions = 'ItemOverlayDefinitions',
+    ItemOverlayIds = 'ItemOverlayIds',
     InventoryIframeUrl = 'InventoryIframeUrl',
     AnimationsUrl = 'AnimationsUrl',
     Width = 'Width',
@@ -146,6 +148,19 @@ export type PersonData = {
     ownPersonItem: null|ItemProperties,
 }
 
+export type ItemOverlayDefinition = {
+    readonly id: string,
+    readonly imageUrl: string,
+    readonly tooltipText: ReadonlyMap<string,string>,
+}
+
+type RawItemOverlayDefinition = {id: string, imageUrl: string, tooltipText: {[p: string]: string}}
+
+function isRawItemOverlayDefinition(elem: unknown): elem is RawItemOverlayDefinition
+{
+    return is.object(elem) && is.string(elem['id']) && is.string(elem['imageUrl']) && is.stringsObject(elem['tooltipText']);
+}
+
 export class ItemProperties
 {
     [pid: string]: string
@@ -164,6 +179,28 @@ export class ItemProperties
     {
         const url = as.String(itemProperties[Pid.ImageUrl]);
         return url.length !== 0 ? url : defaultItemImageUrl;
+    }
+
+    static getItemOverlayDefinitions(itemProperties: ItemProperties): null|ReadonlyMap<string,ItemOverlayDefinition>
+    {
+        const parsed = ItemProperties.getJsonProperty(itemProperties, Pid.ItemOverlayDefinitions);
+        if (!is.array(parsed)) {
+            return null;
+        }
+        const definitions: Map<string,ItemOverlayDefinition> = new Map();
+        for (const {id, imageUrl, tooltipText} of parsed.filter(isRawItemOverlayDefinition)) {
+            definitions.set(id, { id, imageUrl, tooltipText: new Map(Object.entries(tooltipText)) })
+        }
+        return definitions;
+    }
+
+    static getItemOverlayIds(itemProperties: ItemProperties): string[]
+    {
+        const parsed = ItemProperties.getJsonProperty(itemProperties, Pid.ItemOverlayIds);
+        if (!is.array(parsed, is.string)) {
+            return [];
+        }
+        return parsed;
     }
 
     static getIsVisibleInBackpack(item: ItemProperties): boolean

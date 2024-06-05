@@ -7,6 +7,7 @@ import { BackpackItemInfo } from './BackpackItemInfo'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
+import { ItemOverlaysState } from './ItemOverlays'
 
 export class BackpackItem
 {
@@ -28,7 +29,8 @@ export class BackpackItem
     private readonly itemId: string
 
     private readonly elem: HTMLElement
-    private readonly imageElem: HTMLElement
+    private readonly imageCellElem: HTMLElement
+    private imageElem: HTMLElement
     private readonly textElem: HTMLElement
     private readonly pointerEventDispatcher: PointerEventDispatcher
 
@@ -38,6 +40,7 @@ export class BackpackItem
     private imageUrl: string = ''
     private imageWidth: number = 0
     private imageHeight: number = 0
+    private itemOverlaysState: ItemOverlaysState
 
     private info: BackpackItemInfo = null
 
@@ -50,10 +53,13 @@ export class BackpackItem
         this.itemId = itemId
 
         this.elem = DomUtils.elemOfHtml(`<div class="n3q-backpack-item" data-id="${this.itemId}"></div>`)
-        this.imageElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-image"></div>')
-        this.elem.append(this.imageElem)
+        this.imageCellElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-image"></div>')
+        this.elem.append(this.imageCellElem)
         this.textElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-label"></div>')
         this.elem.append(this.textElem)
+        const overlaysElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-overlays"></div>')
+        this.imageCellElem.append(overlaysElem)
+        this.itemOverlaysState = this.app.getItemOverlays().makeItemOverlaysStateOfContainer(overlaysElem)
         this.backpackWindow.getPane().append(this.elem)
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem)
@@ -97,8 +103,9 @@ export class BackpackItem
             this.imageUrl = imageUrl
             const [wrapperElem, donePromise] = this.app.makeScaledAndClippedIcon(this.imageUrl, 10, this.imageWidth, this.imageHeight)
             donePromise.then(() => {
-                this.imageElem.firstElementChild?.remove()
-                this.imageElem.append(wrapperElem)
+                this.imageElem?.remove()
+                this.imageElem = wrapperElem
+                this.imageCellElem.append(wrapperElem)
             })
         }
     }
@@ -145,9 +152,9 @@ export class BackpackItem
         }
         this.imageWidth = imageWidth
         this.imageHeight = imageHeight
-        this.imageElem.style.width = `${this.imageWidth}px`
+        this.imageCellElem.style.width = `${this.imageWidth}px`
         this.textElem.style.width = `${this.imageWidth}px`
-        this.imageElem.style.height = `${this.imageHeight}px`
+        this.imageCellElem.style.height = `${this.imageHeight}px`
     }
 
     private applyPosition(): void
@@ -204,6 +211,7 @@ export class BackpackItem
         this.applySize()
         this.applyPosition()
         this.applyImage()
+        this.itemOverlaysState = this.app.getItemOverlays().updateItemOverlays(this.properties, this.itemOverlaysState)
 
         if (as.Bool(properties[Pid.IsRezzed])) {
             this.elem.classList.add('n3q-backpack-item-rezzed')
