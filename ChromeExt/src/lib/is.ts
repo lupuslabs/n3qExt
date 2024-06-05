@@ -44,7 +44,7 @@ export class is {
     static stringsObject(val: unknown): val is {[p: string]: string}
     {
         return this.object(val)
-            && Object.entries(val).some((k, v) => !this.string(k) || !this.string(v))
+            && !Object.entries(val).some(([k, v]) => !this.string(k) || !this.string(v))
     }
 
     static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is Array<T>
