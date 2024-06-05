@@ -176,9 +176,9 @@ export class ItemProperties
     {
         let display: ItemProperties = {};
 
-        const displayJson = as.String(props[Pid.Display]);
-        if (as.String(displayJson) !== '') {
-            display = JSON.parse(displayJson);
+        const displayParsed = ItemProperties.getJsonProperty(props, Pid.Display);
+        if (is.object(displayParsed)) {
+            Object.assign(display, displayParsed);
         }
 
         const provider = as.String(props[Pid.Provider]);
@@ -269,13 +269,11 @@ export class ItemProperties
 
     static getParsedIframeOptions(itemProps: ItemProperties): {[p: string]: any}
     {
-        const frameOptsStr = itemProps[Pid.IframeOptions] ?? '{}';
-        try {
-            const frameOpts = JSON.parse(frameOptsStr);
-            return frameOpts;
-        } catch (error) {
+        const frameOpts = ItemProperties.getJsonProperty(itemProps, Pid.IframeOptions);
+        if (!is.object(frameOpts)) {
             return {};
         }
+        return frameOpts;
     }
 
     static getInventoryIframeUrl(item: ItemProperties): string
@@ -311,11 +309,9 @@ export class ItemProperties
     static getBadgeToolOptions(itemProperties: ItemProperties): { left: number, top: number, width: number, height: number }
     {
         let options = { left: 40, top: 40, width: 400, height: 400 };
-        try {
-            const parsed = JSON.parse(itemProperties[Pid.BadgeToolOptions]);
+        const parsed = ItemProperties.getJsonProperty(itemProperties, Pid.BadgeToolOptions);
+        if (is.object(parsed)) {
             Object.assign(options, parsed);
-        } catch {
-            // Nothing to do.
         }
         return options;
     }
@@ -392,6 +388,19 @@ export class ItemProperties
             userImageUrl: ItemProperties.getImageUrl(itemProperties),
             ownFriendStatus: ItemProperties.getUserFriendStatus(itemProperties),
             ownPersonItem: itemProperties,
+        }
+    }
+
+    static getJsonProperty(itemProperties: ItemProperties, pid: Pid): unknown
+    {
+        const json = itemProperties[pid];
+        if (!is.string(json)) {
+            return null;
+        }
+        try {
+            return JSON.parse(json);
+        } catch (error) {
+            return null;
         }
     }
 
