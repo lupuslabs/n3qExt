@@ -2,6 +2,28 @@ export class PointsGenerator
 {
     constructor(private base: number, private fullLevels: number, private fractionalLevels: number) { }
 
+    getPartsSummary(parts: Array<string>): Array<{ key: string, count: number }>
+    {
+        const summary = new Map<string, number>()
+
+        for (let part of parts) {
+            if (summary.has(part)) {
+                summary.set(part, summary.get(part) + 1);
+            } else {
+                summary.set(part, 1);
+            }
+        }
+
+        let list = new Array<{ key: string, count: number }>();
+
+        summary.forEach((value, key) =>
+        {
+            list.push({ key: key, count: value });
+        });
+
+        return list;
+    }
+
     getPartsList(digits: Array<{ exp: number, count: number }>): Array<string>
     {
         let list = [];

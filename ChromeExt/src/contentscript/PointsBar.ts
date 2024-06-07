@@ -83,7 +83,9 @@ export class PointsBar implements IObserver
             Config.get('points.fractionalLevels', 1)
         );
         let digits = pg.getDigitList(this.points);
-        let stars = digits.map(digit => digit.count + ' x ' + this.app.translateText('Star.' + digit.exp));
+        let parts = pg.getPartsList(digits);
+        let summary = pg.getPartsSummary(parts);
+        let stars = summary.map(item => (item.count > 1 ? item.count + ' x ': '') + this.app.translateText('Star.' + item.key));
         title += '\r\n= ' + stars.join('\r\n+ ');
 
         if (Utils.isBackpackEnabled()) {
