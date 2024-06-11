@@ -9,6 +9,7 @@ export class _Changes
         ['1.3.3', 'Friends', [
             ['Add', 'Small overlay icons visually marking backpack items having selected features'],
             ['Add', 'Memorize other persons as items in your backpack and become friends'],
+            ['Fix', 'GUI positioning on pages using non-LTR text flow direction'],
         ]],
         ['1.3.2', 'PointsLegend', [
             ['Add', 'Description of point and stars'],

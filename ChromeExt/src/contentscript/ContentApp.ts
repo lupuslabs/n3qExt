@@ -360,7 +360,7 @@ export class ContentApp extends AppWithDom
             this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style>\n${style}\n</style>`));
         }
 
-        this.display = DomUtils.elemOfHtml('<div id="n3q-display"></div>');
+        this.display = DomUtils.elemOfHtml('<div id="n3q-display" dir="ltr"></div>');
         DomUtils.preventKeyboardEventBubbling(this.display);
         this.shadowDomRoot.append(this.display);
 
