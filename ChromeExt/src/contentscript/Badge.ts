@@ -35,7 +35,6 @@ export class Badge
         this.iconElem.classList.add('n3q-base', 'n3q-badge');
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.iconElem);
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-badge');
         this.initEventHandling();
         this.onPropertiesLoaded(item);
     }
@@ -123,7 +122,7 @@ export class Badge
 
     private initEventHandling(): void
     {
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item');
+        this.pointerEventDispatcher.addDropTargetTransparentClass(...this.app.getItemDragTransparentCssClasses());
 
         this.pointerEventDispatcher.addHoverEnterListener(ev => this.badgesDisplay.onMouseEnterBadge(ev));
         this.pointerEventDispatcher.addHoverLeaveListener(ev => this.badgesDisplay.onMouseLeaveBadge(ev));

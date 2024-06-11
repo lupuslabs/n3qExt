@@ -117,6 +117,7 @@ export class ContentApp extends AppWithDom
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
     private toasts: Set<Toast> = new Set();
+    private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['n3q-backpack-item', 'n3q-badge'];
     private readonly ownItems: Map<string,ItemProperties> = new Map();
     private readonly personManager: ContentPersonManager;
 
@@ -141,6 +142,7 @@ export class ContentApp extends AppWithDom
     getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
     getMyBadgesDisplay(): null|BadgesController { return this.room?.getMyParticipant()?.getBadgesDisplay() ?? null; }
 
+    getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
     getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 

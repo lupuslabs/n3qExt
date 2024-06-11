@@ -57,7 +57,7 @@ export class BackpackItem
         this.backpackWindow.getPane().append(this.elem)
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.elem)
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-badge')
+        this.pointerEventDispatcher.addDropTargetTransparentClass(...this.app.getItemDragTransparentCssClasses())
         this.pointerEventDispatcher.addAnyLeftButtonDownListener(ev => backpackWindow.onItemLeftButtonDown(itemId, ev))
         this.pointerEventDispatcher.addAnyLeftClickListener(ev => backpackWindow.onItemLeftClick(itemId, ev))
         this.pointerEventDispatcher.addDragStartListener(ev => backpackWindow.onItemDragStart(this.pointerEventDispatcher, ev))

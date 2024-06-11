@@ -68,7 +68,7 @@ export class Avatar implements IObserver
         entity.getElem().append(this.elem);
 
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.imageElem);
-        this.pointerEventDispatcher.addDropTargetTransparentClass('n3q-backpack-item', 'n3q-badge');
+        this.pointerEventDispatcher.addDropTargetTransparentClass(...this.app.getItemDragTransparentCssClasses());
 
         this.pointerEventDispatcher.addHoverEnterListener(ev => this.entity.onMouseEnterAvatar(ev));
         this.pointerEventDispatcher.addHoverLeaveListener(ev => this.entity.onMouseLeaveAvatar(ev));
