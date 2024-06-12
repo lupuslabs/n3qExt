@@ -85,8 +85,10 @@ export class PointsBar implements IObserver
         let digits = pg.getDigitList(this.points);
         let parts = pg.getPartsList(digits);
         let summary = pg.getPartsSummary(parts);
-        let stars = summary.map(item => (item.count > 1 ? item.count + ' x ': '') + this.app.translateText('Star.' + item.key));
+        let stars = summary.map(item => (item.count > 1 ? item.count + ' x ': '') + this.app.translateText('Star.' + item.key) + ' (' + item.unit * item.multiple + ')');
         title += '\r\n= ' + stars.join('\r\n+ ');
+        const pointsCoveredByStars = summary.reduce((acc, item) => acc + item.unit * item.multiple * item.count, 0);
+        title += '\r\n' + this.app.translateText('Activity.PointsRest') + ' ' + (this.points - pointsCoveredByStars);
 
         if (Utils.isBackpackEnabled()) {
             let activitiesConfig = Config.get('points.activities', {});

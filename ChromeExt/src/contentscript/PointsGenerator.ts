@@ -2,7 +2,7 @@ export class PointsGenerator
 {
     constructor(private base: number, private fullLevels: number, private fractionalLevels: number) { }
 
-    getPartsSummary(parts: Array<string>): Array<{ key: string, count: number }>
+    getPartsSummary(parts: Array<string>): Array<{ key: string, count: number, unit: number, multiple: number }>
     {
         const summary = new Map<string, number>()
 
@@ -14,11 +14,15 @@ export class PointsGenerator
             }
         }
 
-        let list = new Array<{ key: string, count: number }>();
+        let list = new Array<{ key: string, count: number, unit: number, multiple: number }>();
 
         summary.forEach((value, key) =>
         {
-            list.push({ key: key, count: value });
+            const keyParts = key.split('-');
+            const exp = parseInt(keyParts[0]);
+            const multiple = keyParts.length > 1 ? parseInt(keyParts[1]) : 1;
+            const unit = this.base ** exp;
+            list.push({ key: key, count: value, unit: unit, multiple: multiple });
         });
 
         return list;
