@@ -2,7 +2,7 @@
 
 export class as
 {
-    private static readonly escapeHtml_entityMap = {
+    private static readonly escapeHtml_entityMap: {[key: string]: string} = {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
@@ -92,7 +92,7 @@ export class as
     static Html(val: unknown, alt?: string): string
     {
         const res = as.String(val, alt);
-        const htmlEncoded = String(res).replace(/[&<>'"\n]/g, (s) => this.escapeHtml_entityMap[s]);
+        const htmlEncoded = String(res).replace(/[&<>'"\n]/g, (s) => this.escapeHtml_entityMap[s] ?? s);
         return htmlEncoded;
     }
 
@@ -103,7 +103,7 @@ export class as
         return clickableEncoded;
     }
 
-    static makeLinksClickable(text): string
+    static makeLinksClickable(text: string): string
     {
         const urlRegex = /(https?:\/\/[^\s]+|www\.[^. ]+\.[^ ]+|[^. ]+\.(com|org|net|[a-z]{2}))/g;
         return text.replace(urlRegex, url =>

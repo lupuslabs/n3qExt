@@ -81,7 +81,7 @@ export namespace ChatUtils {
         return msgA.timestamp === msgB.timestamp ? 0 : 1
     }
 
-    export function chatMessageIdFun(msgA: ChatMessage, msgB: ChatMessage): boolean
+    export function areChatMessagesIdentical(msgA: ChatMessage, msgB: ChatMessage): boolean
     {
         return msgA.id === msgB.id && msgA.timestamp === msgB.timestamp
     }

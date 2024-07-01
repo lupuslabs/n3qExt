@@ -233,7 +233,7 @@ export class Utils
     static utcStringOfDate(date: Date): string
     {
         const utcStr = date.toISOString();
-        return utcStr.replace('T', ' ').substr(0, utcStr.length - 1);
+        return utcStr.replace('T', ' ').substring(0, utcStr.length - 1);
     }
 
     static dateOfUtcString(date: string): Date

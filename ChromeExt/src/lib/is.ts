@@ -36,6 +36,13 @@ export class is {
         return is.number(val) && !isNaN(val)
     }
 
+    static Date(val: unknown): val is Date
+    {
+        // instanceof doesn't work when date traversed a script context boundary and dates can be invalid:
+        // https://stackoverflow.com/a/44198641/4017937
+        return !is.nil(val) && Object.prototype.toString.call(val) === "[object Date]" && !isNaN((<Date> val).getTime());
+    }
+
     static object(val: unknown): val is {[p: string|symbol]: unknown}
     {
         return !this.nil(val) && typeof val === is.typeObject
