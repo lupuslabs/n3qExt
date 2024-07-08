@@ -16,6 +16,7 @@ export class ContentMessage
     static readonly type_clientNotification = 'clientNotification';
     static readonly type_chatMessagePersisted = 'chatMessagePersisted';
     static readonly type_chatHistoryDeleted = 'chatHistoryDeleted';
+    static readonly type_unreadChatChannels = 'unreadChatChannels';
     static readonly type_friendshipProposalsState = 'friendshipProposalsState';
 }
 

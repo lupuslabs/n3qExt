@@ -566,17 +566,11 @@ export class Room
     onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
         this.chatWindow?.onChatMessagePersisted(chatChannel, chatMessage);
-        for (const prop in this.participants) {
-            this.participants[prop].onChatMessagePersisted(chatChannel, chatMessage);
-        }
     }
 
     onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
     {
         this.chatWindow?.onChatHistoryDeleted(deletions);
-        for (const prop in this.participants) {
-            this.participants[prop].onChatHistoryDeleted(deletions);
-        }
     }
 
     showVideoConference(aboveElem: HTMLElement, displayName: string): void

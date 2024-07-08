@@ -74,6 +74,7 @@ export class Config
             startup: false,
             backgroundTraffic: false,
             websocketServerConnection: false,
+            websocketServerConnectionPings: false,
             backgroundPresenceManagement: false,
             clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.
             clientBackgroundMessages: false, // All messages but pings going to or coming from the background!
@@ -161,6 +162,7 @@ export class Config
             messageRetentionSecByChannelType: {
                 roompublic: 3 * 24 * 3600,
                 roomprivate: 3 * 24 * 3600,
+                instantMessage: 3 * 24 * 3600,
             },
             messageDeduplicationMaxAgeSec: 1, // Max message age for duplicate detection.
             maintenanceIntervalSec: 3600, // Minimum seconds between history prunings for each history.
@@ -410,6 +412,10 @@ export class Config
             displayAvatarXLeft: -80,
             infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
+        instantMessages: {
+            enabled: true,
+            unreadChatChannelsToSendToNewTabs: 100,
+        },
         friendshipProposals: {
             enabled: true,
         },
@@ -631,6 +637,9 @@ export class Config
                     '/do yawn': '*yawns*',
 
                     'PrivateChat.Private Chat with': 'Private Chat with',
+                    'PrivateChat.newMessageToastTitle': 'Unread private chat from {otherUserName}',
+                    'PrivateChat.newMessageToastText': 'Unread messages: {unreadMessageCount}\nLast message from {lastUnreadMessageTime}:\n\n{lastUnreadMessageText}',
+                    'PrivateChat.newMessageToastOpenChatWindowButtonLabel': 'Open private chat',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videoconference with',
 
@@ -1025,6 +1034,9 @@ export class Config
                     '/do yawn': '*gähnt*',
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit',
+                    'PrivateChat.newMessageToastTitle': 'Privater Chat von {otherUserName}',
+                    'PrivateChat.newMessageToastText': 'Ungelesene Nachrichten: {unreadMessageCount}\nLetzte Nachricht von {lastUnreadMessageTime}:\n\n{lastUnreadMessageText}',
+                    'PrivateChat.newMessageToastOpenChatWindowButtonLabel': 'Privaten Chat öffnen',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit',
 

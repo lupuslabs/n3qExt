@@ -1092,6 +1092,8 @@ div#n3q-display {
             padding: 8px;
             height: fit-content;
             max-height: 200px;
+            box-sizing: border-box;
+            overflow: auto;
         }
 
         .n3q-toast-icon {

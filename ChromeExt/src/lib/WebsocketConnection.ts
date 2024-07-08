@@ -1,9 +1,8 @@
 ﻿import { RetryStrategy } from './RetryStrategy'
-import { WebsocketServerMessage, WebsocketServerMessage as Message } from './WebsocketServerMessage'
+import { WebsocketServerMessage as Message } from './WebsocketServerMessage'
 
 export namespace WebsocketConnection {
 
-    import UserAuthRequest = WebsocketServerMessage.UserAuthRequest
     export type IncommingRequestHandler = (request: Message.Request) => Promise<Message.Response>
     export type IncommingNotificationHandler = (notification: Message.Notification) => Promise<void>
 
@@ -16,6 +15,7 @@ export namespace WebsocketConnection {
         readonly logDebug: (msg: string, ...data: any[]) => void
         readonly logInfo: (msg: string, ...data: any[]) => void
         readonly logError: (msg: string, ...data: any[]) => void
+        readonly getLogPingMessages: () => boolean
         readonly socketIsReadyHandler: () => void,
         readonly socketIsntReadyHandler: () => void,
         readonly incommingRequestHandler: IncommingRequestHandler,
@@ -134,9 +134,7 @@ export namespace WebsocketConnection {
                     'Websocket send failed!',
                 )
             }
-            if (message instanceof UserAuthRequest) {
-                this.config.logDebug('WebsocketConnection.sendMessage: Sent UserAuthRequest message.', { UserId: message.UserId })
-            } else {
+            if (this.isMessageToBeLogged(message)) {
                 this.config.logDebug('WebsocketConnection.sendMessage: Sent message.', message)
             }
             this.scheduleNextHeartbeatSend()
@@ -264,7 +262,9 @@ export namespace WebsocketConnection {
                 return
             }
 
-            this.config.logDebug('WebsocketConnection.onWebsocketMessage: Received message from websocket.', message)
+            if (this.isMessageToBeLogged(message)) {
+                this.config.logDebug('WebsocketConnection.onWebsocketMessage: Received message from websocket.', message)
+            }
 
             if (message instanceof Message.Response) {
                 const record = this.unreceivedResponses.get(message.RequestId)
@@ -286,6 +286,12 @@ export namespace WebsocketConnection {
                     .catch((error: Error) => this.config.logError('WebsocketConnection.onWebsocketMessage: Notification processing failed!', error, message))
             }
         }
+
+        private isMessageToBeLogged(message: Message.Message): boolean
+        {
+            return !(message instanceof Message.PingRequest || message instanceof Message.PingResponse) || this.config.getLogPingMessages()
+        }
+
     }
 
 }

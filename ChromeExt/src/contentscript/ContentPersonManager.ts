@@ -23,8 +23,11 @@ export class ContentPersonManager
         this.app = app
     }
 
-    public getOtherPersonData(otherUserId: string): null|PersonData
+    public getPersonDataOrNull(otherUserId: string): null|PersonData
     {
+        if (otherUserId === this.app.getUserId()) {
+            return this.getOwnPersonData()
+        }
         const itemPersonData = this.getOtherPersonDataFromBackpack(otherUserId)
         const proposalPersonData = this.getOtherPersonDataFromFriendshipProposal(otherUserId)
         if (itemPersonData?.ownFriendStatus === 'No' && proposalPersonData) {
@@ -37,6 +40,28 @@ export class ContentPersonManager
             return proposalPersonData
         }
         return this.getOtherPersonDataFromRoom(otherUserId)
+    }
+
+    public getOwnPersonData(): PersonData
+    {
+        return {
+            userId: this.app.getUserId(),
+            userName: this.app.getUserNickname(),
+            userImageUrl: '',
+            ownFriendStatus: 'No',
+            ownPersonItem: null,
+        }
+    }
+
+    public getDummyPersonData(userId: string): PersonData
+    {
+        return {
+            userId: userId,
+            userName: '',
+            userImageUrl: '',
+            ownFriendStatus: 'No',
+            ownPersonItem: null,
+        }
     }
 
     public showProposeFriendshipToast(otherPersonData: PersonData): Toast
@@ -91,7 +116,7 @@ export class ContentPersonManager
     {
         this.proposals.clear()
         for (const proposal of state.proposed) {
-            const personData = this.getOtherPersonData(proposal.proposingUserId)
+            const personData = this.getPersonDataOrNull(proposal.proposingUserId)
             if (!personData || personData.ownFriendStatus !== 'Yes') {
                 this.proposals.set(proposal.proposingUserId, proposal)
             }
@@ -109,7 +134,7 @@ export class ContentPersonManager
                 return proposalA.firstNotificationTime.valueOf() - proposalB.firstNotificationTime.valueOf()
             }
             const proposal = [...this.proposals.values()].sort(cmpFun)[0]
-            const otherUserData = this.getOtherPersonData(proposal.proposingUserId)
+            const otherUserData = this.getPersonDataOrNull(proposal.proposingUserId)
             if (otherUserData?.ownFriendStatus === 'ProposedByOther') {
                 const toast = this.showProposalFromOtherConfirmationToast(otherUserData)
                 this.openProposals.set(proposal.proposingUserId, toast)

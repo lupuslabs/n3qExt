@@ -76,6 +76,7 @@ export namespace WebsocketServerMessage {
                 String(messageData.UserNick),
                 String(messageData.ChatMessage),
             )
+
             case ItemsNotification.name: {
                 if (!is.array<object>(messageData.ItemsUpdatedOrCreated)) {
                     throw new Error(`Invalid data for type ${type}: ItemsUpdatedOrCreated is not an object array!`)
@@ -93,6 +94,7 @@ export namespace WebsocketServerMessage {
                     messageData.ItemsDeleted,
                 )
             }
+
             case FriendshipProposalNotification.name: return new FriendshipProposalNotification(
                 String(messageData.Id),
                 String(messageData.ActorId),
@@ -104,6 +106,39 @@ export namespace WebsocketServerMessage {
                 String(messageData.Id),
                 String(messageData.ActorId),
                 String(messageData.OtherId),
+            )
+
+            case SendInstantMessageOkResponse.name: {
+                const time = new Date(String(messageData.Time))
+                if (!is.Date(time)) {
+                    throw new Error(`Invalid data for type ${type}: Time is not a valid Date!`)
+                }
+                return new SendInstantMessageOkResponse(
+                    String(messageData.Id),
+                    String(messageData.RequestId),
+                    String(messageData.InstantMessageId),
+                    time,
+                )
+            }
+            case InstantMessageNotification.name: {
+                const time = new Date(String(messageData.Time))
+                if (!is.Date(time)) {
+                    throw new Error(`Invalid data for type ${type}: Time is not a valid Date!`)
+                }
+                return new InstantMessageNotification(
+                    String(messageData.Id),
+                    String(messageData.AuthorUserId),
+                    String(messageData.AuthorName),
+                    String(messageData.AuthorImageUrl),
+                    String(messageData.RecipientUserId),
+                    String(messageData.InstantMessageId),
+                    time,
+                    String(messageData.InstantMessage),
+                )
+            }
+            case InstantMessageHasBeenReceivedOkResponse.name: return new InstantMessageHasBeenReceivedOkResponse(
+                String(messageData.Id),
+                String(messageData.RequestId),
             )
         }
         throw new Error(`Unknown type ${type}!`)
@@ -308,6 +343,62 @@ export namespace WebsocketServerMessage {
             ActorId: string,
             OtherId: string,
         ) { super(Id, ActorId, OtherId) }
+    }
+
+    export abstract class ImRequest extends Request {
+        protected constructor(Id: string) { super(Id) }
+    }
+
+    export abstract class ImOkResponse extends OkResponse {
+        protected constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+    }
+
+    export abstract class ImNotification extends Notification {
+        protected constructor(Id: string) { super(Id) }
+    }
+
+    export class SendInstantMessageRequest extends ImRequest {
+        public constructor(
+            Id: string,
+            public RecipientUserId: string,
+            public InstantMessage: string
+        ) { super(Id) }
+    }
+
+    export class SendInstantMessageOkResponse extends ImOkResponse {
+        public constructor(
+            Id: string,
+            RequestId: string,
+            public InstantMessageId: string,
+            public Time: Date,
+        ) { super(Id, RequestId) }
+    }
+
+    export class InstantMessageNotification extends ImNotification {
+        public constructor(
+            Id: string,
+            public AuthorUserId: string,
+            public AuthorName: string,
+            public AuthorImageUrl: string,
+            public RecipientUserId: string,
+            public InstantMessageId: string,
+            public Time: Date,
+            public InstantMessage: string,
+        ) { super(Id) }
+    }
+
+    export class InstantMessageHasBeenReceivedRequest extends ImRequest {
+        public constructor(
+            Id: string,
+            public InstantMessageId: string,
+        ) { super(Id) }
+    }
+
+    export class InstantMessageHasBeenReceivedOkResponse extends ImOkResponse {
+        public constructor(
+            Id: string,
+            RequestId: string,
+        ) { super(Id, RequestId) }
     }
 
 }

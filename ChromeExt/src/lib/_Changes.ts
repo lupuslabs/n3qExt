@@ -9,6 +9,9 @@ export class _Changes
         ['1.3.3', 'Friends', [
             ['Add', 'Small overlay icons visually marking backpack items having selected features'],
             ['Add', 'Memorize other persons as items in your backpack and become friends'],
+            ['Add', 'Private chat windows reopen after navigation in same tab'],
+            ['Change', 'Private chat window isn\'t opened automatically but a toast is displayed instead when unread messages are present'],
+            ['Change', 'Private chat now keeps working when users navigate'],
             ['Fix', 'GUI positioning on pages using non-LTR text flow direction'],
         ]],
         ['1.3.2', 'PointsLegend', [

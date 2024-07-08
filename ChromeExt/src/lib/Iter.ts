@@ -1,4 +1,5 @@
 ﻿import { is } from './is'
+import { as } from './as'
 
 export function iter<T>(value: undefined|null|Iterable<T>|Iterator<T>|Iter<T>): Iter<T>
 {
@@ -44,6 +45,11 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         return [...this]
     }
 
+    public toString(glue: string, elementConverter: (element: T) => string = as.String): string
+    {
+        return this.map(elementConverter).toArray().join(glue)
+    }
+
     public toMap<K>(keyFun: (element: T) => K): Map<K,T>
     {
         return new Map<K, T>(this.map(e => [keyFun(e), e]))
@@ -63,6 +69,28 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
                 if (acceptFun(element)) {
                     yield element
                 }
+            }
+        }(this))
+    }
+
+    public skip(count: number): Iter<T>
+    {
+        for (let i = 0; i < count; i++) {
+            this.getNext()
+        }
+        return this
+    }
+
+    public limit(maxCount: number): Iter<T>
+    {
+        return new IteratorIter(function*(iterable){
+            let yieldCount = 0;
+            for (const element of iterable) {
+                if (yieldCount >= maxCount) {
+                    return
+                }
+                yield element
+                yieldCount++
             }
         }(this))
     }
@@ -93,6 +121,11 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
                 }
             }
         }(this))
+    }
+
+    public count(): number
+    {
+        return this.fold(0, (count, element) => count + 1)
     }
 
 }

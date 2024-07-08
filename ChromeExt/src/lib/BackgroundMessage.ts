@@ -13,6 +13,11 @@ export type BackgroundRequest = {
     [p: string]: any,
 }
 
+export type SendInstantMessageBackgroundRequest = BackgroundRequest & {
+    otherUserId: string,
+    text: string,
+}
+
 export type TabStats = {
     participantCount:  number, // Other participants present in the same room.
     toastCount:        number, // Open toasts.
@@ -500,6 +505,12 @@ export class BackgroundMessage
         const request = { type: BackgroundMessage.handleNewChatMessage.name, chatChannel, chatMessage, deduplicate }
         const response = await BackgroundMessage.sendMessageCheckOk<NewChatMessageResponse>(request)
         return response
+    }
+
+    static async sendInstantMessage(otherUserId: string, text: string): Promise<void>
+    {
+        const request: SendInstantMessageBackgroundRequest = { type: BackgroundMessage.sendInstantMessage.name, otherUserId, text }
+        await BackgroundMessage.sendMessageCheckOk<BackgroundSuccessResponse>(request)
     }
 
     static async getChatHistory(chatChannel: ChatUtils.ChatChannel): Promise<ChatUtils.ChatMessage[]>

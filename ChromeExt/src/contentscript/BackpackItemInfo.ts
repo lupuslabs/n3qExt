@@ -79,6 +79,9 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
                 case WeblinClientIframeApi.ItemActionRequest.type: {
                     response = await this.handleItemActionRequest(<WeblinClientIframeApi.ItemActionRequest>request)
                 } break;
+                case WeblinClientIframeApi.ClientOpenPrivateChatRequest.type: {
+                    response = this.handleOpenPrivateChatRequest(<WeblinClientIframeApi.ClientOpenPrivateChatRequest>request);
+                } break;
                 default: {
                     response = new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
                 } break;
@@ -121,6 +124,13 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
         this.updateGeometryFromContent()
+        return new WeblinClientApi.SuccessResponse()
+    }
+
+    protected handleOpenPrivateChatRequest(request: WeblinClientIframeApi.ClientOpenPrivateChatRequest): WeblinClientApi.Response
+    {
+        const userId = as.String(request.userId);
+        this.app.getInstantMessageManager().openInstantMessagesWindow(userId);
         return new WeblinClientApi.SuccessResponse()
     }
 

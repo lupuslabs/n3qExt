@@ -1,4 +1,6 @@
-﻿import { ParticipantMenu } from './ParticipantMenu';
+﻿import { as } from '../lib/as'
+import { Config } from '../lib/Config'
+import { ParticipantMenu } from './ParticipantMenu';
 import { MenuColumn } from './Menu'
 import * as privateVideoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
 import * as privateChatIconUrl from '../assets/icons/ri_chat-private-line.svg';
@@ -17,9 +19,14 @@ export class OtherParticipantMenu extends ParticipantMenu
         column.addActionItem('privateVideoConference', privateVideoConferenceIconUrl, 'Private Videoconf', () => {
             this.participant.initiatePrivateVidconf(this.participant.getElem()).catch(error => this.app.onError(error));
         });
-        column.addActionItem('privateChat', privateChatIconUrl, 'Private Chat', () => {
-            this.participant.openPrivateChat();
-        });
+
+        const imManager = this.app.getInstantMessageManager();
+        const otherUserId = this.participant.getUserId();
+        if (otherUserId.length !== 0 && imManager.isFeatureEnabled()) {
+            const action = () => imManager.openInstantMessagesWindow(otherUserId);
+            column.addActionItem('privateChat', privateChatIconUrl, 'Private Chat', action);
+        }
+
         column.addActionItem('greet', greetIconUrl, 'Greet', () => {
             this.participant.sendPoke('greet');
             this.participant.do('wave', false);
@@ -31,11 +38,12 @@ export class OtherParticipantMenu extends ParticipantMenu
         if (this.participant.getSupportsPersonApi()) {
             this.makePersonMenuAndItem(column);
         }
+        this.makeDebugMenuAndItem(column);
     }
 
     protected makePersonMenuAndItem(column: MenuColumn): void
     {
-        const personData = this.app.getPersonManager().getOtherPersonData(this.participant.getUserId())
+        const personData = this.app.getPersonManager().getPersonDataOrNull(this.participant.getUserId())
         if (!personData) {
             return;
         }
@@ -90,6 +98,22 @@ export class OtherParticipantMenu extends ParticipantMenu
         if (ownPersonItem) {
             menuColumn.addActionItem('forget', null, 'Forget', () => {
                 this.app.deleteItemAsk(ItemProperties.getId(ownPersonItem));
+            });
+        }
+    }
+
+    protected makeDebugMenuAndItem(column: MenuColumn): void
+    {
+        const withRequestUserInfoItem = as.Bool(Config.get('room.showPrivateChatInfoButton'));
+        if (!withRequestUserInfoItem) {
+            return;
+        }
+        const menuItem = column.addSubmenuItem('debug', null, 'Debug');
+        const menuColumn = menuItem.addColumn('debug');
+
+        if (withRequestUserInfoItem) {
+            menuColumn.addActionItem('requestUserInfo', null, 'Info', () => {
+                this.participant.fetchVersionInfo();
             });
         }
     }

@@ -21,6 +21,7 @@ import {
     BackpackTransferUnauthorizeResponse,
     BackpackTransferAuthorizeResponse,
     BackpackIsItemStillInRepoResponse,
+    SendInstantMessageBackgroundRequest,
     GetChatHistoryResponse,
     IsTabDisabledResponse,
     NewChatMessageResponse,
@@ -60,6 +61,7 @@ import {
 } from '../lib/BackgroundToContentCommunicator'
 import { BackgroundFriendshipProposalManager } from './BackgroundFriendshipProposalManager'
 import { BackgroundBrowserTab, BackgroundBrowserTabs } from './BackgroundBrowserTabs'
+import { BackgroundInstantMessageManager } from './BackgroundInstantMessageManager'
 
 export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
@@ -79,6 +81,7 @@ export class BackgroundApp
     private readonly xmppManager: XmppConnectionManager;
     private readonly roomPresenceManager: RoomPresenceManager;
     private readonly chatHistoryStorage: ChatHistoryStorage;
+    private readonly instantMessageManager: BackgroundInstantMessageManager;
     private readonly browserActionGui: BrowserActionGui;
     private readonly popupManager: PopupManager;
     private readonly backpack: Backpack;
@@ -109,6 +112,7 @@ export class BackgroundApp
         this.xmppManager = new XmppConnectionManager(this);
         this.roomPresenceManager = new RoomPresenceManager(this);
         this.chatHistoryStorage = new ChatHistoryStorage(this);
+        this.instantMessageManager = new BackgroundInstantMessageManager(this);
         this.browserActionGui = new BrowserActionGui(this);
         this.popupManager = new PopupManager(this);
         this.backpack = new Backpack(this);
@@ -180,6 +184,21 @@ export class BackgroundApp
     public getXmppJid(): null|jid.JID
     {
         return this.xmppManager.getXmppJid();
+    }
+
+    public getWebsocketManager(): WebsocketManager
+    {
+        return this.websocketManager;
+    }
+
+    public getChatHistoryStorage(): ChatHistoryStorage
+    {
+        return this.chatHistoryStorage;
+    }
+
+    public getInstantMessageManager(): BackgroundInstantMessageManager
+    {
+        return this.instantMessageManager;
     }
 
     public getBackpack(): Backpack
@@ -298,6 +317,7 @@ export class BackgroundApp
         this.websocketManager.stop();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
+        this.instantMessageManager.stop();
         this.popupManager.stop();
     }
 
@@ -458,7 +478,11 @@ export class BackgroundApp
             case BackgroundMessage.handleNewChatMessage.name: {
                 return this.handle_newChatMessage(request.chatChannel, request.chatMessage, request.deduplicate);
             } break;
-
+            case BackgroundMessage.sendInstantMessage.name: {
+                const { otherUserId, text } = <SendInstantMessageBackgroundRequest>request;
+                await this.instantMessageManager.sendInstantMessage(otherUserId, text);
+                return new BackgroundSuccessResponse();
+            } break;
             case BackgroundMessage.getChatHistory.name: {
                 return this.handle_getChatHistory(request.chatChannel);
             } break;
@@ -749,7 +773,7 @@ export class BackgroundApp
         return new CreateBackpackItemResponse(itemProps);
     }
 
-    private async handle_newChatMessage(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage, deduplicate: boolean): Promise<NewChatMessageResponse>
+    public async handle_newChatMessage(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage, deduplicate: boolean): Promise<NewChatMessageResponse>
     {
         const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
         this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
@@ -800,7 +824,11 @@ export class BackgroundApp
     private sendPersistedChatMessageToTabs(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
         const message = { type: ContentMessage.type_chatMessagePersisted, data: {chatChannel, chatMessage} };
-        this.sendToTabsForRoom(chatChannel.roomJid, message);
+        if (chatChannel.type === 'instantMessage') {
+            this.sendToAllTabs(message);
+        } else {
+            this.sendToTabsForRoom(chatChannel.roomJid, message);
+        }
     }
 
     private sendChatHistoryDeletionsToTabs(deletionsByRoomJid: Map<string,{chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]>): void
@@ -1044,6 +1072,7 @@ export class BackgroundApp
         this.friendshipProposalManager.maintain()
         this.websocketManager.maintain()
         this.xmppManager.maintain()
+        this.instantMessageManager.maintain()
     }
 
     //

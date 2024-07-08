@@ -19,7 +19,6 @@ import { Chatout } from './Chatout';
 import { Chatin } from './Chatin';
 import { RoomItem } from './RoomItem';
 import { ItemExceptionToast, SimpleToast } from './Toast';
-import { PrivateChatWindow } from './PrivateChatWindow';
 import { PrivateVidconfWindow } from './PrivateVidconfWindow';
 import { PointsBar } from './PointsBar';
 import { ActivityBar } from './ActivityBar';
@@ -50,7 +49,6 @@ export class Participant extends Entity
     private chatinDisplay: Chatin;
     private isFirstPresence: boolean = true;
     private userId: string = '';
-    private privateChatWindow: PrivateChatWindow;
     private privateVidconfWindow: PrivateVidconfWindow;
     private decorationsVisibleByLongclick: boolean = false;
     private hideDecorationsTimeoutHandle: number|null = null;
@@ -78,7 +76,6 @@ export class Participant extends Entity
         }
 
         this.chatoutDisplay = new Chatout(this.app, this.elem);
-        this.privateChatWindow = new PrivateChatWindow(this.app, this);
     }
 
     getBadgesDisplay(): BadgesController|null { return this.badgesDisplay; }
@@ -93,11 +90,6 @@ export class Participant extends Entity
             name = this.nicknameDisplay.getNickname();
         }
         return name;
-    }
-
-    public getPrivateChatWindow(): PrivateChatWindow
-    {
-        return this.privateChatWindow;
     }
 
     async showIntroYouOnce(): Promise<void>
@@ -529,7 +521,7 @@ export class Participant extends Entity
         });
     }
 
-    fetchVersionInfo(chatWindow: IObserver)
+    fetchVersionInfo()
     {
         const stanzaId = Utils.randomString(15);
         const attr = { 'xmlns': 'jabber:iq:version' };
@@ -541,21 +533,15 @@ export class Participant extends Entity
 
         this.app.sendStanza(iq, stanzaId, (stanza: ltx.Element) =>
         {
-            const info = {};
-            const versionQuery = stanza.getChildren('query').find(stanzaChild => (stanzaChild.attrs == null) ? false : stanzaChild.attrs.xmlns === 'jabber:iq:version');
-            if (versionQuery) {
-                const children = versionQuery.children;
-                if (children) {
-                    for (let i = 0; i < children.length; i++) {
-                        const child = children[i];
-                        if (child instanceof ltx.Element) {
-                            info[child.name] = child.text();
-                        }
-                    }
-                }
+            const queryResult = stanza.getChildren('query', 'jabber:iq:version')[0]?.getChildElements() ?? [];
+            if (!queryResult.length) {
+                return;
             }
-
-            chatWindow.updateObservableProperty('VersionInfo', JSON.stringify(info));
+            const chatWindow = this.room.getChatWindow();
+            for (const child of queryResult) {
+                chatWindow.addLine(null, 'cmdResult', '', child.name, '', child.text());
+            }
+            this.room.showChatWindow();
         });
     }
 
@@ -590,9 +576,6 @@ export class Participant extends Entity
 
     onMessagePrivateChat(stanza: ltx.Element): void
     {
-        const from = jid(stanza.attrs.from);
-        const nick = from.getResource();
-        const name = this.getDisplayName();
         let isChat = true;
 
         const pokeNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:poke');
@@ -626,8 +609,8 @@ export class Participant extends Entity
         }
         if (text?.length <= 0) { return; }
 
-        this.openPrivateChat();
-        this.privateChatWindow.addLine(null, 'chat', this.userId, name, '', text);
+        const name = this.getDisplayName();
+        this.room.getChatWindow().addLine(null, 'chat', this.userId, name, '', text);
     }
 
     onReceivePoke(node: ltx.Element): void
@@ -777,16 +760,6 @@ export class Participant extends Entity
         this.room.sendGroupChat(text);
     }
 
-    onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
-    {
-        this.privateChatWindow.onChatMessagePersisted(chatChannel, chatMessage);
-    }
-
-    public onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
-    {
-        this.privateChatWindow.onChatHistoryDeleted(deletions);
-    }
-
     // Mouse
 
     private onMouseEnterAvatarVcardImageFallbackAlreadyTriggered: boolean = false;
@@ -879,7 +852,7 @@ export class Participant extends Entity
         if (this.isSelf) {
             this.toggleChatWindow();
         } else {
-            this.togglePrivateChatWindow();
+            this.app.getInstantMessageManager().toggleInstantMessageWindow(this.userId);
         }
     }
 
@@ -1059,20 +1032,6 @@ export class Participant extends Entity
             this.chatinDisplay.setVisibility(true);
             this.chatinDisplay.setText(text);
             this.chatinDisplay.setFocus();
-        }
-    }
-
-    openPrivateChat(): void
-    {
-        this.privateChatWindow.show({ above: this.elem });
-    }
-
-    togglePrivateChatWindow(): void
-    {
-        if (this.privateChatWindow.isOpen()) {
-            this.privateChatWindow.close();
-        } else {
-            this.openPrivateChat();
         }
     }
 

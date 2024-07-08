@@ -56,6 +56,13 @@ export class OrderedSet<T> implements Iterable<T>
         return this.elements[Symbol.iterator]();
     }
 
+    public *reverse(): IterableIterator<T>
+    {
+        for (let i = this.elements.length - 1; i >= 0; i--) {
+            yield this.elements[i];
+        }
+    }
+
     public toArray(): T[]
     {
         return [...this.elements];

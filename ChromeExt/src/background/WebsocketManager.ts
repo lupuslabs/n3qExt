@@ -24,6 +24,7 @@ export class WebsocketManager
         logDebug: (msg, ...data) => this.logDebug(msg, ...data),
         logInfo:  (msg, ...data) => this.logInfo(msg, ...data),
         logError: (msg, ...data) => this.logError(msg, ...data),
+        getLogPingMessages: () => Utils.logChannel('websocketServerConnectionPings', false),
         socketIsReadyHandler: () => this.handleWebsocketIsReady(),
         socketIsntReadyHandler: () => this.handleWebsocketIsntReady(),
         incommingRequestHandler: (request) => this.handleRequest(request),
@@ -69,6 +70,13 @@ export class WebsocketManager
             return
         }
         this.websocketController?.maintain()
+    }
+
+    public async sendRequest(message: Message.Request): Promise<Message.Response> {
+        if (!this.isReady) {
+            return new Message.ErrorResponse(Message.makeId(), message.Id, 'InternalError', 'NetworkProblem', 'Websocket not ready.')
+        }
+        return this.websocketController!.sendRequest(message)
     }
 
     private stopWebsocketController(): void
@@ -137,6 +145,9 @@ export class WebsocketManager
     private async handleNotification(notification: Message.Notification): Promise<void> {
         if (notification instanceof Message.ItemsNotification) {
             return this.handleItemsNotification(notification)
+        }
+        if (notification instanceof Message.InstantMessageNotification) {
+            return this.app.getInstantMessageManager().handleInstantMessageNotification(notification)
         }
         if (notification instanceof Message.FriendshipProposalNotification) {
             return this.app.getFriendshipProposalManager().handleFriendshipProposalNotification(notification)

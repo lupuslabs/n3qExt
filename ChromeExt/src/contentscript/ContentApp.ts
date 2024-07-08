@@ -57,6 +57,7 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentPersonManager } from './ContentPersonManager'
 import { ItemOverlays } from './ItemOverlays'
 import { TabContentData } from './TabContentData'
+import { ContentInstantMessageManager } from './ContentInstantMessageManager'
 
 export class ContentAppNotification
 {
@@ -119,6 +120,7 @@ export class ContentApp extends AppWithDom
     private readonly ownItems: Map<string,ItemProperties> = new Map();
     private readonly itemOverlays: ItemOverlays
     private readonly personManager: ContentPersonManager;
+    private readonly instantMessageManager: ContentInstantMessageManager;
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -148,6 +150,7 @@ export class ContentApp extends AppWithDom
     getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
 
     getPersonManager(): ContentPersonManager { return this.personManager; }
+    getInstantMessageManager(): ContentInstantMessageManager { return this.instantMessageManager; }
 
     getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
 
@@ -180,6 +183,7 @@ export class ContentApp extends AppWithDom
         this.urlFetcher = new BackgroundMessageUrlFetcher()
         this.itemOverlays = new ItemOverlays(this)
         this.personManager = new ContentPersonManager(this);
+        this.instantMessageManager = new ContentInstantMessageManager(this);
     }
 
     async start(params: ContentAppParams)
@@ -442,6 +446,7 @@ export class ContentApp extends AppWithDom
         this.isStopped = true;
         this.statusToPageSender.sendClientInactive();
         this.viewportEventDispatcher.stop();
+        this.instantMessageManager.stop();
         this.iframeApi?.stop();
         this.stopCheckPageUrl();
         this.leavePage();
@@ -494,10 +499,7 @@ export class ContentApp extends AppWithDom
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
         const hasNewGroupChat = (this.room?.getChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) ?? 0) !== 0;
-        const hasNewPrivateChat = participantIds.some(participantId => {
-            const participant = this.room.getParticipant(participantId);
-            return participant.getPrivateChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) !== 0;
-        });
+        const hasNewPrivateChat = this.instantMessageManager.getUnreadUserMessageCount(maxChatAgeSecs) !== 0;
         const toastCount = this.toasts.size;
         const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
         const tabContentData = this.tabContentData.getAll();
@@ -747,10 +749,19 @@ export class ContentApp extends AppWithDom
                 } break;
 
                 case ContentMessage.type_chatMessagePersisted: {
-                    this.getRoom()?.onChatMessagePersisted(message.data.chatChannel, message.data.chatMessage);
+                    const chatChannel: ChatUtils.ChatChannel = message.data.chatChannel;
+                    const chatMessage: ChatUtils.ChatMessage = message.data.chatMessage;
+                    this.getRoom()?.onChatMessagePersisted(chatChannel, chatMessage);
+                    this.instantMessageManager.onChatMessagePersisted(chatChannel, chatMessage);
                 } break;
                 case ContentMessage.type_chatHistoryDeleted: {
-                    this.getRoom()?.onChatHistoryDeleted(message.data.deletions);
+                    const deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[] = message.data.deletions;
+                    this.getRoom()?.onChatHistoryDeleted(deletions);
+                    this.instantMessageManager.onChatHistoryDeleted(deletions);
+                } break;
+                case ContentMessage.type_unreadChatChannels: {
+                    const unreadChannels: ChatUtils.ChatChannel[] = message.data.unreadChatChannels;
+                    this.instantMessageManager.onUnreadChatChannels(unreadChannels);
                 } break;
 
                 case ContentMessage.type_friendshipProposalsState: {
@@ -796,6 +807,7 @@ export class ContentApp extends AppWithDom
             .then(name => { this.userName = name; })
             .catch (error => log.debug(error.message));
         this.room?.onUserSettingsChanged();
+        this.instantMessageManager.onUserSettingsChanged();
     })() }
 
     handle_recvStanza(jsStanza: unknown): void

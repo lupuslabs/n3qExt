@@ -245,6 +245,12 @@ export namespace WeblinClientIframeApi
         dx: number;
     }
 
+    export class ClientOpenPrivateChatRequest extends Request
+    {
+        static type = 'Client.OpenPrivateChatRequest';
+        userId: string;
+    }
+
     export class PageDomQueryRequest extends Request
     {
         static type = 'Page.DomQuery';
