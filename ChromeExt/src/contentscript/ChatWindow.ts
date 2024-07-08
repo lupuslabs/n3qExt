@@ -5,9 +5,7 @@ import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Environment } from '../lib/Environment';
 import { ContentApp } from './ContentApp';
-import { Room } from './Room';
 import { Window, WindowOptions } from './Window';
-import { Entity } from './Entity';
 import { ChatUtils } from '../lib/ChatUtils';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
@@ -19,7 +17,7 @@ export type ChatWindowOptions = WindowOptions & {
     soundEnabled?: boolean,
 };
 
-export class ChatWindow extends Window<ChatWindowOptions>
+export abstract class ChatWindow extends Window<ChatWindowOptions>
 {
     protected chatoutElem: HTMLElement;
     protected chatoutAutoScroll: boolean = true;
@@ -32,27 +30,13 @@ export class ChatWindow extends Window<ChatWindowOptions>
     protected historyLoadRequired: boolean = false;
     protected sndChat: Sound;
     protected soundEnabled = false;
-    protected room: Room;
+    protected sendingChat: boolean = false;
 
-    public constructor(app: ContentApp, roomOrEntity: Room|Entity)
+    public constructor(app: ContentApp, chatChannel: ChatUtils.ChatChannel)
     {
         super(app);
-        if (roomOrEntity instanceof Room) {
-            this.room = roomOrEntity;
-            this.chatChannel = {
-                type:     'roompublic',
-                roomJid:  this.room.getJid(),
-                roomNick: '',
-            };
-        } else {
-            this.room = roomOrEntity.getRoom();
-            this.chatChannel = {
-                type:     'roomprivate',
-                roomJid:  this.room.getJid(),
-                roomNick: roomOrEntity.getRoomNick(),
-            };
-        }
-        this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.chatMessageIdFun);
+        this.chatChannel = chatChannel;
+        this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
         this.windowName = `Chat${this.chatChannel.type}`;
         this.isResizable = true;
@@ -61,10 +45,10 @@ export class ChatWindow extends Window<ChatWindowOptions>
         this.sndChat = new Sound(this.app, KeyboardSound);
 
         if (Environment.isDevelopment()) {
-            this.addLine(null, 'debug', 'Nickname', 'Lorem');
-            this.addLine(null, 'debug', 'ThisIsALongerNickname', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
-            this.addLine(null, 'debug', 'Long name with intmediate spaces', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
-            this.addLine(null, 'debug', 'Long text no spaces', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
+            this.addLine(null, 'debug', '', 'Nickname', '', 'Lorem');
+            this.addLine(null, 'debug', '', 'ThisIsALongerNickname', '', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');
+            this.addLine(null, 'debug', '', 'Long name with intmediate spaces', '', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum');
+            this.addLine(null, 'debug', '', 'Long text no spaces', '', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
         }
 
         this.loadHistory();
@@ -152,7 +136,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
         chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
 
         const chatinSendElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, chatinSendElem);
-        chatinSendElemDispatcher.addUnmodifiedLeftClickListener(ev => this.sendChat());
+        chatinSendElemDispatcher.addUnmodifiedLeftClickListener(ev => this.onSendChatUserAction());
 
         const clearElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, clearElem);
         clearElemDispatcher.addUnmodifiedLeftClickListener(ev => {
@@ -184,7 +168,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
         this.chatinInputElem = null;
     }
 
-    public addLine(id: string|null, type: ChatUtils.ChatMessageType, nick: string, text: string): void
+    public addLine(id: string|null, type: ChatUtils.ChatMessageType, authorUserId: string, authorName: string, authorImageUrl: string, text: string): void
     {
         // Strictly increasing time to ensure correct order of locally generated messages comming in at the same millisecond:
         let timeMs = Date.now();
@@ -196,7 +180,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
         let generateId = is.nil(id);
         if (generateId) {
-            id = ChatUtils.makeChatMessageId(time, nick);
+            id = ChatUtils.makeChatMessageId(time, authorName);
         }
         if (ChatUtils.isUserChatMessageType(type)) {
             if (type === 'emote') {
@@ -206,7 +190,8 @@ export class ChatWindow extends Window<ChatWindowOptions>
             text = this.app.translateText('Chatwindow.' + text, text);
         }
         const timestamp = Utils.utcStringOfDate(time);
-        const message: ChatUtils.ChatMessage = { timestamp, id, type, nick, text };
+        const isUnread = false;
+        const message: ChatUtils.ChatMessage = { timestamp, isUnread, id, type, authorUserId, authorName, authorImageUrl, text };
         if (this.chatMessages.has(message)) {
             return;
         }
@@ -262,9 +247,16 @@ export class ChatWindow extends Window<ChatWindowOptions>
             const lineElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-chatwindow-line ${ageClass}"></div>`);
             lineElem.classList.add('n3q-base', 'n3q-chatwindow-line', typeClass, ageClass);
             const innerHtmls = [];
-            if (message.nick.length !== 0) {
+
+            const authorUserId: string = message.authorUserId
+            let authorName: string = message.authorName;
+            if (authorUserId === this.app.getUserId()) {
+                authorName = this.app.getUserNickname();
+            }
+
+            if (authorName.length !== 0) {
                 innerHtmls.push(`<span class="n3q-base n3q-text n3q-time">${as.Html(timeStr)}</span>`);
-                innerHtmls.push(`<span class="n3q-base n3q-text n3q-nick">${as.Html(message.nick)}</span>`);
+                innerHtmls.push(`<span class="n3q-base n3q-text n3q-nick">${as.Html(authorName)}</span>`);
                 const colonText = this.app.translateText('Chatwindow.:');
                 innerHtmls.push(`<span class="n3q-base n3q-text n3q-colon">${as.Html(colonText)}</span>`);
             }
@@ -299,9 +291,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
     public onChatMessagePersisted(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
     {
         if (ChatUtils.areChatsEqual(chatChannel, this.chatChannel)) {
-            if (!this.chatMessages.has(chatMessage)) {
-                this.storeChatMessage(chatMessage);
-            }
+            this.storeChatMessage(chatMessage);
         }
     }
 
@@ -314,12 +304,14 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
     protected giveMessageToChatOut(chatMessage: ChatUtils.ChatMessage): void
     {
-        this.room.getParticipantByDisplayName(chatMessage.nick)?.getChatout()?.displayChatMessage(chatMessage);
+        if (this.chatChannel.type === 'roompublic') {
+            this.app.getRoom()?.getParticipantByDisplayName(chatMessage.authorName)?.getChatout()?.displayChatMessage(chatMessage);
+        }
     }
 
-    public getChatMessagesByNickSince(nick: string, timestampStart: string): ChatUtils.ChatMessage[]
+    public getChatMessagesByNickSince(authorName: string, timestampStart: string): ChatUtils.ChatMessage[]
     {
-        return this.chatMessages.toArray().filter(m => m.timestamp >= timestampStart && m.nick === nick);
+        return this.chatMessages.toArray().filter(m => m.timestamp >= timestampStart && m.authorName === authorName);
     }
 
     public onChatHistoryDeleted(deletions: {chatChannel: ChatUtils.ChatChannel, olderThanTime: string}[]): void
@@ -339,7 +331,9 @@ export class ChatWindow extends Window<ChatWindowOptions>
 
     public playSound(): void
     {
-        this.sndChat.play();
+        if (this.isSoundEnabled()) {
+            this.sndChat.play();
+        }
     }
 
     private onChatinKeydown(ev: KeyboardEvent): void
@@ -348,7 +342,7 @@ export class ChatWindow extends Window<ChatWindowOptions>
         switch (ev.key) {
             case 'Enter': {
                 if (!ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-                    this.sendChat();
+                    this.onSendChatUserAction();
                     isHandled = true;
                 }
             } break;
@@ -362,11 +356,27 @@ export class ChatWindow extends Window<ChatWindowOptions>
         }
     }
 
-    protected sendChat(): void
+    protected onSendChatUserAction(): void
     {
-        const text = this.chatinInputElem.value;
-        this.chatinInputElem.value = '';
-        this.chatinInputElem.focus();
-        this.room.sendGroupChat(text);
+        if (this.sendingChat) {
+            return;
+        }
+        const text: string = this.chatinInputElem.value;
+        if (text.length === 0) {
+            return;
+        }
+        this.sendingChat = true;
+        this.sendChat(text)
+            .then(() => {
+                this.chatinInputElem.value = '';
+                this.chatinInputElem.focus();
+            }).catch(error => {
+                this.app.onError(error)
+            }).finally(() => {
+                this.sendingChat = false;
+            });
     }
+
+    protected abstract sendChat(text: string): Promise<void>;
+
 }

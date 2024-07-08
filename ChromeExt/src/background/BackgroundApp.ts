@@ -270,7 +270,6 @@ export class BackgroundApp
             this.friendshipProposalManager.onConfigUpdated();
             this.websocketManager.onConfigUpdated();
             this.xmppManager.onConfigUpdated();
-            this.chatHistoryStorage.onUserConfigUpdate();
             this.maintain();
 
             this.sendToAllTabs({ type: ContentMessage.type_configChanged });
@@ -815,11 +814,11 @@ export class BackgroundApp
     {
         const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
         this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
-        const keepChatMessage = await this.chatHistoryStorage.storeChatMessage(chatChannel, chatMessage, deduplicate);
-        if (keepChatMessage) {
-            this.sendPersistedChatMessageToTabs(chatChannel, chatMessage);
+        const { createdOrUpdated, messageCurrent } = await this.chatHistoryStorage.storeChatMessage(chatChannel, chatMessage, deduplicate);
+        if (createdOrUpdated || messageCurrent.isUnread) {
+            this.sendPersistedChatMessageToTabs(chatChannel, messageCurrent);
         }
-        return new NewChatMessageResponse(keepChatMessage);
+        return new NewChatMessageResponse(createdOrUpdated, messageCurrent);
     }
 
     private async handle_getChatHistory(chatChannel: ChatUtils.ChatChannel): Promise<GetChatHistoryResponse>

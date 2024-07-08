@@ -1,19 +1,27 @@
-import { is } from '../lib/is';
-import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
-import { ChatWindow } from './ChatWindow';
 import { Participant } from './Participant';
 import { DomUtils } from '../lib/DomUtils';
 import { ChatUtils } from '../lib/ChatUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+import { Room } from './Room'
+import { RoomChatWindow } from './RoomChatWindow'
+import { ItemException } from '../lib/ItemException'
+import Fact = ItemException.Fact
+import Reason = ItemException.Reason
 
-export class PrivateChatWindow extends ChatWindow
+export class PrivateChatWindow extends RoomChatWindow
 {
 
     public constructor(app: ContentApp, private participant: Participant)
     {
-        super(app, participant);
+        const room: Room = participant.getRoom()
+        const chatChannel: ChatUtils.ChatChannel = {
+            type: 'roomprivate',
+            roomJid: room.getJid(),
+            roomNick: participant.getRoomNick(),
+        };
+        super(app, room, chatChannel);
     }
 
     protected prepareMakeDom(): void
@@ -32,23 +40,15 @@ export class PrivateChatWindow extends ChatWindow
         }
     }
 
-    protected sendChat(): void
+    protected async sendChat(text: string): Promise<void>
     {
-        const text: string = as.String(this.chatinInputElem.value);
-        if (text !== '') {
-
-            const nick = this.participant.getRoomNick();
-
-            const name = this.room.getMyParticipant()?.getDisplayName();
-            if (!is.nil(name)) {
-                this.room.sendPrivateChat(text, nick);
-
-                this.addLine(nick + Date.now(), 'chat', name, text);
-
-                this.chatinInputElem.value = '';
-                this.chatinInputElem.focus();
-            }
+        const nick = this.participant.getRoomNick();
+        const name = this.room.getMyParticipant()?.getDisplayName() ?? '';
+        if (name.length === 0) {
+            throw new ItemException(Fact.NotSent, Reason.InternalError, 'No user name');
         }
+        this.room.sendPrivateChat(text, nick);
+        this.addLine(nick + Date.now(), 'chat', this.app.getUserId(), name, '', text);
     }
 
     protected sendVersionQuery(): void
@@ -63,14 +63,9 @@ export class PrivateChatWindow extends ChatWindow
         if (name === 'VersionInfo') {
             const json = JSON.parse(value);
             for (const key in json) {
-                this.addLine(null, 'cmdResult', key, json[key]);
+                this.addLine(null, 'cmdResult', '', key, '', json[key]);
             }
         }
-    }
-
-    protected giveMessageToChatOut(chatMessage: ChatUtils.ChatMessage): void
-    {
-        // Don't give message to chatout. Private chat shows up in private chat window only.
     }
 
 }

@@ -12,7 +12,7 @@ import { ContentApp } from './ContentApp';
 import { Entity } from './Entity';
 import { Participant } from './Participant';
 import { RoomItem } from './RoomItem';
-import { ChatWindow } from './ChatWindow';
+import { RoomChatWindow } from './RoomChatWindow';
 import { VidconfWindow } from './VidconfWindow';
 import { BackpackItem } from './BackpackItem';
 import { ChatUtils } from '../lib/ChatUtils';
@@ -28,7 +28,7 @@ export class Room
     private items: { [nick: string]: RoomItem; } = {};
     private dependents: { [nick: string]: Array<string>; } = {};
     private isEntered = false; // iAmAlreadyHere() needs isEntered=true to be after onPresenceAvailable
-    private chatWindow: ChatWindow;
+    private chatWindow: RoomChatWindow;
     private vidconfWindow: VidconfWindow;
     private myNick: null|string;
     private isAvailable: boolean = true;
@@ -37,7 +37,7 @@ export class Room
 
     constructor(protected app: ContentApp, private jid: string, private pageUrl: string, private destination: string)
     {
-        this.chatWindow = new ChatWindow(app, this);
+        this.chatWindow = new RoomChatWindow(app, this);
     }
 
     getInfo(): IRoomInfo
@@ -49,7 +49,7 @@ export class Room
         ];
     }
 
-    getChatWindow(): ChatWindow { return this.chatWindow; }
+    getChatWindow(): RoomChatWindow { return this.chatWindow; }
     getMyNick(): string|null { return this.myNick; }
     getJid(): string { return this.jid; }
     getDestination(): string { return this.destination; }
@@ -477,7 +477,7 @@ export class Room
                     const nick = as.String(message[message.length - 2]);
                     if (text.length !== 0) {
                         const type: ChatUtils.ChatMessageType = outState.msgCount === 0 ? 'cmd' : 'cmdResult';
-                        this.showChatMessage(null, type, nick, text);
+                        this.showChatMessage(null, type, '', nick, text);
                         outState.msgCount++;
                     }
                 }
@@ -553,9 +553,9 @@ export class Room
         }
     }
 
-    showChatMessage(id: string|null, type: ChatUtils.ChatMessageType, name: string, text: string)
+    showChatMessage(id: string|null, type: ChatUtils.ChatMessageType, userId: string, name: string, text: string)
     {
-        this.chatWindow.addLine(id, type, name, text);
+        this.chatWindow.addLine(id, type, userId, name, '', text);
     }
 
     clearChatWindow()

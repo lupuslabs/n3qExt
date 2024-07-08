@@ -1,9 +1,8 @@
-﻿import { is } from './is'
-import { Utils } from './Utils'
+﻿import { Utils } from './Utils'
 
 export namespace ChatUtils {
 
-    const chatChannelTypes = ['roompublic', 'roomprivate'] as const
+    const chatChannelTypes = ['roompublic', 'roomprivate', 'instantMessage'] as const
     export type ChatChannelType = typeof chatChannelTypes[number]
 
     export type ChatChannel = {
@@ -21,46 +20,18 @@ export namespace ChatUtils {
 
     export type ChatMessage = {
         timestamp: string
+        isUnread: boolean
         id:        string
         type:      ChatMessageType
-        nick:      string
+        authorUserId: string
+        authorName: string
+        authorImageUrl: string
         text:      string
-    }
-
-    export function isChatChannelType(val: unknown): val is ChatChannelType
-    {
-        return chatChannelTypes.some(elem => elem === val)
-    }
-
-    export function isChatChannel(val: unknown): val is ChatChannel
-    {
-        return is.object(val)
-        && isChatChannelType(val.type)
-        && is.string(val.roomJid)
-        && is.string(val.roomNick)
-        && !(val.roomNick !== '' && val.type === 'roompublic')
-
-    }
-
-    export function isChatMessageType(val: unknown): val is ChatMessageType
-    {
-        return chatMessageTypes.some(elem => elem === val)
     }
 
     export function isUserChatMessageType(val: unknown): val is UserChatMessageType
     {
         return userChatMessageTypes.some(elem => elem === val)
-    }
-
-    export function isChatMessage(val: unknown): val is ChatMessage
-    {
-        return is.object(val)
-        && is.string(val.timestamp)
-        && is.string(val.id)
-        && isChatMessageType(val.type)
-        && is.string(val.nick)
-        && is.string(val.text)
-
     }
 
     export function areChatsEqual(chatA: ChatChannel, chatB: ChatChannel): boolean

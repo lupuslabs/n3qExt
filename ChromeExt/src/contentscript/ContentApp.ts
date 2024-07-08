@@ -101,6 +101,7 @@ export class ContentApp extends AppWithDom
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
     private userId: string = '';
+    private userName: string = '';
     private pageUrl: string;
     private presetPageUrl: string;
     private roomJid: string = '';
@@ -268,7 +269,7 @@ export class ContentApp extends AppWithDom
 
         await this.assertActive();
         if (Panic.isOn) { return; }
-        await this.assertUserNickname();
+        this.userName = await this.assertUserNickname();
         if (Panic.isOn) { return; }
         await this.assertUserAvatar();
         if (Panic.isOn) { return; }
@@ -790,15 +791,18 @@ export class ContentApp extends AppWithDom
     }
 
     handle_configChanged(): void
-    {
-        BackgroundMessage.getConfigTree(Config.onlineConfigName)
+    { (async () => {
+        await BackgroundMessage.getConfigTree(Config.onlineConfigName)
             .then(config => Config.setOnlineTree(config))
-            .catch (error => log.debug(error.message))
-            .then(() => BackgroundMessage.getConfigTree(Config.devConfigName))
+            .catch (error => log.debug(error.message));
+        await BackgroundMessage.getConfigTree(Config.devConfigName)
             .then(config => Config.setDevTree(config))
-            .catch (error => log.debug(error.message))
-            .then(() => this.room?.onUserSettingsChanged());
-    }
+            .catch (error => log.debug(error.message));
+        await this.assertUserNickname()
+            .then(name => { this.userName = name; })
+            .catch (error => log.debug(error.message));
+        this.room?.onUserSettingsChanged();
+    })() }
 
     handle_recvStanza(jsStanza: unknown): void
     {
@@ -1227,28 +1231,24 @@ export class ContentApp extends AppWithDom
 
     // my nickname
 
-    async assertUserNickname()
+    private async assertUserNickname(): Promise<string>
     {
         try {
-            let nickname = await Memory.getLocal(Utils.localStorageKey_Nickname(), '');
-            if (nickname == '') {
+            let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''));
+            if (nickname === '') {
                 nickname = RandomNames.getRandomNickname();
                 await Memory.setLocal(Utils.localStorageKey_Nickname(), nickname);
             }
+            return nickname;
         } catch (error) {
             log.info(error);
             Panic.now();
         }
     }
 
-    async getUserNickname(): Promise<string>
+    public getUserNickname(): string
     {
-        try {
-            return await Memory.getLocal(Utils.localStorageKey_Nickname(), 'no name');
-        } catch (error) {
-            log.info(error);
-            return 'no name';
-        }
+        return this.userName;
     }
 
     // my avatar
@@ -1308,7 +1308,7 @@ export class ContentApp extends AppWithDom
         }
 
         if (x <= 0) {
-            x = this.getDefaultPosition(await this.getUserNickname());
+            x = this.getDefaultPosition(this.userName);
         }
 
         return x;

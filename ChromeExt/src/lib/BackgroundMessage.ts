@@ -6,6 +6,7 @@ import { ContentToBackgroundCommunicator } from './ContentToBackgroundCommunicat
 import { Config } from './Config'
 import { as } from './as'
 import { is } from './is'
+import ChatMessage = ChatUtils.ChatMessage
 
 export type BackgroundRequest = {
     type: string,
@@ -190,7 +191,7 @@ export class FindBackpackItemPropertiesResponse extends BackgroundSuccessRespons
 
 export class NewChatMessageResponse extends BackgroundSuccessResponse
 {
-    constructor(public keepChatMessage: boolean) { super(); }
+    constructor(public createdOrUpdated: boolean, public messageCurrent: ChatMessage) { super(); }
 }
 
 export class GetChatHistoryResponse extends BackgroundSuccessResponse
@@ -489,11 +490,11 @@ export class BackgroundMessage
         return response.items
     }
 
-    static async handleNewChatMessage(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage, deduplicate: boolean): Promise<boolean>
+    static async handleNewChatMessage(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage, deduplicate: boolean): Promise<NewChatMessageResponse>
     {
         const request = { type: BackgroundMessage.handleNewChatMessage.name, chatChannel, chatMessage, deduplicate }
         const response = await BackgroundMessage.sendMessageCheckOk<NewChatMessageResponse>(request)
-        return response.keepChatMessage
+        return response
     }
 
     static async getChatHistory(chatChannel: ChatUtils.ChatChannel): Promise<ChatUtils.ChatMessage[]>

@@ -160,7 +160,7 @@ export class Toast extends Window<ToastOptions>
         this.buttons.forEach(({ label }) => {
             chatlogText += ' [' + label + ']';
         });
-        this.app.getRoom()?.showChatMessage(null, 'info', chatlogName, chatlogText);
+        this.app.getRoom()?.showChatMessage(null, 'info', '', chatlogName, chatlogText);
     }
 
     protected async makeContent(): Promise<void>

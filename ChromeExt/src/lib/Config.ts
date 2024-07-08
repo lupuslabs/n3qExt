@@ -158,8 +158,10 @@ export class Config
             maintenanceIntervalSec: 30,
         },
         chatHistory: {
-            roompublicMaxAgeSec: 3 * 24 * 3600,
-            roomprivateMaxAgeSec: 3 * 24 * 3600,
+            messageRetentionSecByChannelType: {
+                roompublic: 3 * 24 * 3600,
+                roomprivate: 3 * 24 * 3600,
+            },
             messageDeduplicationMaxAgeSec: 1, // Max message age for duplicate detection.
             maintenanceIntervalSec: 3600, // Minimum seconds between history prunings for each history.
             maintenanceCheckIntervalSec: 10, // Minimum time between searches for chat histories to prune.

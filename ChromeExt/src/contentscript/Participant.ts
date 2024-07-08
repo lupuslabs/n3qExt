@@ -451,16 +451,16 @@ export class Participant extends Entity
             // if (this.isSelf && Environment.isDevelopment()) { this.showChatWindow(); }
             if (this.isSelf) {
                 if (Config.get('room.chatlogEnteredTheRoomSelf', true)) {
-                    this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'entered the room');
+                    this.room?.showChatMessage(null, 'participantStatus', this.userId, this.roomNick, 'entered the room');
                 }
             } else {
                 if (this.room?.iAmAlreadyHere()) {
                     if (Config.get('room.chatlogEnteredTheRoom', true)) {
-                        this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'entered the room');
+                        this.room?.showChatMessage(null, 'participantStatus', this.userId, this.roomNick, 'entered the room');
                     }
                 } else {
                     if (Config.get('room.chatlogWasAlreadyThere', true)) {
-                        this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'was already there');
+                        this.room?.showChatMessage(null, 'participantStatus', this.userId, this.roomNick, 'was already there');
                     }
                 }
             }
@@ -493,7 +493,7 @@ export class Participant extends Entity
         this.remove();
 
         if (Config.get('room.chatlogLeftTheRoom', true)) {
-            this.room?.showChatMessage(null, 'participantStatus', this.roomNick, 'left the room');
+            this.room?.showChatMessage(null, 'participantStatus', this.userId, this.roomNick, 'left the room');
         }
 
         this.sendParticipantEventToAllScriptFrames({ event: 'leave' });
@@ -627,13 +627,11 @@ export class Participant extends Entity
         if (text?.length <= 0) { return; }
 
         this.openPrivateChat();
-        this.privateChatWindow.addLine(null, 'chat', name, text);
+        this.privateChatWindow.addLine(null, 'chat', this.userId, name, '', text);
 
         if (nick !== this.room.getMyNick()) {
             const chatWindow = this.privateChatWindow;
-            if (chatWindow.isSoundEnabled()) {
-                chatWindow.playSound();
-            }
+            chatWindow.playSound();
         }
     }
 
@@ -751,7 +749,7 @@ export class Participant extends Entity
         // always
         const {isEmote, emoteId} = this.parseEmoteCmd(text);
         const msgType: ChatUtils.ChatMessageType = isEmote ? 'emote' : 'chat';
-        this.room?.showChatMessage(id, msgType, name, text);
+        this.room?.showChatMessage(id, msgType, this.userId, name, text);
 
         this.sendParticipantChatToAllScriptFrames(text);
 
@@ -772,11 +770,7 @@ export class Participant extends Entity
 
             if (nick !== this.room.getMyNick()) {
                 const chatWindow = this.room.getChatWindow();
-                if (chatWindow) {
-                    if (chatWindow.isSoundEnabled()) {
-                        chatWindow.playSound();
-                    }
-                }
+                chatWindow.playSound();
             }
 
         }
