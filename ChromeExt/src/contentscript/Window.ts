@@ -30,6 +30,8 @@ export abstract class Window<OptionsType extends WindowOptions>
 {
     protected readonly app: ContentApp;
     protected onClose: null|(() => void) = null;
+    protected readonly viewportVisibleListener: () => void;
+    protected readonly viewportInvisibleListener: () => void;
     protected readonly viewportResizeListener: () => void;
 
     protected windowId: string;
@@ -80,6 +82,8 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
         this.app = app;
         this.windowId = Utils.randomString(15);
+        this.viewportVisibleListener = () => this.onViewportVisible();
+        this.viewportInvisibleListener = () => this.onViewportInvisible();
         this.viewportResizeListener = () => this.onViewportResize();
     }
 
@@ -426,9 +430,12 @@ export abstract class Window<OptionsType extends WindowOptions>
         return this.windowElem;
     }
 
+    /**
+     * Whether the window is open. It might still be set to not be visible (see isVisible).
+     */
     public isOpen(): boolean
     {
-        return !is.nil(this.windowElem);
+        return !!this.windowElem;
     }
 
     protected undock(): void
@@ -481,6 +488,14 @@ export abstract class Window<OptionsType extends WindowOptions>
     {
     }
 
+    protected onViewportVisible(): void
+    {
+    }
+
+    protected onViewportInvisible(): void
+    {
+    }
+
     protected onViewportResize(): void
     {
         if (this.isOpen()) {
@@ -508,27 +523,48 @@ export abstract class Window<OptionsType extends WindowOptions>
         }
     }
 
+    /**
+     * Whether the window is open and set to be visible.
+     */
     public getVisibility(): boolean
     {
-        return this.windowElem && !this.windowElem.classList.contains('n3q-hidden');
+        return this.isOpen() && !this.windowElem.classList.contains('n3q-hidden');
+    }
+
+    /**
+     * Whether the window is open, set to be visible, and the containing browser tab is visible too.
+     */
+    public getViewportVisibility(): boolean
+    {
+        return this.getVisibility() && this.app.getViewPortEventDispatcher().getVisibility();
     }
 
     public setVisibility(visible: boolean): void
     {
-        if (!this.windowElem) {
+        if (!this.isOpen()) {
             return;
         }
         const isVisible = this.getVisibility();
         if (isVisible === visible) {
             return;
         }
+        const viewportEvents = this.app.getViewPortEventDispatcher();
         if (visible) {
-            this.app.getViewPortEventDispatcher().addResizeListener(this.viewportResizeListener);
+            viewportEvents.addVisibleListener(this.viewportVisibleListener);
+            viewportEvents.addInvisibleListener(this.viewportInvisibleListener);
+            viewportEvents.addResizeListener(this.viewportResizeListener);
             this.onViewportResize();
             this.windowElem.classList.remove('n3q-hidden');
             this.onVisible();
+            if (viewportEvents.getVisibility()) {
+                this.onViewportVisible();
+            } else {
+                this.onViewportInvisible();
+            }
         } else {
-            this.app.getViewPortEventDispatcher().removeResizeListener(this.viewportResizeListener);
+            viewportEvents.removeVisibleListener(this.viewportVisibleListener);
+            viewportEvents.removeInvisibleListener(this.viewportInvisibleListener);
+            viewportEvents.removeResizeListener(this.viewportResizeListener);
             this.windowElem.classList.add('n3q-hidden');
             this.onInvisible();
         }
