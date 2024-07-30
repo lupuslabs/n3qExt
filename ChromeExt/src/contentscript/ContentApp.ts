@@ -57,12 +57,6 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentPersonManager } from './ContentPersonManager'
 import { ItemOverlays } from './ItemOverlays'
 
-interface ILocationMapperResponse
-{
-    //    sMessage: string;
-    sLocationURL: string;
-}
-
 export class ContentAppNotification
 {
     static type_onTabChangeStay: string = 'onTabChangeStay';
@@ -211,12 +205,6 @@ export class ContentApp extends AppWithDom
         }
         this.userId = userId;
 
-        if (!await this.getActive()) {
-            log.info('Avatar disabled');
-            this.messageHandler({ 'type': ContentAppNotification.type_stopped });
-            return;
-        }
-
         try {
             const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
             Config.setOnlineTree(config);
@@ -267,8 +255,6 @@ export class ContentApp extends AppWithDom
 
         this.avatarGallery = new AvatarGallery();
 
-        await this.assertActive();
-        if (Panic.isOn) { return; }
         this.userName = await this.assertUserNickname();
         if (Panic.isOn) { return; }
         await this.assertUserAvatar();
@@ -739,10 +725,6 @@ export class ContentApp extends AppWithDom
                     this.handle_clientNotification(message.data);
                 } break;
 
-                case ContentMessage.type_extensionActiveChanged: {
-                    this.handle_extensionActiveChanged(message.data.state);
-                } break;
-
                 case ContentMessage.type_extensionIsGuiEnabledChanged: {
                     this.handle_extensionIsGuiEnabledChanged(message?.data?.isGuiEnabled);
                 } break;
@@ -855,15 +837,6 @@ export class ContentApp extends AppWithDom
             });
         }
         toast.show(() => { });
-    }
-
-    handle_extensionActiveChanged(state: boolean): any
-    {
-        if (state) {
-            // should not happen
-        } else {
-            this.messageHandler({ 'type': ContentAppNotification.type_stopped });
-        }
     }
 
     handle_extensionIsGuiEnabledChanged(isGuiEnabled: unknown): void
@@ -1201,32 +1174,6 @@ export class ContentApp extends AppWithDom
     async setDontShowNoticeType(type: string, value: boolean): Promise<void>
     {
         await Memory.setLocal(this.localStorage_DontShowNotice_KeyPrefix + type, value);
-    }
-
-    // my active
-
-    async assertActive()
-    {
-        try {
-            const active = await Memory.getLocal(Utils.localStorageKey_Active(), '');
-            if (active == '') {
-                await Memory.setLocal(Utils.localStorageKey_Active(), 'true');
-            }
-        } catch (error) {
-            log.info(error);
-            Panic.now();
-        }
-    }
-
-    async getActive(): Promise<boolean>
-    {
-        try {
-            const active = await Memory.getLocal(Utils.localStorageKey_Active(), 'true');
-            return as.Bool(active);
-        } catch (error) {
-            log.info(error);
-            return false;
-        }
     }
 
     // my nickname

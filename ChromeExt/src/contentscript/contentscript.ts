@@ -6,7 +6,6 @@ import { Config } from '../lib/Config'
 import { Environment } from '../lib/Environment'
 import { Client } from '../lib/Client'
 import { ContentApp, ContentAppNotification } from './ContentApp'
-import { ContentMessage } from '../lib/ContentMessage'
 import { ContentRequestHandler, ContentToBackgroundCommunicator } from '../lib/ContentToBackgroundCommunicator'
 import { PortContentMessagePipeProvider } from '../lib/PortMessagePipe'
 import { BackgroundRequest, BackgroundResponse, BackgroundErrorResponse, BackgroundSuccessResponse } from '../lib/BackgroundMessage'
@@ -44,12 +43,6 @@ $(async function ()
                 return contentRequestFromBackgroundHandler(request)
             }
             return new BackgroundErrorResponse('uninitialized', 'ContentApp not ready yet.')
-        }
-        if (request.type === ContentMessage.type_extensionActiveChanged) {
-            if (request.data?.['state']) {
-                activateContent()
-            }
-            return new BackgroundSuccessResponse()
         }
         return new BackgroundErrorResponse('uninitialized', 'ContentApp not initialized yet.')
     }

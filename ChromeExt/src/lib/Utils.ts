@@ -54,15 +54,9 @@ export class ErrorWithData extends Error
     }
 }
 
-export class Point2D
-{
-    constructor(public x: number, public y: number) { }
-}
-
 export class Utils
 {
     static localStorageKey_X(): string { return 'me.x'; }
-    static localStorageKey_Active(): string { return 'me.active'; }
     // static localStorageKey_StayOnTabChange(roomJid: string): string { return 'room.' + roomJid + '.stayOnTabChange'; }
     static localStorageKey_BackpackIsOpen(roomJid: string): string { return 'room.' + roomJid + '.backpackIsOpen'; }
     static localStorageKey_VidconfIsOpen(roomJid: string): string { return 'room.' + roomJid + '.vidconfIsOpen'; }
@@ -73,7 +67,6 @@ export class Utils
     static localStorageKey_Nickname(): string { return 'me.nickname'; }
     static localStorageKey_LastWorkingNickname(): string { return 'me.lastWorkingNickname'; }
     static localStorageKey_Avatar(): string { return 'me.avatar'; }
-    static localStorageKey_BackpackPhase(): string { return 'backpack.phase'; }
 
     static isBackpackEnabled()
     {

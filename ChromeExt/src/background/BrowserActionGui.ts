@@ -1,9 +1,6 @@
 ﻿import { BackgroundApp } from './BackgroundApp';
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
-import { Memory } from '../lib/Memory';
-import { ContentMessage } from '../lib/ContentMessage';
 import { makeZeroTabStats, TabStats } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 
@@ -59,18 +56,6 @@ export class BrowserActionGui
 
     protected onBrowserActionClicked(tabId: number): void
     {
-        // Activate if inactive (old functionality):
-        // Todo: Remove after all clients updated.
-        (async () => {
-            let state = as.Bool(await Memory.getLocal(Utils.localStorageKey_Active(), false));
-            if (!state) {
-                state = true;
-                await Memory.setLocal(Utils.localStorageKey_Active(), state);
-                const message = { 'type': ContentMessage.type_extensionActiveChanged, 'data': { state } };
-                this.app.sendToTab(tabId, message);
-            }
-        })().catch(error => log.info('BrowserActionGui.onBrowserActionClicked', error));
-
         // Show / hide web page GUI overlay:
         const tabData = this.app.getTabData(tabId);
         tabData.isGuiEnabled = !tabData.isGuiEnabled;
