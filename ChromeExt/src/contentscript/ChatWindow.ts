@@ -3,6 +3,7 @@ import { Sound } from './Sound';
 
 import { is } from '../lib/is';
 import { as } from '../lib/as';
+import { iter } from '../lib/Iter'
 import { Environment } from '../lib/Environment';
 import { ContentApp } from './ContentApp';
 import { Window, WindowOptions } from './Window';
@@ -24,6 +25,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
     protected chatinInputElem: HTMLTextAreaElement;
     protected chatChannel: ChatUtils.ChatChannel;
     protected chatMessages: OrderedSet<ChatUtils.ChatMessage>;
+    protected unreadUserChatMessages: OrderedSet<ChatUtils.ChatMessage>;
     protected lastIncommingChatMessageTimeMs: number = 0;
     protected sessionStartTs: string;
     protected historyLoading: boolean = false;
@@ -37,6 +39,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         super(app);
         this.chatChannel = chatChannel;
         this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
+        this.unreadUserChatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
         this.windowName = `Chat${this.chatChannel.type}`;
         this.isResizable = true;
@@ -56,12 +59,12 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
     public isSoundEnabled(): boolean { return this.soundEnabled; }
 
-    public getRecentMessageCount(maxAgeSecs: number, types: readonly ChatUtils.ChatMessageType[]): number
+    public getUnreadUserMessageCount(maxAgeSecs: number): number
     {
         let messageCount = 0;
         const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
-        for (const message of this.chatMessages) {
-            if (message.timestamp >= maxAgeTimestamp && types.includes(message.type)) {
+        for (const message of this.unreadUserChatMessages) {
+            if (message.timestamp >= maxAgeTimestamp && ChatUtils.isUserChatMessageType(message.type)) {
                 messageCount++;
             }
         }
@@ -161,9 +164,16 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         this.chatinInputElem.focus();
     }
 
+    protected onViewportVisible(): void
+    {
+        super.onViewportVisible();
+        this.markAllMessagesAsRead();
+    }
+
     protected onBeforeClose(): void
     {
         super.onBeforeClose();
+        this.soundEnabled = false;
         this.chatoutElem = null;
         this.chatinInputElem = null;
     }
@@ -190,7 +200,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
             text = this.app.translateText('Chatwindow.' + text, text);
         }
         const timestamp = Utils.utcStringOfDate(time);
-        const isUnread = false;
+        const isUnread = authorUserId !== this.app.getUserId();
         const message: ChatUtils.ChatMessage = { timestamp, isUnread, id, type, authorUserId, authorName, authorImageUrl, text };
         if (this.chatMessages.has(message)) {
             return;
@@ -226,6 +236,18 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
             this.app.onError(error);
             this.historyLoading = false;
         });
+    }
+
+    private markAllMessagesAsRead(): void
+    {
+        iter(this.unreadUserChatMessages).forEach(msg => this.markMessageAsRead(msg));
+    }
+
+    private markMessageAsRead(message: ChatUtils.ChatMessage): void
+    {
+        const messageRead: ChatUtils.ChatMessage = { ...message, isUnread: false };
+        BackgroundMessage.handleNewChatMessage(this.chatChannel, messageRead, false)
+            .catch(error => this.app.onError(error));
     }
 
     private drawChatMessages()
@@ -273,6 +295,9 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
             if (this.chatoutAutoScroll) {
                 this.chatoutElem.scrollTop = this.chatoutElem.scrollHeight;
             }
+            if (message.isUnread && this.getViewportVisibility()) {
+                this.markMessageAsRead(message);
+            }
         }
     }
 
@@ -298,6 +323,12 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
     protected storeChatMessage(chatMessage: ChatUtils.ChatMessage): void
     {
         const {index, replacedExisting} = this.chatMessages.add(chatMessage);
+        if (chatMessage.isUnread && ChatUtils.isUserChatMessageType(chatMessage.type) && chatMessage.authorUserId !== this.app.getUserId()) {
+            this.unreadUserChatMessages.add(chatMessage);
+            this.playSound();
+        } else {
+            this.unreadUserChatMessages.remove(chatMessage);
+        }
         this.drawChatMessage(chatMessage, index, replacedExisting);
         this.giveMessageToChatOut(chatMessage);
     }
@@ -323,13 +354,14 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
                     const message = this.chatMessages.at(index);
                     if (message.timestamp < olderThanTime) {
                         this.chatMessages.removeAt(index);
+                        this.unreadUserChatMessages.remove(message);
                         this.removeChatMessageFromDisplay(index);
                     }
                 }
             });
     }
 
-    public playSound(): void
+    private playSound(): void
     {
         if (this.isSoundEnabled()) {
             this.sndChat.play();

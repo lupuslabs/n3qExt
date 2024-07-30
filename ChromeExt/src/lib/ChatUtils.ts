@@ -11,10 +11,10 @@ export namespace ChatUtils {
         roomNick:  string
     }
 
-    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug'] as const
+    const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug'] as const
     export type ChatMessageType = typeof chatMessageTypes[number]
 
-    export const userChatMessageTypes = ['chat', 'emote'] as const
+    const userChatMessageTypes = ['chat', 'emote'] as const
     export type UserChatMessageType = typeof userChatMessageTypes[number]
     void((a: UserChatMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in UserChatMessageType.
 

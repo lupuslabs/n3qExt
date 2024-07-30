@@ -628,11 +628,6 @@ export class Participant extends Entity
 
         this.openPrivateChat();
         this.privateChatWindow.addLine(null, 'chat', this.userId, name, '', text);
-
-        if (nick !== this.room.getMyNick()) {
-            const chatWindow = this.privateChatWindow;
-            chatWindow.playSound();
-        }
     }
 
     onReceivePoke(node: ltx.Element): void
@@ -767,12 +762,6 @@ export class Participant extends Entity
                 return;
             }
             this.avatarDisplay?.setAction('chat');
-
-            if (nick !== this.room.getMyNick()) {
-                const chatWindow = this.room.getChatWindow();
-                chatWindow.playSound();
-            }
-
         }
     }
 

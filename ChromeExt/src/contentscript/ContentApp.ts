@@ -496,10 +496,10 @@ export class ContentApp extends AppWithDom
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
-        const hasNewGroupChat = (this.room?.getChatWindow().getRecentMessageCount(maxChatAgeSecs, ChatUtils.userChatMessageTypes) ?? 0) !== 0;
+        const hasNewGroupChat = (this.room?.getChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) ?? 0) !== 0;
         const hasNewPrivateChat = participantIds.some(participantId => {
             const participant = this.room.getParticipant(participantId);
-            return participant.getPrivateChatWindow().getRecentMessageCount(maxChatAgeSecs, ChatUtils.userChatMessageTypes) !== 0;
+            return participant.getPrivateChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) !== 0;
         });
         const toastCount = this.toasts.size;
         const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
