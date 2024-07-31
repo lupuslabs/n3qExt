@@ -17,7 +17,7 @@ export function iter<T>(value: undefined|null|Iterable<T>|Iterator<T>|Iter<T>): 
     return emptyIter
 }
 
-abstract class Iter<T> implements Iterator<T>, Iterable<T> {
+export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
 
     /* Iterable<T> */
     public [Symbol.iterator](): Iter<T>

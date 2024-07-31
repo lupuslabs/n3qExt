@@ -124,6 +124,17 @@ export class GetConfigTreeResponse extends BackgroundSuccessResponse
     constructor(public data: {}) { super(); }
 }
 
+export class BackgroundReadyResponse extends BackgroundSuccessResponse
+{
+    public tabContentData: [string,unknown][]
+
+    constructor(tabContentData: [string,unknown][])
+    {
+        super();
+        this.tabContentData = tabContentData
+    }
+}
+
 export class FetchUrlResponse extends BackgroundSuccessResponse
 {
     constructor(public data: string) { super(); }
@@ -231,7 +242,7 @@ export class BackgroundMessage
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 
-    static async waitReady(): Promise<void>
+    static async waitReady(): Promise<BackgroundReadyResponse>
     {
         let checksLeft = Config.get('system.clientBackgroundWaitReadyChecksMax', 100)
         const checkIntervalSecs = Config.get('system.clientBackgroundWaitReadyCheckIntervalSec', 1)
@@ -239,17 +250,16 @@ export class BackgroundMessage
 
         let resultResolve
         let resultReject
-        const promise: Promise<void> = new Promise((resolve, reject) => {
+        const promise: Promise<BackgroundReadyResponse> = new Promise((resolve, reject) => {
             [resultResolve, resultReject] = [resolve, reject]
         });
 
-        const checkFun = (): Promise<BackgroundResponse> => BackgroundMessage.assertReady()
-            .then(() => new BackgroundSuccessResponse())
+        const checkFun = (): Promise<BackgroundReadyResponse|BackgroundErrorResponse> => BackgroundMessage.assertReady()
             .catch(ErrorResponse => ErrorResponse)
         const loopFun = async () => {
             const result = await checkFun()
             if (result.ok) {
-                resultResolve()
+                resultResolve(result)
                 return
             }
             checksLeft--
@@ -263,10 +273,10 @@ export class BackgroundMessage
         return promise
     }
 
-    static async assertReady(): Promise<void>
+    static async assertReady(): Promise<BackgroundReadyResponse>
     {
         // This is the first request to be handled by the background, which might or might not be still initializing.
-        await BackgroundMessage.sendMessageCheckOk({ type: BackgroundMessage.assertReady.name })
+        return await BackgroundMessage.sendMessageCheckOk({ type: BackgroundMessage.assertReady.name })
     }
 
     static async jsonRpc(url: string, jsonBodyData: any): Promise<string>
@@ -297,21 +307,16 @@ export class BackgroundMessage
         return response.data
     }
 
-    static async signalContentAppStartToBackground(): Promise<void>
-    {
-        const request = { type: BackgroundMessage.signalContentAppStartToBackground.name }
-        await BackgroundMessage.sendMessageCheckOk(request)
-    }
-
     static async signalContentAppStopToBackground(): Promise<void>
     {
         const request = { type: BackgroundMessage.signalContentAppStopToBackground.name }
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 
-    static async sendTabStatsToBackground(data: TabStats): Promise<void>
+    static async sendTabStatsToBackground(tabStats: TabStats, tabContentData: ReadonlyMap<string,unknown>): Promise<void>
     {
-        const request = { type: BackgroundMessage.sendTabStatsToBackground.name, data }
+        const type = BackgroundMessage.sendTabStatsToBackground.name
+        const request = { type, tabStats, tabContentData: [...tabContentData.entries()] }
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 

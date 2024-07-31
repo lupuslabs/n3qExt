@@ -534,6 +534,7 @@ export class Config
             },
             translations: {
                 'en-US': {
+                    'Extension.ContentNotReady': 'weblin.io',
                     'Extension.Disable': 'Disable weblin.io',
                     'Extension.Enable': 'Enable weblin.io',
                     'Extension.Hide': 'Hide weblin.io',
@@ -927,6 +928,7 @@ export class Config
                     'ItemLabel.PublicViewing': 'Public Viewing',
                 },
                 'de-DE': {
+                    'Extension.ContentNotReady': 'weblin.io',
                     'Extension.Disable': 'weblin.io ausschalten',
                     'Extension.Enable': 'weblin.io einschalten',
                     'Extension.Hide': 'weblin.io ausgeblenden',

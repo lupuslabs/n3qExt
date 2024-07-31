@@ -56,6 +56,7 @@ import { PointerEventData } from '../lib/PointerEventData'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentPersonManager } from './ContentPersonManager'
 import { ItemOverlays } from './ItemOverlays'
+import { TabContentData } from './TabContentData'
 
 export class ContentAppNotification
 {
@@ -81,6 +82,7 @@ export type ContentAppParams = {
 export class ContentApp extends AppWithDom
 {
     private readonly backgroundCommunicator: ContentToBackgroundCommunicator;
+    private readonly tabContentData: TabContentData;
     private readonly urlFetcher: UrlFetcher;
     private params: ContentAppParams;
     private isStopped: boolean = false;
@@ -128,6 +130,7 @@ export class ContentApp extends AppWithDom
     // Getter
 
     getDebugUtils(): DebugUtils { return this.debugUtils; }
+    getTabContentData(): TabContentData { return this.tabContentData; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }
     getDisplay(): HTMLElement { return this.display; }
@@ -168,6 +171,7 @@ export class ContentApp extends AppWithDom
     ) {
         super();
         this.appendToMe = appendToMe;
+        this.tabContentData = new TabContentData(this);
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
@@ -189,8 +193,10 @@ export class ContentApp extends AppWithDom
         this.backgroundCommunicator.start()
         BackgroundMessage.backgroundCommunicator = this.backgroundCommunicator;
 
+        let tabContentData: [string,unknown][];
         try {
-            await BackgroundMessage.waitReady();
+            const result = await BackgroundMessage.waitReady();
+            tabContentData = result.tabContentData
         } catch (error) {
             log.debug(error);
             Panic.now();
@@ -269,7 +275,8 @@ export class ContentApp extends AppWithDom
             Panic.now();
         }
 
-        BackgroundMessage.signalContentAppStartToBackground().catch(error => this.onError(error));
+        this.tabContentData.changeListeners.addListener(() => this.onTabStatsChanged());
+        this.tabContentData.initWithDataFromBackground(tabContentData);
         BackgroundMessage.requestBackpackState().catch(ex => this.onError(ex));
 
         // this.enterPage();
@@ -439,8 +446,9 @@ export class ContentApp extends AppWithDom
         this.stopCheckPageUrl();
         this.leavePage();
         this.onUnload();
-        BackgroundMessage.signalContentAppStopToBackground().catch(error => this.onError(error));
-        this.backgroundCommunicator.stop()
+        BackgroundMessage.signalContentAppStopToBackground()
+            .catch(error => this.onError(error))
+            .then(() => this.backgroundCommunicator.stop());
     }
 
     onUnload()
@@ -479,6 +487,9 @@ export class ContentApp extends AppWithDom
     private sendTabStatsToBackground(): void
     {
         this.sendTabStatsTimeoutHandle = null;
+        if (!this.tabContentData.getIsInitialized()) {
+            return; // Not fully started up yet.
+        }
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
@@ -489,7 +500,8 @@ export class ContentApp extends AppWithDom
         });
         const toastCount = this.toasts.size;
         const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
-        BackgroundMessage.sendTabStatsToBackground(stats).catch(error => this.onError(error));
+        const tabContentData = this.tabContentData.getAll();
+        BackgroundMessage.sendTabStatsToBackground(stats, tabContentData).catch(error => this.onError(error));
     }
 
     test(): void

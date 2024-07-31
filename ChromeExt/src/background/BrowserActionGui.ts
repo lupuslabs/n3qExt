@@ -3,10 +3,11 @@ import log = require('loglevel');
 import { as } from '../lib/as';
 import { makeZeroTabStats, TabStats } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
+import { BackgroundBrowserTab } from './BackgroundBrowserTabs'
 
 type AttentionLevel = 0 | 1 | 2; // normal | highlight | blinking.
 
-class TabState {
+export class BrowserActionGuiTabState {
 
     public readonly lastStats: TabStats;
     public readonly attentionLevel: AttentionLevel;
@@ -24,13 +25,12 @@ class TabState {
 
 export class BrowserActionGui
 {
-    static readonly dummyTabState: TabState = new TabState(makeZeroTabStats(), 0, 0, null);
+    static readonly dummyTabState: BrowserActionGuiTabState = new BrowserActionGuiTabState(makeZeroTabStats(), 0, 0, null);
 
     protected readonly app: BackgroundApp;
     protected readonly hasBrowserActionFeature: boolean;
 
     protected listenerRegistered: boolean = false;
-    protected readonly lastTabStates: Map<number,TabState> = new Map();
 
     constructor(app: BackgroundApp) {
         this.app = app;
@@ -39,40 +39,42 @@ export class BrowserActionGui
 
     public onConfigUpdated(): void
     {
-        if (this.hasBrowserActionFeature && !this.listenerRegistered) {
-            this.listenerRegistered = true;
-            (chrome.action ?? chrome.browserAction).onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
+        if (!this.hasBrowserActionFeature || this.listenerRegistered) {
+            return;
         }
-    }
+        this.listenerRegistered = true;
+        (chrome.action ?? chrome.browserAction).onClicked.addListener(tab => this.onBrowserActionClicked(tab.id));
 
-    public forgetTab(tabId: number): void
-    {
-        const lastTabState = this.lastTabStates.get(tabId) ?? null;
-        if (lastTabState) {
-            this.lastTabStates.delete(tabId);
-            clearTimeout(lastTabState.timeoutHandle);
-        }
+        const tabs = this.app.getBrowserTabs();
+        tabs.tabActivatedListeners.addListener(tab => this.updateBrowserActionGui(tab))
+        tabs.tabDeactivatedListeners.addListener(tab => this.updateBrowserActionGui(tab))
+        tabs.tabStatsChangedListeners.addListener(tab => this.updateBrowserActionGui(tab))
     }
 
     protected onBrowserActionClicked(tabId: number): void
     {
         // Show / hide web page GUI overlay:
-        const tabData = this.app.getTabData(tabId);
-        tabData.isGuiEnabled = !tabData.isGuiEnabled;
-        this.updateBrowserActionGui(tabId);
-        this.app.sendIsGuiEnabledStateToTab(tabId);
+        const tab = this.app.getBrowserTabs().getTab(tabId);
+        tab.toggleIsGuiEnabled();
+        this.updateBrowserActionGui(tab);
     }
 
-    public updateBrowserActionGui(tabId: number): void
+    public updateBrowserActionGui(tab: BackgroundBrowserTab): void
     {
         if (!this.hasBrowserActionFeature) {
             return;
         }
-        const lastTabState = this.lastTabStates.get(tabId) ?? BrowserActionGui.dummyTabState;
+        if (!tab.getIsActive()) {
+            clearTimeout(tab.getBrowserActionGuiState().timeoutHandle);
+            return;
+        }
+        const tabId = tab.getTabId();
+        const lastTabState = tab.getBrowserActionGuiState();
         let {lastStats, attentionLevel, animationStart, timeoutHandle} = lastTabState;
         clearTimeout(timeoutHandle);
         timeoutHandle = null;
-        const {isGuiEnabled, stats} = this.app.getTabData(tabId);
+        const isGuiEnabled = tab.getIsGuiEnabled();
+        const stats = tab.getStats();
 
         if (isGuiEnabled) {
             attentionLevel = 0;
@@ -93,7 +95,11 @@ export class BrowserActionGui
         let titleKey = 'Extension.Hide';
         let color = as.String(Config.get('browserAction.normalBadgeColor'), '#FFFFFF');
         let text = '';
-        if (!isGuiEnabled) {
+        if (!tab.getIsContentReady()) {
+            path = '/assets/iconDisabled.png';
+            titleKey = 'Extension.ContentNotReady';
+            text = '';
+        } else if (!isGuiEnabled) {
             path = '/assets/iconDisabled.png';
             titleKey = 'Extension.Show';
             text = as.String(stats.participantCount);
@@ -114,7 +120,7 @@ export class BrowserActionGui
                     }
                     const nextPhaseAlreadyPassedMsecs = msecsPassed % blinkPhaseDurationMsecs;
                     const nextPhaseDelayMsecs = blinkPhaseDurationMsecs - nextPhaseAlreadyPassedMsecs + 1;
-                    const nextAnimStepFun = () => this.updateBrowserActionGui(tabId);
+                    const nextAnimStepFun = () => this.updateBrowserActionGui(this.app.getBrowserTabs().getTab(tabId));
                     timeoutHandle = setTimeout(nextAnimStepFun, nextPhaseDelayMsecs);
                 } else {
                     attentionLevel = 1;
@@ -124,9 +130,9 @@ export class BrowserActionGui
         const title = this.app.translateText(titleKey);
 
         const errorHandler = () => {
-            if (chrome.runtime.lastError && this.lastTabStates.get(tabId)) {
+            if (chrome.runtime.lastError) {
                 if (chrome.runtime.lastError.message.startsWith('No tab with ')) {
-                    this.forgetTab(tabId);
+                    this.app.getBrowserTabs().checkBrowserTabState(tabId);
                 } else {
                     log.info('BrowserActionGui.updateBrowserActionGui', chrome.runtime.lastError.message, {error: chrome.runtime.lastError});
                 }
@@ -138,7 +144,7 @@ export class BrowserActionGui
         (chrome.action ?? chrome.browserAction).setBadgeText({ tabId, text }, errorHandler);
 
         lastStats = {...stats};
-        this.lastTabStates.set(tabId, { lastStats, attentionLevel, animationStart, timeoutHandle });
+        tab.setBrowserActionGuiState({ lastStats, attentionLevel, animationStart, timeoutHandle });
     }
 
 }

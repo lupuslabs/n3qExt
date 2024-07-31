@@ -20,6 +20,7 @@ export class BackgroundFriendshipProposalManager
     {
         this.app = app
         this.updateStateMsgForContent()
+        app.getBrowserTabs().tabContentReadyListeners.addListener(tab => tab.sendMessage(this.stateMsgForContent))
     }
 
     public stop(): void
@@ -46,11 +47,6 @@ export class BackgroundFriendshipProposalManager
         if (this.isStopped) {
             return
         }
-    }
-
-    public onNewTab(tabId: number): void
-    {
-        this.app.sendToTab(tabId, this.stateMsgForContent)
     }
 
     public handleFriendshipProposalNotification(notification: Message.FriendshipProposalNotification): void {

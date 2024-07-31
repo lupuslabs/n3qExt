@@ -10,6 +10,7 @@ import {
     BackgroundMessage,
     BackgroundResponse,
     BackgroundSuccessResponse,
+    BackgroundReadyResponse,
     FindBackpackItemPropertiesResponse,
     GetBackpackItemPropertiesResponse,
     IsBackpackItemResponse,
@@ -23,8 +24,6 @@ import {
     GetChatHistoryResponse,
     IsTabDisabledResponse,
     NewChatMessageResponse,
-    TabStats,
-    makeZeroTabStats,
     TabRoomPresenceData,
     PopupDefinition,
     GetItemsByInventoryItemIdsResponse,
@@ -60,6 +59,7 @@ import {
     BackgroundTabHeartbeatHandler,
 } from '../lib/BackgroundToContentCommunicator'
 import { BackgroundFriendshipProposalManager } from './BackgroundFriendshipProposalManager'
+import { BackgroundBrowserTab, BackgroundBrowserTabs } from './BackgroundBrowserTabs'
 
 export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
@@ -69,15 +69,9 @@ interface PointsActivity
     n: number;
 }
 
-type BackgroundTabData = {
-    tabId: number;
-    requestState: boolean; // If the tab is new to this background worker session and an update hasn't been requested yet.
-    isGuiEnabled: boolean;
-    stats: TabStats;
-}
-
 export class BackgroundApp
 {
+    private readonly tabs: BackgroundBrowserTabs;
     private readonly contentCommunicator: BackgroundToContentCommunicator;
     private readonly urlFetcher: DirectUrlFetcher;
     private readonly configUpdater: ConfigUpdater;
@@ -102,12 +96,12 @@ export class BackgroundApp
     private lastReadyAssertedTime = 0;
 
     private readonly iqStanzaTabId: Map<string, number> = new Map();
-    private readonly tabs: Map<number, BackgroundTabData> = new Map();
 
     public constructor(contentCommunicatorFactory: ContentCommunicatorFactory) {
         const heartbeatHandler = () => this.maintain()
-        const tabHeartbeatHandler = (tabId: number) => this.maintainTab(tabId)
+        const tabHeartbeatHandler = (tabId: number) => this.tabs.onTabHeartbeat(tabId)
         const requestHandler = (tabId: number, request: BackgroundRequest) => this.onContentRequest(tabId, request)
+        this.tabs = new BackgroundBrowserTabs(this);
         this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, tabHeartbeatHandler, requestHandler);
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);
@@ -126,6 +120,11 @@ export class BackgroundApp
     public getUrlFetcher(): UrlFetcher
     {
         return this.urlFetcher;
+    }
+
+    public getBrowserTabs(): BackgroundBrowserTabs
+    {
+        return this.tabs;
     }
 
     public async start(): Promise<void>
@@ -151,10 +150,12 @@ export class BackgroundApp
 
         this.configUpdater.start(() => this.onConfigUpdated());
 
-        if (typeof chrome !== 'undefined') {
-            chrome?.tabs?.onActivated?.addListener(activeInfo => this.onBrowserTabActivated(activeInfo.tabId));
-            chrome?.tabs?.onRemoved?.addListener((tabId, activeInfo) => this.onBrowserTabRemoved(tabId));
-        }
+        this.tabs.tabContentStopListeners.addListener(tab => this.onBrowserTabContentAppStop(tab))
+    }
+
+    public getIsReady(): boolean
+    {
+        return this.isReady;
     }
 
     public getUserId(): string
@@ -283,18 +284,13 @@ export class BackgroundApp
             if (Utils.logChannel('startup', true)) { log.info('BackgroundApp', 'isReady'); }
 
             this.maintain();
-            for (const tabId of this.tabs.keys()) {
-                this.maintainTab(tabId);
-            }
         }
     }
 
     public stop(): void
     {
         this.configUpdater.stop();
-        for (const tabId of this.tabs.keys()) {
-            this.onBrowserTabRemoved(tabId);
-        }
+        this.tabs.getAllConnectedTabIds().forEach(tabId => this.tabs.onTabContentStop(tabId))
 
         this.contentCommunicator.stop()
 
@@ -310,69 +306,16 @@ export class BackgroundApp
         return this.babelfish.translateText(key, defaultText);
     }
 
-    public getTabData(tabId: number): BackgroundTabData
-    {
-        let tabData = this.tabs.get(tabId);
-        if (is.nil(tabData)) {
-            tabData = {
-                tabId,
-                requestState: true,
-                isGuiEnabled: true,
-                stats: makeZeroTabStats(),
-            };
-            this.tabs.set(tabId, tabData);
-        }
-        return tabData;
-    }
-
     // IPC
 
-    private onBrowserTabActivated(tabId: number): void
+    private onBrowserTabContentAppStop(tab: BackgroundBrowserTab): void
     {
-        this.browserActionGui.updateBrowserActionGui(tabId);
-    }
-
-    private onBrowserTabRemoved(tabId: number): void
-    {
-        this.roomPresenceManager.onTabUnavailable(tabId);
-        this.browserActionGui.forgetTab(tabId);
-        this.tabs.delete(tabId);
-        this.contentCommunicator.forgetTab(tabId);
-    }
-
-    public sendIsGuiEnabledStateToTab(tabId: number): void
-    {
-        const {isGuiEnabled} = this.getTabData(tabId);
-        this.sendToTab(tabId, { 'type': ContentMessage.type_extensionIsGuiEnabledChanged, 'data': { isGuiEnabled } });
-    }
-
-    private onSignalContentAppStart(tabId: number): void
-    {
-        const tabData = this.getTabData(tabId);
-        tabData.stats = makeZeroTabStats();
-        tabData.requestState = true;
-        this.browserActionGui.updateBrowserActionGui(tabId);
-        this.sendIsGuiEnabledStateToTab(tabId);
-        this.friendshipProposalManager.onNewTab(tabId);
-    }
-
-    private onSignalContentAppStop(tabId: number): void
-    {
-        const tabData = this.getTabData(tabId);
-        tabData.stats = makeZeroTabStats();
-        tabData.requestState = false;
-        this.roomPresenceManager.onTabUnavailable(tabId);
-        this.browserActionGui.updateBrowserActionGui(tabId);
-        this.contentCommunicator.forgetTab(tabId);
-    }
-
-    private onStatsFromTab(tabId: number, stats: TabStats): void
-    {
-        this.getTabData(tabId).stats = stats;
-        this.browserActionGui.updateBrowserActionGui(tabId);
+        this.roomPresenceManager.onTabUnavailable(tab.getTabId());
+        this.contentCommunicator.forgetTab(tab.getTabId());
     }
 
     private async onContentRequest(tabId: number, request: BackgroundRequest): Promise<BackgroundResponse> {
+        this.tabs.onTabContentConnected(tabId);
         switch (request.type) {
 
             case BackgroundMessage.test.name: {
@@ -399,21 +342,16 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.assertReady.name: {
-                return this.handle_assertReady();
-            } break;
-
-            case BackgroundMessage.signalContentAppStartToBackground.name: {
-                this.onSignalContentAppStart(tabId);
-                return new BackgroundSuccessResponse();
+                return this.handle_assertReady(tabId);
             } break;
 
             case BackgroundMessage.signalContentAppStopToBackground.name: {
-                this.onSignalContentAppStop(tabId);
+                this.tabs.onTabContentStop(tabId);
                 return new BackgroundSuccessResponse();
             } break;
 
             case BackgroundMessage.sendTabStatsToBackground.name: {
-                this.onStatsFromTab(tabId, request.data);
+                this.tabs.onStatsFromTab(tabId, request.tabStats, request.tabContentData);
                 return new BackgroundSuccessResponse();
             } break;
 
@@ -568,7 +506,7 @@ export class BackgroundApp
         return response;
     }
 
-    private async handle_assertReady(): Promise<BackgroundSuccessResponse|BackgroundErrorResponse>
+    private async handle_assertReady(tabId: number): Promise<BackgroundReadyResponse|BackgroundErrorResponse>
     {
         if (Utils.logChannel('contentStart', true)) {
             log.info('BackgroundApp.handle_assertReady');
@@ -576,7 +514,8 @@ export class BackgroundApp
         if (this.isReady) {
             this.lastReadyAssertedTime = Date.now();
             this.readyAssertedCount++;
-            return new BackgroundSuccessResponse();
+            const tabContentData = [...this.tabs.getTab(tabId).getContentData().entries()];
+            return new BackgroundReadyResponse(tabContentData);
         }
         return new BackgroundErrorResponse('uninitialized', 'Not ready yet.');
     }
@@ -877,11 +816,6 @@ export class BackgroundApp
         return this.roomPresenceManager.getTabIdsByRoomJid(roomJid);
     }
 
-    private getAllTabIds(): number[]
-    {
-        return [...this.tabs.keys()];
-    }
-
     // send/recv stanza
 
     private handle_sendStanza(stanza: any, tabId: number): BackgroundResponse
@@ -1075,12 +1009,12 @@ export class BackgroundApp
 
     public sendToAllTabs(message: { type: string, [p: string]: any })
     {
-        this.getAllTabIds().forEach(tabId => this.sendToTab(tabId, message));
+        this.tabs.getAllConnectedTabIds().forEach(tabId => this.sendToTab(tabId, message));
     }
 
     public sendToAllTabsExcept(exceptTabId: number, message: { type: string, [p: string]: any })
     {
-        this.getAllTabIds().filter(tabId => tabId !== exceptTabId).forEach(tabId => this.sendToTab(tabId, message));
+        this.tabs.getAllConnectedTabIds().filter(tabId => tabId !== exceptTabId).forEach(tabId => this.sendToTab(tabId, message));
     }
 
     public sendToTab(tabId: number, message: { type: string, [p: string]: any }): void
@@ -1110,24 +1044,6 @@ export class BackgroundApp
         this.friendshipProposalManager.maintain()
         this.websocketManager.maintain()
         this.xmppManager.maintain()
-    }
-
-    private maintainTab(tabId: number): void
-    {
-        if (!this.isReady) {
-            if (Utils.logChannel('pingBackground', true)) {
-                log.info('BackgroundApp.maintainTab: Ignored because not ready yet.', { tabId });
-            }
-            return;
-        }
-        if (Utils.logChannel('pingBackground', true)) {
-            log.info('BackgroundApp.maintainTab', { tabId });
-        }
-        const tabData = this.getTabData(tabId);
-        if (tabData.requestState) {
-            tabData.requestState = false;
-            this.sendToTab(tabId, { 'type': ContentMessage.type_sendStateToBackground });
-        }
     }
 
     //
