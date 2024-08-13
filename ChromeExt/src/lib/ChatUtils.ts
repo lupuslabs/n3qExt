@@ -34,6 +34,14 @@ export namespace ChatUtils {
         return userChatMessageTypes.some(elem => elem === val)
     }
 
+    export function areChatMessagesOfSameUser(msgA: ChatMessage, msgB: ChatMessage): boolean
+    {
+        if (msgA.authorUserId.length !== 0) {
+            return msgA.authorUserId === msgB.authorUserId
+        }
+        return msgA.authorName === msgB.authorName
+    }
+
     export function areChatsEqual(chatA: ChatChannel, chatB: ChatChannel): boolean
     {
         return chatA.type === chatB.type && chatA.roomJid === chatB.roomJid && chatA.roomNick === chatB.roomNick

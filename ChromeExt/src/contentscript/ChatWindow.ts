@@ -255,49 +255,65 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         if (this.chatoutElem) {
             this.chatoutElem.innerHTML = '';
             for (let index = 0; index < this.chatMessages.length(); index++) {
-                this.drawChatMessage(this.chatMessages.at(index), index, false);
+                this.drawChatMessage(index, false);
             }
         }
     }
 
-    private drawChatMessage(message: ChatUtils.ChatMessage, index: number, replaceExisting: boolean)
+    private drawChatMessage(index: number, replaceExisting: boolean)
     {
-        if (this.chatoutElem) {
-            const typeClass = `n3q-chat-type-${message.type}`;
-            const ageClass = message.timestamp >= this.sessionStartTs ? 'n3q-chat-new' : 'n3q-chat-old';
-            const timeStr = Utils.dateOfUtcString(message.timestamp).toLocaleTimeString();
-            const lineElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-chatwindow-line ${ageClass}"></div>`);
-            lineElem.classList.add('n3q-base', 'n3q-chatwindow-line', typeClass, ageClass);
-            const innerHtmls = [];
+        if (!this.chatoutElem) {
+            return;
+        }
+        const message: null|ChatUtils.ChatMessage = this.chatMessages.at(index);
+        if (!message) {
+            return;
+        }
+        const isOwnMessage = message.authorUserId === this.app.getUserId();
+        const previousMessage: null|ChatUtils.ChatMessage = this.chatMessages.at(index - 1);
+        const isFirstMessage = !previousMessage;
+        const isContinuation = !isFirstMessage && ChatUtils.areChatMessagesOfSameUser(message, previousMessage);
 
-            const authorUserId: string = message.authorUserId
-            let authorName: string = message.authorName;
-            if (authorUserId === this.app.getUserId()) {
-                authorName = this.app.getUserNickname();
-            }
+        const typeClass = `type-${message.type}`;
+        const ageClass = message.timestamp >= this.sessionStartTs ? 'new' : 'old';
+        const sourceClass = isOwnMessage ? 'own' : 'other';
+        let continuationClass: string;
+        if (isContinuation) {
+            continuationClass = 'continued';
+        } else if (isFirstMessage) {
+            continuationClass = 'first';
+        } else {
+            continuationClass = 'differentOwner';
+        }
+        const messageElem = DomUtils.elemOfHtml(`<div class="n3q-chatwindow-message"></div>`)
+        messageElem.classList.add(sourceClass, continuationClass, typeClass, ageClass);
 
-            if (authorName.length !== 0) {
-                innerHtmls.push(`<span class="n3q-base n3q-text n3q-time">${as.Html(timeStr)}</span>`);
-                innerHtmls.push(`<span class="n3q-base n3q-text n3q-nick">${as.Html(authorName)}</span>`);
-                const colonText = this.app.translateText('Chatwindow.:');
-                innerHtmls.push(`<span class="n3q-base n3q-text n3q-colon">${as.Html(colonText)}</span>`);
-            }
-            const textHtml = as.HtmlWithClickableLinks(message.text);
-            innerHtmls.push(`<span class="n3q-base n3q-text n3q-chat">${textHtml}</span>`);
-            lineElem.innerHTML = innerHtmls.join('');
-            PointerEventDispatcher.protectElementsWithDefaultActions(this.app, lineElem);
+        const contentElem = DomUtils.elemOfHtml(`<div class="content"></div>`)
+        messageElem.appendChild(contentElem);
+        let authorName: string = message.authorName;
+        if (authorName.length !== 0) {
+            const authorHtml = as.Html(authorName)
+            contentElem.appendChild(DomUtils.elemOfHtml(`<span class="nick">${authorHtml}</span>`));
+        }
+        const textHtml = as.HtmlWithClickableLinks(message.text);
+        contentElem.appendChild(DomUtils.elemOfHtml(`<span class="text">${textHtml}</span>`));
+        const timeHtml = as.Html(Utils.dateOfUtcString(message.timestamp).toLocaleTimeString());
+        contentElem.appendChild(DomUtils.elemOfHtml(`<span class="time">${timeHtml}</span>`));
 
-            const oldElem = this.chatoutElem.children.item(index);
-            this.chatoutElem.insertBefore(lineElem, oldElem);
-            if (replaceExisting) {
-                this.chatoutElem.children.item(index)?.remove();
-            }
-            if (this.chatoutAutoScroll) {
-                this.chatoutElem.scrollTop = this.chatoutElem.scrollHeight;
-            }
-            if (message.isUnread && this.getViewportVisibility()) {
-                this.markMessageAsRead(message);
-            }
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, messageElem);
+
+        const oldElem = this.chatoutElem.children.item(index);
+        this.chatoutElem.insertBefore(messageElem, oldElem);
+        if (replaceExisting) {
+            oldElem?.remove();
+        }
+
+        if (this.chatoutAutoScroll) {
+            this.chatoutElem.scrollTop = this.chatoutElem.scrollHeight;
+        }
+
+        if (message.isUnread && this.getViewportVisibility()) {
+            this.markMessageAsRead(message);
         }
     }
 
@@ -329,7 +345,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         } else {
             this.unreadUserChatMessages.remove(chatMessage);
         }
-        this.drawChatMessage(chatMessage, index, replacedExisting);
+        this.drawChatMessage(index, replacedExisting);
         this.giveMessageToChatOut(chatMessage);
     }
 

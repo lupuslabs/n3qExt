@@ -1990,26 +1990,66 @@ div#n3q-display {
         touch-action: pan-x pan-y;
     }
 
-    div.n3q-chatwindow-line {
-        font-size: 12px;
-        line-height: 13px;
-        margin-left: 20px; text-indent: -20px;
+    div.n3q-chatwindow-message {
+        @extend .n3q-base;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin: 0.25em 8px 0 0;
 
-        span.n3q-time {
-            margin: 0 0.4em 0 0;
+        .content {
+            border: 0 none;
+            border-radius: 10px;
+            background: hsla(0, 0%, 0%, 0.05);
+            padding: 5px 10px;
+            min-width: 40%;
+            display: flex;
+            flex-direction: column;
+            * {
+                display: block;
+            }
+            .nick {
+                padding-bottom: 3px;
+                font-size: 12px;
+                line-height: 14px;
+                font-weight: bold;
+            }
+            .text, .text * {
+                font-size: 14px;
+                line-height: 16px;
+                overflow-wrap: break-word;
+            }
+            .time {
+                padding-top: 3px;
+                font-size: 10px;
+                line-height: 10px;
+                text-align: right;
+            }
         }
 
-        span.n3q-nick {
-            font-weight: bold;
+        &.old > .content > * {
+            color: #404040;
         }
-
-        span.n3q-colon {
-            font-weight: bold;
-            margin: 0 0.4em 0 0;
+        &.own {
+            justify-content: flex-end;
+            padding-left: 40px;
+            .content > .nick {
+                display: none;
+            }
         }
-    }
-    div.n3q-chatwindow-line.n3q-chat-old > * {
-        color: #404040;
+        &.other {
+            justify-content: flex-start;
+            padding-right: 40px;
+        }
+        &.first {
+            margin-top: 0;
+        }
+        &.differentOwner {
+            margin-top: 0.75em;
+        }
+        &.continued > .content > .nick {
+            display: none;
+        }
     }
 
     div.n3q-chatwindow-chatin {

@@ -12,6 +12,7 @@ export class _Changes
             ['Add', 'Private chat windows reopen after navigation in same tab'],
             ['Change', 'Private chat window isn\'t opened automatically but a toast is displayed instead when unread messages are present'],
             ['Change', 'Private chat now keeps working when users navigate'],
+            ['Change', 'More modern layout/styling for chat messages in chat windows'],
             ['Fix', 'GUI positioning on pages using non-LTR text flow direction'],
         ]],
         ['1.3.2', 'PointsLegend', [
