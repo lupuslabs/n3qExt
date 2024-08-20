@@ -140,6 +140,9 @@ export class Config
             name: 'basic',
             version: ''
         },
+        themes: {
+            enabled: false,
+        },
         vp: {
             deferPageEnterSec: 0.3,
             vpiRoot: 'https://webex.vulcan.weblin.com/vpi/v7/root.xml',

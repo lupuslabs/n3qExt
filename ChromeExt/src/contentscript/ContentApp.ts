@@ -58,6 +58,7 @@ import { ContentPersonManager } from './ContentPersonManager'
 import { ItemOverlays } from './ItemOverlays'
 import { TabContentData } from './TabContentData'
 import { ContentInstantMessageManager } from './ContentInstantMessageManager'
+import { ContentThemeManager } from './ContentThemeManager'
 
 export class ContentAppNotification
 {
@@ -94,6 +95,7 @@ export class ContentApp extends AppWithDom
     private shadowDomAnchorDomObserver: null|MutationObserver;
     private shadowDomRoot: null|ShadowRoot;
     private display: null|HTMLElement;
+    private readonly themeManager: ContentThemeManager;
     private dropzoneELem: null|HTMLElement = null;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
@@ -136,6 +138,7 @@ export class ContentApp extends AppWithDom
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }
     getDisplay(): HTMLElement { return this.display; }
+    getThemeManager(): ContentThemeManager { return this.themeManager; }
     getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
     public getUserId(): string { return this.userId; }
     getRoom(): Room|null { return this.room; }
@@ -177,6 +180,7 @@ export class ContentApp extends AppWithDom
         this.tabContentData = new TabContentData(this);
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
+        this.themeManager = new ContentThemeManager(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
         const requestHandler = request => this.onBackgroundRequest(request)
         this.backgroundCommunicator = contentCommunicatorFactory(requestHandler);
@@ -720,6 +724,10 @@ export class ContentApp extends AppWithDom
 
                 case ContentMessage.type_configChanged: {
                     this.handle_configChanged();
+                } break;
+
+                case ContentMessage.type_themes: {
+                    this.themeManager.onThemesFromBackground(message);
                 } break;
 
                 case ContentMessage.type_recvStanza: {

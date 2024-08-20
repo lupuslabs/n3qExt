@@ -73,6 +73,17 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         }(this))
     }
 
+    public filterType<NewT extends T>(acceptFun: (element: T) => element is NewT): Iter<NewT>
+    {
+        return new IteratorIter(function*(iterable){
+            for (const element of iterable) {
+                if (acceptFun(element)) {
+                    yield element
+                }
+            }
+        }(this))
+    }
+
     public skip(count: number): Iter<T>
     {
         for (let i = 0; i < count; i++) {

@@ -51,6 +51,7 @@ import { ChatUtils } from '../lib/ChatUtils';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
 import { BrowserActionGui } from './BrowserActionGui';
+import { BackgroundThemeManager } from './BackgroundThemeManager'
 import { PopupManager } from './PopupManger'
 import { DirectUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
 import {
@@ -62,6 +63,8 @@ import {
 import { BackgroundFriendshipProposalManager } from './BackgroundFriendshipProposalManager'
 import { BackgroundBrowserTab, BackgroundBrowserTabs } from './BackgroundBrowserTabs'
 import { BackgroundInstantMessageManager } from './BackgroundInstantMessageManager'
+import MessageSender = chrome.runtime.MessageSender
+import { ExtensionMessage } from './ExtensionMessages'
 
 export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
@@ -83,6 +86,7 @@ export class BackgroundApp
     private readonly chatHistoryStorage: ChatHistoryStorage;
     private readonly instantMessageManager: BackgroundInstantMessageManager;
     private readonly browserActionGui: BrowserActionGui;
+    private readonly themeManager: BackgroundThemeManager;
     private readonly popupManager: PopupManager;
     private readonly backpack: Backpack;
     private readonly friendshipProposalManager: BackgroundFriendshipProposalManager;
@@ -114,9 +118,15 @@ export class BackgroundApp
         this.chatHistoryStorage = new ChatHistoryStorage(this);
         this.instantMessageManager = new BackgroundInstantMessageManager(this);
         this.browserActionGui = new BrowserActionGui(this);
+        this.themeManager = new BackgroundThemeManager(this);
         this.popupManager = new PopupManager(this);
         this.backpack = new Backpack(this);
         this.friendshipProposalManager = new BackgroundFriendshipProposalManager(this);
+
+        if ((typeof chrome !== 'undefined') && !!(chrome.runtime?.onMessageExternal ?? null)) {
+            const handler = (request, sender, sendResponse) => this.onExternalMessage(request, sender, sendResponse)
+            chrome.runtime.onMessageExternal.addListener(handler);
+        }
     }
 
     public getLanguage(): string { return this.language; }
@@ -503,8 +513,41 @@ export class BackgroundApp
                 return this.handle_isTabDisabled(tabId, request.pageUrl);
             } break;
 
+            case BackgroundMessage.setThemeState.name: {
+                this.themeManager.onSetThemeStateFromContent(request);
+                return new BackgroundSuccessResponse();
+            } break;
+            case BackgroundMessage.deleteThemes.name: {
+                this.themeManager.onDeleteThemesFromContent(request);
+                return new BackgroundSuccessResponse();
+            } break;
+
             default: {
                 throw new Error(`BackgroundApp.onContentRequest: Unhandled request from tab ${tabId}!`)
+            } break;
+        }
+    }
+
+    private onExternalMessage(message: unknown, sender: MessageSender, sendResponse: (response: unknown) => void): void
+    {
+        if (is.string(sender.id)) {
+            return this.onExtensionMessage(message, sender.id, sendResponse)
+        }
+        const error = new Error(`BackgroundApp.onExternalRequest: Unhandled external request!`)
+        sendResponse(error)
+    }
+
+    private onExtensionMessage(message: unknown, extensionId: string, sendResponse: (response: unknown) => void): void
+    {
+        switch (message?.['type']) {
+
+            case ExtensionMessage.type_ExtensionThemesNotification: {
+                sendResponse(this.themeManager.onThemesFromExtension(extensionId, message));
+            } break;
+
+            default: {
+                const error = new Error(`BackgroundApp.onExternalRequest: Unhandled external request!`)
+                sendResponse(error)
             } break;
         }
     }

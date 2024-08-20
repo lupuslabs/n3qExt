@@ -545,6 +545,18 @@ export class BackgroundMessage
         return response.isDisabled
     }
 
+    static async setThemeState(themeId: string, isEnabled: boolean): Promise<void>
+    {
+        const request = { type: BackgroundMessage.setThemeState.name, themeId, isEnabled }
+        await BackgroundMessage.sendMessageCheckOk<BackgroundSuccessResponse>(request)
+    }
+
+    static async deleteThemes(themeIds: string[]): Promise<void>
+    {
+        const request = { type: BackgroundMessage.deleteThemes.name, themeIds }
+        await BackgroundMessage.sendMessageCheckOk<BackgroundSuccessResponse>(request)
+    }
+
 }
 
 //------------------------------------------------------------------------------

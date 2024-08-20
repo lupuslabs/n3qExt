@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.3.3', 'Friends', [
+            ['Add', 'Infrastructure for theme support'],
             ['Add', 'Small overlay icons visually marking backpack items having selected features'],
             ['Add', 'Memorize other persons as items in your backpack and become friends'],
             ['Add', 'Private chat windows reopen after navigation in same tab'],
