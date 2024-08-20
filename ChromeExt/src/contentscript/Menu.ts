@@ -450,6 +450,9 @@ abstract class Menu
 
     protected applyPosition(clientX: number, clientY: number): void
     {
+        if (!this.menuElem) {
+            return;
+        }
         this.app.toFront(this.menuElem, ContentApp.LayerMenu);
         const displayElemRect = this.app.getDisplay().getBoundingClientRect();
         let localX = clientX - displayElemRect.left;
