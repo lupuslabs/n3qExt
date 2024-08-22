@@ -105,17 +105,15 @@ export class as
 
     static makeLinksClickable(text: string): string
     {
-        const urlRegex = /(https?:\/\/[^\s]+|www\.[^. ]+\.[^ ]+|[^. ]+\.(com|org|net|[a-z]{2}))/g;
-        return text.replace(urlRegex, url =>
-        {
+        const urlRegex = /(https?:\/\/)?\S+[.]\S+/g;
+        const urlReplacer = url => {
             let navigateUrl = url;
-            if (navigateUrl.startsWith('http://') || navigateUrl.startsWith('https://')) {
-                //
-            } else {
+            if (!(navigateUrl.startsWith('http://') || navigateUrl.startsWith('https://'))) {
                 navigateUrl = 'http://' + url;
             }
             return '<a href="' + navigateUrl + '" target="_blank">' + url + '</a>';
-        });
+        };
+        return text.split(/<br\s*[/]>/g).map(line => line.replace(urlRegex, urlReplacer)).join('<br>')
     }
 
     static HtmlLink(val: unknown, text?: string, urlFilter?: (s: string) => string, alt?: string, target?: string): string

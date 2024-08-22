@@ -1,4 +1,3 @@
-import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Client } from '../lib/Client';
 import { Config } from '../lib/Config';
 import { Translator } from '../lib/Translator';
@@ -42,20 +41,21 @@ export class ChatConsole
             default:
             case '/help':
             case '/?':
-                this.out(context, [
-                    ['[help]', '/clear # empty chat window'],
-                    ['[help]', '/xmpp # show xmpp console'],
-                    ['[help]', '/room # show room info'],
-                    ['[help]', '/changes # show versions and changes'],
-                    ['[help]', '/i /items /inventory /backpack # toggle backpack window'],
-                    ['[help]', '/b /badges # toggle badges edit mode'],
-                    ['[help]', '/v /video /vid /vidconf /conf # toggle video conf window'],
-                    ['[help]', '/c /chat # toggle chat window'],
-                    ['[help]', '/info # show client info'],
-                    ['[help]', '/who # show participants'],
-                    ['[help]', '/what # show items'],
-                    ['[help]', '/map <URL> # show URL mapping for url'],
-                ]);
+                this.out(context, [['[help]', [
+                    '/clear: Empty chat window',
+                    '/xmpp: Show xmpp console',
+                    '/room: Show room info',
+                    '/changes: Show versions and changes',
+                    '/i /items /inventory /backpack: Toggle backpack window',
+                    '/b /badges: Toggle badges edit mode',
+                    '/v /video /vid /vidconf /conf: Toggle video conf window',
+                    '/c /chat: Toggle chat window',
+                    '/tutorial: Show tutorials',
+                    '/info: Show client info',
+                    '/who: Show participants',
+                    '/what:Sshow items',
+                    '/map <URL>: Show URL mapping for url',
+                ].join('\n')]]);
                 break;
             case '/clear':
                 context.app?.getRoom().clearChatWindow();
@@ -101,29 +101,39 @@ export class ChatConsole
             case '/changes':
                 context.app?.showChangesWindow();
                 break;
-            case '/info':
-                ChatConsole.out(context, [
-                    ['info', JSON.stringify(Client.getDetails())]
-                ]);
-                break;
-            case '/room':
-                context.room?.getInfo().forEach(line =>
-                {
-                    ChatConsole.out(context, [line[0], line[1]]);
-                });
-                break;
-            case '/who':
-                context.room?.getParticipantIds().forEach(participantNick =>
-                {
-                    ChatConsole.out(context, [participantNick, context.room?.getParticipant(participantNick).getDisplayName()]);
-                });
-                break;
-            case '/what':
-                context.room?.getItemIds().forEach(itemId =>
-                {
-                    ChatConsole.out(context, [itemId, context.room?.getItem(itemId).getDisplayName()]);
-                });
-                break;
+            case '/info': {
+                const text = Object.entries(Client.getDetails())
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n');
+                ChatConsole.out(context, [['[info]', text]]);
+            } break;
+            case '/room': {
+                const roomInfo = context.room?.getInfo() ?? null;
+                if (roomInfo) {
+                    const roomInfoText = roomInfo
+                        .map(([name, value]) => `${name}: ${value}`)
+                        .join('\n');
+                    ChatConsole.out(context, [['[room]', roomInfoText]]);
+                }
+            } break;
+            case '/who': {
+                const participantRoomId = context.room?.getParticipantIds() ?? null;
+                if (participantRoomId) {
+                    const text = participantRoomId
+                        .map(id => `${id}: ${context.room.getParticipant(id).getDisplayName()}`)
+                        .join('\n');
+                    ChatConsole.out(context, [['[who]', text]]);
+                }
+            } break;
+            case '/what': {
+                const itemIds = context.room?.getItemIds() ?? null;
+                if (itemIds) {
+                    const text = itemIds
+                        .map(itemId => `${itemId}: ${context.room.getItemByItemId(itemId).getDisplayName()}`)
+                        .join('\n');
+                    ChatConsole.out(context, [['[what]', text]]);
+                }
+            } break;
             case '/map': {
                 const urlFetcher = new BackgroundMessageUrlFetcher()
                 const vpi = new VpiResolver(urlFetcher, Config);
@@ -136,13 +146,15 @@ export class ChatConsole
                 vpi.trace = (key, value) => { lines.push([key, value]); };
                 vpi.map(url).then(result =>
                 {
-                    lines.forEach(line =>
-                    {
-                        ChatConsole.out(context, [line[0], line[1]]);
-                    });
-                    // ChatConsole.out(context, ['valid', result.isValid]);
-                    // ChatConsole.out(context, ['room', result.roomJid]);
-                    // ChatConsole.out(context, ['destination', result.destinationUrl]);
+                    //lines.push(['valid', as.String(result.isValid)]);
+                    //lines.push(['room', result.roomJid]);
+                    //lines.push(['destination', result.destinationUrl]);
+                    if (lines) {
+                        const text = lines
+                            .map(([action, target]) => `${action} ${target}`)
+                            .join('\n');
+                        ChatConsole.out(context, [['[map]', text]]);
+                    }
                 });
             } break;
         }

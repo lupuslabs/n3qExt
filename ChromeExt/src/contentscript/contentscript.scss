@@ -2005,7 +2005,7 @@ div#n3q-display {
             min-width: 40%;
             display: flex;
             flex-direction: column;
-            * {
+            > * {
                 display: block;
             }
             .nick {
