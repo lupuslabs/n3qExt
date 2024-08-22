@@ -33,25 +33,28 @@ export class as
         return res;
     }
 
+    private static StringOfminLengthOrNull(val: string, minLength: number): null|string
+    {
+        return val.length >= minLength ? val : null
+    }
+
+    static StringOrNull(val: unknown, minLength: number = 0): null|string
+    {
+        if (is.string(val)) {
+            return as.StringOfminLengthOrNull(val, minLength)
+        }
+        if (is.number(val)) {
+            return as.StringOfminLengthOrNull(String(val), minLength)
+        }
+        if (is.boolean(val)) {
+            return as.StringOfminLengthOrNull(val ? 'true' : 'false', minLength)
+        }
+        return null;
+    }
+
     static String(val: unknown, alt?: string): string
     {
-        let res = alt ?? '';
-        try {
-            if (is.string(val)) {
-                res = val;
-            } else {
-                if (is.number(val)) {
-                    res = '' + val;
-                } else {
-                    if (is.boolean(val)) {
-                        res = val ? 'true' : 'false';
-                    }
-                }
-            }
-        } catch (error) {
-            // alt
-        }
-        return res;
+        return as.StringOrNull(val, 0) ?? alt ?? '';
     }
 
     static IntOrNull(val: unknown): null|number

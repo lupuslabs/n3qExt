@@ -1,4 +1,5 @@
-import { ItemProperties } from '../lib/ItemProperties';
+import { is } from '../lib/is'
+import { BadgeIframeData, ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomUtils } from '../lib/DomUtils';
@@ -12,6 +13,8 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     // Displays information about a single badge.
 
     private readonly badge: Badge;
+    private badgeContent: null|BadgeInfoWindowContent;
+    private badgeContentElem: null|HTMLElement;
 
     //--------------------------------------------------------------------------
     // API for Badge
@@ -34,9 +37,7 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     public updateDisplay(): void
     {
         if (this.getVisibility()) {
-            const geometry = this.readGeometryFromDom();
-            this.close();
-            this.show(geometry);
+            this.updateContent();
         }
     }
 
@@ -50,13 +51,11 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         this.style = 'popup';
         this.guiLayer = ContentApp.LayerPopup;
         this.windowCssClasses.push('n3q-badgeInfoWindow');
-        this.isResizable = false;
+        this.isResizable = true;
         this.withTitlebar = false;
         this.geometryInitstrategy = 'afterContent';
         const aboveRect = this.badge.getBoundingClientRect();
         this.givenOptions = {
-            width: 'content',
-            height: 'content',
             left: this.givenOptions.left ?? aboveRect.left,
             bottom: this.givenOptions.bottom,
             above: aboveRect,
@@ -67,17 +66,84 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
+        this.updateContent();
+    }
 
+    protected onBeforeClose(): void
+    {
+        super.onBeforeClose();
+        this.badgeContent = null;
+        this.contentElem.remove();
+        this.contentElem = null;
+    }
+
+    public updateContent(): void
+    {
         const properties = this.badge.getProperties();
-        const columnsElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-columns"></div>');
-        this.contentElem.append(columnsElem);
+
+        if (this.badgeContent) {
+            this.badgeContent.setProperties(properties);
+        }
+        if (!(this.badgeContent?.canMakeContentForBadge() ?? false)) {
+            this.badgeContent = new BadgeInfoWindowIframeContent(this.app, properties);
+            if (!this.badgeContent.canMakeContentForBadge()) {
+                this.badgeContent = new BadgeInfoWindowNativeContent(this.app, properties);
+            }
+        }
+
+        const { contentElem, defaultWidth, defaultHeight } = this.badgeContent.makeContent();
+        if (contentElem !== this.badgeContentElem) {
+            this.badgeContentElem?.remove();
+            this.contentElem.appendChild(contentElem);
+            this.badgeContentElem = contentElem;
+            this.givenOptions.width = defaultWidth ?? 'content';
+            this.givenOptions.height = defaultHeight ?? 'content';
+        }
+    }
+
+}
+
+type MakeContentResult = { contentElem: HTMLElement, defaultWidth?: number, defaultHeight?: number }
+
+interface BadgeInfoWindowContent
+{
+    setProperties(properties: ItemProperties): void;
+    canMakeContentForBadge(): boolean;
+    makeContent(): MakeContentResult
+}
+
+class BadgeInfoWindowNativeContent implements BadgeInfoWindowContent
+{
+    private readonly app: ContentApp;
+    private properties: ItemProperties;
+
+    constructor(app: ContentApp, properties: ItemProperties)
+    {
+        this.app = app;
+        this.setProperties(properties);
+    }
+
+    public setProperties(properties: ItemProperties): void
+    {
+        this.properties = properties;
+    }
+
+    public canMakeContentForBadge(): boolean
+    {
+        return true;
+    }
+
+    public makeContent(): MakeContentResult
+    {
+        const properties = this.properties;
+        const contentElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-columns"></div>');
 
         const {imageUrl, imageWidth, imageHeight} = ItemProperties.getBadgeImageData(properties);
         if (imageUrl.length !== 0) {
             const elem = DomUtils.elemOfHtml('<img class="n3q-badgeInfoWindow-image"/>');
             elem.style.width = `${imageWidth}px`;
             elem.style.height = `${imageHeight}px`;
-            columnsElem.appendChild(elem);
+            contentElem.appendChild(elem);
             this.app.fetchUrlAsDataUrl(imageUrl).then(dataUrl => {
                 elem.setAttribute('src', dataUrl);
             })
@@ -115,8 +181,10 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         if (descriptionColumnElems.length !== 0) {
             const columnElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-descriptionColumn"></div>');
             descriptionColumnElems.forEach(elem => columnElem.appendChild(elem));
-            columnsElem.appendChild(columnElem);
+            contentElem.appendChild(columnElem);
         }
+
+        return { contentElem };
     }
 
     private makeTextElems(container: HTMLElement, text: string): void
@@ -133,6 +201,52 @@ export class BadgeInfoWindow extends Window<WindowOptions>
             });
             container.appendChild(paragraphElem);
         });
+    }
+
+}
+
+class BadgeInfoWindowIframeContent implements BadgeInfoWindowContent
+{
+    private readonly app: ContentApp;
+    private iframeData: Partial<BadgeIframeData> = {};
+    private iframeDataOld: Partial<BadgeIframeData> = {};
+    private contentElem: null|HTMLElement = null;
+
+    constructor(app: ContentApp, properties: ItemProperties)
+    {
+        this.app = app;
+        this.setProperties(properties);
+    }
+
+    public setProperties(properties: ItemProperties): void
+    {
+        this.iframeDataOld = this.iframeData;
+        this.iframeData = ItemProperties.getBadgeIframeData(properties);
+    }
+
+    public canMakeContentForBadge(): boolean
+    {
+        return is.nonEmptyString(this.iframeData.iframeUrl);
+    }
+
+    public makeContent(): MakeContentResult
+    {
+        const defaultWidth = this.iframeData.iframeWidth;
+        const defaultHeight = this.iframeData.iframeHeight;
+        let contentElem: null|HTMLElement = null;
+        if (this.iframeData.iframeUrl === this.iframeDataOld.iframeUrl) {
+            contentElem = this.contentElem;
+        }
+        contentElem ??= this.makeContentElem();
+        return { contentElem, defaultWidth, defaultHeight };
+    }
+
+    private makeContentElem(): HTMLElement
+    {
+        const url = this.iframeData.iframeUrl;
+        const contentElem = DomUtils.elemOfHtml(`<iframe src="${url}"></iframe>`);
+        this.contentElem = contentElem;
+        return contentElem;
     }
 
 }

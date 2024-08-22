@@ -124,6 +124,9 @@ export enum Pid
     BadgeIsTool = 'BadgeIsTool',
     BadgeToolOptions = 'BadgeToolOptions',
     BadgeIsPrivate = 'BadgeIsPrivate',
+    BadgeFrameUrl = 'BadgeFrameUrl',
+    BadgeFrameWidth = 'BadgeFrameWidth',
+    BadgeFrameHeight = 'BadgeFrameHeight',
     EditablePropertiesAspect = 'EditablePropertiesAspect',
     EditableProperties = 'EditableProperties',
 }
@@ -160,6 +163,12 @@ function isRawItemOverlayDefinition(elem: unknown): elem is RawItemOverlayDefini
 {
     return is.object(elem) && is.string(elem['id']) && is.string(elem['imageUrl']) && is.stringsObject(elem['tooltipText']);
 }
+
+export type BadgeIframeData = Readonly<{
+    iframeUrl: null|string,
+    iframeWidth: null|number,
+    iframeHeight: null|number,
+}>
 
 export class ItemProperties
 {
@@ -399,6 +408,15 @@ export class ItemProperties
         return {
             linkUrl: as.String(itemProperties[Pid.BadgeLinkUrl]),
             linkLabel: as.String(itemProperties[Pid.BadgeLinkLabel]),
+        }
+    }
+
+    static getBadgeIframeData(itemProperties: ItemProperties): BadgeIframeData
+    {
+        return {
+            iframeUrl: as.StringOrNull(itemProperties[Pid.BadgeFrameUrl], 1),
+            iframeWidth: as.IntOrNull(itemProperties[Pid.BadgeFrameWidth]),
+            iframeHeight: as.IntOrNull(itemProperties[Pid.BadgeFrameHeight]),
         }
     }
 

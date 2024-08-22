@@ -663,7 +663,12 @@ div#n3q-display {
         position: absolute;
         min-width: 100px;
         min-height: 50px;
-        max-width: 500px;
+
+        iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
 
         .n3q-badgeInfoWindow-base {
             @extend .n3q-base;
