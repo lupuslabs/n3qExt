@@ -297,16 +297,7 @@ export namespace HostedInventoryItemProvider
             if (!this.running) {
                 return;
             }
-            const itemsShowOrSet: ItemProperties[] = [];
-            for (let itemId in multiItemProperties) {
-                const props = multiItemProperties[itemId];
-                const item = this.backpack.createRepositoryItem(itemId, props);
-                if (item.isRezzed()) {
-                    this.backpack.addToRoom(itemId, item.getProperties()[Pid.RezzedLocation]);
-                }
-                itemsShowOrSet.push(item.getProperties());
-            }
-            this.backpack.sendUpdateToAllTabs([], itemsShowOrSet);
+            await this.backpack.onItemUpdateFromProvider([], Object.values(multiItemProperties));
         }
 
         async loadWeb3Items(): Promise<void>
@@ -314,7 +305,7 @@ export namespace HostedInventoryItemProvider
             let currentWeb3SyncedItemIds = this.backpack.findItems(props =>
             {
                 return as.Bool(props[Pid.NftAspect], false) && as.Bool(props[Pid.NftSync], true);
-            }).map(item => item.getProperties()[Pid.Id]);
+            }).map(item => ItemProperties.getId(item));
             let unverifiedWeb3ItemIds = currentWeb3SyncedItemIds;
 
             let wallets = this.backpack.findItems(props => as.Bool(props[Pid.Web3WalletAspect], false));
@@ -323,8 +314,8 @@ export namespace HostedInventoryItemProvider
             }
 
             for (const wallet of wallets) {
-                let walletAddress = wallet.getProperties()[Pid.Web3WalletAddress] ?? '';
-                let network = wallet.getProperties()[Pid.Web3WalletNetwork] ?? '';
+                let walletAddress = wallet[Pid.Web3WalletAddress] ?? '';
+                let network = wallet[Pid.Web3WalletNetwork] ?? '';
 
                 let web3ItemIdsOfWallet = await this.loadWeb3ItemsForWallet(walletAddress, network);
 
@@ -371,7 +362,7 @@ export namespace HostedInventoryItemProvider
                 for (let contractIdx = 0; contractIdx < contracts.length; contractIdx++) {
                     let contract = contracts[contractIdx];
 
-                    let contractAddress = as.String(contract.getProperties()[Pid.Web3ContractAddress], '');
+                    let contractAddress = as.String(contract[Pid.Web3ContractAddress], '');
                     let contractABI = Config.get('web3.minimumItemableContractAbi', null);
                     if (contractAddress === '' || contractABI == null) {
                         log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', 'Missing contract config', 'contractAddress=', contractAddress, 'contractABI=', contractABI);
@@ -459,9 +450,8 @@ export namespace HostedInventoryItemProvider
                             log.info(error);
                         }
                     } else {
-                        for (let i = 0; i < existingItems.length; i++) {
-                            let item = existingItems[i];
-                            let itemId = item.getId();
+                        for (const item of existingItems) {
+                            const itemId = ItemProperties.getId(item);
                             knownIds.push(itemId);
                             if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Confirming', template, itemId); }
                         }
@@ -479,7 +469,7 @@ export namespace HostedInventoryItemProvider
         private getGenericItemId(): string
         {
             const filter = props => as.Bool(props[Pid.N3qAspect], false) && props[Pid.Provider] === this.id;
-            const clientItemIds = this.backpack.findItems(filter).map(item => item.getProperties()[Pid.Id]);
+            const clientItemIds = this.backpack.findItems(filter).map(item => ItemProperties.getId(item));
 
             if (clientItemIds.length === 0) {
                 throw new ItemException(ItemException.Fact.NotCreated, ItemException.Reason.NoClientItem, '');
@@ -581,8 +571,7 @@ export namespace HostedInventoryItemProvider
 
         async modifyItemProperties(itemId: string, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
         {
-            let item = this.backpack.getItem(itemId);
-            if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
+            const _item = this.backpack.getItem(itemId);
 
             try {
                 if (as.Int(changed[Pid.RezzedX], -1) >= 0) {
@@ -677,7 +666,7 @@ export namespace HostedInventoryItemProvider
             //     }
             // }
 
-            this.backpack.onItemUpdateFromProvider(deletedIds ?? [], Object.values(multiItemProperties ?? {}));
+            await this.backpack.onItemUpdateFromProvider(deletedIds ?? [], Object.values(multiItemProperties ?? {}));
             return result;
         }
 
@@ -688,7 +677,7 @@ export namespace HostedInventoryItemProvider
                 return as.Bool(props[Pid.N3qAspect])
                     && as.String(props[Pid.Provider]) === this.id;
             };
-            const clientItemIds = this.backpack.findItems(guard).map(item => item.getProperties()[Pid.Id]);
+            const clientItemIds = this.backpack.findItems(guard).map(item => ItemProperties.getId(item));
             if (clientItemIds.length === 0) {
                 throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NoClientItem, '');
             }
@@ -830,18 +819,16 @@ export namespace HostedInventoryItemProvider
 
         getDependentPresence(itemId: string, roomJid: string): ltx.Element
         {
-            let item = this.backpack.getItem(itemId);
-            if (item == null) { throw new ItemException(ItemException.Fact.NotDerezzed, ItemException.Reason.NoSuchItem, itemId); }
+            const item = this.backpack.getItem(itemId);
 
-            const props = item.getProperties();
-            const presence = new ltx.Element('presence', { 'from': roomJid + '/' + as.String(props[Pid.InventoryId], '') + itemId });
-            let attrs = {
+            const presence = new ltx.Element('presence', { 'from': roomJid + '/' + as.String(item[Pid.InventoryId], '') + itemId });
+            const attrs = {
                 'xmlns': 'vp:props',
                 'type': 'item',
                 [Pid.Provider]: this.id,
                 [Pid.Id]: itemId,
-                [Pid.InventoryId]: as.String(props[Pid.InventoryId], ''),
-                [Pid.Digest]: as.String(props[Pid.Digest], ''),
+                [Pid.InventoryId]: as.String(item[Pid.InventoryId], ''),
+                [Pid.Digest]: as.String(item[Pid.Digest], ''),
             };
 
             // const rezzedX = as.Int(props[Pid.RezzedX], -1);
@@ -912,7 +899,7 @@ export namespace HostedInventoryItemProvider
                     = [item[Pid.Provider], item[Pid.InventoryId], item[Pid.Id], item[Pid.Version]];
                 if (providerId === this.id) {
                     if (inventoryId === this.userId && this.backpack.isItem(itemId)) {
-                        const itemLoaded = this.backpack.getItem(itemId).getProperties();
+                        const itemLoaded = this.backpack.getItem(itemId);
                         if (is.nil(version) || version === itemLoaded[Pid.Version]) {
                             itemsLoaded.push(itemLoaded);
                             continue;
@@ -1031,7 +1018,7 @@ export namespace HostedInventoryItemProvider
                 callbacks.forEach(resolve => resolve(item));
             }
             if (isOwnBackpack) {
-                this.backpack.onItemUpdateFromProvider([...itemIdCacheKeysToRequest.keys()], items);
+                this.backpack.onItemUpdateFromProvider([...itemIdCacheKeysToRequest.keys()], items).then(() => {});
             }
 
             itemIdCacheKeysToRequest.forEach((cacheKey, itemId) =>
@@ -1065,7 +1052,7 @@ export namespace HostedInventoryItemProvider
                 const inventoryId = as.String(vpProps.attrs[Pid.InventoryId], '');
                 const cacheKey = this.makeItemCacheKey(inventoryId, itemId);
                 if (this.backpack.isItem(itemId)) {
-                    const backpackProps = this.backpack.getItem(itemId).getProperties();
+                    const backpackProps = this.backpack.getItem(itemId);
                     this.completeDependentPresence(backpackProps, dependentPresence, vpProps);
 
                 } else if (this.itemCache.has(cacheKey)) {

@@ -167,7 +167,7 @@ export class WebsocketManager
             this.logInfo('WebsocketManager.handleItemsNotification: Ignored ItemsNotification for our backpack because backpack is disabled.', notification)
             return
         }
-        this.app.getBackpack().onItemUpdateFromProvider(notification.ItemsDeleted, notification.ItemsUpdatedOrCreated)
+        await this.app.getBackpack().onItemUpdateFromProvider(notification.ItemsDeleted, notification.ItemsUpdatedOrCreated)
         this.logDebug('WebsocketManager.handleItemsNotification: Updated backpack.', notification)
     }
 

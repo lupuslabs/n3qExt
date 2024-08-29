@@ -1,7 +1,9 @@
 ﻿import { is } from './is'
 import { as } from './as'
 
-export function iter<T>(value: undefined|null|Iterable<T>|Iterator<T>|Iter<T>): Iter<T>
+type MaybeSequence<T> = undefined|null|Iterable<T>|Iterator<T>|Iter<T>
+
+export function iter<T>(value: MaybeSequence<T>): Iter<T>
 {
     if (value instanceof Iter) {
         return value
@@ -16,6 +18,17 @@ export function iter<T>(value: undefined|null|Iterable<T>|Iterator<T>|Iter<T>): 
         return new IteratorIter(value[Symbol.iterator]())
     }
     return emptyIter
+}
+
+export function iterOfIters<T>(...sequences: (MaybeSequence<T>)[]): Iter<T>
+{
+    if (sequences.length === 0) {
+        return emptyIter
+    }
+    if (sequences.length !== 1) {
+        return new IteratorIter(sequences.values()).flatmap(iter)
+    }
+    return iter(sequences[0])
 }
 
 export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
@@ -123,7 +136,7 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         }(this))
     }
 
-    public flatmap<Out>(mapFun: (element: T) => undefined|null|Iterable<Out>|Iterator<Out>): Iter<Out>
+    public flatmap<Out>(mapFun: (element: T) => MaybeSequence<Out>): Iter<Out>
     {
         return new IteratorIter(function*(iterable){
             for (const element of iterable) {

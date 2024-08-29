@@ -1336,7 +1336,7 @@ export class ContentApp extends AppWithDom
                 [Pid.InventoryY]: newYStr,
             },
             [],
-            { skipPresenceUpdate: true }
+            { }
         ).catch(error => {
             this.onError(error)
 
@@ -1380,7 +1380,7 @@ export class ContentApp extends AppWithDom
         }
 
         if (as.Bool(props[Pid.AutorezAspect])) {
-            await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { skipPresenceUpdate: true });
+            await BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.AutorezIsActive]: 'true' }, [], { });
         }
 
         const moveInsteadOfRez = as.Bool(props[Pid.IsRezzed]) && props[Pid.RezzedLocation] === room;

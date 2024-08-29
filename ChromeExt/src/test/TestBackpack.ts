@@ -45,21 +45,21 @@ export class TestBackpack
         await rep.rezItem('item1', 'room1@server', 41, 'Destination1', { skipPersistentStorage: true });
         await rep.rezItem('item2', 'room1@server', 42, 'Destination2', { skipPersistentStorage: true });
 
-        expect(rep.getItems()['item1'][Pid.IsRezzed]).to.equal('true');
-        expect(rep.getItems()['item2'][Pid.IsRezzed]).to.equal('true');
-        expect(as.Bool(rep.getItems()['item3'][Pid.IsRezzed], false)).to.equal(false);
+        expect(rep.getItems().get('item1')[Pid.IsRezzed]).to.equal('true');
+        expect(rep.getItems().get('item2')[Pid.IsRezzed]).to.equal('true');
+        expect(as.Bool(rep.getItems().get('item3')[Pid.IsRezzed], false)).to.equal(false);
 
-        expect(rep.getItems()['item1'][Pid.RezzedX]).to.equal('41');
-        expect(rep.getItems()['item2'][Pid.RezzedX]).to.equal('42');
-        expect(as.Int(rep.getItems()['item3'][Pid.RezzedX], -1)).to.equal(-1);
+        expect(rep.getItems().get('item1')[Pid.RezzedX]).to.equal('41');
+        expect(rep.getItems().get('item2')[Pid.RezzedX]).to.equal('42');
+        expect(as.Int(rep.getItems().get('item3')[Pid.RezzedX], -1)).to.equal(-1);
 
-        expect(rep.getItems()['item1'][Pid.RezzedLocation]).to.equal('room1@server');
-        expect(rep.getItems()['item2'][Pid.RezzedLocation]).to.equal('room1@server');
-        expect(as.String(rep.getItems()['item3'][Pid.RezzedLocation], '')).to.equal('');
+        expect(rep.getItems().get('item1')[Pid.RezzedLocation]).to.equal('room1@server');
+        expect(rep.getItems().get('item2')[Pid.RezzedLocation]).to.equal('room1@server');
+        expect(as.String(rep.getItems().get('item3')[Pid.RezzedLocation], '')).to.equal('');
 
-        expect(rep.getItems()['item1'][Pid.RezzedDestination]).to.equal('Destination1');
-        expect(rep.getItems()['item2'][Pid.RezzedDestination]).to.equal('Destination2');
-        expect(as.String(rep.getItems()['item3'][Pid.RezzedDestination], '')).to.equal('');
+        expect(rep.getItems().get('item1')[Pid.RezzedDestination]).to.equal('Destination1');
+        expect(rep.getItems().get('item2')[Pid.RezzedDestination]).to.equal('Destination2');
+        expect(as.String(rep.getItems().get('item3')[Pid.RezzedDestination], '')).to.equal('');
 
         let stanza = new ltx.Element('presence', { 'to': 'room1@server/nick' });
         stanza = rep.stanzaOutFilter(stanza);

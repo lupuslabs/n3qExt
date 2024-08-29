@@ -1,5 +1,6 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
+import { iter } from '../lib/Iter'
 import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
@@ -8,7 +9,6 @@ import { ContentMessage, BackpackUpdateData } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundApp } from './BackgroundApp';
-import { Item } from './Item';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { IItemProvider } from './ItemProvider';
 import { LocalStorageItemProvider } from './LocalStorageItemProvider';
@@ -22,8 +22,8 @@ export class Backpack
     private readonly retryStrategyMaker: RetryStrategyMaker
     private readonly lastProviderConfigJsons: Map<string, string> = new Map();
 
-    private readonly items: { [id: string]: Item; } = {};
-    private readonly rooms: { [jid: string]: Array<string>; } = {};
+    private readonly items: Map<string,Readonly<ItemProperties>> = new Map();
+    private readonly rooms: Map<string,Set<string>> = new Map(); // room JID => Set of item ID
     private readonly providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
 
     constructor(app: BackgroundApp)
@@ -34,131 +34,110 @@ export class Backpack
 
     public isItem(itemId: string): boolean
     {
-        let item = this.items[itemId];
-        if (item) {
-            return true;
-        }
-        return false;
+        return this.items.has(itemId);
     }
 
-    public getItem(itemId: string): Item
+    public getItem(itemId: string): Readonly<ItemProperties>
     {
-        let item = this.items[itemId];
+        const item = this.items.get(itemId);
         if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
         return item;
     }
 
-    public getItems(): { [id: string]: ItemProperties; }
+    public getItems(): ReadonlyMap<string,Readonly<ItemProperties>>
     {
-        let itemProperties: { [id: string]: ItemProperties; } = {};
-        for (let id in this.items) {
-            let item = this.items[id];
-            itemProperties[id] = item.getProperties();
-        }
-        return itemProperties
+        return this.items;
     }
 
     public getItemCount(): number
     {
-        let count = 0;
-        for (let id in this.items) {
-            count++;
-        }
-        return count;
+        return this.items.size;
     }
 
     public getRezzedItemCount(): number
     {
         let count = 0;
-        for (let id in this.items) {
-            let item = this.items[id];
-            if (item.isRezzed()) {
+        for (const item of this.items.values()) {
+            if (ItemProperties.getIsRezzed(item)) {
                 count++;
             }
         }
         return count;
     }
 
-    public onItemUpdateFromProvider(itemsDeleted: ReadonlyArray<string>, itemsCreatedOrUpdated: ReadonlyArray<ItemProperties>): void
+    public async onItemUpdateFromProvider(itemsDeleted: ReadonlyArray<string>, itemsCreatedOrUpdated: ReadonlyArray<ItemProperties>): Promise<void>
     {
+        const processedDeletedItems: ItemProperties[] = [];
+        const processedChangedItems: ItemProperties[] = [];
         const changedRooms = new Set<string>();
-        itemsCreatedOrUpdated.forEach(item => this.onCreateOrUpdateItem(item, changedRooms));
-        itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, changedRooms));
-        for (let room of changedRooms) {
-            this.requestSendPresenceFromTab(room);
+        itemsCreatedOrUpdated.forEach(item => this.onCreateOrUpdateItem(item, processedChangedItems, changedRooms));
+        itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, processedDeletedItems, changedRooms));
+
+        this.sendUpdateToAllTabs(processedDeletedItems, processedChangedItems);
+        for (const room of changedRooms) {
+            this.app.sendRoomPresence(room);
         }
     }
 
-    private onCreateOrUpdateItem(propsNew: ItemProperties, changedRoomsAccu: Set<string>): void
+    private onCreateOrUpdateItem(propsNew: ItemProperties, changedItemsAccu: ItemProperties[], changedRoomsAccu: Set<string>): void
     {
+        propsNew[Pid.OwnerId] = this.app.getUserId();
         const itemId = as.String(propsNew[Pid.Id]);
-        let backpackItem: null|Item = this.items[itemId] ?? null;
-        const propsOld = backpackItem?.getProperties() ?? {};
+        const propsOld = this.items.get(itemId) ?? {};
+
         const versionOld = as.Int(propsOld[Pid.Version]);
         const versionNew = as.Int(propsNew[Pid.Version]);
         if (versionOld > versionNew) {
             return;
         }
-        const isRezzedOld = backpackItem?.isRezzed() ?? false;
-        const roomOld = as.String(propsOld[Pid.RezzedLocation]);
-
-        if (backpackItem) {
-            // Also sends update message to tabs:
-            this.setRepositoryItemProperties(itemId, propsNew, { skipPresenceUpdate: true });
-        } else {
-            // Doesn't send create message to tabs:
-            backpackItem = this.createRepositoryItem(itemId, propsNew);
-            this.sendAddItemToAllTabs(itemId);
-        }
-
-        const isRezzedNew = backpackItem.isRezzed();
-        const roomNew = backpackItem.getProperties()[Pid.RezzedLocation];
-        if (isRezzedOld && (!isRezzedNew || roomOld !== roomNew)) {
-            this.removeFromRoom(itemId, roomOld);
-            changedRoomsAccu.add(roomOld);
-        }
-        if (isRezzedNew) {
-            if (!isRezzedOld || roomOld !== roomNew) {
-                this.addToRoom(itemId, roomNew);
-            }
-            changedRoomsAccu.add(roomNew);
-        }
-    }
-
-    private onDeleteItem(itemId: string, changedRoomsAccu: Set<string>): void
-    {
-        const backpackItem: null|Item = this.items[itemId] ?? null;
-        if (!backpackItem) {
+        const propsDifferentchanged = ItemProperties.getDifferentPids(propsOld, propsNew);
+        if (propsDifferentchanged.size === 0) {
             return;
         }
-        const isRezzedOld = backpackItem.isRezzed();
-        const roomOld = as.String(backpackItem.getProperties()[Pid.RezzedLocation]);
+        this.items.set(itemId, propsNew);
+        changedItemsAccu.push(propsNew);
 
-        this.sendRemoveItemToAllTabs(itemId);
-        this.deleteRepositoryItem(itemId);
-
-        if (isRezzedOld) {
-            this.removeFromRoom(itemId, roomOld);
-            changedRoomsAccu.add(roomOld);
+        const isRezzedOld = ItemProperties.getIsRezzed(propsOld);
+        const roomOld = ItemProperties.getRezzedLocation(propsOld) ?? '';
+        const isRezzedNew = ItemProperties.getIsRezzed(propsNew);
+        const roomNew = ItemProperties.getRezzedLocation(propsNew) ?? '';
+        if (isRezzedOld || isRezzedNew) {
+            propsDifferentchanged.delete(Pid.Version);
+            propsDifferentchanged.delete(Pid.InventoryX);
+            propsDifferentchanged.delete(Pid.InventoryY);
+            propsDifferentchanged.delete(Pid.AutorezIsActive);
+            if (propsDifferentchanged.size !== 0) {
+                if (isRezzedOld) {
+                    this.removeFromRoom(itemId, roomOld);
+                    changedRoomsAccu.add(roomOld);
+                }
+                if (isRezzedNew) {
+                    this.addToRoom(itemId, roomNew);
+                    changedRoomsAccu.add(roomNew);
+                }
+            }
         }
     }
 
-    public requestSendPresenceFromTab(roomJid: string)
+    private onDeleteItem(itemId: string, processedDeletedItemsAccu: ItemProperties[], changedRoomsAccu: Set<string>): void
     {
-        this.app.sendRoomPresence(roomJid);
+        const propsOld: null|ItemProperties = this.items.get(itemId) ?? null;
+        if (!propsOld) {
+            return;
+        }
+
+        const isRezzedOld = ItemProperties.getIsRezzed(propsOld);
+        if (isRezzedOld) {
+            const roomOld = ItemProperties.getRezzedLocation(propsOld) ?? '';
+            this.removeFromRoom(itemId, roomOld);
+            changedRoomsAccu.add(roomOld);
+        }
+
+        processedDeletedItemsAccu.push(propsOld);
+        this.items.delete(itemId);
     }
 
-    public sendAddItemToAllTabs(itemId: string)
-    {
-        this.sendUpdateToAllTabs([], [this.getItem(itemId).getProperties()]);
-    }
-
-    public sendRemoveItemToAllTabs(itemId: string)
-    {
-        this.sendUpdateToAllTabs([this.getItem(itemId).getProperties()], []);
-    }
-
-    public sendUpdateToAllTabs(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
+    private sendUpdateToAllTabs(itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
     {
         if (!itemsShowOrSet.length && !itemsHide.length) {
             return;
@@ -167,12 +146,10 @@ export class Backpack
         this.app.sendToAllTabs({ type: ContentMessage.type_onBackpackUpdate, data });
     }
 
-    public sendUpdateToTab(tabId: number, itemsHide: ItemProperties[], itemsShowOrSet: ItemProperties[])
+    public sendAllOwnItemsToTab(tabId: number)
     {
-        if (!itemsShowOrSet.length && !itemsHide.length) {
-            return;
-        }
-        const data = new BackpackUpdateData(itemsHide, itemsShowOrSet);
+        const items = [...this.items.values()];
+        const data = new BackpackUpdateData([], items);
         this.app.sendToTab(tabId, { type: ContentMessage.type_onBackpackUpdate, data });
     }
 
@@ -204,13 +181,11 @@ export class Backpack
         }
         this.lastProviderConfigJsons.delete(providerId);
         this.providers.delete(providerId);
-        for (const itemId in this.items) {
-            const item = this.items[itemId];
-            if (item.getProperties()[Pid.Provider] === providerId) {
-                this.sendRemoveItemToAllTabs(itemId);
-                this.deleteRepositoryItem(itemId);
-            }
-        }
+        const itemIdsToRemove = iter(this.items.entries())
+            .filter(([itemId, item]) => item[Pid.Provider] === providerId)
+            .map(([itemId, item]) => itemId)
+            .toArray();
+        this.onItemUpdateFromProvider(itemIdsToRemove, []).then(() => {});
     }
 
     private maintainProvider(providerId: string, providerConfig: {[p:string]:any}, loadItems: boolean): void
@@ -297,7 +272,6 @@ export class Backpack
         const provider = this.getProvider(itemId);
         const providerItemIds = await provider.getItemIds();
 
-        // Synchronous section start.
         if (!this.isItem(itemId)) {
             // Item unknown now. Removed while waiting for provider.getItemIds.
             return false;
@@ -307,15 +281,7 @@ export class Backpack
             return true;
         }
         // Item known but removed from repository.
-        const item = this.getItem(itemId);
-        const wasRezzed = item.isRezzed();
-        const room = item.getProperties()[Pid.RezzedLocation];
-        this.sendRemoveItemToAllTabs(itemId);
-        this.deleteRepositoryItem(itemId);
-        if (wasRezzed) {
-            this.requestSendPresenceFromTab(room);
-        }
-        // Synchronous section end.
+        await this.onItemUpdateFromProvider([itemId], []);
 
         return false;
     }
@@ -325,15 +291,15 @@ export class Backpack
         return await this.getProviderFromName(provider).createItem(auth, method, args);
     }
 
-    public getPointsItem(): null|Item
+    public getPointsItem(): null|Readonly<ItemProperties>
     {
         let pointsItems = this.findItems(props => as.Bool(props[Pid.PointsAspect], false));
 
         let maxPoints = -1;
-        let maxItem: Item = null;
+        let maxItem: Readonly<ItemProperties> = null;
         for (let i = 0; i < pointsItems.length; i++) {
             let item = pointsItems[i];
-            let points = as.Int(item.getProperties()[Pid.PointsTotal], 0);
+            let points = as.Int(item[Pid.PointsTotal], 0);
             if (points > maxPoints) {
                 maxPoints = points;
                 maxItem = item;
@@ -345,13 +311,10 @@ export class Backpack
     private getProvider(itemId: string): IItemProvider
     {
         const item = this.getItem(itemId);
-        if (item) {
-            return this.getProviderFromProperties(item.getProperties());
-        }
-        throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, itemId + ' while Backpack.getProvider');
+        return this.getProviderFromProperties(item);
     }
 
-    private getProviderFromProperties(props: ItemProperties): IItemProvider
+    private getProviderFromProperties(props: Readonly<ItemProperties>): IItemProvider
     {
         const providerName = as.String(props[Pid.Provider], '');
         try {
@@ -380,33 +343,23 @@ export class Backpack
         await this.getProvider(itemId).deleteItem(itemId, options);
     }
 
-    public findItems(filter: (props: ItemProperties) => boolean): Array<Item>
+    public findItems(filter: (props: Readonly<ItemProperties>) => boolean): Readonly<ItemProperties>[]
     {
-        let found: Array<Item> = [];
-
-        for (let itemId in this.items) {
-            let item = this.items[itemId];
-            if (item) {
-                if (filter(item.getProperties())) {
-                    found.push(item);
-                }
-            }
-        }
-
+        const found: Readonly<ItemProperties>[] = iter(this.items.values()).filter(filter).toArray();
         return found;
     }
 
-    private findItemsByProperties(filterProperties: ItemProperties): Item[]
+    private findItemsByProperties(filterProperties: Readonly<ItemProperties>): Readonly<ItemProperties>[]
     {
         const filterKVs = Object.entries(filterProperties);
         const filter = itemProps => filterKVs.every(([pid, value]) => itemProps[pid] === value);
         return this.findItems(filter);
     }
 
-    public getFirstFilteredItemsPropertyValue(filterProperties: ItemProperties, propertyPid: string): null|string
+    public getFirstFilteredItemsPropertyValue(filterProperties: Readonly<ItemProperties>, propertyPid: string): null|string
     {
         for (const item of this.findItemsByProperties(filterProperties)) {
-            const value = item.getProperties()[propertyPid] ?? null;
+            const value = item[propertyPid] ?? null;
             if (!is.nil(value)) {
                 return value;
             }
@@ -414,68 +367,22 @@ export class Backpack
         return null;
     }
 
-    public createRepositoryItem(itemId: string, props: ItemProperties): Item
+    private addToRoom(itemId: string, roomJid: string): void
     {
-        props[Pid.OwnerId] = this.app.getUserId();
-
-        let item = this.items[itemId];
-        if (item == null) {
-            item = new Item(this.app, this, itemId, props);
-            this.items[itemId] = item;
+        let rezzedIds = this.rooms.get(roomJid);
+        if (!rezzedIds) {
+            rezzedIds = new Set<string>();
+            this.rooms.set(roomJid, rezzedIds);
         }
-        return item;
+        rezzedIds.add(itemId);
     }
 
-    public deleteRepositoryItem(itemId: string): void
+    private removeFromRoom(itemId: string, roomJid: string): void
     {
-        for (const roomJid in this.rooms) {
-            const roomItemIds = this.rooms[roomJid];
-            const itemIndex = roomItemIds.findIndex(elementId => elementId === itemId);
-            if (itemIndex > -1) {
-                roomItemIds.splice(itemIndex, 1);
-            }
-        }
-        if (this.items[itemId]) {
-            delete this.items[itemId];
-        }
-    }
-
-    public setRepositoryItemProperties(itemId: string, props: ItemProperties, options: ItemChangeOptions): void
-    {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); }
-
-        item.setProperties(props, options);
-    }
-
-    public getRepositoryItemProperties(itemId: string): ItemProperties
-    {
-        let item = this.items[itemId];
-        if (item == null) { throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.NoSuchItem, itemId); } // throw unhandled, maybe return null?
-        return item.getProperties();
-    }
-
-    public addToRoom(itemId: string, roomJid: string): void
-    {
-        let rezzedIds = this.rooms[roomJid];
-        if (rezzedIds == null) {
-            rezzedIds = new Array<string>();
-            this.rooms[roomJid] = rezzedIds;
-        }
-        rezzedIds.push(itemId);
-    }
-
-    public removeFromRoom(itemId: string, roomJid: string): void
-    {
-        let rezzedIds = this.rooms[roomJid];
-        if (rezzedIds) {
-            const index = rezzedIds.indexOf(itemId, 0);
-            if (index > -1) {
-                rezzedIds.splice(index, 1);
-                if (!rezzedIds.length) {
-                    delete this.rooms[roomJid];
-                }
-            }
+        const rezzedIds = this.rooms.get(roomJid) ?? null;
+        rezzedIds?.delete(itemId);
+        if ((rezzedIds?.size ?? null) === 0) {
+            this.rooms.delete(roomJid);
         }
     }
 
@@ -496,7 +403,7 @@ export class Backpack
         if (items.length === 0) {
             throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.NoSuchItem, 'Generic item missing for action!')
         }
-        const itemId = items[0].getId()
+        const itemId = ItemProperties.getId(items[0])
         return await this.executeItemAction(itemId, action, args, involvedIds, allowUnrezzed)
     }
 
@@ -531,12 +438,9 @@ export class Backpack
         if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
             let toJid = jid(stanza.attrs.to);
             let roomJid = toJid.bare().toString();
-            const rezzedIds = this.rooms[roomJid];
-            if (rezzedIds && rezzedIds.length > 0) {
-                let dependentExtension = this.getDependentPresence(roomJid);
-                if (dependentExtension) {
-                    stanza.cnode(dependentExtension);
-                }
+            let dependentExtension = this.getDependentPresence(roomJid);
+            if (dependentExtension) {
+                stanza.cnode(dependentExtension);
             }
         }
 
@@ -573,16 +477,13 @@ export class Backpack
 
     private warningNotificatonTime = 0;
     private limitNotificatonTime = 0;
-    private getDependentPresence(roomJid: string): ltx.Element
+    private getDependentPresence(roomJid: string): null|ltx.Element
     {
         let result = new ltx.Element('x', { 'xmlns': 'vp:dependent' });
 
-        let ids = [];
-
-        for (let id in this.items) {
-            if (this.items[id].isRezzedTo(roomJid)) {
-                ids.push(id);
-            }
+        let ids = iter(this.rooms.get(roomJid)).toArray();
+        if (ids.length === 0) {
+            return null;
         }
 
         if (ids.length > Config.get('backpack.dependentPresenceItemsWarning', 20)) {
@@ -612,8 +513,7 @@ export class Backpack
             }
         }
 
-        for (let i = 0; i < ids.length; i++) {
-            let id = ids[i];
+        for (const id of ids) {
             const itemPresence = this.getProvider(id).getDependentPresence(id, roomJid);
             result.cnode(itemPresence);
         }

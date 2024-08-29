@@ -381,7 +381,7 @@ export class BackpackWindow extends Window<WindowOptions>
                 ItemProperties.getId(propertiesNew),
                 { [Pid.InventoryX]: xStr, [Pid.InventoryY]: yStr },
                 [],
-                { skipPresenceUpdate: true }
+                { }
             ).catch(error => this.app.onError(error))
         }
     }

@@ -605,8 +605,7 @@ export class BackgroundApp
         if (!Utils.isBackpackEnabled()) {
             throw new ItemException(ItemException.Fact.NoItemsReceived, ItemException.Reason.ItemsNotAvailable);
         }
-        const items = Object.values(this.backpack.getItems());
-        this.backpack.sendUpdateToTab(tabId, [], items);
+        this.backpack.sendAllOwnItemsToTab(tabId);
         return new BackgroundSuccessResponse();
     }
 
@@ -678,7 +677,7 @@ export class BackgroundApp
         if (!Utils.isBackpackEnabled()) {
             throw new ItemException(ItemException.Fact.UnknownError, ItemException.Reason.ItemsNotAvailable);
         }
-        const props = this.backpack.getRepositoryItemProperties(itemId);
+        const props = this.backpack.getItem(itemId);
         return new GetBackpackItemPropertiesResponse(props);
     }
 
@@ -698,7 +697,7 @@ export class BackgroundApp
         const items = this.backpack.findItems(guardFun);
         const propertiesSet = {};
         for (const item of items) {
-            propertiesSet[item.getId()] = item.getProperties();
+            propertiesSet[ItemProperties.getId(item)] = item;
         }
         return new FindBackpackItemPropertiesResponse(propertiesSet);
     }
@@ -803,7 +802,7 @@ export class BackgroundApp
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.ItemsNotAvailable);
         }
         const itemId = await this.backpack.transferComplete(provider, senderInventoryId, senderItemId, transferToken);
-        const itemProps = this.backpack.getItem(itemId).getProperties();
+        const itemProps = this.backpack.getItem(itemId);
         return new BackpackTransferCompleteResponse(itemProps);
     }
 
@@ -1027,8 +1026,8 @@ export class BackgroundApp
                         const itemCount = backpack?.getItemCount() ?? -1;
                         const rezzedItemCount = backpack?.getRezzedItemCount() ?? -1;
                         let points = -1
-                        const pointsItems = backpack?.findItems(props => as.Bool(props[Pid.PointsAspect], false)) ?? [];
-                        if (pointsItems.length > 0) { points = as.Int(pointsItems[0].getProperties()[Pid.PointsTotal], -1); }
+                        const pointsItem = backpack?.getPointsItem() ?? null;
+                        if (pointsItem) { points = as.Int(pointsItem[Pid.PointsTotal], -1); }
 
                         queryResponse.c('Variant').t(Client.getVariant());
                         queryResponse.c('Language').t(navigator.language);
@@ -1171,7 +1170,7 @@ export class BackgroundApp
         if (!Utils.isBackpackEnabled() || !Config.get('points.enabled', false)) {
             return;
         }
-        let itemId = this.backpack.getPointsItem()?.getProperties()[Pid.Id];
+        let itemId = this.backpack.getPointsItem()?.[Pid.Id] ?? null;
         if (is.nil(itemId)) {
             return;
         }

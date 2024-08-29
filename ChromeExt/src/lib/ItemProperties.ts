@@ -6,6 +6,7 @@ import { Config } from './Config';
 const NodeRSA = require('node-rsa');
 
 import * as defaultItemImageUrl from '../assets/DefaultItem.png'
+import { iterOfIters } from './Iter'
 
 export enum Pid
 {
@@ -129,6 +130,14 @@ export enum Pid
     BadgeFrameHeight = 'BadgeFrameHeight',
     EditablePropertiesAspect = 'EditablePropertiesAspect',
     EditableProperties = 'EditableProperties',
+    PropertiesUrl = 'PropertiesUrl',
+    PropertiesUrlPidsAllow = 'PropertiesUrlPidsAllow',
+    PropertiesUrlRefreshInterval = 'PropertiesUrlRefreshInterval',
+}
+
+export function isPid(value: unknown): value is Pid
+{
+    return is.string(value) && value in Pid
 }
 
 export const userFriendStatuses = ['No', 'ProposedByOwner', 'ProposedByOther', 'Yes'] as const;
@@ -168,6 +177,12 @@ export type BadgeIframeData = Readonly<{
     iframeUrl: null|string,
     iframeWidth: null|number,
     iframeHeight: null|number,
+}>
+
+export type ItemPropertiesUrlData = Readonly<{
+    propertiesUrl: string
+    pidsAllow: ReadonlyArray<Pid>
+    refreshInterval: number
 }>
 
 export class ItemProperties
@@ -275,6 +290,18 @@ export class ItemProperties
         return JSON.stringify(leftSorted) === JSON.stringify(rightSorted);
     }
 
+    static getDifferentPids(a: ItemProperties, b: ItemProperties): Set<Pid>
+    {
+        const pids = iterOfIters(Object.keys(a), Object.keys(b)).filterType(isPid)
+        const pidsDifferent = new Set<Pid>(pids.filter(pid => a[pid] !== b[pid]));
+        return pidsDifferent;
+    }
+
+    static clone(props: ItemProperties): ItemProperties
+    {
+        return {...props};
+    }
+
     /**
      * Returns selected properties as generic object.
      *
@@ -335,6 +362,11 @@ export class ItemProperties
     static getIsRezzed(item: ItemProperties): boolean
     {
         return as.Bool(item[Pid.IsRezzed]);
+    }
+
+    static getRezzedLocation(item: ItemProperties): null|string
+    {
+        return as.StringOrNull(item[Pid.RezzedLocation]);
     }
 
     static getRezzedX(item: ItemProperties): null|number
@@ -444,6 +476,37 @@ export class ItemProperties
             ownFriendStatus: ItemProperties.getUserFriendStatus(itemProperties),
             ownPersonItem: itemProperties,
         }
+    }
+
+    static getPropertiesUrl(itemProperties: ItemProperties): null|string
+    {
+        return as.StringOrNull(itemProperties[Pid.PropertiesUrl], 1);
+    }
+
+    static getPropertiesUrlPidsAllow(itemProperties: ItemProperties): ReadonlyArray<Pid>
+    {
+        const value = ItemProperties.getJsonProperty(itemProperties, Pid.PropertiesUrlPidsAllow);
+        return is.array(value) ? value.filter(isPid) : [];
+    }
+
+    static getPropertiesUrlRefreshInterval(itemProperties: ItemProperties): number
+    {
+        const value = ItemProperties.getJsonProperty(itemProperties, Pid.PropertiesUrlRefreshInterval);
+        return as.Float(value, 3600);
+    }
+
+    static getPropertiesUrlData(itemProperties: ItemProperties): null|ItemPropertiesUrlData
+    {
+        const propertiesUrl = ItemProperties.getPropertiesUrl(itemProperties)
+        if (!propertiesUrl) {
+            return null;
+        }
+        const pidsAllow = ItemProperties.getPropertiesUrlPidsAllow(itemProperties)
+        if (pidsAllow.length === 0) {
+            return null;
+        }
+        const refreshInterval = ItemProperties.getPropertiesUrlRefreshInterval(itemProperties)
+        return { propertiesUrl, pidsAllow, refreshInterval }
     }
 
     static getJsonProperty(itemProperties: ItemProperties, pid: Pid): unknown
