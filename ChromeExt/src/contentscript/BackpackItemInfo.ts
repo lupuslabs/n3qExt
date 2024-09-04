@@ -70,6 +70,9 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         (async () => {
             let response: WeblinClientApi.Response
             switch (request.type) {
+                case WeblinClientIframeApi.WindowCloseRequest.type: {
+                    response = this.handleWindowCloseRequest(<WeblinClientIframeApi.WindowCloseRequest>request)
+                } break;
                 case WeblinClientIframeApi.WindowPositionRequest.type: {
                     response = this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
                 } break;
@@ -115,8 +118,14 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         if (!this.iframeElem) {
             return
         }
-        message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
-        this.iframeElem?.contentWindow.postMessage(message, '*')
+        message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true
+        this.iframeElem?.contentWindow?.postMessage(message, '*')
+    }
+
+    protected handleWindowCloseRequest(_request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
+    {
+        this.close()
+        return new WeblinClientApi.SuccessResponse()
     }
 
     protected handleWindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
