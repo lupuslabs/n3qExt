@@ -102,6 +102,30 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         }(this))
     }
 
+    public removeNil(): Iter<NonNullable<T>>
+    {
+        return new IteratorIter(function*(iterable){
+            for (const element of iterable) {
+                if (!is.nil(element)) {
+                    yield element
+                }
+            }
+        }(this))
+    }
+
+    public removeDuplicates(isEqualFun: (a: T, b: T) => boolean): Iter<T>
+    {
+        return new IteratorIter(function*(iterable){
+            const knownElems: T[] = []
+            for (const element of iterable) {
+                if (!knownElems.some(knownElement => isEqualFun(knownElement, element))) {
+                    knownElems.push(element)
+                    yield element
+                }
+            }
+        }(this))
+    }
+
     public skip(count: number): Iter<T>
     {
         for (let i = 0; i < count; i++) {

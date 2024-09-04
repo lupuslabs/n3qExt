@@ -46,9 +46,7 @@ export class LoglevelLogger implements Logger {
 
     public logWarning(message: string, data?: { [p:string]: unknown }, error?: Error): void
     {
-        if (Utils.logChannel(this.nonErrorEnabledFlagName, true)) {
-            Loglevel.warn(...this.prepareMessageParts(message, data, error))
-        }
+        Loglevel.warn(...this.prepareMessageParts(message, data, error))
     }
 
     public logError(message: string, data?: { [p:string]: unknown }, error?: Error): void

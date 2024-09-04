@@ -79,6 +79,7 @@ export class Config
             websocketConnection: false,
             websocketConnectionPings: false,
             backgroundPresenceManagement: false,
+            DependentPresenceItemRequests: false,
             clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.
             clientBackgroundMessages: false, // All messages but pings going to or coming from the background!
             room2tab: false,
@@ -369,6 +370,12 @@ export class Config
                 '-----END PUBLIC KEY-----\n',
             showInvisibleItems: false,
             filters: [],
+            PropertiesUrlProcessing: { // Loading/overriding of properties from an URL in item[Pid.PropertiesUrl].
+                enableForOwnItems: true,
+                enableForOthersItems: true,
+                maintenanceIntervalSec: 1,
+                urlCacheLifetimeSec: 3600,
+            },
         },
         SimpleItemTransfer: {
             enabled: true,

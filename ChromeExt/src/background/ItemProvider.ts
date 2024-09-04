@@ -15,6 +15,10 @@ export interface IItemProvider
     // Doesn't throw. In case of error or item not retrievable, the item is just omitted from the result.
     getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>;
 
+    // Synchronous version of getItemsByInventoryItemIds onkly returning items from cache.
+    // itemsToLoad are elements of itemsToGet with a matching provider ID, but without a matching item in itemsLoaded.
+    getLoadedItemsByInventoryItemIds(itemsToGet: Readonly<ItemProperties>[]): { itemsLoaded: ItemProperties[], itemsToLoad: ItemProperties[] }
+
     getItemIds(): Promise<string[]>;
     addItem(itemId: string, props: ItemProperties, options: ItemChangeOptions): Promise<void>;
     deleteItem(itemId: string, options: ItemChangeOptions): Promise<void>;
@@ -29,6 +33,4 @@ export interface IItemProvider
     transferUnauthorize(itemId: string): Promise<void>;
     transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>;
     stanzaOutFilter(stanza: ltx.Element): ltx.Element
-    getDependentPresence(itemId: string, roomJid: string): ltx.Element;
-    onDependentPresence(itemId: string, roomJid: string, participantNick: string, dependentPresence: ltx.Element): void;
 }

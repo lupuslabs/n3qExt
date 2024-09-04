@@ -194,6 +194,31 @@ export class ItemProperties
         return item[Pid.Id];
     }
 
+    static getProviderId(item: ItemProperties): string
+    {
+        return as.String(item[Pid.Provider]);
+    }
+
+    static getInventoryId(item: ItemProperties): string
+    {
+        return as.String(item[Pid.InventoryId]);
+    }
+
+    static getVersion(item: ItemProperties): number
+    {
+        return as.Int(item[Pid.Version]);
+    }
+
+    static getDigest(item: ItemProperties): string
+    {
+        return as.String(item[Pid.Digest]);
+    }
+
+    static getOwnerId(itemProperties: ItemProperties): string
+    {
+        return as.String(itemProperties[Pid.OwnerId]);
+    }
+
     static getLabel(itemProperties: ItemProperties): string
     {
         return as.String(itemProperties[Pid.Label]);

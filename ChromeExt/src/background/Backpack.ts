@@ -1,7 +1,6 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
-import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -9,17 +8,20 @@ import { ContentMessage, BackpackUpdateData } from '../lib/ContentMessage';
 import { ItemException } from '../lib/ItemException';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundApp } from './BackgroundApp';
-import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { IItemProvider } from './ItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { is } from '../lib/is';
 import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
+import { ItemPropertiesUrlProcessor } from './ItemPropertiesUrlProcessor'
+import { DependentPresenceHelper } from './DependentPresenceHelper'
 
 export class Backpack
 {
     private readonly app: BackgroundApp
     private readonly retryStrategyMaker: RetryStrategyMaker
+    private readonly dependentPresenceHelper: DependentPresenceHelper
     private readonly lastProviderConfigJsons: Map<string, string> = new Map();
+    private readonly itemPropertiesUrlProcessor: ItemPropertiesUrlProcessor;
 
     private readonly items: Map<string,Readonly<ItemProperties>> = new Map();
     private readonly rooms: Map<string,Set<string>> = new Map(); // room JID => Set of item ID
@@ -29,6 +31,9 @@ export class Backpack
     {
         this.app = app;
         this.retryStrategyMaker = new RetryStrategyFactorGrowthMaker(1.0, 2.0, 120.0);
+        this.dependentPresenceHelper = new DependentPresenceHelper(app);
+        const processorUpdateHandler = items => this.onItemUpdatePropertyUrlsProcessed([], items)
+        this.itemPropertiesUrlProcessor = new ItemPropertiesUrlProcessor(app, processorUpdateHandler);
     }
 
     public isItem(itemId: string): boolean
@@ -43,9 +48,22 @@ export class Backpack
         return item;
     }
 
+    public getItemOrNull(itemId: string): null|Readonly<ItemProperties>
+    {
+        return this.items.get(itemId) ?? null;
+    }
+
     public getItems(): ReadonlyMap<string,Readonly<ItemProperties>>
     {
         return this.items;
+    }
+
+    public getRoomItems(roomJid: string): ReadonlyArray<Readonly<ItemProperties>>
+    {
+        return iter(this.rooms.get(roomJid))
+            .map(itemId => this.items.get(itemId))
+            .filter(item => !is.nil(item))
+            .toArray();
     }
 
     public getItemCount(): number
@@ -66,13 +84,21 @@ export class Backpack
 
     public async onItemUpdateFromProvider(itemsDeleted: ReadonlyArray<string>, itemsCreatedOrUpdated: ReadonlyArray<ItemProperties>): Promise<void>
     {
-        const processedDeletedItems: ItemProperties[] = [];
-        const processedChangedItems: ItemProperties[] = [];
-        const changedRooms = new Set<string>();
-        itemsCreatedOrUpdated.forEach(item => this.onCreateOrUpdateItem(item, processedChangedItems, changedRooms));
-        itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, processedDeletedItems, changedRooms));
+        itemsDeleted.forEach(itemId => this.itemPropertiesUrlProcessor.forgetItem(itemId))
+        const propertiesUrlProcessingItems = itemsCreatedOrUpdated.map(item => this.itemPropertiesUrlProcessor.processItem(item))
+        const propertiesUrlProcessedItems = await Promise.all(propertiesUrlProcessingItems)
+        await this.onItemUpdatePropertyUrlsProcessed(itemsDeleted, propertiesUrlProcessedItems)
+    }
 
-        this.sendUpdateToAllTabs(processedDeletedItems, processedChangedItems);
+    private async onItemUpdatePropertyUrlsProcessed(itemsDeleted: ReadonlyArray<string>, propertiesUrlProcessedItems: ReadonlyArray<ItemProperties>): Promise<void>
+    {
+        const reallyDeletedItems: ItemProperties[] = [];
+        const reallyChangedItems: ItemProperties[] = [];
+        const changedRooms = new Set<string>();
+        propertiesUrlProcessedItems.forEach(item => this.onCreateOrUpdateItem(item, reallyChangedItems, changedRooms));
+        itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, reallyDeletedItems, changedRooms));
+
+        this.sendUpdateToAllTabs(reallyDeletedItems, reallyChangedItems);
         for (const room of changedRooms) {
             this.app.sendRoomPresence(room);
         }
@@ -89,8 +115,8 @@ export class Backpack
         if (versionOld > versionNew) {
             return;
         }
-        const propsDifferentchanged = ItemProperties.getDifferentPids(propsOld, propsNew);
-        if (propsDifferentchanged.size === 0) {
+        const changedPids = ItemProperties.getDifferentPids(propsOld, propsNew);
+        if (changedPids.size === 0) {
             return;
         }
         this.items.set(itemId, propsNew);
@@ -101,11 +127,11 @@ export class Backpack
         const isRezzedNew = ItemProperties.getIsRezzed(propsNew);
         const roomNew = ItemProperties.getRezzedLocation(propsNew) ?? '';
         if (isRezzedOld || isRezzedNew) {
-            propsDifferentchanged.delete(Pid.Version);
-            propsDifferentchanged.delete(Pid.InventoryX);
-            propsDifferentchanged.delete(Pid.InventoryY);
-            propsDifferentchanged.delete(Pid.AutorezIsActive);
-            if (propsDifferentchanged.size !== 0) {
+            changedPids.delete(Pid.Version);
+            changedPids.delete(Pid.InventoryX);
+            changedPids.delete(Pid.InventoryY);
+            changedPids.delete(Pid.AutorezIsActive);
+            if (changedPids.size !== 0) {
                 if (isRezzedOld) {
                     this.removeFromRoom(itemId, roomOld);
                     changedRoomsAccu.add(roomOld);
@@ -168,6 +194,8 @@ export class Backpack
             const providerConfig = providerConfigs[providerId] ?? {};
             this.maintainProvider(providerId, providerConfig, loadItems);
         }
+
+        this.itemPropertiesUrlProcessor.maintain();
     }
 
     private disableProvider(providerId: string, provider: IItemProvider): void
@@ -418,113 +446,49 @@ export class Backpack
         const itemsPromises = [...this.providers.values()]
             .map(provider => provider.getItemsByInventoryItemIds(itemsToGet));
         const itemLists = await Promise.all(itemsPromises);
-        return [].concat(...itemLists);
+        const rawItems = [].concat(...itemLists);
+
+        const propertiesUrlProcessingItems = rawItems.map(item => this.itemPropertiesUrlProcessor.processItem(item))
+        const propertiesUrlProcessedItems = await Promise.all(propertiesUrlProcessingItems)
+
+        return propertiesUrlProcessedItems;
+    }
+
+    public getLoadedItemsByInventoryItemIds(itemsToGet: ItemProperties[]): { itemsLoaded: ItemProperties[], itemsToLoad: ItemProperties[] }
+    {
+        const providerResults = iter(this.providers.values())
+            .map(provider => provider.getLoadedItemsByInventoryItemIds(itemsToGet))
+            .toArray();
+        const itemsToLoad = iter(providerResults).flatmap(({ itemsToLoad }) => itemsToLoad).toArray();
+        const itemsLoaded = [];
+        for (const itemLoaded of iter(providerResults).flatmap(({ itemsLoaded }) => itemsLoaded)) {
+            const itemProcessed = this.itemPropertiesUrlProcessor.getProcessedItemOrNull(itemLoaded);
+            if (itemProcessed) {
+                itemsLoaded.push(itemProcessed);
+            } else {
+                itemsToLoad.push(itemLoaded);
+            }
+        }
+        return { itemsLoaded, itemsToLoad };
     }
 
     public stanzaOutFilter(stanza: ltx.Element): ltx.Element
     {
-        for (let [providerId, provider] of this.providers) {
+        for (const [providerId, provider] of this.providers) {
             try {
                 stanza = provider.stanzaOutFilter(stanza);
             } catch (error) {
                 log.info('Backpack.stanzaOutFilter', 'provider.stanzaOutFilter failed for provider', providerId);
             }
         }
-
-        if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
-            let toJid = jid(stanza.attrs.to);
-            let roomJid = toJid.bare().toString();
-            let dependentExtension = this.getDependentPresence(roomJid);
-            if (dependentExtension) {
-                stanza.cnode(dependentExtension);
-            }
-        }
-
+        this.dependentPresenceHelper.modifyOutgoingStanza(stanza);
         return stanza;
     }
 
     public stanzaInFilter(stanza: ltx.Element): ltx.Element
     {
-        if (stanza.name === 'presence' && as.String(stanza.attrs['type'], 'available') === 'available') {
-            const fromJid = jid(stanza.attrs.from);
-            const roomJid = fromJid.bare().toString();
-            const participantNick = fromJid.getResource();
-            const dependentPresences = stanza.getChildren('x', 'vp:dependent')[0]?.getChildren('presence') ?? [];
-            for (const dependentPresence of dependentPresences) {
-                const vpProps = dependentPresence.getChildren('x', 'vp:props')[0];
-                if (vpProps) {
-                    const itemId = vpProps.attrs[Pid.Id];
-                    const providerName = as.String(vpProps.attrs[Pid.Provider], '');
-                    if (this.providers.has(providerName)) {
-                        const provider = this.providers.get(providerName);
-                        provider.onDependentPresence(itemId, roomJid, participantNick, dependentPresence);
-                    }
-                }
-            }
-        }
-
+        this.dependentPresenceHelper.modifyIncomingStanza(stanza);
         return stanza;
-    }
-
-    public replayPresence(roomJid: string, participantNick: string): void
-    {
-        this.app.replayPresence(roomJid, participantNick);
-    }
-
-    private warningNotificatonTime = 0;
-    private limitNotificatonTime = 0;
-    private getDependentPresence(roomJid: string): null|ltx.Element
-    {
-        let result = new ltx.Element('x', { 'xmlns': 'vp:dependent' });
-
-        let ids = iter(this.rooms.get(roomJid)).toArray();
-        if (ids.length === 0) {
-            return null;
-        }
-
-        if (ids.length > Config.get('backpack.dependentPresenceItemsWarning', 20)) {
-            let now = Date.now();
-            if (ids.length > Config.get('backpack.dependentPresenceItemsLimit', 25)) {
-                if ((now - this.limitNotificatonTime) / 1000 > Config.get('backpack.dependentPresenceItemsWarningIntervalSec', 30.0)) {
-                    this.limitNotificatonTime = now;
-                    this.showToast(roomJid,
-                        this.app.translateText('Backpack.Too many items'),
-                        this.app.translateText('Backpack.Page items disabled.'),
-                        'DependentPresenceLimit',
-                        WeblinClientApi.ClientNotificationRequest.iconType_warning,
-                    );
-                }
-                return result;
-            } else {
-
-                if ((now - this.warningNotificatonTime) / 1000 > Config.get('backpack.dependentPresenceItemsWarningIntervalSec', 30.0)) {
-                    this.warningNotificatonTime = now;
-                    this.showToast(roomJid,
-                        this.app.translateText('Backpack.Too many items'),
-                        this.app.translateText('Backpack.You are close to the limit of items on a page.'),
-                        'DependentPresenceWarning',
-                        WeblinClientApi.ClientNotificationRequest.iconType_notice,
-                    );
-                }
-            }
-        }
-
-        for (const id of ids) {
-            const itemPresence = this.getProvider(id).getDependentPresence(id, roomJid);
-            result.cnode(itemPresence);
-        }
-
-        return result;
-    }
-
-    private showToast(roomJid: string, title: string, text: string, type: string, iconType: string): void
-    {
-        let data = new WeblinClientApi.ClientNotificationRequest(WeblinClientApi.ClientNotificationRequest.type, '');
-        data.title = title;
-        data.text = text;
-        data.type = type;
-        data.iconType = iconType;
-        this.app.sendToTabsForRoom(roomJid, { type: ContentMessage.type_clientNotification, data });
     }
 
 }
