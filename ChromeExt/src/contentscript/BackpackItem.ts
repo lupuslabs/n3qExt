@@ -112,11 +112,8 @@ export class BackpackItem
 
     private applyText(): void
     {
-        let text = as.String(this.properties[Pid.Label])
-        const description = as.String(this.properties[Pid.Description])
-        if (description !== '') {
-            text += (text !== '' ? ': ' : '') + description
-        }
+        const text = as.StringOrNull(this.properties[Pid.Label], 1)
+            ?? as.String(this.properties[Pid.Description])
         this.textElem.innerText = text
         this.elem.setAttribute('title', text)
     }
