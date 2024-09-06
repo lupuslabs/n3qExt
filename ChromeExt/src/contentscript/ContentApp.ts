@@ -16,6 +16,7 @@ import {
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
+import { Logger, LoglevelLogger } from '../lib/Logger'
 import { AvatarGallery } from '../lib/AvatarGallery';
 import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
@@ -96,6 +97,7 @@ export class ContentApp extends AppWithDom
     private params: ContentAppParams;
     private isStopped: boolean = false;
     private debugUtils: DebugUtils;
+    private readonly logger: Logger = new LoglevelLogger('', '');
     private appendToMe: HTMLElement
     private appendToMeDomObserver: null|MutationObserver;
     private shadowDomAnchor: null|HTMLElement;
@@ -144,6 +146,7 @@ export class ContentApp extends AppWithDom
     // Getter
 
     getDebugUtils(): DebugUtils { return this.debugUtils; }
+    public getLogger(): Logger { return this.logger; }
     getTabContentData(): TabContentData { return this.tabContentData; }
     getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }

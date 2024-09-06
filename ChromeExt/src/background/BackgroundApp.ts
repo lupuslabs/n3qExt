@@ -4,6 +4,7 @@ import * as jid from '@xmpp/jid';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
+import { Logger, LoglevelLogger } from '../lib/Logger'
 import {
     BackgroundRequest,
     BackgroundErrorResponse,
@@ -75,6 +76,7 @@ interface PointsActivity
 
 export class BackgroundApp
 {
+    private readonly logger: Logger = new LoglevelLogger('', '');
     private readonly tabs: BackgroundBrowserTabs;
     private readonly contentCommunicator: BackgroundToContentCommunicator;
     private readonly urlFetcher: DirectUrlFetcher;
@@ -127,6 +129,8 @@ export class BackgroundApp
             chrome.runtime.onMessageExternal.addListener(handler);
         }
     }
+
+    public getLogger(): Logger { return this.logger; }
 
     public getLanguage(): string { return this.language; }
 

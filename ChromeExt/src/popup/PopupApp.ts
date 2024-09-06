@@ -7,6 +7,7 @@ import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
 import { Client } from '../lib/Client';
+import { Logger, LoglevelLogger } from '../lib/Logger'
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
 import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
@@ -18,6 +19,7 @@ import { BackgroundMessageUrlFetcher } from '../lib/UrlFetcher'
 
 export class PopupApp extends AppWithDom
 {
+    private readonly logger: Logger = new LoglevelLogger('', '');
     private display: HTMLElement;
     private babelfish: Translator;
     private defaultDevConfig = `{}`;
@@ -40,6 +42,8 @@ export class PopupApp extends AppWithDom
         const serviceUrl = Config.get('i18n.serviceUrl', '')
         this.babelfish = new Translator(translationTable, language, serviceUrl, new BackgroundMessageUrlFetcher());
     }
+
+    public getLogger(): Logger { return this.logger; }
 
     public onError(error: unknown): void
     {

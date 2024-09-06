@@ -1,11 +1,15 @@
-﻿export abstract class App {
+﻿import { Logger } from './Logger'
 
-    public abstract onError(error: unknown): void;
+export abstract class App {
+
+    public abstract onError(error: unknown): void
+
+    public abstract getLogger(): Logger
 
 }
 
 export abstract class AppWithDom extends App {
 
-    public abstract getShadowDomRoot(): DocumentOrShadowRoot;
+    public abstract getShadowDomRoot(): DocumentOrShadowRoot
 
 }
