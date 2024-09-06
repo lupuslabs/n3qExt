@@ -73,7 +73,7 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     {
         super.onBeforeClose();
         this.badgeContent = null;
-        this.contentElem.remove();
+        this.contentElem?.remove();
         this.contentElem = null;
     }
 
