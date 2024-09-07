@@ -128,33 +128,51 @@ export namespace DomUtils {
         return rgbaVals
     }
 
+    type GetImgSrcOpacityAtPosElemData = Readonly<{
+        lastSrc: string
+        lastWidth: number
+        lastHeight: number
+        canvasContext: CanvasRenderingContext2D
+    }>
+
     export function getImgSrcOpacityAtPos(elem: HTMLImageElement, localX: number, localY: number): number {
         // Only consideres the actual image content. Does not handle whole element opacity, backgrounds, filters...
+
+        // Prepare canvas with image scaled to current size:
+        const { currentSrc, width, height } = elem
+        let data: null|GetImgSrcOpacityAtPosElemData = elem['getImgSrcOpacityAtPosElemData']
+        if (!data || data.canvasContext || data.lastSrc !== currentSrc || data.lastWidth !== width || data.lastHeight !== height) {
+            const canvasElem = document.createElement('canvas')
+            const ctx = canvasElem.getContext('2d')
+            ctx.canvas.width = width
+            ctx.canvas.height = height
+            ctx.drawImage(elem, 0, 0, width, height)
+            data = Object.freeze({
+                lastSrc: currentSrc,
+                lastWidth: width,
+                lastHeight: height,
+                canvasContext: ctx,
+            })
+            try {
+                elem['getImgSrcOpacityAtPosElemData'] = data
+            } catch (error) {
+                console.log('getImgSrcOpacityAtPos: Failed to store data on elem.', { elem, data })
+            }
+        }
+
+        // Read referenced pixel's alpha channel value:
         localX = Math.round(localX)
         localY = Math.round(localY)
-
-        const canvasElem = document.createElement('canvas')
-        const ctx = canvasElem.getContext('2d')
-        ctx.canvas.width = 1
-        ctx.canvas.height = 1
-
-        // Draw image to canvas and read Alpha channel value:
-        const srcPixelSizeX = elem.naturalWidth  / elem.width
-        const srcPixelSizeY = elem.naturalHeight / elem.height
-        const srcX = Math.round(srcPixelSizeX * localX)
-        const srcY = Math.round(srcPixelSizeY * localY)
-        const srcWidth  = Math.max(1, Math.round(srcPixelSizeX))
-        const srcHeight = Math.max(1, Math.round(srcPixelSizeY))
-        ctx.drawImage(elem, srcX, srcY, srcWidth, srcHeight, 0, 0, 1, 1)
-        let opacity: number
         try {
-            opacity = ctx.getImageData(0, 0, 1, 1).data[3] / 255 // [0]R [1]G [2]B [3]A
+            const pixelData = data.canvasContext.getImageData(localX, localY, 1, 1).data
+            const opacity = pixelData[3] / 255 // [0]R [1]G [2]B [3]A
+            return opacity
         } catch (error) {
             // "canvas has been tainted by cross-origin data" - happens when the original image came from another origin.
-            opacity = 1.0
+            const opacity = 1.0
+            //console.log('getImgSrcOpacityAtPos: Failed to access pixel data.', error, { elem, data })
+            return opacity
         }
-        canvasElem.remove()
-        return opacity
     }
 
     //------------------------------------------------------------------------------
