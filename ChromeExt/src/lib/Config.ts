@@ -653,8 +653,8 @@ export class Config
 
                     // 'Backpack.Shredder': 'Shredder',
                     'Backpack.Go to item': 'Go there',
-                    'Backpack.Derez item': 'Pick up',
-                    'Backpack.Rez item': 'Drop',
+                    'Backpack.Derez item': 'Remove from page',
+                    'Backpack.Rez item': 'Deploy to page',
                     'Backpack.Delete item': 'Delete',
                     'Backpack.Active': 'Active',
                     'Backpack.Too many items': 'Too many items',
@@ -838,7 +838,7 @@ export class Config
                     'Star.0-1': 'Quarter copper dot',
 
                     'ErrorFact.UnknownError': 'Error',
-                    'ErrorFact.NotRezzed': 'Item Not Dropped',
+                    'ErrorFact.NotRezzed': 'Item Not Deployed',
                     'ErrorFact.NotDerezzed': 'Failed to Pick Up Item',
                     'ErrorFact.NotAdded': 'Item Not Added',
                     'ErrorFact.NotChanged': 'Item Not Changed',
@@ -898,7 +898,7 @@ export class Config
                     'ItemPid.PointsCurrent': 'Points available for payout as dots',
                     'ItemPid.PointsUnclaimed': 'Unclaimed',
                     'ItemPid.RezzedDestination': 'Page',
-                    'ItemPid.IsRezzed': 'Dropped',
+                    'ItemPid.IsRezzed': 'On page',
                     'ItemPid.CoinCurrency': 'Currency',
                     'ItemPid.CoinAmount': 'Amount',
                     'ItemPid.IframeUrl': 'URL',
@@ -1049,8 +1049,8 @@ export class Config
 
                     // 'Backpack.Shredder': 'Schredder',
                     'Backpack.Go to item': 'Dort hingehen',
-                    'Backpack.Derez item': 'Einsammeln',
-                    'Backpack.Rez item': 'Ablegen',
+                    'Backpack.Derez item': 'Von der Seite nehmen',
+                    'Backpack.Rez item': 'Auf die Seite stellen',
                     'Backpack.Delete item': 'Löschen',
                     'Backpack.Active': 'Aktiv',
                     'Backpack.Too many items': 'Zu viele Gegenstände',
@@ -1236,7 +1236,7 @@ export class Config
                     'Star.0-1': 'Viertel Kupferpunkt',
 
                     'ErrorFact.UnknownError': 'Fehler',
-                    'ErrorFact.NotRezzed': 'Ablegen fehlgeschlagen',
+                    'ErrorFact.NotRezzed': 'Auf die Seite stellen fehlgeschlagen',
                     'ErrorFact.NotDerezzed': 'Von der Seite nehmen fehlgeschlagen',
                     'ErrorFact.NotAdded': 'Gegenstand nicht hinzugefügt',
                     'ErrorFact.NotChanged': 'Gegenstand nicht geändert',

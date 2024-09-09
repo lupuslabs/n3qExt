@@ -1178,6 +1178,7 @@ div#n3q-display {
 
         div.n3q-button-list {
             margin-top: 8px;
+            white-space: nowrap;
         }
 
         div.n3q-description {
@@ -1249,6 +1250,9 @@ div#n3q-display {
             display: inline-block;
             margin-top: 4px;
             margin-right: 4px;
+        }
+        div.n3q-button:last-child {
+            margin-right: 0;
         }
 
         .n3q-backpack-activate {
