@@ -1,5 +1,6 @@
 import { is } from './is'
 import { as } from './as'
+import {iter} from './Iter';
 import log = require('loglevel')
 import { UrlJsonFetcher } from './UrlFetcher'
 
@@ -10,32 +11,6 @@ interface ITranslationResponse
     translatedText: string
     isTranslated: boolean
     timestamp: number
-}
-
-abstract class HtmlElementPartApplier
-{
-    constructor(public elem: HTMLElement, public what: string) { }
-    apply(translated: string): void { }
-}
-
-class HtmlElementPartAttributeApplier extends HtmlElementPartApplier
-{
-    constructor(public elem: HTMLElement, public what: string, public attrName: string) { super(elem, what) }
-
-    apply(translated: string): void
-    {
-        this.elem.setAttribute(this.attrName, translated)
-    }
-}
-
-class HtmlElementTextPartApplier extends HtmlElementPartApplier
-{
-    constructor(public elem: HTMLElement, public what: string) { super(elem, what) }
-
-    apply(translated: string): void
-    {
-        this.elem.innerText = translated
-    }
 }
 
 type TranslatorLanguageMapper = (key: null|string) => string
@@ -66,13 +41,13 @@ export class Translator
         return language.substring(0, 2)
     }
 
-    private readonly translations: { [key: string]: any }
-    private readonly translationAvailable: { [id: string]: boolean } = {}
+    private readonly translations: { [key: string]: string }
+    private readonly translationsFetched: Set<string> = new Set()
     private readonly language: string
     private readonly translationServiceUrl: string
     private readonly urlFetcher: UrlJsonFetcher
 
-    public constructor(translations: { [key: string]: any }, language: string, translationServiceUrl: string, urlFetcher: UrlJsonFetcher)
+    public constructor(translations: { [key: string]: string }, language: string, translationServiceUrl: string, urlFetcher: UrlJsonFetcher)
     {
         this.translations = translations
         this.language = language
@@ -85,16 +60,20 @@ export class Translator
         return this.language
     }
 
-    public translateText(key: string, defaultText: string): string
+    public translateText(key: string, defaultText?: null|string): string
     {
-        if (this.translations[key]) {
-            return this.translations[key]
-        } else {
-            if (defaultText) { return defaultText }
+        const translated = this.translations[key] ?? null
+        if (is.string(translated)) {
+            return translated
+        }
+        if (is.nonEmptyString(defaultText)) {
+            return defaultText
         }
 
-        let parts = key.split('.', 2)
-        if (parts.length === 2) { return parts[1] }
+        const parts = key.split('.', 2)
+        if (parts.length === 2) {
+            return parts[1]
+        }
         return key
     }
 
@@ -108,27 +87,25 @@ export class Translator
         for (const cmd of cmds) {
             const cmdParts = cmd.split(':')
             const what = cmdParts[0]
-            let applier: HtmlElementPartApplier = null
-            let key: string
 
             switch (what) {
                 case 'attr': {
                     const attrName = as.String(cmdParts[1])
                     const context = as.String(cmdParts[2])
                     const text = as.String(elem.getAttribute(attrName))
-                    key = this.getKey(context, text)
-                    applier = new HtmlElementPartAttributeApplier(elem, what, attrName)
+                    const key = this.getKey(context, text)
+                    const applier = (translatedText: string) => elem.setAttribute(attrName, translatedText)
                     this.applyTranslation(key, applier)
                 } break
 
                 case 'text': {
-                    if (!elem.children.length) {
+                    iter(elem.childNodes).filter(childNode => childNode.nodeType === Node.TEXT_NODE).forEach(childNode => {
                         const context = as.String(cmdParts[1])
-                        const text = elem.innerText
-                        key = this.getKey(context, text)
-                        applier = new HtmlElementTextPartApplier(elem, what)
+                        const text = childNode.textContent
+                        const key = this.getKey(context, text)
+                        const applier = (translatedText: string) => { childNode.textContent = translatedText }
                         this.applyTranslation(key, applier)
-                    }
+                    })
                 } break
 
                 case 'children': {
@@ -143,28 +120,30 @@ export class Translator
         }
     }
 
-    private applyTranslation(key: string, applier: HtmlElementPartApplier): void
+    private applyTranslation(key: string, applier: (translatedText: string) => void): void
     {
-        if (this.translations[key] || this.translations[key] === '') {
-            this.translationAvailable[key] = true
-            applier.apply(this.translations[key])
-        } else if (is.nil(this.translationAvailable[key]) && !is.nil(this.translationServiceUrl) && this.translationServiceUrl.length) {
-            const url = this.translationServiceUrl + '?lang=' + encodeURI(this.language) + '&key=' + encodeURI(key)
-            this.urlFetcher.fetchJson(url)
-                .then((response: ITranslationResponse) => {
-                    if (!response.translatedText) {
-                        return
-                    }
-                    this.translationAvailable[key] = response.isTranslated
-                    if (response.isTranslated) {
-                        this.translations[key] = response.translatedText
-                    }
-                    applier.apply(response.translatedText)
-                })
-                .catch(error => {
-                    log.info('Translator.applyTranslation: urlFetcher.fetchJson failed!', { error })
-                })
+        const translatedText = this.translations[key] ?? null
+        if (!is.nil(translatedText)) {
+            applier(translatedText)
+            return
         }
+        if (this.translationsFetched.has(key) || !is.nonEmptyString(this.translationServiceUrl)) {
+            return
+        }
+        const url = this.translationServiceUrl + '?lang=' + encodeURI(this.language) + '&key=' + encodeURI(key)
+        this.urlFetcher.fetchJson(url)
+            .then((response: ITranslationResponse) => {
+                const { translatedText } = response
+                if (!is.string(translatedText)) {
+                    return
+                }
+                this.translationsFetched.add(key)
+                if (response.isTranslated) {
+                    this.translations[key] = translatedText
+                }
+                applier(translatedText)
+            })
+            .catch(error => log.info('Translator.applyTranslation: urlFetcher.fetchJson failed!', { error }))
     }
 
     private getKey(context: string, text: string): string
