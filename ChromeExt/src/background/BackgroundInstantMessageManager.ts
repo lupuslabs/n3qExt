@@ -4,7 +4,7 @@ import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ChatUtils } from '../lib/ChatUtils'
 import { BackgroundApp } from './BackgroundApp';
-import { WebsocketServerMessage as WsMessage } from '../lib/WebsocketServerMessage'
+import { WebsocketMessage as WsMessage } from '../lib/WebsocketMessage'
 import { ItemException } from '../lib/ItemException'
 import { BackgroundBrowserTab } from './BackgroundBrowserTabs'
 import { ContentMessage } from '../lib/ContentMessage'

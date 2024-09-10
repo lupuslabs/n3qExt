@@ -1,5 +1,5 @@
 ﻿import { RetryStrategy } from './RetryStrategy'
-import { WebsocketServerMessage as Message } from './WebsocketServerMessage'
+import { WebsocketMessage as Message } from './WebsocketMessage'
 
 export namespace WebsocketConnection {
 

@@ -4,7 +4,7 @@ import { RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
 import { Config } from '../lib/Config'
 import { BackgroundApp } from './BackgroundApp';
 import { WebsocketConnection } from '../lib/WebsocketConnection'
-import { WebsocketServerMessage as Message } from '../lib/WebsocketServerMessage'
+import { WebsocketMessage as Message } from '../lib/WebsocketMessage'
 import { Utils } from '../lib/Utils'
 
 export class WebsocketManager
@@ -12,19 +12,19 @@ export class WebsocketManager
     private readonly app: BackgroundApp
 
     private readonly websocketControllerConfig: WebsocketConnection.Config = {
-        getWebsocketUrl: () => as.String(Config.get('websocketServer.serviceUrl')),
-        getUnreceivedResponseTimeoutSecs: () => as.Float(Config.get('websocketServer.unreceivedResponseTimeoutSecs'), 30),
-        getHeartbeatSendIntervalSecs: () => as.Float(Config.get('websocketServer.heartbeatSendIntervalSecs'), 15),
-        getHeartbeatTimeoutSecs: () => as.Float(Config.get('websocketServer.heartbeatTimeoutSecs'), 30),
+        getWebsocketUrl: () => as.String(Config.get('websocket.serviceUrl')),
+        getUnreceivedResponseTimeoutSecs: () => as.Float(Config.get('websocket.unreceivedResponseTimeoutSecs'), 30),
+        getHeartbeatSendIntervalSecs: () => as.Float(Config.get('websocket.heartbeatSendIntervalSecs'), 15),
+        getHeartbeatTimeoutSecs: () => as.Float(Config.get('websocket.heartbeatTimeoutSecs'), 30),
         getWebsocketOpenRetryStrategy: () => new RetryStrategyFactorGrowthMaker(
-            as.Float(Config.get('websocketServer.connectRetryStrategyFirstRetryDelaySecs'), 30),
-            as.Float(Config.get('websocketServer.connectRetryStrategyDelayGrowthFactor'), 30),
-            as.Float(Config.get('websocketServer.connectRetryStrategyRetryDelayMaxSecs'), 30)
+            as.Float(Config.get('websocket.connectRetryStrategyFirstRetryDelaySecs'), 30),
+            as.Float(Config.get('websocket.connectRetryStrategyDelayGrowthFactor'), 30),
+            as.Float(Config.get('websocket.connectRetryStrategyRetryDelayMaxSecs'), 30)
         ).makeRetryStrategy(),
         logDebug: (msg, ...data) => this.logDebug(msg, ...data),
         logInfo:  (msg, ...data) => this.logInfo(msg, ...data),
         logError: (msg, ...data) => this.logError(msg, ...data),
-        getLogPingMessages: () => Utils.logChannel('websocketServerConnectionPings', false),
+        getLogPingMessages: () => Utils.logChannel('websocketConnectionPings', false),
         socketIsReadyHandler: () => this.handleWebsocketIsReady(),
         socketIsntReadyHandler: () => this.handleWebsocketIsntReady(),
         incommingRequestHandler: (request) => this.handleRequest(request),
@@ -172,13 +172,13 @@ export class WebsocketManager
     }
 
     private logDebug(msg: string, ...data: any[]): void {
-        if (Utils.logChannel('websocketServerConnection', false)) {
+        if (Utils.logChannel('websocketConnection', false)) {
             log.debug(msg, ...data)
         }
     }
 
     private logInfo(msg: string, ...data: any[]): void {
-        if (Utils.logChannel('websocketServerConnection', false)) {
+        if (Utils.logChannel('websocketConnection', false)) {
             log.info(msg, ...data)
         }
     }

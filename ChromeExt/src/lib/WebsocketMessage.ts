@@ -1,6 +1,6 @@
 ﻿import { is } from './is'
 
-export namespace WebsocketServerMessage {
+export namespace WebsocketMessage {
 
     export function makeId(): string {
         return crypto.randomUUID(); // Not available in non-HTTPS contexts.

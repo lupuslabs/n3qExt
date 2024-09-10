@@ -3,7 +3,7 @@ import { as } from '../lib/as'
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { BackgroundApp } from './BackgroundApp';
-import { WebsocketServerMessage as Message } from '../lib/WebsocketServerMessage'
+import { WebsocketMessage as Message } from '../lib/WebsocketMessage'
 import { ContentMessage, FriendshipProposalState, FriendshipProposalsState } from '../lib/ContentMessage'
 
 export class BackgroundFriendshipProposalManager
