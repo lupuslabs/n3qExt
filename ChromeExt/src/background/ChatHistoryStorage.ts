@@ -214,9 +214,10 @@ export class ChatHistoryStorage {
                     if (deletedCount !== 0 || chatIsEmpty) {
                         const {type, roomJid, roomNick} = chatRecord;
                         const chatChannel:ChatChannel = { type, roomJid, roomNick };
-                        const jidEntries = deletedHistoriesByRoomJid.get(roomJid) ?? [];
+                        const tabRoomJid = type === 'instantMessage' ? '' : roomJid;
+                        const jidEntries = deletedHistoriesByRoomJid.get(tabRoomJid) ?? [];
                         jidEntries.push({chatChannel, olderThanTime: msgOlderThanTime});
-                        deletedHistoriesByRoomJid.set(roomJid, jidEntries);
+                        deletedHistoriesByRoomJid.set(tabRoomJid, jidEntries);
                     }
                 }
                 await transactionPromise;

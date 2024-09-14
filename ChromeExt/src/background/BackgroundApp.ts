@@ -838,9 +838,10 @@ export class BackgroundApp
     {
         const deletionsByRoomJid = await this.chatHistoryStorage.maintain(new Date());
         await this.chatHistoryStorage.deleteOldChatHistoryByChatChannelOlderThanTime(chatChannel, olderThanTime);
-        const jidEntries = deletionsByRoomJid.get(chatChannel.roomJid) ?? [];
+        const tabRoomJid = chatChannel.type === 'instantMessage' ? '' : chatChannel.roomJid;
+        const jidEntries = deletionsByRoomJid.get(tabRoomJid) ?? [];
         jidEntries.push({chatChannel, olderThanTime});
-        deletionsByRoomJid.set(chatChannel.roomJid, jidEntries);
+        deletionsByRoomJid.set(tabRoomJid, jidEntries);
         this.sendChatHistoryDeletionsToTabs(deletionsByRoomJid);
         return new BackgroundSuccessResponse();
     }
@@ -877,7 +878,11 @@ export class BackgroundApp
     {
         for (const [roomJid, deletions] of deletionsByRoomJid) {
             const message = { type: ContentMessage.type_chatHistoryDeleted, data: {deletions} };
-            this.sendToTabsForRoom(roomJid, message);
+            if (roomJid.length === 0) {
+                this.sendToAllTabs(message);
+            } else {
+                this.sendToTabsForRoom(roomJid, message);
+            }
         }
     }
 
