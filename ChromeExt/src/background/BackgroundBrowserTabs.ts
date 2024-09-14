@@ -221,15 +221,17 @@ export class BackgroundBrowserTabs
         if (!this.browserTabsSupported) {
             return
         }
-        chrome.tabs.get(tabId)
-            .then(tabData => {
+        chrome.tabs.get(tabId, tabData => {
+            try {
                 if (tabData.active) {
                     this.handleTabActivated(tabId)
                 } else {
                     this.handleTabDeactivated(tabId)
                 }
-            })
-            .catch(_error => this.forgetTab(tabId))
+            } catch(error) {
+                this.forgetTab(tabId)
+            }
+        })
     }
 
     public sendMessageToTab(tabId: number, message: { type: string, [p: string]: any }): void

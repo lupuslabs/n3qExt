@@ -20,9 +20,9 @@ export class PopupManager
     public constructor(app: BackgroundApp)
     {
         this.app = app
-        this.isStopped = (typeof chrome === 'undefined') || is.nil(chrome?.windows);
+        this.isStopped = (typeof chrome === 'undefined') || is.nil(chrome?.windows)
         if (this.isStopped) {
-            return;
+            return
         }
         this.onWindowRemovedListener = (windowId: number) => this.onWindowRemoved(windowId)
         chrome.windows.onRemoved.addListener(this.onWindowRemovedListener)
@@ -31,9 +31,9 @@ export class PopupManager
     public stop(): void
     {
         if (this.isStopped) {
-            return;
+            return
         }
-        this.isStopped = true;
+        this.isStopped = true
         chrome.windows.onRemoved.removeListener(this.onWindowRemovedListener)
         this.popupInfos.clear()
         this.popupInfosByWindowId.clear()
@@ -42,7 +42,7 @@ export class PopupManager
     public openOrFocusPopup(popupDefinition: PopupDefinition): void
     {
         if (this.isStopped) {
-            return;
+            return
         }
         const popupId = popupDefinition.id
         let popupInfo = this.popupInfos.get(popupId)
@@ -56,27 +56,36 @@ export class PopupManager
     public closePopup(popupId: string): void
     {
         if (this.isStopped) {
-            return;
+            return
         }
-        let popupInfo = this.popupInfos.get(popupId)
-        if (popupInfo) {
-            chrome.windows.remove(popupInfo.windowId).catch(error => log.info(error))
+        const popupInfo = this.popupInfos.get(popupId)
+        if (!popupInfo) {
+            return
+        }
+        try {
+            chrome.windows.remove(popupInfo.windowId, () => { })
+        } catch (error) {
+            log.info('PopupWindowManager.focusPopup: chrome.windows.remove failed!', error, { popupId })
         }
     }
 
     public isTabDisabled(tabId: number): boolean
     {
-        let isPopupTab = false;
-        this.popupInfos.forEach(pi =>
-        {
-            if (pi.tabId === tabId) { isPopupTab = true }
-        });
-        return isPopupTab;
+        for (const pi of this.popupInfos.values()) {
+            if (pi.tabId === tabId) {
+                return true
+            }
+        }
+        return false
     }
 
     private focusPopup(popupInfo: PopupInfo): void
     {
-        chrome.windows.update(popupInfo.windowId, { focused: true }).catch(error => log.info(error))
+        try {
+            chrome.windows.update(popupInfo.windowId, { focused: true }, _window => { })
+        } catch (error) {
+            log.info('PopupWindowManager.focusPopup: chrome.windows.update failed!', error, { popupInfo })
+        }
     }
 
     private openPopup(popupDefinition: PopupDefinition): void
@@ -89,22 +98,25 @@ export class PopupManager
             focused: true,
             url, left, top, width, height,
         }
-        chrome.windows.create(options, (window) =>
-        {
-            if (!window) {
-                log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed without error!', { window })
-                return
-            }
-            try {
+        try {
+            chrome.windows.create(options, (window) => {
+                if (!window) {
+                    log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed without error!', { popupDefinition })
+                    return
+                }
                 const windowId = window.id
-                const tabId = window.tabs[0].id;
-                const popupInfo = { popupId, windowId, tabId }
+                const tabId = window.tabs?.[0]?.id
+                if (!is.number(tabId)) {
+                    log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create resulting window has no tabs!', { popupDefinition, window })
+                    return
+                }
+                const popupInfo: PopupInfo = { popupId, windowId, tabId }
                 this.popupInfos.set(popupId, popupInfo)
                 this.popupInfosByWindowId.set(windowId, popupInfo)
-            } catch (error) {
-                log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create result processing failed!', { error, window })
-            }
-        })
+            })
+        } catch (error) {
+            log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed!', error, { popupDefinition })
+        }
     }
 
     private onWindowRemoved(windowId: number): void
