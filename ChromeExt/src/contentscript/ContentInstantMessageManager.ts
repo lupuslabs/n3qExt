@@ -6,6 +6,7 @@ import { ContentApp } from './ContentApp'
 import { ChatUtils } from '../lib/ChatUtils'
 import { InstantMessagesWindow } from './InstantMessagesWindow'
 import { ErrorWithData } from '../lib/Utils'
+import { PersonData } from '../lib/ItemProperties'
 
 export class ContentInstantMessageManager
 {
@@ -85,15 +86,16 @@ export class ContentInstantMessageManager
         this.updateTabContentData()
     }
 
-    public openInstantMessagesWindow(otherUserId: string): void
+    public openInstantMessagesWindow(otherUser: string|Readonly<PersonData>): void
     {
-        if (this.isStopped || !this.isFeatureEnabled() || otherUserId.length === 0) {
+        if (this.isStopped || !this.isFeatureEnabled()) {
             return
         }
-        const window = this.getOrCreateImWindow(otherUserId)
+        const window = this.getOrCreateImWindow(otherUser)
         if (window.isOpen()) {
             return
         }
+        const otherUserId = window.getOtherPersonData().userId
         const participantElem = this.app.getRoom()?.getParticipantByUserId(otherUserId)?.getElem() ?? null
         window.show({ above: participantElem })
     }
@@ -133,11 +135,17 @@ export class ContentInstantMessageManager
         this.app.getTabContentData().set('openImWindowUserIds', [...this.openImWindows])
     }
 
-    private getOrCreateImWindow(otherUserId: string): InstantMessagesWindow
+    private getOrCreateImWindow(otherUser: string|Readonly<PersonData>): InstantMessagesWindow
     {
+        if (is.string(otherUser)) {
+            const personMgr = this.app.getPersonManager()
+            otherUser = personMgr.getPersonDataOrNull(otherUser) ?? personMgr.getDummyPersonData(otherUser)
+        }
+
+        const otherUserId = otherUser.userId
         let imWindow: null|InstantMessagesWindow = this.imWindows.get(otherUserId) ?? null
         if (!imWindow) {
-            imWindow = new InstantMessagesWindow(this.app, otherUserId)
+            imWindow = new InstantMessagesWindow(this.app, otherUser)
             this.imWindows.set(otherUserId, imWindow)
         }
         return imWindow

@@ -7,13 +7,12 @@ import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
 import { DomUtils } from '../lib/DomUtils'
 import { RoomItem } from './RoomItem'
+import { PopupDefinition } from '../lib/BackgroundMessage'
 
 export type ItemFrameWindowOptions = WindowOptions & {
     above: HTMLElement,
     url: string,
     resizable?: boolean,
-    undockable?: boolean,
-    undocked?: boolean,
     transparent?: boolean, // Not implemented on ItemFrameWindow.
     titleText: string,
 }
@@ -44,8 +43,6 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
         this.isResizable = as.Bool(this.givenOptions.resizable);
         this.minWidth = 180;
         this.minHeight = 100;
-        this.isUndockable = as.Bool(this.givenOptions.undockable);
-        this.isUndocked= as.Bool(this.givenOptions.undocked);
 
         const url: string = as.String(this.givenOptions.url);
         if (!url.length) {
@@ -81,19 +78,18 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
         this.setGeometry({ left, bottom, width, height });
     }
 
-    protected undock(): void
+    protected makeUndockPopupDefinition(): PopupDefinition
     {
-        const left = Config.get('roomItem.frameUndockedLeft', 100);
-        const top = Config.get('roomItem.frameUndockedTop', 100);
-        const width = this.width;
-        const height = this.height;
-        const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=${width},height=${height},left=${left},top=${top}`;
-
-        const url = this.url;
-
-        this.close();
-
-        const undocked = window.open(url, Utils.randomString(10), params);
-        undocked.focus();
+        const popupDefinition: PopupDefinition = {
+            id: `roomItem.frameUndocked:${this.item.getItemId()}`,
+            url: this.url,
+            top: Config.get('roomItem.frameUndockedTop', 100),
+            left: Config.get('roomItem.frameUndockedLeft', 100),
+            height: this.height,
+            width: this.width,
+            allowContentApp: true,
+        }
+        return popupDefinition
     }
+
 }

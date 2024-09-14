@@ -19,7 +19,12 @@ import { Memory } from '../lib/Memory';
 import { AvatarGallery } from '../lib/AvatarGallery';
 import { Translator } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
-import { BackpackUpdateData, ContentMessage } from '../lib/ContentMessage';
+import {
+    BackpackUpdateData,
+    ContentMessage,
+    ContentOpenInstantMessagesWindowMessage,
+    ContentSetGuiModeMessage,
+} from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
@@ -72,6 +77,7 @@ interface ContentAppNotificationCallback { (msg: any): void }
 interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
 export type WindowStyle = 'window' | 'popup' | 'overlay';
+export type WindowSizingMode = 'normal' | 'maximized';
 
 export type ContentAppParams = {
     nickname?: string,
@@ -79,6 +85,7 @@ export type ContentAppParams = {
     pageUrl?: string,
     x?: number,
     styleUrl?: string,
+    startupRequests?: ReadonlyArray<BackgroundRequest>,
 };
 
 export class ContentApp extends AppWithDom
@@ -99,10 +106,13 @@ export class ContentApp extends AppWithDom
     private dropzoneELem: null|HTMLElement = null;
     private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
+    private windowSizingMode: WindowSizingMode = 'normal';
+    private isExclusiveWindowPopup: boolean = false;
     private userId: string = '';
     private userName: string = '';
     private pageUrl: string;
     private presetPageUrl: string;
+    private roomEnabled: boolean = true;
     private roomJid: string = '';
     private room: Room|null;
     private propertyStorage: PropertyStorage = new PropertyStorage();
@@ -140,6 +150,8 @@ export class ContentApp extends AppWithDom
     getDisplay(): HTMLElement { return this.display; }
     getThemeManager(): ContentThemeManager { return this.themeManager; }
     getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
+    getWindowSizingMode(): WindowSizingMode { return this.windowSizingMode; }
+    getIsExclusiveWindowPopup(): boolean { return this.isExclusiveWindowPopup; }
     public getUserId(): string { return this.userId; }
     getRoom(): Room|null { return this.room; }
     getLanguage(): string { return this.language; }
@@ -301,6 +313,9 @@ export class ContentApp extends AppWithDom
             this.reshowChatWindow();
             // this.reshowVidconfWindow(); // must be after enter
         }
+
+        const startupRequests: ReadonlyArray<BackgroundRequest> = params.startupRequests ?? [];
+        startupRequests.forEach(request => this.onBackgroundRequest(request).catch(error => this.onError(error)));
 
         this.startCheckPageUrl();
         this.iframeApi = new IframeApi(this).start();
@@ -775,6 +790,14 @@ export class ContentApp extends AppWithDom
                 case ContentMessage.type_friendshipProposalsState: {
                     this.personManager.onStateFromBackground(message.data);
                 } break;
+
+                case ContentMessage.type_setGuiMode: {
+                    this.handle_setGuiMode(<ContentSetGuiModeMessage> message);
+                } break;
+                case ContentMessage.type_openInstantMessagesWindow: {
+                    const otherPerson = (<ContentOpenInstantMessagesWindowMessage> message).otherPerson;
+                    this.instantMessageManager.openInstantMessagesWindow(otherPerson);
+                } break;
             }
         } catch (error) {
             this.onError(error)
@@ -883,12 +906,35 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    leavePage()
+    private handle_setGuiMode(message: ContentSetGuiModeMessage): void
+    {
+        switch (message.mode) {
+            default:
+            case 'full': {
+                this.roomEnabled = true;
+                this.windowSizingMode = 'normal';
+                this.isExclusiveWindowPopup = false;
+            } break;
+            case 'popupWindow': {
+                this.roomEnabled = false;
+                this.windowSizingMode = 'maximized';
+                this.isExclusiveWindowPopup = true;
+            } break;
+        }
+        if (this.roomEnabled) {
+            this.startCheckPageUrl();
+        } else {
+            this.stopCheckPageUrl();
+            this.leaveRoom();
+        }
+    }
+
+    private leavePage()
     {
         this.leaveRoom();
     }
 
-    async checkPageUrlChanged()
+    private async checkPageUrlChanged()
     {
         try {
             let pageUrl = this.presetPageUrl ?? Browser.getCurrentPageUrl();
@@ -916,7 +962,7 @@ export class ContentApp extends AppWithDom
             const newDestinationUrl = mappingResult.destinationUrl;
 
             if (newRoomJid === this.roomJid) {
-                this.room.setPageUrl(pageUrl);
+                this.room?.setPageUrl(pageUrl);
                 log.debug('ContentApp.checkPageUrlChanged', 'Same room', pageUrl, ' => ', this.roomJid);
                 return;
             }
@@ -939,31 +985,34 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    getSignificantUrlParts(url: string): string
+    private getSignificantUrlParts(url: string): string
     {
         const parsedUrl = new URL(url);
         return parsedUrl.host + parsedUrl.pathname + parsedUrl.search;
     }
 
-    async vpiMap(url: string): Promise<VpiMappingResult>
+    public async vpiMap(url: string): Promise<VpiMappingResult>
     {
         return await this.vpi.map(url);
     }
 
-    private checkPageUrlSec: number = as.Float(Config.get('room.checkPageUrlSec'), 5);
     private checkPageUrlTimer: number;
-    private startCheckPageUrl()
+    private startCheckPageUrl(): void
     {
         this.stopCheckPageUrl();
-        this.checkPageUrlTimer = <number><unknown>setTimeout(async () =>
+        if (!this.roomEnabled) {
+            return;
+        }
+        const checkPageUrlSec = as.Float(Config.get('room.checkPageUrlSec'), 5);
+        this.checkPageUrlTimer = window.setTimeout(async () =>
         {
             await this.checkPageUrlChanged();
             this.checkPageUrlTimer = undefined;
             this.startCheckPageUrl();
-        }, this.checkPageUrlSec * 1000);
+        }, checkPageUrlSec * 1000);
     }
 
-    private stopCheckPageUrl()
+    private stopCheckPageUrl(): void
     {
         if (this.checkPageUrlTimer) {
             clearTimeout(this.checkPageUrlTimer);
@@ -971,7 +1020,7 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    static getRoomJidFromLocationUrl(locationUrl: string): string
+    public static getRoomJidFromLocationUrl(locationUrl: string): string
     {
         try {
             if (locationUrl != '') {
@@ -1001,9 +1050,12 @@ export class ContentApp extends AppWithDom
     //     }
     // }
 
-    async enterRoom(roomJid: string, pageUrl: string, roomDestination: string): Promise<void>
+    private async enterRoom(roomJid: string, pageUrl: string, roomDestination: string): Promise<void>
     {
         this.leaveRoom();
+        if (!this.roomEnabled) {
+            return;
+        }
 
         this.room = new Room(this, roomJid, pageUrl, roomDestination);
         if (Utils.logChannel('urlMapping', false)) { log.info('ContentApp.enterRoom', roomJid); }
@@ -1012,7 +1064,7 @@ export class ContentApp extends AppWithDom
         this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
     }
 
-    leaveRoom(): void
+    private leaveRoom(): void
     {
         if (this.room) {
             if (Utils.logChannel('urlMapping', false)) { log.info('ContentApp.leaveRoom', this.room.getJid()); }
@@ -1022,7 +1074,7 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    onPresence(stanza: ltx.Element): void
+    private onPresence(stanza: ltx.Element): void
     {
         let isHandled = false;
 

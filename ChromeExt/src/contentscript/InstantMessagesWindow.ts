@@ -1,33 +1,42 @@
 import { iter } from '../lib/Iter'
+import { Config } from '../lib/Config'
 import { ContentApp } from './ContentApp'
 import { ChatUtils } from '../lib/ChatUtils'
 import { ChatWindow } from './ChatWindow'
 import { SimpleToast, Toast } from './Toast'
 import { PersonData } from '../lib/ItemProperties'
-import { BackgroundMessage } from '../lib/BackgroundMessage'
+import { BackgroundMessage, BackgroundRequest, PopupDefinition } from '../lib/BackgroundMessage'
 import { Utils } from '../lib/Utils'
+import { ContentMessage, ContentOpenInstantMessagesWindowMessage, ContentSetGuiModeMessage } from '../lib/ContentMessage'
 
 export class InstantMessagesWindow extends ChatWindow
 {
     protected readonly otherUserId: string
+    protected otherUser: Readonly<PersonData>
     protected unreadMessageToast: null|Toast = null
     protected unreadMessageToastMessageId: string = ''
 
-    public constructor(app: ContentApp, otherUserId: string)
+    public constructor(app: ContentApp, otherUser: Readonly<PersonData>)
     {
         const chatChannel: ChatUtils.ChatChannel = {
             type: 'instantMessage',
-            roomJid: otherUserId,
+            roomJid: otherUser.userId,
             roomNick: '',
         }
         super(app, chatChannel)
-        this.otherUserId = otherUserId
+        this.otherUserId = otherUser.userId
+        this.otherUser = otherUser
+    }
+
+    public getOtherPersonData(): Readonly<PersonData>
+    {
+        return this.otherUser
     }
 
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom()
-        const otherPersonData = this.getUserInfo(this.chatChannel.roomJid)
+        const otherPersonData = this.getUserInfo(this.otherUserId)
         this.titleText = this.app.translateText('PrivateChat.Private Chat with', 'Private Chat with') + ' ' + otherPersonData.userName
     }
 
@@ -54,6 +63,29 @@ export class InstantMessagesWindow extends ChatWindow
         this.updateUnreadMessageToast()
     }
 
+    protected makeUndockPopupDefinition(): PopupDefinition
+    {
+        const popupId = `InstantMessages:${this.otherUserId}`
+        const setGuiRequest: ContentSetGuiModeMessage = {
+            type: ContentMessage.type_setGuiMode, mode: 'popupWindow',
+        }
+        const openImRequest: ContentOpenInstantMessagesWindowMessage = {
+            type: ContentMessage.type_openInstantMessagesWindow, otherPerson: this.otherUser,
+        }
+        const startupRequests: BackgroundRequest[] = [setGuiRequest, openImRequest]
+        const startupRequestsArg = encodeURIComponent(JSON.stringify(startupRequests))
+        const popupDefinition: PopupDefinition = {
+            id: popupId,
+            url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
+            top: Config.get('instantMessages.undockedTop', 100),
+            left: Config.get('instantMessages.undockedLeft', 100),
+            height: Config.get('instantMessages.undockedHeight', 400),
+            width: Config.get('instantMessages.undockedWidth', 600),
+            allowContentApp: true,
+        }
+        return popupDefinition
+    }
+
     protected storeChatMessage(chatMessage: ChatUtils.ChatMessage): void
     {
         super.storeChatMessage(chatMessage)
@@ -65,6 +97,31 @@ export class InstantMessagesWindow extends ChatWindow
     }
 
     private getUserInfo(userId: string): PersonData
+    {
+        const userData: PersonData = this.getRawUserInfo(userId)
+        if (userId !== this.otherUserId) {
+            return userData
+        }
+
+        if (userData.userName.length === 0) {
+            userData.userName = this.otherUser.userName
+        }
+        if (userData.userImageUrl.length === 0) {
+            userData.userImageUrl = this.otherUser.userImageUrl
+        }
+        const otherUserChanged = false
+            || userData.userName !== this.otherUser.userName
+            || userData.userImageUrl !== this.otherUser.userImageUrl
+            || userData.ownFriendStatus !== this.otherUser.ownFriendStatus
+        this.otherUser = userData
+        if (otherUserChanged) {
+            this.otherUserChanged()
+        }
+
+        return userData
+    }
+
+    private getRawUserInfo(userId: string): PersonData
     {
         const userData: null|PersonData = this.app.getPersonManager().getPersonDataOrNull(userId)
         if (userData) {
@@ -82,7 +139,15 @@ export class InstantMessagesWindow extends ChatWindow
                 ownFriendStatus: 'No',
             }
         }
+        if (userId === this.otherUserId) {
+            return this.otherUser
+        }
         return this.app.getPersonManager().getDummyPersonData(userId)
+    }
+
+    private otherUserChanged(): void
+    {
+
     }
 
     private updateUnreadMessageToast(): void
@@ -130,7 +195,10 @@ export class InstantMessagesWindow extends ChatWindow
         toast.setIcon(personData.userImageUrl, 10, 64, 64)
 
         const openChatButtonText = this.translateText(textReplacements, 'PrivateChat.newMessageToastOpenChatWindowButtonLabel')
-        const openChatButtonAction = () => this.show({})
+        const openChatButtonAction = () => {
+            const options = { undocked: this.app.getWindowSizingMode() !== 'normal' }
+            this.show(options)
+        }
         toast.addClosingActionButton(openChatButtonText, openChatButtonAction)
 
         toast.setDontShow(false)

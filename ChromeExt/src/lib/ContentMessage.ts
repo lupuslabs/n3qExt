@@ -1,4 +1,4 @@
-import { ItemProperties } from './ItemProperties';
+import { ItemProperties, PersonData } from './ItemProperties';
 import { ThemeUtils } from './ThemeUtils'
 
 export class BackpackUpdateData
@@ -20,6 +20,8 @@ export namespace ContentMessage
     export const type_unreadChatChannels = 'unreadChatChannels';
     export const type_friendshipProposalsState = 'friendshipProposalsState';
     export const type_themes = 'themes';
+    export const type_setGuiMode = 'setGuiMode';
+    export const type_openInstantMessagesWindow = 'openInstantMessagesWindow';
 }
 
 export type FriendshipProposalState = {
@@ -37,4 +39,16 @@ export type FriendshipProposalsState = {
 export type ContentThemesMessage = {
     type: typeof ContentMessage.type_themes
     themes: ThemeUtils.Theme[]
+}
+
+export type ContentAppGuiMode = 'full' | 'popupWindow'
+
+export type ContentSetGuiModeMessage = {
+    type: typeof ContentMessage.type_setGuiMode
+    mode: ContentAppGuiMode
+}
+
+export type ContentOpenInstantMessagesWindowMessage = {
+    type: typeof ContentMessage.type_openInstantMessagesWindow
+    otherPerson: Readonly<PersonData>
 }

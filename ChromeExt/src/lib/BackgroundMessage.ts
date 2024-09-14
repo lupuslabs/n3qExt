@@ -13,6 +13,11 @@ export type BackgroundRequest = {
     [p: string]: any,
 }
 
+export function isBackgroundRequest(val: unknown): val is BackgroundRequest
+{
+    return is.object(val) && is.string(val['type'])
+}
+
 export type SendInstantMessageBackgroundRequest = BackgroundRequest & {
     otherUserId: string,
     text: string,
@@ -51,6 +56,7 @@ export type PopupDefinition = {
     top?: number,
     width?: number,
     height?: number,
+    allowContentApp?: boolean,
 }
 
 interface BackgroundResponseOptionalProps {

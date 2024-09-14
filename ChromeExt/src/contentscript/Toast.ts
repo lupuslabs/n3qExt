@@ -144,7 +144,6 @@ export class Toast extends Window<ToastOptions>
         if (this.isModal) {
             this.windowCssClasses.push('n3q-toast-modal');
         }
-        this.withTitlebar = false;
         this.isMovable = !this.isModal;
         this.geometryInitstrategy = 'none'; // CSS decides.
         this.minWidth  = 1; // CSS decides.

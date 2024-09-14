@@ -52,7 +52,6 @@ export class BadgeInfoWindow extends Window<WindowOptions>
         this.guiLayer = ContentApp.LayerPopup;
         this.windowCssClasses.push('n3q-badgeInfoWindow');
         this.isResizable = true;
-        this.withTitlebar = false;
         this.geometryInitstrategy = 'afterContent';
         const aboveRect = this.badge.getBoundingClientRect();
         this.givenOptions = {

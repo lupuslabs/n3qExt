@@ -179,7 +179,6 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         this.style = 'overlay'
         this.guiLayer = ContentApp.LayerWindowContent
         this.windowCssClasses.push('n3q-backpackiteminfo')
-        this.withTitlebar = false
         this.geometryInitstrategy = 'afterContent'
 
         const offset = Config.get('backpack.itemInfoOffset', { x: 4, y: 4 })

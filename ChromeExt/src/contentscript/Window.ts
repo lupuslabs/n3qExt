@@ -1,6 +1,6 @@
 import { is } from '../lib/is';
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils';
-import { ContentApp, WindowStyle } from './ContentApp';
+import { ContentApp, WindowStyle, WindowSizingMode } from './ContentApp';
 import { Memory } from '../lib/Memory';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -8,6 +8,7 @@ import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
 import * as windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg';
+import { BackgroundMessage, PopupDefinition } from '../lib/BackgroundMessage'
 
 export type WindowOptions = {
     onClose?:      () => void,
@@ -21,7 +22,8 @@ export type WindowOptions = {
     bottom?:       string|number,
     left?:         string|number,
     center?:       string|number, // Used when left unset.
-    undocked?:     boolean,
+    undockable?:   boolean, // Makes window non-undockable when set to false.
+    undocked?:     boolean, // Undocks instead of showing when show is called and window is undockable.
 };
 
 type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none';
@@ -37,18 +39,19 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected windowId: string;
     protected windowName: string = 'Default';
     protected style: WindowStyle = 'window';
+    protected sizingMode: WindowSizingMode = 'normal';
     protected windowCssClasses: string[] = ['n3q-window'];
     protected contentCssClasses: string[] = ['n3q-window-content'];
     protected showHidden:       boolean = false;
-    protected withTitlebar:     boolean = true;
+    protected withCloseButton:  boolean = true;
+    protected withTitlebar:     boolean = false;
+    protected withPageTitle:    boolean = false;
     protected withButtonbar:    boolean = true;
     protected closeIsHide:      boolean = false;
     protected isMovable:        boolean = true;
     protected isResizable:      boolean = false;
     protected geometryInitstrategy: WindowGeometryInitStrategy = 'beforeContent';
     protected persistGeometry:  boolean = false;
-    protected isUndockable:     boolean = false;
-    protected isUndocked:       boolean = false;
 
     protected containerMarginTop:    number = 0;
     protected containerMarginRight:  number = 0;
@@ -92,15 +95,41 @@ export abstract class Window<OptionsType extends WindowOptions>
         if (this.isOpen()) {
             return;
         }
+        this.givenOptions = options;
         this.isShowing = true;
-        (async () => {
-            this.givenOptions = options;
-            this.onClose = this.givenOptions.onClose ?? this.onClose;
-            this.containerElem = this.app.getDisplay();
-            if (!this.containerElem) {
-                throw new Error('Window.show: Display not ready!');
-            }
+
+        try {
             this.prepareMakeDom();
+            if (as.Bool(this.givenOptions.undocked)) {
+                this.isClosing = this.undock();
+            }
+        } catch (error) {
+            this.app.onError(error);
+            this.isClosing = true;
+        }
+        if (this.isClosing) {
+            this.isClosing = false;
+            this.isShowing = false;
+            this.close();
+            return;
+        }
+
+        const inExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup();
+        if (this.style === 'window') {
+            this.sizingMode = this.app.getWindowSizingMode();
+            this.withCloseButton = !inExclusiveWindowPopup;
+            this.withPageTitle = inExclusiveWindowPopup;
+            this.withTitlebar = !inExclusiveWindowPopup;
+        }
+        if (this.sizingMode === 'maximized') {
+            this.withCloseButton = false;
+            this.isMovable = false;
+            this.isResizable = false;
+            this.geometryInitstrategy = 'beforeContent';
+            this.persistGeometry = false;
+        }
+
+        (async () => {
             this.makeWindowFrameAndDecorations();
             this.windowElem.classList.add('n3q-hidden');
             this.app.translateElem(this.windowElem);
@@ -118,9 +147,6 @@ export abstract class Window<OptionsType extends WindowOptions>
             }
             if (!this.isClosing && !(this.givenOptions.hidden ?? this.showHidden)) {
                 this.setVisibility(true);
-            }
-            if (this.isUndocked) {
-                this.undock();
             }
         })().catch(error => {
             this.app.onError(error);
@@ -141,8 +167,12 @@ export abstract class Window<OptionsType extends WindowOptions>
      */
     protected prepareMakeDom(): void
     {
+        this.onClose = this.givenOptions.onClose ?? this.onClose;
+        this.containerElem = this.app.getDisplay();
+        if (!this.containerElem) {
+            throw new Error('Window.show: Display not ready!');
+        }
         this.closeIsHide = as.Bool(this.givenOptions.closeIsHide, this.closeIsHide);
-        this.isUndocked = as.Bool(this.givenOptions.undocked, this.isUndocked);
         this.containerMarginTop    = as.Int(Config.get('system.windowContainerMarginTop'), 0);
         this.containerMarginRight  = as.Int(Config.get('system.windowContainerMarginRight'), 0);
         this.containerMarginBottom = as.Int(Config.get('system.windowContainerMarginBottom'), 0);
@@ -156,6 +186,9 @@ export abstract class Window<OptionsType extends WindowOptions>
         this.windowElem.addEventListener('pointerdown', ev => this.onCapturePhasePointerDownInside(ev), { capture: true });
         this.windowElemPointerDispatcher = PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.windowElem);
 
+        if (this.withPageTitle) {
+            document.title = this.titleText;
+        }
         if (this.withTitlebar) {
             this.makeTitlebar();
         }
@@ -169,9 +202,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
         this.makeCloseButton();
 
-        if (this.isUndockable) {
-            this.makeUndockButton();
-        }
+        this.makeUndockButton();
 
         if (this.isMovable) {
             this.makeUsermovable();
@@ -194,6 +225,9 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeCloseButton(): void
     {
+        if (!this.withCloseButton) {
+            return;
+        }
         const onCloseBtnClick = () => {
             if (this.closeIsHide) {
                 this.setVisibility(false);
@@ -207,6 +241,9 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeUndockButton(): void
     {
+        if (this.app.getIsExclusiveWindowPopup() || !this.makeUndockPopupDefinition()) {
+            return;
+        }
         const helpText = this.app.translateText('Common.Undock', 'Undock');
         const button = this.app.makeWindowButton(() => this.undock(), 'window', 'undock', windowUndockIconDataUrl, helpText);
         (this.titlebarElem ?? this.contentElem).append(button);
@@ -339,6 +376,12 @@ export abstract class Window<OptionsType extends WindowOptions>
         const containerWidth = containerRect.width;
         const containerHeight = containerRect.height;
 
+        // Maximized means fully covering the container:
+        if (this.sizingMode === 'maximized') {
+            const geometry = { left: 0, bottom: 0, width: containerWidth, height: containerHeight };
+            return geometry;
+        }
+
         // Get final dimensions first:
         const windowRect = this.windowElem.getBoundingClientRect();
         let optionsWidthRaw: 'content'|string|number = options.width ?? this.defaultWidth;
@@ -438,15 +481,27 @@ export abstract class Window<OptionsType extends WindowOptions>
         return !!this.windowElem;
     }
 
-    protected undock(): void
+    /**
+     * This is undockable if method returns a PopupDefinition and this.givenOptions.undockable isn't set to false.
+     */
+    protected makeUndockPopupDefinition(): null|PopupDefinition
     {
-        const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=600,height=300,left=100,top=100`;
-        const undocked = window.open('about:blank', Utils.randomString(10), params);
-        undocked.focus();
-        undocked.onload = () => {
-            const html = `<div style="font-size: 30px;">Undocked, but not really. Override Window.undock()</div>`;
-            undocked.document.body.insertAdjacentHTML('afterbegin', html);
-        };
+        return null
+    }
+
+    private undock(): boolean
+    {
+        if (this.givenOptions.undockable === false) {
+            return false;
+        }
+        const popupDefinition = this.makeUndockPopupDefinition()
+        if (!popupDefinition) {
+            return false;
+        }
+        BackgroundMessage.openOrFocusPopup(popupDefinition)
+            .then(() => this.close())
+            .catch(error => this.app.onError(error));
+        return true;
     }
 
     public close(): void

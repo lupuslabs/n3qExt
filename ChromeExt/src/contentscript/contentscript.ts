@@ -1,6 +1,7 @@
 import log = require('loglevel')
 import './contentscript.scss'
 import * as $ from 'jquery'
+import { is } from '../lib/is'
 import { Panic } from '../lib/Panic'
 import { Config } from '../lib/Config'
 import { Environment } from '../lib/Environment'
@@ -8,7 +9,7 @@ import { Client } from '../lib/Client'
 import { ContentApp, ContentAppNotification } from './ContentApp'
 import { ContentRequestHandler, ContentToBackgroundCommunicator } from '../lib/ContentToBackgroundCommunicator'
 import { PortContentMessagePipeProvider } from '../lib/PortMessagePipe'
-import { BackgroundRequest, BackgroundResponse, BackgroundErrorResponse, BackgroundSuccessResponse } from '../lib/BackgroundMessage'
+import { BackgroundRequest, isBackgroundRequest, BackgroundResponse, BackgroundErrorResponse } from '../lib/BackgroundMessage'
 
 // This prevents the site and everyone else (including us) from processing focus events directed at our GUI:
 // Listeners need to be registered before listeners of site for maximum reliability.
@@ -54,13 +55,32 @@ $(async function ()
         return contentCommunicator
     }
 
+    function getStartupRequests(documentUrl: URL): ReadonlyArray<BackgroundRequest>
+    {
+        if (documentUrl.protocol !== 'chrome-extension:' && documentUrl.protocol !== 'moz-extension:') {
+            return []
+        }
+        const requestsJson = documentUrl.searchParams.get('startupRequests') ?? '[]'
+        try {
+            const requestsParsed = JSON.parse(requestsJson)
+            if (is.array(requestsParsed, isBackgroundRequest)) {
+                return requestsParsed
+            }
+        } catch (error) {
+            log.debug('Contentscript.activateContent: Invalid JSON in startRequests.', { error })
+        }
+        return []
+    }
+
     function activateContent()
     {
         if (contentApp) {
             contentApp.wakeup()
             return
         }
-        log.debug('Contentscript.activateContent')
+        const documentUrl = new URL(document.URL)
+        const startupRequests: ReadonlyArray<BackgroundRequest> = getStartupRequests(documentUrl)
+        log.debug('Contentscript.activateContent', { documentUrl, startupRequests })
 
         let styleUrl
         try {
@@ -89,7 +109,7 @@ $(async function ()
             }
         }
         contentApp = new ContentApp(domAppContainer, appMsgHandler, backgroundCommunicatorFactoryForApp)
-        contentApp.start({ styleUrl }).catch(error => log.error(error))
+        contentApp.start({ styleUrl, startupRequests }).catch(error => log.error(error))
     }
 
     function deactivateContent()

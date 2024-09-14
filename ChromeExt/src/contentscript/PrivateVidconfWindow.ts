@@ -10,6 +10,7 @@ export class PrivateVidconfWindow extends VidconfWindow
     {
         super(app);
         this.participant = participant;
+        this.popupId = 'user.vidconfUndocked:' + participant.getUserId();
     }
 
     protected prepareMakeDom(): void

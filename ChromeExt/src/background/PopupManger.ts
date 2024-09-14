@@ -2,11 +2,13 @@
 import { BackgroundApp } from './BackgroundApp'
 import { PopupDefinition } from '../lib/BackgroundMessage'
 import { is } from '../lib/is'
+import { as } from '../lib/as'
 
 type PopupInfo = {
     readonly popupId: string
     readonly windowId: number,
     readonly tabId: number,
+    readonly allowContentApp: boolean,
 }
 
 export class PopupManager
@@ -72,7 +74,7 @@ export class PopupManager
     public isTabDisabled(tabId: number): boolean
     {
         for (const pi of this.popupInfos.values()) {
-            if (pi.tabId === tabId) {
+            if (pi.tabId === tabId && !pi.allowContentApp) {
                 return true
             }
         }
@@ -91,7 +93,7 @@ export class PopupManager
     private openPopup(popupDefinition: PopupDefinition): void
     {
         const popupId = popupDefinition.id
-        const { url, left, top, width, height } = popupDefinition
+        const { url, left, top, width, height, allowContentApp } = popupDefinition
         const options: chrome.windows.CreateData = {
             type: 'popup',
             state: 'normal',
@@ -110,7 +112,7 @@ export class PopupManager
                     log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create resulting window has no tabs!', { popupDefinition, window })
                     return
                 }
-                const popupInfo: PopupInfo = { popupId, windowId, tabId }
+                const popupInfo: PopupInfo = { popupId, windowId, tabId, allowContentApp: as.Bool(allowContentApp) }
                 this.popupInfos.set(popupId, popupInfo)
                 this.popupInfosByWindowId.set(windowId, popupInfo)
             })

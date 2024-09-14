@@ -418,6 +418,10 @@ export class Config
         instantMessages: {
             enabled: true,
             unreadChatChannelsToSendToNewTabs: 100,
+            undockedWidth: 630,
+            undockedHeight: 530,
+            undockedLeft: 100,
+            undockedTop: 100,
         },
         friendshipProposals: {
             enabled: true,
