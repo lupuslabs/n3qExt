@@ -3,6 +3,8 @@ import { BackgroundApp } from './BackgroundApp'
 import { PopupDefinition } from '../lib/BackgroundMessage'
 import { is } from '../lib/is'
 import { as } from '../lib/as'
+import { Config } from '../lib/Config'
+import { Memory } from '../lib/Memory'
 
 type PopupInfo = {
     readonly popupId: string
@@ -11,11 +13,21 @@ type PopupInfo = {
     readonly allowContentApp: boolean,
 }
 
+type PopupState = Readonly<{
+    left?: number,
+    top?: number,
+    width?: number,
+    height?: number,
+}>
+
 export class PopupManager
 {
     private readonly app: BackgroundApp
     private isStopped: boolean = false
+    private readonly pollWindowStates: boolean = false
+    private lastPollWindowStatesTimeMs: number = 0
     private readonly onWindowRemovedListener: (string) => void
+    private readonly onWindowBoundsChangedListener: (window: chrome.windows.Window) => void
     private readonly popupInfos: Map<string, PopupInfo> = new Map()
     private readonly popupInfosByWindowId: Map<number, PopupInfo> = new Map()
 
@@ -27,7 +39,20 @@ export class PopupManager
             return
         }
         this.onWindowRemovedListener = (windowId: number) => this.onWindowRemoved(windowId)
-        chrome.windows.onRemoved.addListener(this.onWindowRemovedListener)
+        try {
+            chrome.windows.onRemoved.addListener(this.onWindowRemovedListener)
+        } catch (error) {
+            log.info('PopupWindowManager.constructor: chrome.windows.onRemoved.addListener failed!', error)
+        }
+        this.pollWindowStates = !chrome.windows.onBoundsChanged
+        this.onWindowBoundsChangedListener = (window: chrome.windows.Window) => this.onWindowBoundsChanged(window)
+        if (!this.pollWindowStates) {
+            try {
+                chrome.windows.onBoundsChanged.addListener(this.onWindowBoundsChangedListener)
+            } catch (error) {
+                log.info('PopupWindowManager.constructor: chrome.windows.onBoundsChanged.addListener failed!', error)
+            }
+        }
     }
 
     public stop(): void
@@ -36,9 +61,36 @@ export class PopupManager
             return
         }
         this.isStopped = true
-        chrome.windows.onRemoved.removeListener(this.onWindowRemovedListener)
+        try {
+            chrome.windows.onRemoved.removeListener(this.onWindowRemovedListener)
+        } catch (error) {
+            log.info('PopupWindowManager.stop: chrome.windows.onRemoved.removeListener failed!', error)
+        }
+        if (!this.pollWindowStates) {
+            try {
+                chrome.windows.onBoundsChanged.removeListener(this.onWindowBoundsChangedListener)
+            } catch (error) {
+                log.info('PopupWindowManager.stop: chrome.windows.onBoundsChanged.removeListener failed!', error)
+            }
+        }
         this.popupInfos.clear()
         this.popupInfosByWindowId.clear()
+    }
+
+    public maintain(): void
+    {
+        if (this.isStopped) {
+            return
+        }
+        const intervalSec = as.Int(Config.get('popups.windowStatePollIntervalSec', 60))
+        const secsSinceUpdate = (Date.now() - this.lastPollWindowStatesTimeMs) / 1000
+        if (secsSinceUpdate > intervalSec) {
+            try {
+                chrome.windows.getAll(windows => windows.forEach(this.onWindowBoundsChangedListener))
+            } catch (error) {
+                log.info('PopupWindowManager.maintain: chrome.windows.getAll failed!', error)
+            }
+        }
     }
 
     public openOrFocusPopup(popupDefinition: PopupDefinition): void
@@ -51,7 +103,7 @@ export class PopupManager
         if (popupInfo) {
             this.focusPopup(popupInfo)
         } else {
-            this.openPopup(popupDefinition)
+            this.openPopup(popupDefinition).then(() => {})
         }
     }
 
@@ -90,10 +142,11 @@ export class PopupManager
         }
     }
 
-    private openPopup(popupDefinition: PopupDefinition): void
+    private async openPopup(popupDefinition: PopupDefinition): Promise<void>
     {
         const popupId = popupDefinition.id
-        const { url, left, top, width, height, allowContentApp } = popupDefinition
+        const { url, allowContentApp } = popupDefinition
+        const { left, top, width, height } = await this.loadPopupStateFromLocalStorage(popupDefinition)
         const options: chrome.windows.CreateData = {
             type: 'popup',
             state: 'normal',
@@ -123,11 +176,54 @@ export class PopupManager
 
     private onWindowRemoved(windowId: number): void
     {
-        let popupInfo = this.popupInfosByWindowId.get(windowId)
+        const popupInfo = this.popupInfosByWindowId.get(windowId)
         if (popupInfo) {
             this.popupInfosByWindowId.delete(windowId)
             this.popupInfos.delete(popupInfo.popupId)
         }
+    }
+
+    private onWindowBoundsChanged(window: chrome.windows.Window): void
+    {
+        const windowId = window.id
+        if (!windowId) {
+            return
+        }
+        const popupInfo = this.popupInfosByWindowId.get(windowId)
+        if (!popupInfo) {
+            return
+        }
+        const { left, top, width, height } = window
+        if (!width || !height) {
+            return
+        }
+        this.savePopupStateToLocalStorage(popupInfo.popupId, { left, top, width, height })
+    }
+
+    private async loadPopupStateFromLocalStorage(popupDefinition: PopupDefinition): Promise<PopupState>
+    {
+        const storageKey = this.getPopupLocalStorageKey(popupDefinition.id)
+        const savedState = await Memory.getLocal(storageKey, {})
+            .catch(error => log.info('PopupWindowManager.getPopupStateFromLocalStorage: Memory.getLocal failed!', error, { storageKey }))
+        const state: PopupState = {
+            left: savedState.left ?? popupDefinition.left,
+            top: savedState.top ?? popupDefinition.top,
+            width: savedState.width ?? popupDefinition.width,
+            height: savedState.height ?? popupDefinition.height,
+        }
+        return state
+    }
+
+    private savePopupStateToLocalStorage(popupId: string, state: PopupState): void
+    {
+        const storageKey = this.getPopupLocalStorageKey(popupId)
+        Memory.setLocal(storageKey, state)
+            .catch(error => log.info('PopupWindowManager.getPopupStateFromLocalStorage: Memory.getLocal failed!', error, { storageKey }))
+    }
+
+    private getPopupLocalStorageKey(popupId: string): string
+    {
+        return 'popup.state.' + popupId
     }
 
 }

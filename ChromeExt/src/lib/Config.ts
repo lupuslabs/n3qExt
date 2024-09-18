@@ -69,6 +69,9 @@ export class Config
             attentionBlinkCount: 3, // How often to blink for attention level 2
             attentionBlinkDurationSec: 1, // How long each blink takes.
         },
+        popup: {
+            windowStatePollIntervalSec: 60, // Window position/size polling interval if the onBoundsChanged event isn't supported.
+        },
         log: {
             all: false,
             startup: false,

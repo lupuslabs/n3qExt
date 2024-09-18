@@ -1114,6 +1114,7 @@ export class BackgroundApp
         if (Utils.logChannel('pingBackground', true)) {
             log.info('BackgroundApp.maintain', { isReady: this.isReady });
         }
+        this.popupManager.maintain()
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
         this.friendshipProposalManager.maintain()
