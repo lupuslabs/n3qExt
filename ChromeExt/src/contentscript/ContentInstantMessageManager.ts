@@ -111,6 +111,9 @@ export class ContentInstantMessageManager
 
     public toggleInstantMessageWindow(otherUserId: string): void
     {
+        if (otherUserId.length === 0) {
+            return
+        }
         if (this.imWindows.get(otherUserId)?.isOpen()) {
             this.closeInstantMessagesWindow(otherUserId)
         } else {

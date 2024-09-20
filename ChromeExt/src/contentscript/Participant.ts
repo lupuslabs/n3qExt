@@ -222,9 +222,8 @@ export class Participant extends Entity
                 const attrs = identityNode.attrs;
                 const url = as.String(attrs.src);
                 const digest = as.String(attrs.digest);
-                const jid = as.String(attrs.jid, url);
                 if (this.userId.length === 0) {
-                    this.userId = as.String(attrs.id, jid);
+                    this.userId = as.String(attrs.id);
                 }
 
                 if (url !== '') {
