@@ -1,4 +1,5 @@
 ﻿import { as } from '../lib/as'
+import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ParticipantMenu } from './ParticipantMenu';
 import { MenuColumn } from './Menu'
@@ -22,7 +23,7 @@ export class OtherParticipantMenu extends ParticipantMenu
 
         const imManager = this.app.getInstantMessageManager();
         const otherUserId = this.participant.getUserId();
-        if (otherUserId.length !== 0 && imManager.isFeatureEnabled()) {
+        if (imManager.isFeatureEnabled() && this.participant.getSupportsPrivateChat()) {
             const action = () => imManager.openInstantMessagesWindow(otherUserId);
             column.addActionItem('privateChat', privateChatIconUrl, 'Private Chat', action);
         }
@@ -35,7 +36,7 @@ export class OtherParticipantMenu extends ParticipantMenu
             this.participant.sendPoke('bye');
             this.participant.do('wave', false);
         });
-        if (this.participant.getSupportsPersonApi()) {
+        if (Utils.isBackpackEnabled() && this.participant.getSupportsPersonApi()) {
             this.makePersonMenuAndItem(column);
         }
         this.makeDebugMenuAndItem(column);

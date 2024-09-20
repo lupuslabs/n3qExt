@@ -212,21 +212,12 @@ export class ContentPersonManager
     private getOtherPersonDataFromRoom(otherUserId: string): null|PersonData
     {
         const participant = this.app.getRoom()?.getParticipantByUserId(otherUserId)
-        if (!(participant?.getSupportsPersonApi() ?? false)) {
-            return null
-        }
-        const userName = participant.getDisplayName()
+        const userName = participant?.getDisplayName() ?? null
         if ((userName?.length ?? 0) === 0) {
             return null
         }
         const userAvatar = participant?.getAvatar()
-        if (!userAvatar) {
-            return null
-        }
-        const userImageUrl = userAvatar.getAnimationByGroup(userAvatar.getDefaultGroup())?.url ?? null
-        if ((userImageUrl?.length ?? 0) === 0) {
-            return null
-        }
+        const userImageUrl = userAvatar?.getAnimationByGroup(userAvatar.getDefaultGroup())?.url ?? ''
         return { userId: otherUserId, userName, userImageUrl, ownFriendStatus: 'No', ownPersonItem: null }
     }
 }

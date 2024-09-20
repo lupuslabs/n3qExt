@@ -123,7 +123,7 @@ export class BackgroundInstantMessageManager
         })().catch(error => this.logError('InstantMessages: sendUnreadChannelsToTab failed!', error))
     }
 
-    private isFeatureEnabled(): boolean
+    public isFeatureEnabled(): boolean
     {
         return as.Bool(Config.get('instantMessages.enabled'), true)
     }

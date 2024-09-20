@@ -52,6 +52,8 @@ export class Participant extends Entity
     private privateVidconfWindow: PrivateVidconfWindow;
     private decorationsVisibleByLongclick: boolean = false;
     private hideDecorationsTimeoutHandle: number|null = null;
+    private supportsPrivateChat: boolean = false;
+    private canReceiveItems: boolean = false;
     private supportsPersonApi: boolean = false;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
@@ -61,7 +63,11 @@ export class Participant extends Entity
         this.elem.classList.add('n3q-participant');
         this.elem.setAttribute('data-nick', roomNick);
 
-        if (isSelf) {
+        if (this.isSelf) {
+            this.userId = this.app.getUserId();
+            this.supportsPrivateChat = this.app.getInstantMessageManager().isFeatureEnabled();
+            this.canReceiveItems = Utils.isBackpackEnabled();
+            this.supportsPersonApi = Utils.isBackpackEnabled();
             this.elem.classList.add('n3q-participant-self');
             this.showIntroYouOnce().catch(error => this.app.onError(error));
             this.showTutorialOnce().catch(error => this.app.onError(error));
@@ -81,6 +87,8 @@ export class Participant extends Entity
     getBadgesDisplay(): BadgesController|null { return this.badgesDisplay; }
     getChatout(): Chatout { return this.chatoutDisplay; }
     getUserId(): string { return this.userId; }
+    getSupportsPrivateChat(): boolean { return this.supportsPrivateChat; }
+    getCanReceiveItems(): boolean { return this.canReceiveItems; }
     getSupportsPersonApi(): boolean { return this.supportsPersonApi; }
 
     getDisplayName(): string
@@ -222,9 +230,6 @@ export class Participant extends Entity
                 const attrs = identityNode.attrs;
                 const url = as.String(attrs.src);
                 const digest = as.String(attrs.digest);
-                if (this.userId.length === 0) {
-                    this.userId = as.String(attrs.id);
-                }
 
                 if (url !== '') {
                     hasIdentityUrl = true;
@@ -247,11 +252,11 @@ export class Participant extends Entity
                     vpImageUrl = as.String(attrs.ImageUrl);
                     vpPoints = as.String(attrs.Points);
                     vpBadges = as.String(attrs.Badges);
-                    const vpUserId = as.String(attrs.userId);
-                    if (vpUserId.length !== 0) {
-                        this.userId = vpUserId;
-                        this.supportsPersonApi = true;
-                    }
+                    this.userId = as.String(attrs.userId);
+                    const hasUserId = this.userId.length !== 0;
+                    this.canReceiveItems = hasUserId && as.Bool(attrs.canReceiveItems);
+                    this.supportsPersonApi = hasUserId && as.Bool(attrs.supportsPersonApi);
+                    this.supportsPrivateChat = hasUserId && as.Bool(attrs.supportsPrivateChat);
                 }
             }
         }
@@ -850,7 +855,7 @@ export class Participant extends Entity
         }
         if (this.isSelf) {
             this.toggleChatWindow();
-        } else {
+        } else if (this.getSupportsPrivateChat()) {
             this.app.getInstantMessageManager().toggleInstantMessageWindow(this.userId);
         }
     }
@@ -892,7 +897,7 @@ export class Participant extends Entity
             }
             if (this.isSelf) {
                 return true; // Own RoomItem on own Participant.
-            } else if (ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
+            } else if (this.canReceiveItems && ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
                 return true; // Own transferable RoomItem on other Participant.
             }
         } else if (draggingItem instanceof BackpackItem) {
@@ -900,7 +905,7 @@ export class Participant extends Entity
             if (this.isSelf) {
                 return false; // Own BackpackItem on own Participant.
             }
-            if (ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
+            if (this.canReceiveItems && ItemProperties.isSimpleTransferable(draggingItem.getProperties())) {
                 return true; // Own transferable BackpackItem on other Participant.
             }
         }

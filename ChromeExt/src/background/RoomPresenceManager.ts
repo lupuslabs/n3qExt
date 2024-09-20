@@ -511,9 +511,10 @@ export class RoomPresenceManager
             timestamp: Date.now(),
             Nickname: ownResourceInRoom,
             nickname: ownResourceInRoom,
-        }
-        if (Utils.isBackpackEnabled()) {
-            vpProps['userId'] = this.app.getUserId()
+            userId: this.app.getUserId(),
+            supportsPrivateChat: this.app.getInstantMessageManager().isFeatureEnabled(),
+            canReceiveItems: Utils.isBackpackEnabled(),
+            supportsPersonApi: Utils.isBackpackEnabled(),
         }
 
         const backpack = this.app.getBackpack()
