@@ -7,6 +7,7 @@ import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
+import { Environment } from '../lib/Environment'
 import * as windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg';
 import { BackgroundMessage, PopupDefinition } from '../lib/BackgroundMessage'
 
@@ -241,7 +242,7 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected makeUndockButton(): void
     {
-        if (this.app.getIsExclusiveWindowPopup() || !this.makeUndockPopupDefinition()) {
+        if (!this.makeCheckedUndockPopupDefinition()) {
             return;
         }
         const helpText = this.app.translateText('Common.Undock', 'Undock');
@@ -489,12 +490,24 @@ export abstract class Window<OptionsType extends WindowOptions>
         return null
     }
 
+    private makeCheckedUndockPopupDefinition(): null|PopupDefinition
+    {
+        if (this.givenOptions.undockable === false || this.app.getIsExclusiveWindowPopup()) {
+            return null;
+        }
+        const popupDefinition = this.makeUndockPopupDefinition();
+        if ((popupDefinition?.url.length ?? 0) === 0) {
+            return null;
+        }
+        if (Environment.isEmbedded() && popupDefinition.url.startsWith('/')) {
+            return null;
+        }
+        return popupDefinition;
+    }
+
     private undock(): boolean
     {
-        if (this.givenOptions.undockable === false) {
-            return false;
-        }
-        const popupDefinition = this.makeUndockPopupDefinition()
+        const popupDefinition = this.makeCheckedUndockPopupDefinition()
         if (!popupDefinition) {
             return false;
         }
