@@ -297,7 +297,9 @@ export class ContentApp extends AppWithDom
 
         this.tabContentData.changeListeners.addListener(() => this.onTabStatsChanged());
         this.tabContentData.initWithDataFromBackground(tabContentData);
-        BackgroundMessage.requestBackpackState().catch(ex => this.onError(ex));
+        if (Utils.isBackpackEnabled()) {
+            BackgroundMessage.requestBackpackState().catch(ex => this.onError(ex));
+        }
 
         // this.enterPage();
         await this.checkPageUrlChanged();
