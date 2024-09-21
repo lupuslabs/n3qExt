@@ -65,8 +65,6 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         this.makeHelpMenuAndItem(column);
 
-        this.makeThemesMenuAndItem(column);
-
         column.addActionItem('settings', settingsIconUrl, 'Settings', () => this.app.showSettings(this.participant.getElem()));
 
         if (Environment.isDevelopment()) {
@@ -103,32 +101,6 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         menuColumn.addActionItem('about', null, 'About weblin', () => new AboutWindow(this.app).show({}));
         menuColumn.addActionItem('tutorials', null, 'Tutorials', () => new TutorialWindow(this.app).show({}));
-    }
-
-    protected makeThemesMenuAndItem(column: MenuColumn): void
-    {
-        const themesManager = this.app.getThemeManager();
-        const themes = themesManager.getThemes();
-        if (!themesManager.isFeatureEnabled() || !themes.length) {
-            return;
-        }
-
-        const actionsMenu = column.addSubmenuItem('themes', settingsIconUrl, 'Themes');
-        const themesColumn = actionsMenu.addColumn('themes');
-
-        for (const theme of themes) {
-            const itemId = encodeURIComponent(`theme:${theme.id}`);
-            const iconUrl = theme.isEnabled ? checkboxCheckedIconUrl: checkboxUncheckedIconUrl;
-            const action = () => BackgroundMessage.setThemeState(theme.id, !theme.isEnabled).catch(error => this.app.onError(error));
-            themesColumn.addActionItem(itemId, iconUrl, theme.name, action);
-        }
-
-        const extensionThemes = themes.filter(theme => theme.sourceType === 'extension');
-        if (extensionThemes.length !== 0) {
-            const themeIds = extensionThemes.map(theme => theme.id);
-            const action = () => BackgroundMessage.deleteThemes(themeIds).catch(error => this.app.onError(error));
-            themesColumn.addActionItem('deleteExtThemes', null, 'Delete all extension themes', action);
-        }
     }
 
     protected makeDebugMenuAndItem(column: MenuColumn): void

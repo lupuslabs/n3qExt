@@ -26,6 +26,7 @@ export class BackgroundThemeManager
     private readonly app: BackgroundApp
 
     private readonly themes: Map<string,Theme> = new Map()
+    private lastExtensionsUpdate: Date = new Date()
 
     public constructor(app: BackgroundApp)
     {
@@ -36,6 +37,20 @@ export class BackgroundThemeManager
     private isFeatureEnabled(): boolean
     {
         return as.Bool(Config.get('themes.enabled'))
+    }
+
+    public maintain(): void
+    {
+        const now = new Date()
+        const updateIntervalSecs = as.Float(Config.get('themes.updateIntervalSec'), 10)
+        if (now.getTime() - this.lastExtensionsUpdate.getTime() > 1e3 * updateIntervalSecs) {
+            this.lastExtensionsUpdate = now
+            iter(this.themes.values())
+                .filter(theme => theme.sourceType === 'extension')
+                .map(({sourceId}) => sourceId)
+                .toSet()
+                .forEach(extensionId => this.updateExtensionThemes(extensionId))
+        }
     }
 
     public onSetThemeStateFromContent(message: unknown): void
@@ -84,6 +99,7 @@ export class BackgroundThemeManager
         if (!is.array(themes, ExtensionMessage.isExtensionTheme)) {
             const msg = 'Invalid or missing message.themes in message!'
             this.logError(msg, { extensionId, message })
+            this.onThemes('extension', extensionId, [])
             return new Error(msg)
         }
         this.onThemes('extension', extensionId, themes)
@@ -144,10 +160,18 @@ export class BackgroundThemeManager
             this.themes.delete(id)
             return true
         }
-        isEnabled = isEnabled ?? oldTheme?.isEnabled ?? false
+        isEnabled = isEnabled ?? oldTheme?.isEnabled ?? true
         const newTheme: Theme = { id, name, orderIndex, sourceType, sourceId, css, isEnabled }
         this.themes.set(id, newTheme)
         return true
+    }
+
+    private updateExtensionThemes(extensionId: string): void
+    {
+        const themesRequestMessage = { type: ExtensionMessage.type_ExtensionThemesRequest }
+        chrome.runtime.sendMessage(extensionId, themesRequestMessage)
+            .then(response => this.onThemesFromExtension(extensionId, response))
+            .catch(_error => this.onThemes('extension', extensionId, []))
     }
 
     private onContentReady(tab: BackgroundBrowserTab): void

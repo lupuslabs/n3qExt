@@ -58,6 +58,11 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         return [...this]
     }
 
+    public toSet(): Set<T>
+    {
+        return new Set(this)
+    }
+
     public toString(glue: string, elementConverter: (element: T) => string = as.String): string
     {
         return this.map(elementConverter).toArray().join(glue)

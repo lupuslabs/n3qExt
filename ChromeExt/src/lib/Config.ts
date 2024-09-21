@@ -144,7 +144,8 @@ export class Config
             version: ''
         },
         themes: {
-            enabled: false,
+            enabled: true,
+            updateIntervalSec: 60,
         },
         vp: {
             deferPageEnterSec: 0.3,
