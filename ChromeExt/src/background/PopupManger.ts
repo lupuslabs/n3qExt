@@ -226,32 +226,35 @@ export class ExtensionPopupManagerWindowBackend implements PopupManagerWindowBac
     private openPopup(popupDefinition: PopupDefinition, initialState: PopupState): void
     {
         const popupId = popupDefinition.id
-        const { left, top, width, height } = initialState
         const options: chrome.windows.CreateData = {
             type: 'popup',
             state: 'normal',
             focused: true,
             url: popupDefinition.url,
-            left, top, width, height,
         }
-        const windowCreatedHandler = (window: chrome.windows.Window) => {
-            if (!window) {
-                log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed without error!', { popupDefinition })
-                return
-            }
-            const windowId = window.id
-            const tabId = window.tabs?.[0]?.id
-            if (!is.number(tabId)) {
-                log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create resulting window has no tabs!', { popupDefinition, window })
-                return
-            }
-            this.popups.set(popupId, { popupId, windowId, tabId, popupDefinition })
-        }
-        try {
-            chrome.windows.create(options, windowCreatedHandler)
-        } catch (error) {
-            log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed!', error, { popupDefinition })
-        }
+        new Promise<null|chrome.windows.Window>(resolve => chrome.windows.create({...initialState, ...options}, resolve))
+            .catch(_error => null)
+            .then(window => {
+                if (window) {
+                    return window
+                }
+                return new Promise<null|chrome.windows.Window>(resolve => chrome.windows.create(options, resolve))
+            })
+            .then(window => {
+                if (!window) {
+                    log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed without error!', { popupDefinition })
+                    return null
+                }
+                const windowId = window.id
+                const tabId = window.tabs?.[0]?.id
+                if (!is.number(tabId)) {
+                    log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create resulting window has no tabs!', { popupDefinition, window })
+                    return null
+                }
+                this.popups.set(popupId, { popupId, windowId, tabId, popupDefinition })
+                return null
+            })
+            .catch(error => log.info('PopupWindowManager.openOrFocusPopup: chrome.windows.create failed!', error, { popupDefinition }))
     }
 
     private getPopupIdByWindowId(windowId: number): null|string
@@ -366,12 +369,18 @@ export class PagePopupManagerWindowBackend implements PopupManagerWindowBackend
     {
         const popupId = popupDefinition.id
         const { left, top, width, height } = initialState
-        const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=${width},height=${height},left=${left},top=${top}`
+        const initialStateString = `width=${width},height=${height},left=${left},top=${top}`
+        const params = `scrollbars=no,resizable=yes,status=no,location=no,toolbar=no,menubar=no`
         let popupWindow: null|Window
         try {
-            popupWindow = window.open(popupDefinition.url, '_blank', params)
+            popupWindow = window.open(popupDefinition.url, '_blank', `${params},${initialStateString}`)
         } catch (error) {
-            log.info('PopupWindowManager.openOrFocusPopup: window.open failed!', error, { popupDefinition })
+            try {
+                popupWindow = window.open(popupDefinition.url, '_blank', params)
+            } catch (error) {
+                log.info('PopupWindowManager.openOrFocusPopup: window.open failed!', error, { popupDefinition })
+                return
+            }
         }
         if (!popupWindow) {
             log.info('PopupWindowManager.openOrFocusPopup: window.open failed without error!', { popupDefinition })
