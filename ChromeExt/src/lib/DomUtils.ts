@@ -10,7 +10,7 @@ export namespace DomUtils {
 
     export function elemOfHtml(html: string): HTMLElement {
         const elems = elemsOfHtml(html)
-        const htmlElems = <HTMLElement[]> elemsOfHtml(html).filter(e => e instanceof HTMLElement)
+        const htmlElems = <HTMLElement[]> elems.filter(e => e instanceof HTMLElement)
         if (htmlElems.length !== 1) {
             const msg = 'html doesn\'t parse into exactly one HTMLElement!'
             throw new ErrorWithData(msg, {html, elems, htmlElems})
