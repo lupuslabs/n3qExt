@@ -11,7 +11,6 @@ import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { BackgroundApp } from './BackgroundApp';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { IItemProvider } from './ItemProvider';
-import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { HostedInventoryItemProvider } from './HostedInventoryItemProvider';
 import { is } from '../lib/is';
 import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
@@ -224,9 +223,6 @@ export class Backpack
     private makeProvider(providerId: string, providerConfig: {[p:string]:any}, loadItems: boolean): null|IItemProvider
     {
         switch (as.String(providerConfig.type, 'unknown')) {
-            case LocalStorageItemProvider.type: {
-                return new LocalStorageItemProvider(this, providerId, providerConfig);
-            } break;
             case HostedInventoryItemProvider.Provider.type: {
                 return new HostedInventoryItemProvider.Provider(this.app, this, this.retryStrategyMaker, loadItems, providerId, <HostedInventoryItemProvider.Definition>providerConfig);
             } break;

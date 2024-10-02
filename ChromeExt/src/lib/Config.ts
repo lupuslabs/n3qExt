@@ -434,15 +434,6 @@ export class Config
             'enabledProviders': ['n3q']
         },
         itemProviders: {
-            'nine3q':
-            {
-                name: 'weblin.io Items (client storage)',
-                type: 'LocalStorageItemProvider',
-                description: 'Things on web pages managed by the client in a distributed fashion',
-                config: {
-                    backpackApiUrl: 'https://webit.vulcan.weblin.com/backpack',
-                },
-            },
             'n3q':
             {
                 name: 'weblin.io Items',

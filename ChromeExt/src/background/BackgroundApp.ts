@@ -46,7 +46,6 @@ import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
-import { LocalStorageItemProvider } from './LocalStorageItemProvider';
 import { ChatUtils } from '../lib/ChatUtils';
 import { ChatHistoryStorage } from './ChatHistoryStorage';
 import { is } from '../lib/is';
@@ -1049,7 +1048,6 @@ export class BackgroundApp
                         queryResponse.c('ItemCount').t(as.String(itemCount));
                         queryResponse.c('RezzedItemCount').t(as.String(rezzedItemCount));
                         queryResponse.c('Points').t(as.String(points));
-                        queryResponse.c('OldPoints').t(JSON.stringify(await this.getOldPoints()));
                     }
 
                     if (Config.get('xmpp.versionQueryShareOs', false)) {
@@ -1061,23 +1059,6 @@ export class BackgroundApp
 
             }
         }
-    }
-
-    private async getOldPoints(): Promise<any>
-    {
-        const itemIds = await Memory.getLocal(LocalStorageItemProvider.BackpackIdsKey, []);
-        if (itemIds != null && Array.isArray(itemIds)) {
-            for (let i = 0; i < itemIds.length; i++) {
-                const itemId = itemIds[i];
-                const props = await Memory.getLocal(LocalStorageItemProvider.BackpackPropsPrefix + itemId, null);
-                if (props != null || typeof props == 'object') {
-                    if (as.Bool(props[Pid.PointsAspect], false)) {
-                        return { PointsTotal: as.Int(props[Pid.PointsTotal], -1), PointsCurrent: as.Int(props[Pid.PointsCurrent], -1) };
-                    }
-                }
-            }
-        }
-        return {};
     }
 
     // Message to all tabs
