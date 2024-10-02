@@ -125,7 +125,7 @@ export class AvatarGallery
 
     public async getAvatarFromLocalMemory(): Promise<GalleryAvatar>
     {
-        let avatarId = as.String(await Memory.getLocal(Utils.localStorageKey_Avatar(), ''));
+        let avatarId = as.String(await Memory.getLocal(Utils.localStorageKey_Avatar()));
         const avatar = this.getAvatarById(avatarId);
         if (avatarId !== avatar.id) {
             await avatar.setAvatarInLocalMemory();

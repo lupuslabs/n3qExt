@@ -1,4 +1,5 @@
 import * as log from 'loglevel'
+import { is } from './is'
 import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
@@ -45,12 +46,34 @@ export class Client
     static async initDevConfig(): Promise<void>
     {
         try {
-            const devConfigJson = await Memory.getLocal(Utils.localStorageKey_CustomConfig(), '{}');
+            const devConfigJson = await Client.loadDevConfigJson();
             const devConfig = JSON.parse(devConfigJson);
-            Config.setDevTree(devConfig);
+            if (is.object(devConfig)) {
+                Config.setDevTree(devConfig);
+            }
         } catch (error) {
             log.info('Dev config initialization failed!', error);
         }
+    }
+
+    static async loadDevConfigJson(): Promise<string>
+    {
+        try {
+            return as.String(await Memory.getLocal(Utils.localStorageKey_CustomConfig()), '{}');
+        } catch (error) {
+            log.info('Dev config loading failed!', error);
+            return '{}';
+        }
+    }
+
+    static async saveDevConfigJson(configJson: string): Promise<void>
+    {
+        try {
+            await Memory.setLocal(Utils.localStorageKey_CustomConfig(), configJson);
+        } catch (error) {
+            log.info('Dev config save failed!', error);
+        }
+        await Client.initDevConfig();
     }
 
     static initLog(): void

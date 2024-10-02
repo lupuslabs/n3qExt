@@ -444,10 +444,10 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected async getSavedOptions(presetOptions?: OptionsType): Promise<OptionsType>
     {
-        const savedOptions = await Memory.getLocal(`window.${this.windowName}`, {});
+        const savedOptions = await Memory.getLocal(`window.${this.windowName}`);
         const options = presetOptions ?? {};
-        for (const key in savedOptions) {
-            options[key] = savedOptions[key];
+        for (const [key, value] of Object.entries(savedOptions ?? {})) {
+            options[key] = value;
         }
         return <OptionsType>options;
     }

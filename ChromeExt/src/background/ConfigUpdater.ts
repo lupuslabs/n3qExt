@@ -40,11 +40,7 @@ export class ConfigUpdater
 
     private async loadLastOnlineConfig(): Promise<void>
     {
-        const lastOnlineConfigStr = await Memory.getLocal('config.lastOnlineConfig', null)
-        if (!is.string(lastOnlineConfigStr)) {
-            return
-        }
-        const lastOnlineConfig = JSON.parse(lastOnlineConfigStr)
+        const lastOnlineConfig = await Memory.getLocal('config.lastOnlineConfig')
         if (!is.object(lastOnlineConfig)) {
             return
         }
@@ -100,8 +96,7 @@ export class ConfigUpdater
 
     private async storeLastOnlineConfig(onlineConfig: {}): Promise<void>
     {
-        const onlineConfigStr = JSON.stringify(onlineConfig)
-        await Memory.setLocal('config.lastOnlineConfig', onlineConfigStr)
+        await Memory.setLocal('config.lastOnlineConfig', onlineConfig)
     }
 
 }

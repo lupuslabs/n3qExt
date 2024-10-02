@@ -198,7 +198,7 @@ export class BackgroundThemeManager
     private async init(): Promise<void>
     {
         this.themes.clear()
-        const oldState: unknown = await Memory.getLocal(stateStorageKey, null)
+        const oldState: unknown = await Memory.getLocal(stateStorageKey)
         const themes: unknown = oldState?.['themes'] ?? null
         if (is.array(themes)) {
             iter(themes).filterType(isTheme).forEach(theme => this.themes.set(theme.id, theme))

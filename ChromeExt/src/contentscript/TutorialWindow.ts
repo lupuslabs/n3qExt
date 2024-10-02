@@ -224,7 +224,7 @@ export class TutorialWindow extends Window<WindowOptions> {
 
     static async getLastVideoIndex(): Promise<number>
     {
-        return await Memory.getLocal(TutorialWindow.localStorage_LastTutorial_Key, -1);
+        return as.Int(await Memory.getLocal(TutorialWindow.localStorage_LastTutorial_Key), -1);
     }
 
     static async saveLastVideoIndex(value: number): Promise<void>
@@ -234,7 +234,7 @@ export class TutorialWindow extends Window<WindowOptions> {
 
     static async isDontShow(): Promise<boolean>
     {
-        return await Memory.getLocal(TutorialWindow.localStorage_DontShow_Key, false);
+        return as.Bool(await Memory.getLocal(TutorialWindow.localStorage_DontShow_Key));
     }
 
     static async setDontShow(value: boolean): Promise<void>

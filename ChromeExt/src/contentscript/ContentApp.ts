@@ -223,7 +223,7 @@ export class ContentApp extends AppWithDom
         }
         if (Panic.isOn) { return; }
 
-        const userId = await Memory.getLocal(Utils.localStorageKey_Id(), null);
+        const userId = await Memory.getLocal(Utils.localStorageKey_Id());
         if (!is.nonEmptyString(userId)) {
             log.debug('No user ID!');
             Panic.now();
@@ -306,10 +306,10 @@ export class ContentApp extends AppWithDom
 
         this.evaluateStayOnTabChange();
         if (this.roomJid !== '') {
-            // this.stayHereIsChecked = await Memory.getLocal(Utils.localStorageKey_StayOnTabChange(this.roomJid), false);
-            this.backpackIsOpen = await Memory.getLocal(Utils.localStorageKey_BackpackIsOpen(this.roomJid), false);
-            this.chatIsOpen = await Memory.getLocal(Utils.localStorageKey_ChatIsOpen(this.roomJid), false);
-            this.vidconfIsOpen = await Memory.getLocal(Utils.localStorageKey_VidconfIsOpen(this.roomJid), false);
+            // this.stayHereIsChecked = as.Bool(await Memory.getLocal(Utils.localStorageKey_StayOnTabChange(this.roomJid)));
+            this.backpackIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_BackpackIsOpen(this.roomJid)));
+            this.chatIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_ChatIsOpen(this.roomJid)));
+            this.vidconfIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_VidconfIsOpen(this.roomJid)));
 
             this.reshowBackpackWindow();
             this.reshowChatWindow();
@@ -1254,7 +1254,7 @@ export class ContentApp extends AppWithDom
 
     async isDontShowNoticeType(type: string): Promise<boolean>
     {
-        return await Memory.getLocal(this.localStorage_DontShowNotice_KeyPrefix + type, false);
+        return as.Bool(await Memory.getLocal(this.localStorage_DontShowNotice_KeyPrefix + type));
     }
 
     async setDontShowNoticeType(type: string, value: boolean): Promise<void>
@@ -1267,7 +1267,7 @@ export class ContentApp extends AppWithDom
     private async assertUserNickname(): Promise<string>
     {
         try {
-            let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''));
+            let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname()));
             if (nickname === '') {
                 nickname = RandomNames.getRandomNickname();
                 await Memory.setLocal(Utils.localStorageKey_Nickname(), nickname);
@@ -1311,7 +1311,7 @@ export class ContentApp extends AppWithDom
     async assertSavedPosition()
     {
         try {
-            let x = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), -1), -1);
+            let x = as.Int(await Memory.getLocal(Utils.localStorageKey_X()), -1);
             if (x < 0) {
                 x = Utils.randomInt(as.Int(Config.get('room.randomEnterPosXMin', 400)), as.Int(Config.get('room.randomEnterPosXMax', 700)));
                 await this.savePosition(x);
@@ -1335,7 +1335,7 @@ export class ContentApp extends AppWithDom
         let x = 0;
 
         try {
-            x = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), -1), -1);
+            x = as.Int(await Memory.getLocal(Utils.localStorageKey_X()), -1);
         } catch (error) {
             log.info(error);
         }

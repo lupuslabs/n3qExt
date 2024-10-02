@@ -3,138 +3,51 @@ import { Utils } from './Utils';
 
 export class Memory
 {
-    private static sessionConfig: any = {};
-    private static localConfig: any = {};
+    private static readonly localConfig: Map<string,unknown> = new Map();
 
-    static getSession(key: string, defaultValue: any): any
-    {
-        if (this.sessionConfig[key]) {
-            return this.sessionConfig[key];
-        }
-        return defaultValue;
-    }
-
-    static setSession(key: string, value: any): void
-    {
-        this.sessionConfig[key] = value;
-    }
-
-    static async getSync(key: string, defaultValue: any): Promise<any>
+    static async getLocal(key: string): Promise<unknown>
     {
         if (Utils.hasChromeStorage()) {
-            return new Promise((resolve, reject) =>
-            {
-                chrome.storage.sync.get([key], result =>
-                {
-                    if (!is.nil(result[key])) {
-                        resolve(result[key]);
-                    } else {
-                        resolve(defaultValue);
-                    }
-                });
-            });
-        } else {
-            return Memory.getLocal(key, defaultValue);
+            return new Promise(resolve => chrome.storage.local.get([key], result => {
+                resolve(result[key])
+            }));
         }
-    }
-
-    static async setSync(key: string, value: any): Promise<void>
-    {
-        if (Utils.hasChromeStorage()) {
-            return new Promise((resolve, reject) =>
-            {
-                let dict = {};
-                dict[key] = value;
-                chrome.storage.sync.set(dict, () =>
-                {
-                    resolve();
-                });
-            });
-        } else {
-            return Memory.setLocal(key, value);
-        }
-    }
-
-    static async deleteSync(key: string): Promise<void>
-    {
-        if (Utils.hasChromeStorage()) {
-            return new Promise((resolve, reject) =>
-            {
-                chrome.storage.sync.remove(key, () =>
-                {
-                    resolve();
-                });
-            });
-        }
-    }
-
-    static async getLocal(key: string, defaultValue: any): Promise<any>
-    {
-        return new Promise(resolve =>
-        {
-            if (Utils.hasChromeStorage()) {
-                chrome.storage.local.get([key], result =>
-                {
-                    if (!is.nil(result[key])) {
-                        resolve(result[key]);
-                    } else {
-                        resolve(defaultValue);
-                    }
-                });
-            } else if (window.localStorage) {
-                let value = window.localStorage.getItem(key);
-                if (value) {
-                    resolve(value);
-                } else {
-                    resolve(defaultValue);
-                }
-            } else {
-                if (Memory.localConfig[key]) {
-                    resolve(Memory.localConfig[key]);
-                } else {
-                    resolve(defaultValue);
+        if (window.localStorage) {
+            let value = window.localStorage.getItem(key);
+            if (!is.nil(value)) {
+                try {
+                    value = JSON.parse(value);
+                } catch (_error) {
+                    // On parse error return whatever came from storage.
                 }
             }
-        });
+            return value;
+        }
+        return Memory.localConfig.get(key);
     }
 
-    static async setLocal(key: string, value: any): Promise<void>
+    static async setLocal(key: string, value: unknown): Promise<void>
     {
-        return new Promise(resolve =>
-        {
-            let dict = {};
-            dict[key] = value;
-            if (Utils.hasChromeStorage()) {
-                chrome.storage.local.set(dict, () =>
-                {
-                    resolve();
-                });
-            } else if (window.localStorage) {
-                window.localStorage.setItem(key, value); // Implicitly converts value to string!
-                resolve();
-            } else {
-                Memory.localConfig[key] = value;
-                resolve();
-            }
-        });
+        if (Utils.hasChromeStorage()) {
+            return new Promise<void>(resolve => chrome.storage.local.set({[key]: value}, () => resolve()));
+        }
+        if (window.localStorage) {
+            const serializedValue = JSON.stringify(value);
+            window.localStorage.setItem(key, serializedValue);
+            return;
+        }
+        Memory.localConfig.set(key, value);
     }
 
     static async deleteLocal(key: string): Promise<void>
     {
-        return new Promise(resolve =>
-        {
-            if (Utils.hasChromeStorage()) {
-                chrome.storage.local.remove(key, () =>
-                {
-                    resolve();
-                });
-            } else if (window.localStorage) {
-                window.localStorage.removeItem(key);
-                resolve();
-            } else if (Memory.localConfig[key]) {
-                delete Memory.localConfig[key];
-                resolve();
-            }
-        });
+        if (Utils.hasChromeStorage()) {
+            return new Promise<void>(resolve => chrome.storage.local.remove(key, () => resolve()));
+        }
+        if (window.localStorage) {
+            window.localStorage.removeItem(key);
+            return;
+        }
+        Memory.localConfig.delete(key);
     }
 }

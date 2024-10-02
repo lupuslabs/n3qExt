@@ -696,8 +696,7 @@ export namespace HostedInventoryItemProvider
                         room: roomJid,
                         x: rezzedX,
                         destination: destinationUrl,
-                        OwnerName: await Memory.getLocal(Utils.localStorageKey_Nickname(), ''),
-
+                        OwnerName: as.String(await Memory.getLocal(Utils.localStorageKey_Nickname())),
                     },
                     [itemId],
                     true

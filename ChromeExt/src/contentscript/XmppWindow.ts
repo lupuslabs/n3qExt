@@ -119,12 +119,12 @@ export class XmppWindow extends Window<WindowOptions>
 
     private async storeText(text: string)
     {
-        await Memory.setSync('dev.scratchPad', text);
+        await Memory.setLocal('dev.scratchPad', text);
     }
 
     private async getStoredText(): Promise<string>
     {
-        return await Memory.getSync('dev.scratchPad', '');
+        return as.String(await Memory.getLocal('dev.scratchPad'));
     }
 
     private text2Stanza(text: string): ltx.Element

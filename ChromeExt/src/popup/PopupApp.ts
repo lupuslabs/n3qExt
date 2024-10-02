@@ -6,6 +6,7 @@ import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
+import { Client } from '../lib/Client';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Translator } from '../lib/Translator';
 import { AvatarGallery, GalleryAvatar } from '../lib/AvatarGallery';
@@ -72,7 +73,7 @@ export class PopupApp extends AppWithDom
         this.display = DomUtils.elemOfHtml('<div id="n3q-id-popup" class="n3q-base" data-translate="children"/>');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this, this.display);
 
-        const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), 'Your name'));
+        const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname()), 'Your name');
         const avatars = new AvatarGallery();
         this.currentAvatar = await avatars.getAvatarFromLocalMemory();
 
@@ -214,19 +215,23 @@ export class PopupApp extends AppWithDom
 
     private devConfig(group: HTMLElement): void
     {
-        const customCfgStorageKey = Utils.localStorageKey_CustomConfig();
         let dev = this.display.querySelector('#n3q-popup-dev');
         if (is.nil(dev)) {
             dev = DomUtils.elemOfHtml('<div id="n3q-popup-dev" class="n3q-base n3q-popup-hidden"/>');
             const text = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;"/>');
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this, text);
-            Memory.getLocal(customCfgStorageKey, this.defaultDevConfig).then(data => {
-                text.value = data;
+            Client.loadDevConfigJson().then(devConfigJson => {
+                text.value = devConfigJson;
                 dev.append(text);
                 const apply = DomUtils.elemOfHtml('<button class="n3q-base n3q-popup-dev-apply" style="margin-top: 0.5em;">Save</button>');
                 PointerEventDispatcher.makeOpaqueDispatcher(this, apply).addUnmodifiedLeftClickListener(ev => {
-                    Memory.setLocal(customCfgStorageKey, text.value)
-                    .catch(error => log.info(error));
+                    let devConfigString = text.value;
+                    if (!is.nonEmptyString(devConfigString)) {
+                        devConfigString = '{}';
+                    }
+                    Client.saveDevConfigJson(devConfigString)
+                        .then(() => BackgroundMessage.userSettingsChanged())
+                        .catch(error => log.info(error));
                 });
                 dev.append(apply);
                 group.append(dev);

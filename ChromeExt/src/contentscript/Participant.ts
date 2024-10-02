@@ -102,9 +102,9 @@ export class Participant extends Entity
 
     async showIntroYouOnce(): Promise<void>
     {
-        const maxShowIntroYou = as.Int(Config.get('client.showIntroYou'), 0);
+        const maxShowIntroYou = as.Int(Config.get('client.showIntroYou'));
         if (maxShowIntroYou > 0) {
-            let countIntroYou = as.Int(await Memory.getLocal('client.introYou', 0));
+            let countIntroYou = as.Int(await Memory.getLocal('client.introYou'));
             if (countIntroYou < maxShowIntroYou) {
                 countIntroYou++;
                 await Memory.setLocal('client.introYou', countIntroYou);
@@ -135,7 +135,7 @@ export class Participant extends Entity
     {
         const maxShowTutorial = as.Int(Config.get('client.showTutorial'), 0);
         if (maxShowTutorial > 0) {
-            let countTutorial = as.Int(await Memory.getLocal(TutorialWindow.localStorage_TutorialPopupCount_Key, 0));
+            let countTutorial = as.Int(await Memory.getLocal(TutorialWindow.localStorage_TutorialPopupCount_Key));
             if (countTutorial < maxShowTutorial && ! await TutorialWindow.isDontShow()) {
                 if (await TutorialWindow.isExperiencedUser()) {
                     countTutorial = maxShowTutorial + 1;
@@ -1043,7 +1043,7 @@ export class Participant extends Entity
     {
         const roomJid = jid(this.room.getJid());
 
-        let vidconfSecret = as.String(await Memory.getLocal('client.vidconfSecret', ''));
+        let vidconfSecret = as.String(await Memory.getLocal('client.vidconfSecret'));
         if (vidconfSecret === '') {
             vidconfSecret = Utils.randomString(10);
             await Memory.setLocal('client.vidconfSecret', vidconfSecret);

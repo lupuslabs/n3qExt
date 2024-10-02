@@ -119,13 +119,13 @@ export class RoomPresenceManager
         let delaySecs = as.Float(Config.get('xmpp.resendPresenceAfterResourceChangeBecauseServerSendsOldPresenceDataWithNewResourceToForceNewDataDelaySec'), 1)
 
         try {
-            this.lastWorkingNick = as.String(await Memory.getLocal(Utils.localStorageKey_LastWorkingNickname(), ''))
+            this.lastWorkingNick = as.String(await Memory.getLocal(Utils.localStorageKey_LastWorkingNickname()))
         } catch (error) {
             log.info('RoomPresenceManager.onUserSettingsChanged: Retrieval of last working nickname failed!', { error })
         }
         try {
             const oldNick = this.settingsNick
-            const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''))
+            const nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname()))
             if (nickname.length === 0) {
                 this.settingsNick = this.lastWorkingNick
                 if (this.settingsNick.length === 0) {
@@ -149,7 +149,7 @@ export class RoomPresenceManager
         }
 
         try {
-            this.settingsPosX = as.Int(await Memory.getLocal(Utils.localStorageKey_X(), 100), 100)
+            this.settingsPosX = as.Int(await Memory.getLocal(Utils.localStorageKey_X()), 100)
         } catch (error) {
             log.info('RoomPresenceManager.onUserSettingsChanged: Position retrieval failed!', { error })
         }

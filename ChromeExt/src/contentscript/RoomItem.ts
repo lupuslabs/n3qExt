@@ -601,7 +601,7 @@ export class RoomItem extends Entity
     {
         let url = as.String(this.properties[Pid.DocumentUrl]);
         const room = this.app.getRoom();
-        const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
+        const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id()));
 
         if (url !== '' && room && userId !== '') {
             const tokenOptions = {};

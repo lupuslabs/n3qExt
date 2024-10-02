@@ -1,4 +1,5 @@
-﻿import { ContentApp } from './ContentApp'
+﻿import { as } from '../lib/as'
+import { ContentApp } from './ContentApp'
 import { Config } from '../lib/Config'
 import { Memory } from '../lib/Memory'
 import { DomUtils } from '../lib/DomUtils'
@@ -175,8 +176,8 @@ export class BackpackWindowItemFilters
 
     private loadItemFilterIdFromMemory(): void
     {
-        Memory.getLocal(`window.${this.windowName}.currentItemFilterId`, this.currentItemFilterId)
-            .then(filterId => this.selectFilter(filterId, false))
+        Memory.getLocal(`window.${this.windowName}.currentItemFilterId`)
+            .then(filterId => this.selectFilter(as.String(filterId, this.currentItemFilterId), false))
             .catch(error => this.app.onError(error))
     }
 

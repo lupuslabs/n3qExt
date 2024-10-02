@@ -91,16 +91,16 @@ export class PopupManager
     private async loadPopupStateFromLocalStorage(popupDefinition: PopupDefinition): Promise<PopupState>
     {
         const storageKey = this.getPopupLocalStorageKey(popupDefinition.id)
-        const savedState = await Memory.getLocal(storageKey, {})
+        const savedState = await Memory.getLocal(storageKey)
             .catch(error => {
                 log.info('PopupWindowManager.getPopupStateFromLocalStorage: Memory.getLocal failed!', error, { storageKey })
                 return {}
             })
         const state: PopupState = {
-            left: savedState.left ?? popupDefinition.left,
-            top: savedState.top ?? popupDefinition.top,
-            width: savedState.width ?? popupDefinition.width,
-            height: savedState.height ?? popupDefinition.height,
+            left: savedState?.['left'] ?? popupDefinition.left,
+            top: savedState?.['top'] ?? popupDefinition.top,
+            width: savedState?.['width'] ?? popupDefinition.width,
+            height: savedState?.['height'] ?? popupDefinition.height,
         }
         return state
     }

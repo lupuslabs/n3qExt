@@ -153,24 +153,22 @@ export class XmppConnectionManager
 
     private async makeXmppConfig(): Promise<XmppConfig>
     {
-        const lastKnownGoodConfig = <Partial<XmppConfig>> await Memory.getLocal('me.lastWorkingXmppConfig', {})
+        const lastKnownGoodConfig = await Memory.getLocal('me.lastWorkingXmppConfig')
 
-        let service = Config.get('xmpp.service', 'wss://xmpp.vulcan.weblin.com/xmpp-websocket')
-        if (!service.length) { service = lastKnownGoodConfig.service ?? '' }
+        let service = as.String(Config.get('xmpp.service', 'wss://xmpp.vulcan.weblin.com/xmpp-websocket'))
+        if (!service.length) { service = as.String(lastKnownGoodConfig?.['service']) }
         if (!service.length) { throw new Error('Missing xmpp.service!') }
-        let domain = Config.get('xmpp.domain', 'xmpp.vulcan.weblin.com')
-        if (!domain.length) { domain = lastKnownGoodConfig.domain ?? '' }
+        let domain = as.String(Config.get('xmpp.domain', 'xmpp.vulcan.weblin.com'))
+        if (!domain.length) { domain = as.String(lastKnownGoodConfig?.['domain']) }
         if (!domain.length) { throw new Error('Missing xmpp.domain!') }
         const resource = this.resource
 
-        let username = as.String(await Memory.getSync('xmpp.user', ''))
-        if (!username.length) { username = Config.get('xmpp.user', '') }
-        if (!username.length) { username = lastKnownGoodConfig.username ?? '' }
+        let username = as.String(Config.get('xmpp.user'))
+        if (!username.length) { username = as.String(lastKnownGoodConfig?.['username']) }
         if (!username.length) { throw new Error('Missing xmpp.username!') }
 
-        let password = as.String(await Memory.getSync('xmpp.pass', ''))
-        if (!password.length) { password = Config.get('xmpp.pass', '') }
-        if (!password.length) { password = lastKnownGoodConfig.password ?? '' }
+        let password = as.String(Config.get('xmpp.pass'))
+        if (!password.length) { password = as.String(lastKnownGoodConfig?.['password']) }
         if (!password.length) { throw new Error('Missing xmpp.password!') }
 
         return { service, domain, resource, username, password }

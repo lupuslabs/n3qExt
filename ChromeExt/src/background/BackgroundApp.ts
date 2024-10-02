@@ -147,15 +147,14 @@ export class BackgroundApp
         await Client.initDevConfig()
         Environment.NODE_ENV = Config.get('environment.NODE_ENV', null);
 
-        let firstStart = as.Int(await Memory.getLocal('client.firstStart', 0));
+        let firstStart = as.Int(await Memory.getLocal('client.firstStart'));
         if (firstStart === 0) {
             await Memory.setLocal('client.firstStart', Date.now());
         }
-        let startCount = await Memory.getLocal('client.startCount', 0);
+        let startCount = as.Int(await Memory.getLocal('client.startCount'));
         startCount++;
         await Memory.setLocal('client.startCount', startCount);
 
-        await this.migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal();
         await this.assertThatThereIsAUserId();
         await this.assertThatThereIsAUserToken();
 
@@ -222,7 +221,7 @@ export class BackgroundApp
 
     public async assertThatThereIsAUserId()
     {
-        let uniqueId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
+        let uniqueId = as.String(await Memory.getLocal(Utils.localStorageKey_Id()));
         if (uniqueId === '') {
             uniqueId = 'mid' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
@@ -232,46 +231,12 @@ export class BackgroundApp
 
     private async assertThatThereIsAUserToken()
     {
-        let token = as.String(await Memory.getLocal(Utils.localStorageKey_Token(), ''));
+        let token = as.String(await Memory.getLocal(Utils.localStorageKey_Token()));
         if (token === '') {
             token = 'mto' + Utils.randomString(30).toLowerCase();
             await Memory.setLocal(Utils.localStorageKey_Token(), token);
         }
         this.userToken = token;
-    }
-
-    private async migrateSyncToLocalBecauseItsConfusingConsideredThatItemsAreLocal()
-    {
-        {
-            let uniqueId = as.String(await Memory.getLocal(Utils.localStorageKey_Id(), ''));
-            if (!uniqueId.length) {
-                uniqueId = as.String(await Memory.getSync(Utils.localStorageKey_Id(), ''));
-                if (uniqueId.length) {
-                    await Memory.setLocal(Utils.localStorageKey_Id(), uniqueId);
-                    await Memory.deleteSync(Utils.localStorageKey_Id());
-                }
-            }
-        }
-        {
-            let nickname = as.String(await Memory.getLocal(Utils.localStorageKey_Nickname(), ''));
-            if (!nickname.length) {
-                nickname = as.String(await Memory.getSync(Utils.localStorageKey_Nickname(), ''));
-                if (nickname.length) {
-                    await Memory.setLocal(Utils.localStorageKey_Nickname(), nickname);
-                    await Memory.deleteSync(Utils.localStorageKey_Nickname());
-                }
-            }
-        }
-        {
-            let avatar = as.String(await Memory.getLocal(Utils.localStorageKey_Avatar(), ''));
-            if (!avatar.length) {
-                avatar = as.String(await Memory.getSync(Utils.localStorageKey_Avatar(), ''));
-                if (avatar.length) {
-                    await Memory.setLocal(Utils.localStorageKey_Avatar(), avatar);
-                    await Memory.deleteSync(Utils.localStorageKey_Avatar());
-                }
-            }
-        }
     }
 
     private onConfigUpdated(): void
@@ -1022,9 +987,9 @@ export class BackgroundApp
                     }
                     if (verbose) {
                         const now = Date.now();
-                        const firstStart = await Memory.getLocal('client.firstStart', 0);
-                        const startCount = await Memory.getLocal('client.startCount', 0);
-                        const userId = await Memory.getLocal(Utils.localStorageKey_Id(), '');
+                        const firstStart = as.Int(await Memory.getLocal('client.firstStart'));
+                        const startCount = as.Int(await Memory.getLocal('client.startCount'));
+                        const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id()));
                         const xmppStats = this.xmppManager.getStats();
                         const backpack = Utils.isBackpackEnabled() ? this.backpack : null;
                         const itemCount = backpack?.getItemCount() ?? -1;
@@ -1040,7 +1005,7 @@ export class BackgroundApp
                         queryResponse.c('SecSinceFirstStart').t(as.String(Math.round((now - firstStart) / 1000)));
                         queryResponse.c('SecSinceStart').t(as.String(Math.round((now - this.startupTime) / 1000)));
                         queryResponse.c('SecSincePage').t(as.String(Math.round((now - this.lastReadyAssertedTime) / 1000)));
-                        queryResponse.c('Startups').t(startCount);
+                        queryResponse.c('Startups').t(as.String(startCount));
                         queryResponse.c('ContentStartups').t(as.String(this.readyAssertedCount));
                         queryResponse.c('XmppConnects').t(as.String(xmppStats.xmppConnectCount));
                         queryResponse.c('StanzasOut').t(as.String(xmppStats.stanzasOutCount));
@@ -1110,15 +1075,9 @@ export class BackgroundApp
     public handle_userSettingsChanged(): BackgroundResponse
     {
         log.debug('BackgroundApp.handle_userSettingsChanged');
-        this.onConfigUpdated();
-
-        const oldDevConfig = Config.getDevTree();
-        Client.initDevConfig().then(() => {
-            if (Config.getDevTree() !== oldDevConfig) {
-                this.onConfigUpdated();
-            }
-        });
-
+        Client.initDevConfig()
+            .then(() => this.onConfigUpdated())
+            .catch(error => log.info('BackgroundApp.handle_userSettingsChanged', error));
         return new BackgroundSuccessResponse();
     }
 
