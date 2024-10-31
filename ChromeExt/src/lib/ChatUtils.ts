@@ -1,4 +1,7 @@
-﻿import { Utils } from './Utils'
+﻿import { is } from './is'
+import { Utils } from './Utils'
+import { DomUtils } from './DomUtils';
+import { ParseUtils } from './ParseUtils'
 
 export namespace ChatUtils {
 
@@ -63,6 +66,56 @@ export namespace ChatUtils {
     export function areChatMessagesIdentical(msgA: ChatMessage, msgB: ChatMessage): boolean
     {
         return msgA.id === msgB.id && msgA.timestamp === msgB.timestamp
+    }
+
+    export function prepareTextHtml(text: string, highlightOwnMentionName?: string): {textNodes: Node[], ownNameMentionFound: boolean}
+    {
+        const state = {ownNameMentionFound: false} as const
+        let textNodes: Node[] = DomUtils.nodesOfText(text)
+        textNodes = DomUtils.convertTextInNodes(textNodes, DomUtils.makeLinksInTextClickable, {})
+        if (is.nonEmptyString(highlightOwnMentionName)) {
+            const converter = (line: string, _context: DomUtils.NodeConversionContext) =>
+                highlightOwnNameMentionInHtml(line, highlightOwnMentionName, state)
+            textNodes = DomUtils.convertTextInNodes(textNodes, converter, {})
+        }
+        const {ownNameMentionFound} = state
+        return {textNodes, ownNameMentionFound}
+    }
+
+    export function highlightOwnNameMentionInHtml(text: string, ownMentionName: string, state: {ownNameMentionFound: boolean}): Node[]
+    {
+        const tokenDefs: ParseUtils.TokenDef[] = [
+            {name: 'sep', re: /^[\s,.;:?!]/},
+            {name: 'at', re: /^@/, onlyAfter: ['', 'sep'], onlyBefore: ['ownName']},
+            {name: 'ownName', re: new RegExp(`^${ParseUtils.escapeForRe(ownMentionName)}`), onlyAfter: ['at'], onlyBefore: ['', 'sep']},
+            {name: 'text', re: /^[^\s,.;:?!@]+/},
+        ]
+        const rawTokens = ParseUtils.tokenizeString(text, tokenDefs, 'text')
+
+        const tokens: ParseUtils.Token[] = []
+        let lastToken: null|ParseUtils.Token = null
+        for (const token of rawTokens) {
+            if (token.name !== 'ownName' && lastToken && lastToken.name !== 'ownName') {
+                lastToken.parts.text = lastToken.parts.text.concat(token.parts.text)
+            } else {
+                tokens.push(token)
+                lastToken = token
+            }
+        }
+
+        const nodes: Node[] = []
+        for (const token of tokens) {
+            if (token.name !== 'ownName') {
+                nodes.push(document.createTextNode(token.parts.text))
+            } else {
+                state.ownNameMentionFound = true
+                const node = document.createElement('span')
+                node.classList.add('own-name-mention')
+                node.appendChild(document.createTextNode(token.parts.text))
+                nodes.push(node)
+            }
+        }
+        return nodes
     }
 
 }

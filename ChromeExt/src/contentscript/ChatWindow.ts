@@ -275,7 +275,8 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         const isContinuation = !isFirstMessage && ChatUtils.areChatMessagesOfSameUser(message, previousMessage);
 
         const typeClass = `type-${message.type}`;
-        const ageClass = message.timestamp >= this.sessionStartTs ? 'new' : 'old';
+        const isNew = message.timestamp >= this.sessionStartTs;
+        const ageClass = isNew ? 'new' : 'old';
         const sourceClass = isOwnMessage ? 'own' : 'other';
         let continuationClass: string;
         if (isContinuation) {
@@ -295,8 +296,15 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
             const authorHtml = as.Html(authorName)
             contentElem.appendChild(DomUtils.elemOfHtml(`<span class="nick">${authorHtml}</span>`));
         }
-        const textHtml = as.HtmlWithClickableLinks(message.text);
-        contentElem.appendChild(DomUtils.elemOfHtml(`<span class="text">${textHtml}</span>`));
+
+        const textElem = DomUtils.elemOfHtml(`<span class="text"></span>`);
+        const mentionNameToHighlight = isNew && !isOwnMessage ? this.app.getUserNickname() : null;
+        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(message.text, mentionNameToHighlight);
+        if (ownNameMentionFound) {
+            messageElem.classList.add('own-name-mention');
+        }
+        textNodes.forEach(node => textElem.appendChild(node));
+        contentElem.appendChild(textElem);
         const timeHtml = as.Html(Utils.dateOfUtcString(message.timestamp).toLocaleTimeString());
         contentElem.appendChild(DomUtils.elemOfHtml(`<span class="time">${timeHtml}</span>`));
 

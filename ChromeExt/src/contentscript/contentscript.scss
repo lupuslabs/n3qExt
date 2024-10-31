@@ -951,7 +951,14 @@ div#n3q-display {
                     text-align: center;
                     line-break: loose;
                     overflow-wrap: break-word;
+
+                    .own-name-mention {
+                        font-weight: bold;
+                    }
                 }
+            }
+            &.own-name-mention div.n3q-speech {
+                background-color: hsl(0, 0%, 95%);
             }
         }
         div.n3q-chatout:last-child {
@@ -2028,6 +2035,10 @@ div#n3q-display {
                 font-size: 14px;
                 line-height: 16px;
                 overflow-wrap: break-word;
+
+                .own-name-mention {
+                    font-weight: bold;
+                }
             }
             .time {
                 padding-top: 3px;
@@ -2035,6 +2046,10 @@ div#n3q-display {
                 line-height: 10px;
                 text-align: right;
             }
+        }
+
+        &.own-name-mention .content {
+            background: hsla(0, 0%, 0%, 0.1);
         }
 
         &.old > .content > * {

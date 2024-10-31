@@ -1,5 +1,6 @@
 ﻿import { is } from './is'
 import { as } from './as'
+import { iter } from './Iter'
 import { ErrorWithData, LeftBottomRect, BoxEdges } from './Utils'
 import { PointerEventData } from './PointerEventData'
 
@@ -23,6 +24,84 @@ export namespace DomUtils {
         template.innerHTML = html
         const elems = template.content.children
         return Array.from(elems)
+    }
+
+    export function nodesOfText(text: string): Node[] {
+        const nodes: Node[] = []
+        let isFirst = true
+        for (const line of text.split('\n')) {
+            const lineTrimmed = line.trim()
+            if (!isFirst) {
+                nodes.push(document.createElement('br'))
+            }
+            isFirst = false
+            if (lineTrimmed.length !== 0) {
+                nodes.push(document.createTextNode(lineTrimmed))
+            }
+        }
+        return nodes
+    }
+
+    //------------------------------------------------------------------------------
+    // Text manipulation
+
+    export const invalidATagParents: ReadonlyArray<string> = ['A']
+
+    export type NodeConversionContext = {
+        forbidA?: boolean
+    }
+
+    export type TextToNodesConverter = (text: string, context: NodeConversionContext) => Node[]
+
+    export function convertTextInNodes(nodes: Iterable<Node>, converter: TextToNodesConverter, context: NodeConversionContext): Node[]
+    {
+        return iter(nodes).flatmap(node => convertTextInNode(node, converter, context)).toArray()
+    }
+
+    export function convertTextInNode(node: Node, converter: TextToNodesConverter, context: NodeConversionContext): Node[]
+    {
+        switch (node.nodeType) {
+            case Node.TEXT_NODE: {
+                return converter(node.textContent, context)
+            }
+            case Node.ELEMENT_NODE: {
+                const subContext = {...context}
+                subContext.forbidA = subContext.forbidA || invalidATagParents.indexOf(node.nodeName) !== -1
+                const newChildren = convertTextInNodes(node.childNodes, converter, context)
+                node.childNodes.forEach(child => node.removeChild(child))
+                newChildren.forEach(child => node.appendChild(child))
+                return [node]
+            }
+        }
+        return [node]
+    }
+
+    export function makeLinksInTextClickable(text: string, context: NodeConversionContext): Node[]
+    {
+        if (context.forbidA) {
+            return [document.createTextNode(text)]
+        }
+        const urlRe = /((?:https?:\/\/)?[^\s.]+[.]\S*[^\s.,;:?!#])/g
+        const nodes: Node[] = []
+        for (const token of text.split(urlRe)) {
+            if (!is.nonEmptyString(token)) {
+                // Omit.
+            } else if (!token.match(urlRe)) {
+                nodes.push(document.createTextNode(token))
+            } else {
+                let url = token
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'http://' + url;
+                }
+                const label = url.substring(url.match(/^https?:\/\//)?.[0]?.length ?? 0)
+                const node = document.createElement('a')
+                node.setAttribute('href', url)
+                node.setAttribute('target', '_blank')
+                node.appendChild(document.createTextNode(label))
+                nodes.push(node)
+            }
+        }
+        return nodes
     }
 
     //------------------------------------------------------------------------------

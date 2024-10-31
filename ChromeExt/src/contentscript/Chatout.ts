@@ -135,7 +135,12 @@ export class Chatout
         bubbleElem.appendChild(bubbleBubbleElem);
 
         const textElem = DomUtils.elemOfHtml('<div class="n3q-text"></div>');
-        textElem.innerHTML = as.HtmlWithClickableLinks(chatMessage.text);
+        const mentionNameToHighlight = chatMessage.authorUserId !== this.app.getUserId() ? this.app.getUserNickname() : null;
+        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(chatMessage.text, mentionNameToHighlight);
+        if (ownNameMentionFound) {
+            bubbleElem.classList.add('own-name-mention');
+        }
+        textNodes.forEach(node => textElem.appendChild(node));
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, textElem);
         bubbleBubbleElem.appendChild(textElem);
 
