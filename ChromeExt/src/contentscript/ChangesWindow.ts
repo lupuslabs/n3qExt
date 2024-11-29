@@ -61,7 +61,7 @@ export class ChangesWindow extends Window<WindowOptions>
     {
         const lineElem = DomUtils.elemOfHtml(
             `<div class="n3q-base n3q-changeswindow-line">
-                <span class="n3q-base n3q-text n3q-changeswindow-text">${as.HtmlWithClickableLinks(text)}</span>
+                <span class="n3q-base n3q-text n3q-changeswindow-text">${DomUtils.convertTextToHtmlWithClickableLinks(text)}</span>
             <div>`
         );
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, lineElem);

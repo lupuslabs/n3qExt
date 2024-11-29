@@ -45,7 +45,20 @@ export namespace DomUtils {
     //------------------------------------------------------------------------------
     // Text manipulation
 
+    export const urlRe = new RegExp(''
+    + '(https?://[^\\s.]\\S*[^\\s.,;:?!#])' // Starts with schema.
+    + '|'
+    + '([^\\s/.@]+(?:[.][^\\s/.@]+)*[.][^\\s/.0-9@][^\\s/.@]*(?:/[^\\s]*)?[^\\s.,;:?!#@])' // has at least one dot and has a TLD not starting with a digit.
+    , 'g')
+
     export const invalidATagParents: ReadonlyArray<string> = ['A']
+
+    export function convertTextToHtmlWithClickableLinks(text: string)
+    {
+        const node = document.createElement('div')
+        DomUtils.makeLinksInTextClickable(text, {}).forEach(n => node.appendChild(n))
+        return node.innerHTML
+    }
 
     export type NodeConversionContext = {
         forbidA?: boolean
@@ -81,7 +94,6 @@ export namespace DomUtils {
         if (context.forbidA) {
             return [document.createTextNode(text)]
         }
-        const urlRe = /((?:https?:\/\/)?[^\s.]+[.]\S*[^\s.,;:?!#])/g
         const nodes: Node[] = []
         for (const token of text.split(urlRe)) {
             if (!is.nonEmptyString(token)) {

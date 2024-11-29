@@ -99,26 +99,6 @@ export class as
         return htmlEncoded;
     }
 
-    static HtmlWithClickableLinks(val: unknown, alt?: string): string
-    {
-        const html = as.Html(val, alt);
-        const clickableEncoded = as.makeLinksClickable(html);
-        return clickableEncoded;
-    }
-
-    static makeLinksClickable(text: string): string
-    {
-        const urlRegex = /(https?:\/\/)?\S+[.]\S+/g;
-        const urlReplacer = url => {
-            let navigateUrl = url;
-            if (!(navigateUrl.startsWith('http://') || navigateUrl.startsWith('https://'))) {
-                navigateUrl = 'http://' + url;
-            }
-            return '<a href="' + navigateUrl + '" target="_blank">' + url + '</a>';
-        };
-        return text.split(/<br\s*[/]>/g).map(line => line.replace(urlRegex, urlReplacer)).join('<br>')
-    }
-
     static HtmlLink(val: unknown, text?: string, urlFilter?: (s: string) => string, alt?: string, target?: string): string
     {
         let res = as.String(val, alt);
