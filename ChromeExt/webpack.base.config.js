@@ -1,16 +1,25 @@
 ﻿/* global process:readonly, __dirname:readonly (for ESLint) */
 function makeBaseConfig() {
     const { optimize, ProvidePlugin } = require('webpack')
+    const TerserPlugin = require("terser-webpack-plugin")
     const { join } = require('path')
     const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
     const MiniCssExtractPlugin = require('mini-css-extract-plugin')
     const WebpackShellPluginNext = require('webpack-shell-plugin-next')
 
     const prodPlugins = []
+    const optimization = {}
     if (process.env.NODE_ENV === 'production') {
         prodPlugins.push(
             new optimize.AggressiveMergingPlugin()
         )
+        optimization['minimizer'] = [
+            new TerserPlugin({
+                terserOptions: {
+                    keep_classnames: true,
+                },
+            }),
+        ]
     }
 
     const outputDirChrome = join(__dirname, 'dist')
@@ -81,6 +90,7 @@ function makeBaseConfig() {
             hints: false,
         },
         stats: 'errors-warnings',
+        optimization,
     }
 }
 
