@@ -515,8 +515,8 @@ export class Config
         },
         tutorial: {
             experiencedUserPointsLimit: 200,
-            defaultWidth: 1040,
-            defaultHeight: 665,
+            defaultWidth: 658,
+            defaultHeight: 450,
             defaultBottom: 400,
             defaultLeft: 50,
             videoArgs: '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1',
