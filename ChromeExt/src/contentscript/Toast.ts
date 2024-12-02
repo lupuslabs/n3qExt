@@ -109,10 +109,10 @@ export class Toast extends Window<ToastOptions>
 
     public close(): void
     {
+        super.close();
         if (this.status === 'closed') {
             return;
         }
-        super.close();
         this.status = 'closed';
         if (!this.inButtonHandler) {
             try {
@@ -227,8 +227,7 @@ export class Toast extends Window<ToastOptions>
             }, '10px', onComplete);
         }
 
-        this.windowElem?.classList.remove('n3q-hidden');
-        this.app.onToastVisible(this);
+        this.setVisibility(!this.isClosing);
     }
 
     protected async makeIconElem(): Promise<null|HTMLElement>
