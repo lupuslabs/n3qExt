@@ -132,7 +132,10 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatoutElem);
         this.chatoutAutoScroll = true;
         chatoutElem.onscroll = (ev) => {
-            this.chatoutAutoScroll = chatoutElem.scrollTop >= chatoutElem.scrollHeight - chatoutElem.clientHeight;
+            const maxScrollTop = chatoutElem.scrollHeight - chatoutElem.clientHeight;
+            // Chrome's maximum scrollTop can be slightly less than actual scrollable area when logical pixels don't mqatch device pixels:
+            const maxScrollTopCorrected = maxScrollTop - 1;
+            this.chatoutAutoScroll = chatoutElem.scrollTop >= maxScrollTopCorrected;
         };
 
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatinTextElem);
