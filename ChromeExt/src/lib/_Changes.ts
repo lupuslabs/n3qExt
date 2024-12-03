@@ -6,7 +6,7 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.3.3', 'Friends', [
+        ['1.4.0', 'Friends', [
             ['Add', 'Infrastructure for iframe in badge info popup'],
             ['Add', 'Infrastructure for theme support'],
             ['Add', 'Small overlay icons visually marking backpack items having selected features'],
