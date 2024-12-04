@@ -274,12 +274,6 @@ div#n3q-display {
         padding: 0;
     }
 
-    div.n3q-button-sendchat {
-        background: url(../assets/icons/ic_baseline-send.svg) no-repeat center center / contain;
-        width: 14px;
-        height: 14px;
-    }
-
     .n3q-window-button {
         display: inline-block;
         position: absolute;
@@ -1017,6 +1011,12 @@ div#n3q-display {
             overflow: hidden;
             resize: none;
             overflow-wrap: break-word;
+        }
+
+        .n3q-button-sendchat {
+            background: url(../assets/icons/ic_baseline-send.svg) no-repeat center center / contain;
+            width: 14px;
+            height: 14px;
         }
     }
 
@@ -2078,14 +2078,13 @@ div#n3q-display {
     }
 
     div.n3q-chatwindow-chatin {
+        display: flex;
+        flex-direction: row;
         position: absolute;
         height: 26px;
         left: 8px;
         right: 8px;
         bottom: 8px;
-        //border: 1px solid #808080;
-        //border-radius: 4px;
-        box-shadow: inset 1px 1px 3px #404040;
     }
 
     textarea.n3q-chatwindow-chatin-input,
@@ -2093,27 +2092,25 @@ div#n3q-display {
     input[type=text].n3q-chatwindow-chatin-input,
     input[type=text].n3q-chatwindow-chatin-input:focus
     {
-        margin: 0 0 0 8px;
+        flex-grow: 1;
+        margin: 0;
         background: transparent;
-        padding: 8px 0 0 0;
+        padding: 8px 4px 0 8px;
         box-sizing: border-box;
         height: 26px;
-        width: calc(100% - 35px);
         overflow: hidden;
         resize: none;
+        box-shadow: inset 1px 1px 3px #404040;
         border-width: 0;
         overflow-wrap: break-word;
         outline: 0;
     }
 
     div.n3q-chatwindow-chatin div.n3q-button-sendchat {
-        position: absolute;
-        right: 6px;
-        top: 6px;
-        // bottom: 4px;
-        width: 14px;
-        height: 14px;
-        box-shadow: none;
+        box-sizing: border-box;
+        margin: 1px 1px 1px 0;
+        padding: 6px 10px 0 10px;
+        white-space: nowrap;
     }
 
 }

@@ -94,8 +94,8 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
         const chatoutElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
         const chatinElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
-        const chatinTextElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
-        const chatinSendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
+        const chatinTextElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
+        const chatinSendElem = DomUtils.elemOfHtml('<div class="n3q-button n3q-button-sendchat" data-translate="text:Chatin">Send</div>');
 
         const clearElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
         const soundCheckboxElem = <HTMLInputElement>DomUtils.elemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');

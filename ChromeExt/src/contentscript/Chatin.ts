@@ -21,7 +21,7 @@ export class Chatin
         this.chatinInputElem.addEventListener('keydown', ev => this.onKeydown(ev));
         this.elem.appendChild(this.chatinInputElem);
 
-        this.sendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="SendChat" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
+        this.sendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="Send" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
         PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftClickListener(ev => {
             this.sendChat();
         });

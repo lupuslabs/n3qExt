@@ -565,7 +565,7 @@ export class Config
                     'Intro.You': 'You',
 
                     'Chatin.Enter chat here...': 'Enter chat here...',
-                    'Chatin.SendChat': 'Send chat',
+                    'Chatin.Send': 'Send',
 
                     'Popup.title': 'Your weblin',
                     'Popup.description': 'Change name and avatar, then press [save].',
@@ -961,7 +961,7 @@ export class Config
                     'Intro.You': 'Du',
 
                     'Chatin.Enter chat here...': 'Chat Text hier...',
-                    'Chatin.SendChat': 'Chat abschicken',
+                    'Chatin.Send': 'Senden',
 
                     'Popup.title': 'Dein weblin',
                     'Popup.description': 'Wähle Name und Avatar, dann drücke [Speichern].',
