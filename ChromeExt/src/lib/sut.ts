@@ -73,6 +73,7 @@ export class sut
                     result = this.tests[name].fn();
                 }
             } catch (error) {
+                console.log('Test failed!', {name}, error);
                 result = error;
             }
             this.countFinished++;
