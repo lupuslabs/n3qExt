@@ -948,7 +948,7 @@ export class Config
                     'Extension.ContentNotReady': 'weblin.io',
                     'Extension.Disable': 'weblin.io ausschalten',
                     'Extension.Enable': 'weblin.io einschalten',
-                    'Extension.Hide': 'weblin.io ausgeblenden',
+                    'Extension.Hide': 'weblin.io ausblenden',
                     'Extension.Show': 'weblin.io einblenden',
 
                     'StatusMessage.TabInvisible': 'Browser Tab inaktiv',
