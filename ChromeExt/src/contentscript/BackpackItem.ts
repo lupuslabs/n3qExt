@@ -32,6 +32,7 @@ export class BackpackItem
     private readonly imageCellElem: HTMLElement
     private imageElem: HTMLElement
     private readonly textElem: HTMLElement
+    private onlineStatusElem: null|HTMLElement = null
     private readonly pointerEventDispatcher: PointerEventDispatcher
 
     private properties: ItemProperties
@@ -116,6 +117,21 @@ export class BackpackItem
             ?? as.String(this.properties[Pid.Description])
         this.textElem.innerText = text
         this.elem.setAttribute('title', text)
+    }
+
+    private applyOnlineStatus(): void
+    {
+        if (ItemProperties.getUserFriendStatus(this.properties) !== 'Yes') {
+            this.onlineStatusElem?.remove()
+            this.onlineStatusElem = null
+            return
+        }
+        if (!this.onlineStatusElem) {
+            this.onlineStatusElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-online-status"></div>')
+            this.elem.append(this.onlineStatusElem)
+        }
+        const onlineStatus = ItemProperties.getUserOnlineStatus(this.properties)
+        this.onlineStatusElem.setAttribute('data-online-status', onlineStatus)
     }
 
     private getSize(): [number, number] {
@@ -208,6 +224,7 @@ export class BackpackItem
         this.applySize()
         this.applyPosition()
         this.applyImage()
+        this.applyOnlineStatus()
         this.itemOverlaysState = this.app.getItemOverlays().updateItemOverlays(this.properties, this.itemOverlaysState)
 
         if (as.Bool(properties[Pid.IsRezzed])) {

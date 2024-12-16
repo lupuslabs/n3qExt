@@ -66,6 +66,7 @@ export enum Pid
     PersonAspect = 'PersonAspect',
     UserId = 'UserId',
     UserFriendStatus = 'UserFriendStatus',
+    UserOnlineStatus = 'UserOnlineStatus',
     PointsAspect = 'PointsAspect',
     SettingsAspect = 'SettingsAspect',
     AvatarAspect = 'AvatarAspect',
@@ -150,6 +151,18 @@ export function isUserFriendStatus(val: unknown): val is UserFriendStatus
 export function asUserFriendStatus(val: unknown): UserFriendStatus
 {
     return isUserFriendStatus(val) ? val : 'No';
+}
+
+export const onlineStatuses = ['Unknown', 'Online', 'Offline'] as const;
+export type OnlineStatus = typeof onlineStatuses[number];
+
+export function isOnlineStatus(val: unknown): val is OnlineStatus
+{
+    return onlineStatuses.some(elem => elem === val);
+}
+export function asOnlineStatus(val: unknown): OnlineStatus
+{
+    return isOnlineStatus(val) ? val : 'Unknown';
 }
 
 export type PersonData = {
@@ -490,6 +503,11 @@ export class ItemProperties
     static getUserFriendStatus(itemProperties: ItemProperties): UserFriendStatus
     {
         return asUserFriendStatus(itemProperties[Pid.UserFriendStatus]);
+    }
+
+    static getUserOnlineStatus(itemProperties: ItemProperties): OnlineStatus
+    {
+        return asOnlineStatus(itemProperties[Pid.UserOnlineStatus]);
     }
 
     static getPersonData(itemProperties: ItemProperties): PersonData
