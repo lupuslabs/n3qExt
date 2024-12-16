@@ -96,7 +96,7 @@ export class InstantMessagesWindow extends ChatWindow
         await BackgroundMessage.sendInstantMessage(this.chatChannel.roomJid, text)
     }
 
-    private getUserInfo(userId: string): PersonData
+    private getUserInfo(userId: string): Readonly<PersonData>
     {
         const userData: PersonData = this.getRawUserInfo(userId)
         if (userId !== this.otherUserId) {

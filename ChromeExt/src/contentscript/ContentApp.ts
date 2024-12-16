@@ -815,6 +815,7 @@ export class ContentApp extends AppWithDom
     {
         itemsHide.forEach(item => this.ownItems.delete(item[Pid.Id]));
         itemsShowOrSet.forEach(item => this.ownItems.set(item[Pid.Id], item));
+        this.personManager.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.itemOverlays.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
         this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);

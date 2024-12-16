@@ -740,6 +740,8 @@ export class Config
                     'Person.cancelFriendshipToastText': 'End friendship with {otherUserName}?',
                     'Person.cancelFriendshipToastConfirmButtonLabel': 'Yes, end friendship',
                     'Person.cancelFriendshipToastCancelButtonLabel': 'No, do nothing',
+                    'Person.friendshipAcceptedToastTitle': 'New Friend',
+                    'Person.friendshipAcceptedToastText': '{otherUserName} is now your friend.',
 
                     'iframeApi.avatarCreateTitle': 'Accept Avatar',
                     'iframeApi.avatarActivateTitle': 'Activate Avatar',
@@ -1138,6 +1140,8 @@ export class Config
                     'Person.cancelFriendshipToastText': 'Die Freundschaft mit {otherUserName} wirklich beenden?',
                     'Person.cancelFriendshipToastConfirmButtonLabel': 'Ja, Freundschaft beenden',
                     'Person.cancelFriendshipToastCancelButtonLabel': 'Nein, nichts machen',
+                    'Person.friendshipAcceptedToastTitle': 'Neuer Freund',
+                    'Person.friendshipAcceptedToastText': '{otherUserName} ist jetzt dein Freund.',
 
                     'iframeApi.avatarCreateTitle': 'Avatar erstellen',
                     'iframeApi.avatarActivateTitle': 'Avatar aktivieren',
