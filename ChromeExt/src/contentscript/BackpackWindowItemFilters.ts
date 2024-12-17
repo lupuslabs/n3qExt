@@ -33,6 +33,8 @@ export class BackpackWindowItemFilters
     private currentItemFilterId: null|string = null
     private currentItemFilterIdRestored: boolean = false
 
+    private forcedFilterId: null|string = null
+
     public constructor(app: ContentApp, windowName: string, guiVisibilityHandler: FilterGuiVisibilityHandler, itemVisibilityHandler: ItemFilterVisibilityHandler)
     {
         this.app = app
@@ -51,6 +53,12 @@ export class BackpackWindowItemFilters
     public getVisibleItemIdsView(): ReadonlySet<string>
     {
         return this.visibleItemIds;
+    }
+
+    public showFilter(filterId: string): void
+    {
+        this.forcedFilterId = filterId
+        this.selectFilter(filterId, false)
     }
 
     public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
@@ -152,7 +160,7 @@ export class BackpackWindowItemFilters
 
     private getFilterIdToSelect(preferredFilterId: null|string): null|string
     {
-        let filterId = preferredFilterId
+        let filterId = this.forcedFilterId ?? preferredFilterId
         let newFilterRecord = this.itemFilters.get(filterId)
         if ((newFilterRecord?.matchingItemIds.size ?? 0) !== 0) {
             return filterId
@@ -183,6 +191,7 @@ export class BackpackWindowItemFilters
 
     private userSelectFilter(filterId: null|string): void
     {
+        this.forcedFilterId = null
         this.selectFilter(filterId, false)
         this.storeItemFilterIdInMemory()
     }

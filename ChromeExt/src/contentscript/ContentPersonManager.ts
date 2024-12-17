@@ -68,6 +68,20 @@ export class ContentPersonManager
         }
     }
 
+    public getMemorizedPersons(): ReadonlyMap<string,Readonly<PersonData>>
+    {
+        return this.itemPersons
+    }
+
+    public showPersonsWindow(aboveElem: null|HTMLElement, filterId: null|string): void
+    {
+        if (!this.app.getBackpackWindow()) {
+            this.app.showBackpackWindow(aboveElem);
+        }
+        filterId ??= 'persons';
+        this.app.getBackpackWindow()?.showFilter(filterId);
+    }
+
     public showProposeFriendshipToast(otherPersonData: Readonly<PersonData>): Toast
     {
         const actionArgs = { [Pid.UserId]: otherPersonData.userId }

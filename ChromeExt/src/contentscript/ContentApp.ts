@@ -122,7 +122,7 @@ export class ContentApp extends AppWithDom
     private babelfish: Translator;
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
-    private backpackWindow: BackpackWindow;
+    private backpackWindow: null|BackpackWindow = null;
     private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
@@ -165,7 +165,7 @@ export class ContentApp extends AppWithDom
     getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
     getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
     getItemOverlays(): ItemOverlays { return this.itemOverlays; }
-    getBackpackWindow(): BackpackWindow { return this.backpackWindow; }
+    getBackpackWindow(): null|BackpackWindow { return this.backpackWindow; }
 
     getPersonManager(): ContentPersonManager { return this.personManager; }
     getInstantMessageManager(): ContentInstantMessageManager { return this.instantMessageManager; }

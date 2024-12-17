@@ -20,6 +20,7 @@ import * as videoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
 import * as chatHistoryIconUrl from '../assets/icons/ic_outline-chat.svg';
 import * as chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.svg';
 import * as emotesIconUrl from '../assets/icons/smiley.svg';
+import * as personsIconUrl from '../assets/icons/person.svg'
 import * as helpIconUrl from '../assets/icons/weblin.png';
 
 export class OwnParticipantMenu extends ParticipantMenu
@@ -60,6 +61,10 @@ export class OwnParticipantMenu extends ParticipantMenu
         column.addActionItem('chatHistory', chatHistoryIconUrl, 'Chat Window', () => this.app.toggleChatWindow());
 
         this.makeEmotesMenuAndItem(column);
+
+        if (this.app.getPersonManager().getMemorizedPersons().size !== 0) {
+            column.addActionItem('persons', personsIconUrl, 'Persons', () => this.app.getPersonManager().showPersonsWindow(null, null));
+        }
 
         column.addSeparatorItem('separator');
 

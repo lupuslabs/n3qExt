@@ -110,6 +110,11 @@ export class BackpackWindow extends Window<WindowOptions>
         this.backpackItems.get(request.item)?.handleItemInventoryiframeApiRequest(request)
     }
 
+    public showFilter(filterId: string): void
+    {
+        this.filters.showFilter(filterId)
+    }
+
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom()
