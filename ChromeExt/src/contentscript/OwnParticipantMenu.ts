@@ -29,11 +29,11 @@ export class OwnParticipantMenu extends ParticipantMenu
     {
         let column = this.addColumn('main');
 
-        if (Environment.isEmbedded() && !Utils.isBackpackEnabled()) {
+        if (Utils.isBackpackEnabled()) {
+            column.addActionItem('backpack', backpackIconUrl, 'Backpack', () => this.app.showBackpackWindow());
+        } else if (Environment.isEmbedded()) {
             const url = Config.get('extension.storeUrl', 'https://chrome.google.com/webstore/detail/weblin/cgfkfhdinajjhfeghebnljbanpcjdlkm');
             column.addActionItem('getWeblin', getWeblinIconUrl, 'Get weblin everywhere', () => this.app.navigate(url, '_top'));
-        } else {
-            column.addActionItem('backpack', backpackIconUrl, 'Backpack', () => this.app.showBackpackWindow());
         }
 
         if (!is.nil(this.participant.getBadgesDisplay())) {
