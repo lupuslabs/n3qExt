@@ -1,4 +1,4 @@
-import { ItemProperties } from '../lib/ItemProperties';
+import { Pid, ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { BadgesController } from './BadgesController';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
@@ -86,7 +86,8 @@ export class Badge
         this.iconElem.style.top = `${inContainerTop - iconHeight / 2}px`;
         this.iconElem.style.left = `${inContainerLeft - iconWidth / 2}px`;
         this.iconElem.setAttribute('src', this.item.iconDataUrl);
-        this.iconElem.setAttribute('title', ItemProperties.getBadgeTitle(this.item));
+        const title = `${ItemProperties.getBadgeTitle(this.item)}\n${this.item[Pid.BadgeFrameUrl] ?? ''}`.trim();
+        this.iconElem.setAttribute('title', title);
 
         const inEditMode = this.badgesDisplay.getIsInEditMode();
         if (inEditMode) {
