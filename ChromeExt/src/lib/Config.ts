@@ -371,10 +371,8 @@ export class Config
             showInvisibleItems: false,
             filters: [],
             PropertiesUrlProcessing: { // Loading/overriding of properties from an URL in item[Pid.PropertiesUrl].
-                enableForOwnItems: true,
-                enableForOthersItems: true,
+                enabled: true,
                 maintenanceIntervalSec: 1,
-                urlCacheLifetimeSec: 3600,
             },
         },
         SimpleItemTransfer: {

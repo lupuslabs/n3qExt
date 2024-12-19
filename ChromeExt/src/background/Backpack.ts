@@ -32,8 +32,7 @@ export class Backpack
         this.app = app;
         this.retryStrategyMaker = new RetryStrategyFactorGrowthMaker(1.0, 2.0, 120.0);
         this.dependentPresenceHelper = new DependentPresenceHelper(app);
-        const processorUpdateHandler = items => this.onItemUpdatePropertyUrlsProcessed([], items)
-        this.itemPropertiesUrlProcessor = new ItemPropertiesUrlProcessor(app, processorUpdateHandler);
+        this.itemPropertiesUrlProcessor = new ItemPropertiesUrlProcessor(app);
     }
 
     public isItem(itemId: string): boolean
@@ -85,17 +84,12 @@ export class Backpack
     public async onItemUpdateFromProvider(itemsDeleted: ReadonlyArray<string>, itemsCreatedOrUpdated: ReadonlyArray<ItemProperties>): Promise<void>
     {
         itemsDeleted.forEach(itemId => this.itemPropertiesUrlProcessor.forgetItem(itemId))
-        const propertiesUrlProcessingItems = itemsCreatedOrUpdated.map(item => this.itemPropertiesUrlProcessor.processItem(item))
-        const propertiesUrlProcessedItems = await Promise.all(propertiesUrlProcessingItems)
-        await this.onItemUpdatePropertyUrlsProcessed(itemsDeleted, propertiesUrlProcessedItems)
-    }
+        itemsCreatedOrUpdated.forEach(item => this.itemPropertiesUrlProcessor.processItem(item))
 
-    private async onItemUpdatePropertyUrlsProcessed(itemsDeleted: ReadonlyArray<string>, propertiesUrlProcessedItems: ReadonlyArray<ItemProperties>): Promise<void>
-    {
         const reallyDeletedItems: ItemProperties[] = [];
         const reallyChangedItems: ItemProperties[] = [];
         const changedRooms = new Set<string>();
-        propertiesUrlProcessedItems.forEach(item => this.onCreateOrUpdateItem(item, reallyChangedItems, changedRooms));
+        itemsCreatedOrUpdated.forEach(item => this.onCreateOrUpdateItem(item, reallyChangedItems, changedRooms));
         itemsDeleted.forEach(itemId => this.onDeleteItem(itemId, reallyDeletedItems, changedRooms));
 
         this.sendUpdateToAllTabs(reallyDeletedItems, reallyChangedItems);
@@ -445,13 +439,8 @@ export class Backpack
     {
         const itemsPromises = [...this.providers.values()]
             .map(provider => provider.getItemsByInventoryItemIds(itemsToGet));
-        const itemLists = await Promise.all(itemsPromises);
-        const rawItems = [].concat(...itemLists);
-
-        const propertiesUrlProcessingItems = rawItems.map(item => this.itemPropertiesUrlProcessor.processItem(item))
-        const propertiesUrlProcessedItems = await Promise.all(propertiesUrlProcessingItems)
-
-        return propertiesUrlProcessedItems;
+        const items = (await Promise.all(itemsPromises)).flat();
+        return items;
     }
 
     public getLoadedItemsByInventoryItemIds(itemsToGet: ItemProperties[]): { itemsLoaded: ItemProperties[], itemsToLoad: ItemProperties[] }
@@ -460,15 +449,7 @@ export class Backpack
             .map(provider => provider.getLoadedItemsByInventoryItemIds(itemsToGet))
             .toArray();
         const itemsToLoad = iter(providerResults).flatmap(({ itemsToLoad }) => itemsToLoad).toArray();
-        const itemsLoaded = [];
-        for (const itemLoaded of iter(providerResults).flatmap(({ itemsLoaded }) => itemsLoaded)) {
-            const itemProcessed = this.itemPropertiesUrlProcessor.getProcessedItemOrNull(itemLoaded);
-            if (itemProcessed) {
-                itemsLoaded.push(itemProcessed);
-            } else {
-                itemsToLoad.push(itemLoaded);
-            }
-        }
+        const itemsLoaded = iter(providerResults).flatmap(({ itemsLoaded }) => itemsLoaded).toArray();
         return { itemsLoaded, itemsToLoad };
     }
 

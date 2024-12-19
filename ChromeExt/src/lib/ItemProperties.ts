@@ -132,7 +132,6 @@ export enum Pid
     EditablePropertiesAspect = 'EditablePropertiesAspect',
     EditableProperties = 'EditableProperties',
     PropertiesUrl = 'PropertiesUrl',
-    PropertiesUrlPidsAllow = 'PropertiesUrlPidsAllow',
     PropertiesUrlRefreshInterval = 'PropertiesUrlRefreshInterval',
 }
 
@@ -194,7 +193,6 @@ export type BadgeIframeData = Readonly<{
 
 export type ItemPropertiesUrlData = Readonly<{
     propertiesUrl: string
-    pidsAllow: ReadonlyArray<Pid>
     refreshInterval: number
 }>
 
@@ -526,12 +524,6 @@ export class ItemProperties
         return as.StringOrNull(itemProperties[Pid.PropertiesUrl], 1);
     }
 
-    static getPropertiesUrlPidsAllow(itemProperties: ItemProperties): ReadonlyArray<Pid>
-    {
-        const value = ItemProperties.getJsonProperty(itemProperties, Pid.PropertiesUrlPidsAllow);
-        return is.array(value) ? value.filter(isPid) : [];
-    }
-
     static getPropertiesUrlRefreshInterval(itemProperties: ItemProperties): number
     {
         const value = ItemProperties.getJsonProperty(itemProperties, Pid.PropertiesUrlRefreshInterval);
@@ -544,12 +536,8 @@ export class ItemProperties
         if (!propertiesUrl) {
             return null;
         }
-        const pidsAllow = ItemProperties.getPropertiesUrlPidsAllow(itemProperties)
-        if (pidsAllow.length === 0) {
-            return null;
-        }
         const refreshInterval = ItemProperties.getPropertiesUrlRefreshInterval(itemProperties)
-        return { propertiesUrl, pidsAllow, refreshInterval }
+        return { propertiesUrl, refreshInterval }
     }
 
     static getJsonProperty(itemProperties: ItemProperties, pid: Pid): unknown

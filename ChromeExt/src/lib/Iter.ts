@@ -181,6 +181,25 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         return this.fold(0, (count, element) => count + 1)
     }
 
+    public any(predicate: (element: T) => boolean): boolean
+    {
+        for (const element of this) {
+            if (predicate(element)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    public all(predicate: (element: T) => boolean): boolean
+    {
+        for (const element of this) {
+            if (!predicate(element)) {
+                return false
+            }
+        }
+        return true
+    }
 }
 
 class IteratorIter<T> extends Iter<T> {

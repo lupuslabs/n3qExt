@@ -1,32 +1,36 @@
 ﻿import { is } from '../lib/is'
 import { as } from '../lib/as'
+import { iter } from '../lib/Iter'
 import { Logger } from '../lib/Logger'
 import { Config } from '../lib/Config'
-import { ErrorWithData } from '../lib/Utils'
 import { ItemProperties, ItemPropertiesUrlData } from '../lib/ItemProperties'
 import { BackgroundApp } from './BackgroundApp'
-import { UrlFetcher } from '../lib/UrlFetcher'
 
 type ItemRecord = {
     refreshIntervalMs: number
+    lastPropertiesJson: null|string
+}
+
+type UrlRecord = {
+    propertiesUrl: string
+    items: Map<string,ItemRecord>
+    inRefresh: boolean
     lastRefresh: Date
+    lastPropertiesJson: null|string
 }
 
 export class ItemPropertiesUrlProcessor
 {
     private readonly app: BackgroundApp
     private readonly logger: Logger
-    private readonly itemsUpdatedHandler: (itemsUpdated: ReadonlyArray<ItemProperties>) => void
-    private readonly propertiesUrlFetcher: ItemPropertiesUrlFetcher
-    private readonly items: Map<string,ItemRecord> = new Map()
+    private readonly urlRecordByUrl: Map<string,UrlRecord> = new Map()
+    private readonly urlRecordByItemId: Map<string,UrlRecord> = new Map()
     private lastMaintenance: Date = new Date()
 
-    constructor(app: BackgroundApp, itemsUpdatedHandler: (itemsUpdated: ReadonlyArray<ItemProperties>) => void)
+    constructor(app: BackgroundApp)
     {
         this.app = app
         this.logger = app.getLogger().getSubLogger('items', 'Item properties URL processing:')
-        this.itemsUpdatedHandler = itemsUpdatedHandler
-        this.propertiesUrlFetcher = new ItemPropertiesUrlFetcher(this.logger, app.getUrlFetcher())
     }
 
     public maintain(): void
@@ -39,254 +43,134 @@ export class ItemPropertiesUrlProcessor
         }
         this.lastMaintenance = now
 
-        this.updateKnownItems()
-        this.propertiesUrlFetcher.maintain()
+        iter(this.urlRecordByUrl.values()).forEach(urlRecord => this.refreshUrl(urlRecord))
     }
 
     public forgetItem(itemId: string): void
     {
-        this.items.delete(itemId)
-        this.propertiesUrlFetcher.forgetItem(itemId)
-    }
-
-    public async processItem(item: Readonly<ItemProperties>): Promise<ItemProperties>
-    {
-        const itemId: string = ItemProperties.getId(item)
-        const isOwnItem = ItemProperties.getOwnerId(item) === this.app.getUserId()
-        const itemPropertiesUrlData: null|ItemPropertiesUrlData = ItemProperties.getPropertiesUrlData(item)
-        if (!this.isItemToBeProcessed(item, itemPropertiesUrlData)) {
-            this.forgetItem(itemId)
-            return item
-        }
-
-        const { propertiesUrl, pidsAllow, refreshInterval } = itemPropertiesUrlData
-        const urlProperties = await this.propertiesUrlFetcher.resolveUrl(itemId, propertiesUrl, refreshInterval)
-        const itemProcessed = ItemProperties.clone(item)
-        for (const pid of pidsAllow) {
-            const value = urlProperties[pid]
-            if (is.string(value)) {
-                itemProcessed[pid] = value
-            }
-        }
-
-        if (isOwnItem) { // Other's items' refresh is triggered by incoming presences.
-            this.items.set(itemId, {
-                lastRefresh: new Date(),
-                refreshIntervalMs: 1e3 * refreshInterval,
-            })
-        }
-
-        this.logger.logInfo('processItem succeeded.', { item, itemProcessed })
-        return itemProcessed
-    }
-
-    /**
-     * Synchronous version of processItem returning the processed item if all neccessary data cached or null if not.
-     */
-    public getProcessedItemOrNull(item: Readonly<ItemProperties>): null|ItemProperties
-    {
-        const itemId: string = ItemProperties.getId(item)
-        const isOwnItem = ItemProperties.getOwnerId(item) === this.app.getUserId()
-        const itemPropertiesUrlData: null|ItemPropertiesUrlData = ItemProperties.getPropertiesUrlData(item)
-        if (!this.isItemToBeProcessed(item, itemPropertiesUrlData)) {
-            this.forgetItem(itemId)
-            return item
-        }
-
-        const { propertiesUrl, pidsAllow, refreshInterval } = itemPropertiesUrlData
-        const urlProperties = this.propertiesUrlFetcher.getResolvedUrlPropertiesOrNull(itemId, propertiesUrl)
-        if (!urlProperties) {
-            return null
-        }
-
-        const itemProcessed = ItemProperties.clone(item)
-        for (const pid of pidsAllow) {
-            const value = urlProperties[pid]
-            if (is.string(value)) {
-                itemProcessed[pid] = value
-            }
-        }
-
-        if (isOwnItem) { // Other's items' refresh is triggered by incoming presences.
-            this.items.set(itemId, {
-                lastRefresh: new Date(),
-                refreshIntervalMs: 1e3 * refreshInterval,
-            })
-        }
-
-        this.logger.logInfo('processItem succeeded.', { item, itemProcessed })
-        return itemProcessed
-    }
-
-    private isItemToBeProcessed(item: Readonly<ItemProperties>, itemPropertiesUrlData: null|ItemPropertiesUrlData): boolean
-    {
-        if (!itemPropertiesUrlData) {
-            return false
-        }
-        const isOwnItem = ItemProperties.getOwnerId(item) === this.app.getUserId()
-        if (isOwnItem) {
-            return as.Bool(Config.get('backpack.PropertiesUrlProcessing.enableForOwnItems'))
-        }
-        return as.Bool(Config.get('backpack.PropertiesUrlProcessing.enableForOthersItems'))
-    }
-
-    private updateKnownItems(): void
-    {
-        const now = new Date()
-        const itemsProcessing: Promise<ItemProperties>[] = []
-        for (const [itemId, { lastRefresh, refreshIntervalMs }] of this.items) {
-            const needsUpdate = lastRefresh.getTime() + refreshIntervalMs < now.getTime()
-            if (needsUpdate) {
-                try {
-                    const item = this.app.getBackpack().getItem(itemId)
-                    const itemProcessing = this.processItem(item).catch(_error => item)
-                    itemsProcessing.push(itemProcessing)
-                } catch (error) {
-                    this.logger.logError('Item maintenance failed!', { itemId }, error)
-                    this.forgetItem(itemId)
-                }
-            }
-        }
-        if (itemsProcessing.length === 0) {
-            return
-        }
-        Promise.all(itemsProcessing).then(this.itemsUpdatedHandler)
-    }
-
-}
-
-type UrlRecord = {
-    propertiesUrl: string
-    itemIds: Set<string>
-    properties: Readonly<ItemProperties>
-    isLoaded: boolean
-    lastUse: Date
-    lastRefresh: Date
-    onUrlResolvedFuns: ((props: Readonly<ItemProperties>) => void)[]
-}
-
-class ItemPropertiesUrlFetcher
-{
-    private readonly logger: Logger
-    private readonly urlFetcher: UrlFetcher
-    private readonly urlRecordByUrl: Map<string,UrlRecord> = new Map()
-    private readonly urlRecordByItem: Map<string,UrlRecord> = new Map()
-
-    constructor(logger: Logger, urlFetcher: UrlFetcher)
-    {
-        this.logger = logger
-        this.urlFetcher = urlFetcher
-    }
-
-    public maintain(): void
-    {
-        const now = new Date()
-        const cacheLifetimeMs = 1e3 * as.Float(Config.get('backpack.PropertiesUrlProcessing.urlCacheLifetimeSec'), 3600)
-        for (const { itemIds, lastUse, onUrlResolvedFuns } of this.urlRecordByUrl.values()) {
-            const inRefresh = onUrlResolvedFuns.length !== 0
-            const isOld = lastUse.getTime() + cacheLifetimeMs < now.getTime()
-            if (isOld && !inRefresh) {
-                itemIds.forEach(itemId => this.forgetItem(itemId))
-            }
-        }
-    }
-
-    public forgetItem(itemId: string): void
-    {
-        const itemUrlRecord = this.urlRecordByItem.get(itemId) ?? null
+        const itemUrlRecord = this.urlRecordByItemId.get(itemId) ?? null
         if (!itemUrlRecord) {
             return
         }
-        this.urlRecordByItem.delete(itemId)
-        itemUrlRecord.itemIds.delete(itemId)
-        if (itemUrlRecord.itemIds.size === 0) {
+        this.urlRecordByItemId.delete(itemId)
+        itemUrlRecord.items.delete(itemId)
+        if (itemUrlRecord.items.size === 0) {
             this.urlRecordByUrl.delete(itemUrlRecord.propertiesUrl)
-            this.callOnUrlResolvedFuns(itemUrlRecord)
         }
     }
 
-    public resolveUrl(itemId: string, propertiesUrl: string, maxAgeSecs: number): Promise<Readonly<ItemProperties>>
+    public processItem(item: Readonly<ItemProperties>): void
     {
-        const now = new Date()
+        if (ItemProperties.getOwnerId(item) !== this.app.getUserId()) {
+            return
+        }
+        const itemId: string = ItemProperties.getId(item)
+        const itemPropertiesUrlData: null|ItemPropertiesUrlData = ItemProperties.getPropertiesUrlData(item)
+        if (!itemPropertiesUrlData
+            || ItemProperties.getOwnerId(item) !== this.app.getUserId()
+            || !as.Bool(Config.get('backpack.PropertiesUrlProcessing.enabled'))
+        ) {
+            this.forgetItem(itemId)
+            return
+        }
+        const { propertiesUrl, refreshInterval } = itemPropertiesUrlData
 
         let urlRecord = this.urlRecordByUrl.get(propertiesUrl) ?? null
-        if (urlRecord) {
-            urlRecord.lastUse = now
-        } else {
+        if (!urlRecord) {
             urlRecord = {
                 propertiesUrl,
-                itemIds: new Set(),
-                properties: {},
-                isLoaded: false,
-                lastUse: now,
+                items: new Map(),
+                inRefresh: false,
                 lastRefresh: new Date(0),
-                onUrlResolvedFuns: [],
+                lastPropertiesJson: null,
             }
             this.urlRecordByUrl.set(propertiesUrl, urlRecord)
         }
-        const itemUrlRecord = this.urlRecordByItem.get(itemId) ?? null
-        if (itemUrlRecord && itemUrlRecord !== urlRecord) {
+
+        const oldItemUrlRecord = this.urlRecordByItemId.get(itemId) ?? null
+        if (oldItemUrlRecord !== urlRecord) {
             this.forgetItem(itemId)
-        }
-        urlRecord.itemIds.add(itemId)
-        this.urlRecordByItem.set(itemId, urlRecord)
-
-        const resultPromise = new Promise<Readonly<ItemProperties>>(resolveFun => {
-            urlRecord.onUrlResolvedFuns.push(resolveFun)
-        })
-
-        const inRefresh = urlRecord.onUrlResolvedFuns.length > 1
-        if (inRefresh) {
-            return resultPromise
+            this.urlRecordByItemId.set(itemId, urlRecord)
         }
 
-        const isCurrent = urlRecord.lastRefresh.getTime() + 1e3 * maxAgeSecs > now.getTime()
-        if (isCurrent) {
-            this.callOnUrlResolvedFuns(urlRecord)
-            return resultPromise
+        const itemRecord: ItemRecord = urlRecord.items.get(itemId) ?? null
+        if (itemRecord) {
+            itemRecord.refreshIntervalMs = 1e3 * refreshInterval
+        } else {
+            urlRecord.items.set(itemId, {
+                refreshIntervalMs: 1e3 * refreshInterval,
+                lastPropertiesJson: null,
+            })
         }
 
-        this.urlFetcher.fetchJson(propertiesUrl).then(props => {
-            if (!is.stringsObject(props)) {
-                const url = urlRecord.propertiesUrl
-                throw new ErrorWithData('Received deserialized JSON is not of correct type.', { props })
+        this.refreshUrl(urlRecord)
+    }
+
+    private refreshUrl(urlRecord: UrlRecord): void
+    {
+        if (urlRecord.inRefresh) {
+            return
+        }
+
+        const nowTime = Date.now()
+        const lastUrlRefresh = urlRecord.lastRefresh.getTime()
+        const lastUrlRefreshDistance = nowTime - lastUrlRefresh
+        const needsRefresh = iter(urlRecord.items.values())
+            .any(itemRecord => itemRecord.refreshIntervalMs < lastUrlRefreshDistance)
+        if (!needsRefresh) {
+            this.updateItems(urlRecord)
+            return
+        }
+
+        const propertiesUrl = urlRecord.propertiesUrl
+        urlRecord.inRefresh = true
+        this.app.getUrlFetcher().fetchAsText(propertiesUrl, '_nocache').then(propsJson => {
+            if (!is.nonEmptyString(propsJson)) {
+                this.logger.logInfo('Received empty string instead of JSON.', {urlRecord})
+                return null
             }
-            this.logger.logInfo('Fetching JSON succeeded.', { record: urlRecord })
-            return props
+            this.logger.logInfo('Fetching JSON succeeded.', {urlRecord, propsJson})
+            return propsJson
         }).catch(error => {
-            this.logger.logInfo('Fetching JSON failed.', { record: urlRecord }, error)
-            return {}
-        }).then(props => {
-            const now = new Date()
-            urlRecord.properties = props
-            urlRecord.isLoaded = true
-            urlRecord.lastUse = now
-            urlRecord.lastRefresh = now
-            this.callOnUrlResolvedFuns(urlRecord)
-        })
-        return resultPromise
-    }
-
-    public getResolvedUrlPropertiesOrNull(itemId: string, propertiesUrl: string): null|Readonly<ItemProperties>
-    {
-        const urlRecord = this.urlRecordByUrl.get(propertiesUrl) ?? null
-        if (!urlRecord || !urlRecord.isLoaded) {
+            this.logger.logInfo('Fetching JSON failed.', {urlRecord}, error)
             return null
-        }
-        urlRecord.lastUse = new Date()
-        const itemUrlRecord = this.urlRecordByItem.get(itemId) ?? null
-        if (itemUrlRecord && itemUrlRecord !== urlRecord) {
-            this.forgetItem(itemId)
-        }
-        urlRecord.itemIds.add(itemId)
-        this.urlRecordByItem.set(itemId, urlRecord)
-        return urlRecord.properties
+        }).then(propsJson => {
+            const urlRecord = this.urlRecordByUrl.get(propertiesUrl) ?? null
+            if (!urlRecord?.inRefresh) {
+                return
+            }
+            urlRecord.inRefresh = false
+
+            const now = new Date()
+            urlRecord.lastRefresh = now
+            if (is.nonEmptyString(propsJson)) {
+                urlRecord.lastPropertiesJson = propsJson
+            }
+            this.updateItems(urlRecord)
+        })
     }
 
-    private callOnUrlResolvedFuns(record: UrlRecord): void
+    private updateItems(urlRecord: UrlRecord): void
     {
-        record.onUrlResolvedFuns.forEach(fun => fun(record.properties))
-        record.onUrlResolvedFuns = []
+        const lastPropertiesJson = urlRecord.lastPropertiesJson
+        if (!is.nonEmptyString(lastPropertiesJson)) {
+            return
+        }
+        const backpack = this.app.getBackpack()
+        const enabledForOwnItems = as.Bool(Config.get('backpack.PropertiesUrlProcessing.enabled'))
+        urlRecord.items.forEach((itemRecord, itemId) => {
+            if (!backpack?.getItemOrNull(itemId) || !enabledForOwnItems) {
+                this.forgetItem(itemId)
+                return
+            }
+            if (itemRecord.lastPropertiesJson === lastPropertiesJson) {
+                return
+            }
+            itemRecord.lastPropertiesJson = lastPropertiesJson
+            const action = 'PropertiesUrlAspect.SetProperties'
+            const args = {Properties: lastPropertiesJson}
+            this.app.getBackpack()?.executeItemAction(itemId, action, args, [itemId], true)
+                .catch(error => this.logger.logError('Item update failed!', {urlRecord, itemId, itemRecord}, error))
+        })
     }
-
 }
