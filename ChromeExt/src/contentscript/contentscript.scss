@@ -678,6 +678,8 @@ div#n3q-display {
         }
 
         div.n3q-badgeInfoWindow-columns {
+            box-sizing: border-box;
+            max-width: 400px;
             padding: 1em 2em 1em 1em;
             display: flex;
             flex-direction: row;
