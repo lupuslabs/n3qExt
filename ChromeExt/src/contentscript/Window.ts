@@ -60,8 +60,8 @@ export abstract class Window<OptionsType extends WindowOptions>
     protected containerMarginLeft:   number = 0;
     protected minWidth:  number = 180;
     protected minHeight: number = 100;
-    protected defaultWidth:  number = 180;
-    protected defaultHeight: number = 100;
+    protected defaultWidth:  'content'|number = 180;
+    protected defaultHeight: 'content'|number = 100;
     protected defaultBottom: number = 10;
     protected defaultAboveBottomOffset: number = 10; // Only used when bottom derived from givenOptions.above and givenOptions.bottomOffset not given.
     protected defaultLeft:   number = 10;
@@ -148,6 +148,9 @@ export abstract class Window<OptionsType extends WindowOptions>
             }
             if (!this.isClosing && !(this.givenOptions.hidden ?? this.showHidden)) {
                 this.setVisibility(true);
+            }
+            if (!this.isClosing) {
+                this.onBeforeShowDone();
             }
         })().catch(error => {
             this.app.onError(error);
@@ -359,7 +362,6 @@ export abstract class Window<OptionsType extends WindowOptions>
 
     protected async initGeometry(): Promise<void>
     {
-        await DomUtils.waitForRenderComplete();
         const persitedOptions = this.persistGeometry ? await this.getSavedOptions() : {};
         const mergedGeometry = {...this.givenOptions, ...persitedOptions};
         this.setGeometry(mergedGeometry);
@@ -542,6 +544,10 @@ export abstract class Window<OptionsType extends WindowOptions>
             this.contentElem = null;
             this.isClosing = false;
         }
+    }
+
+    protected onBeforeShowDone(): void
+    {
     }
 
     protected onBeforeClose(): void

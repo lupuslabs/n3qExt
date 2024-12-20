@@ -140,12 +140,13 @@ export class Toast extends Window<ToastOptions>
         this.guiLayer = ContentApp.LayerToast;
         this.windowCssClasses = ['n3q-base', 'n3q-toast']; // Todo: Rebase own style on window base classes.
         this.contentCssClasses = ['n3q-base', 'n3q-toast-pane', 'n3q-shadow-small'];
-        this.showHidden = true;
         if (this.isModal) {
             this.windowCssClasses.push('n3q-toast-modal');
         }
         this.isMovable = !this.isModal;
-        this.geometryInitstrategy = 'none'; // CSS decides.
+        this.geometryInitstrategy = 'afterContent'; // CSS decides.
+        this.defaultWidth = 'content'; // CSS decides.
+        this.defaultHeight = 'content'; // CSS decides.
         this.minWidth  = 1; // CSS decides.
         this.minHeight = 1; // CSS decides.
 
@@ -200,6 +201,11 @@ export class Toast extends Window<ToastOptions>
             this.app.translateElem(buttonElem);
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftClickListener(ev => action());
         }
+    }
+
+    protected onBeforeShowDone(): void
+    {
+        super.onBeforeShowDone();
 
         const newStatus = 'fadingIn';
         this.status = newStatus;
@@ -226,8 +232,6 @@ export class Toast extends Window<ToastOptions>
                 timingFun: 'linear',
             }, '10px', onComplete);
         }
-
-        this.setVisibility(!this.isClosing);
     }
 
     protected async makeIconElem(): Promise<null|HTMLElement>
