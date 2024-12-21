@@ -167,8 +167,8 @@ export class ItemPropertiesUrlProcessor
                 return
             }
             itemRecord.lastPropertiesJson = lastPropertiesJson
-            const action = 'PropertiesUrlAspect.SetProperties'
-            const args = {Properties: lastPropertiesJson}
+            const action = 'EditableProperties.SetProperties'
+            const args = {ValuesJson: lastPropertiesJson}
             this.app.getBackpack()?.executeItemAction(itemId, action, args, [itemId], true)
                 .catch(error => this.logger.logError('Item update failed!', {urlRecord, itemId, itemRecord}, error))
         })
