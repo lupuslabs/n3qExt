@@ -298,6 +298,9 @@ export class ContentApp extends AppWithDom
             Panic.now();
         }
 
+        const startupRequests: ReadonlyArray<BackgroundRequest> = params.startupRequests ?? [];
+        startupRequests.forEach(request => this.onBackgroundRequest(request).catch(error => this.onError(error)));
+
         this.tabContentData.changeListeners.addListener(() => this.onTabStatsChanged());
         this.tabContentData.initWithDataFromBackground(tabContentData);
         if (Utils.isBackpackEnabled()) {
@@ -318,9 +321,6 @@ export class ContentApp extends AppWithDom
             this.reshowChatWindow();
             // this.reshowVidconfWindow(); // must be after enter
         }
-
-        const startupRequests: ReadonlyArray<BackgroundRequest> = params.startupRequests ?? [];
-        startupRequests.forEach(request => this.onBackgroundRequest(request).catch(error => this.onError(error)));
 
         this.startCheckPageUrl();
         this.iframeApi = new IframeApi(this).start();
@@ -717,6 +717,7 @@ export class ContentApp extends AppWithDom
     private evaluateStayOnTabChange(): void
     {
         const stay = false
+            || this.isExclusiveWindowPopup // Don't stop app when in popup mode.
             || as.Bool(Config.get('room.stayOnTabChange'))
             || this.backpackIsOpen
             || this.vidconfIsOpen
