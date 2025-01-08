@@ -28,6 +28,8 @@ export class PopupApp extends AppWithDom
     private currentAvatar: GalleryAvatar;
     private nicknameElem: HTMLInputElement;
 
+    private readonly userConfigBackupGroupCssId: string = 'n3q-popup-user-config-json';
+
     public constructor(protected appendToMe: HTMLElement)
     {
         super();
@@ -105,8 +107,8 @@ export class PopupApp extends AppWithDom
         group.append(description);
 
         const iconDispatcher = PointerEventDispatcher.makeDispatcher(this, icon);
+        iconDispatcher.addUnmodifiedLeftClickListener(ev => this.toggleUserConfigBackupVisibility(group));
         iconDispatcher.addCtrlLeftClickListener(ev => this.devConfig(group));
-        iconDispatcher.addUnmodifiedLeftDoubleclickListener(ev => this.devConfig(group));
 
         return group;
     }
@@ -215,6 +217,46 @@ export class PopupApp extends AppWithDom
     public close(): void
     {
         this.onClose?.();
+    }
+
+    private toggleUserConfigBackupVisibility(group: HTMLElement): void
+    {
+        const rootElem = this.display.querySelector(`#${this.userConfigBackupGroupCssId}`);
+        if (is.nil(rootElem)) {
+            this.makeUserConfigBackupGroup(group).catch(error => log.info(error));
+            return;
+        }
+        if (rootElem.classList.contains('n3q-popup-hidden')) {
+            rootElem.classList.remove('n3q-popup-hidden');
+        } else {
+            rootElem.classList.add('n3q-popup-hidden');
+        }
+    }
+
+    private async makeUserConfigBackupGroup(group: HTMLElement): Promise<void>
+    {
+        const rootElem = DomUtils.elemOfHtml(`<div id="${this.userConfigBackupGroupCssId}" class="n3q-base"/>`);
+        const textareaElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-popup-dev-in" style="width: 100%; height: 100px; margin-top: 1em;"/>');
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this, textareaElem);
+        const userConfigJson = await Client.loadUserConfigJson();
+        const userConfigBase64 = Utils.base64Encode(userConfigJson);
+        textareaElem.value = userConfigBase64;
+        rootElem.append(textareaElem);
+        const apply = DomUtils.elemOfHtml('<button class="n3q-base n3q-popup-dev-apply" style="margin-top: 0.5em;">Save</button>');
+        PointerEventDispatcher.makeOpaqueDispatcher(this, apply).addUnmodifiedLeftClickListener(ev => {
+            const userConfigBase64OrJson = textareaElem.value;
+            let userConfigJson = '';
+            if (userConfigBase64OrJson.startsWith('{')) {
+                userConfigJson = userConfigBase64OrJson;
+            } else {
+                userConfigJson = Utils.base64Decode(userConfigBase64OrJson);
+            }
+            Client.saveUserConfigJson(userConfigJson)
+                .then(() => BackgroundMessage.userSettingsChanged())
+                .catch(error => log.info(error));
+        });
+        rootElem.append(apply);
+        group.append(rootElem);
     }
 
     private devConfig(group: HTMLElement): void

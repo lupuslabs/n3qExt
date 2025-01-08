@@ -76,21 +76,21 @@ interface PointsActivity
 
 export class BackgroundApp
 {
-    private readonly logger: Logger = new LoglevelLogger('', '');
-    private readonly tabs: BackgroundBrowserTabs;
-    private readonly contentCommunicator: BackgroundToContentCommunicator;
-    private readonly urlFetcher: DirectUrlFetcher;
-    private readonly configUpdater: ConfigUpdater;
-    private readonly websocketManager: WebsocketManager;
-    private readonly xmppManager: XmppConnectionManager;
-    private readonly roomPresenceManager: RoomPresenceManager;
-    private readonly chatHistoryStorage: ChatHistoryStorage;
-    private readonly instantMessageManager: BackgroundInstantMessageManager;
-    private readonly browserActionGui: BrowserActionGui;
-    private readonly themeManager: BackgroundThemeManager;
-    private readonly popupManager: PopupManager;
-    private readonly backpack: Backpack;
-    private readonly friendshipProposalManager: BackgroundFriendshipProposalManager;
+    private logger: Logger;
+    private tabs: BackgroundBrowserTabs;
+    private contentCommunicator: BackgroundToContentCommunicator;
+    private urlFetcher: DirectUrlFetcher;
+    private configUpdater: ConfigUpdater;
+    private websocketManager: WebsocketManager;
+    private xmppManager: XmppConnectionManager;
+    private roomPresenceManager: RoomPresenceManager;
+    private chatHistoryStorage: ChatHistoryStorage;
+    private instantMessageManager: BackgroundInstantMessageManager;
+    private browserActionGui: BrowserActionGui;
+    private themeManager: BackgroundThemeManager;
+    private popupManager: PopupManager;
+    private backpack: Backpack;
+    private friendshipProposalManager: BackgroundFriendshipProposalManager;
 
     private isFirstConfig: boolean = true;
     private isReady: boolean = false;
@@ -103,14 +103,25 @@ export class BackgroundApp
     private readyAssertedCount = 0;
     private lastReadyAssertedTime = 0;
 
-    private readonly iqStanzaTabId: Map<string, number> = new Map();
+    private iqStanzaTabId: Map<string, number>;
 
     public constructor(contentCommunicatorFactory: ContentCommunicatorFactory) {
         const heartbeatHandler = () => this.maintain()
         const tabHeartbeatHandler = (tabId: number) => this.tabs.onTabHeartbeat(tabId)
         const requestHandler = (tabId: number, request: BackgroundRequest) => this.onContentRequest(tabId, request)
-        this.tabs = new BackgroundBrowserTabs(this);
         this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, tabHeartbeatHandler, requestHandler);
+        this.init();
+    }
+
+    private init() {
+        this.isFirstConfig = true;
+        this.isReady = false;
+        this.userId = '';
+        this.userToken = '';
+        this.iqStanzaTabId = new Map();
+
+        this.logger = new LoglevelLogger('', '');
+        this.tabs = new BackgroundBrowserTabs(this);
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);
         this.websocketManager = new WebsocketManager(this);
@@ -1079,9 +1090,24 @@ export class BackgroundApp
     public handle_userSettingsChanged(): BackgroundResponse
     {
         log.debug('BackgroundApp.handle_userSettingsChanged');
-        Client.initDevConfig()
-            .then(() => this.onConfigUpdated())
-            .catch(error => log.info('BackgroundApp.handle_userSettingsChanged', error));
+        (async () => {
+
+            // Restart background if user ID or token changed:
+            const oldUserId = this.userId;
+            const oldUserToken = this.userToken;
+            await this.assertThatThereIsAUserId();
+            await this.assertThatThereIsAUserToken();
+            if (oldUserId !== this.userId || oldUserToken !== this.userToken) {
+                log.info('BackgroundApp.handle_userSettingsChanged: User credentials changed. Restarting.');
+                this.stop();
+                this.init();
+                await this.start();
+                return;
+            }
+
+            await Client.initDevConfig();
+            this.onConfigUpdated();
+        })().catch(error => log.info('BackgroundApp.handle_userSettingsChanged', error));
         return new BackgroundSuccessResponse();
     }
 

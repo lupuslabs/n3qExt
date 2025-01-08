@@ -6,7 +6,7 @@ import { Environment } from './Environment';
 import { Translator } from './Translator';
 import { _Changes } from './_Changes';
 import { Memory } from './Memory'
-import { Utils } from './Utils'
+import { Utils, ErrorWithData } from './Utils'
 
 export class Client
 {
@@ -74,6 +74,54 @@ export class Client
             log.info('Dev config save failed!', error);
         }
         await Client.initDevConfig();
+    }
+
+    public static readonly userConfigKeys: ReadonlyArray<string> = [
+        Utils.localStorageKey_Id(),
+        Utils.localStorageKey_Token(),
+        Utils.localStorageKey_Nickname(),
+        Utils.localStorageKey_LastWorkingNickname(),
+        Utils.localStorageKey_Avatar(),
+        Utils.localStorageKey_CustomConfig(),
+    ];
+
+    public static async loadUserConfigJson(): Promise<null|string>
+    {
+        const data = {userConfigVersion: 1};
+        try {
+            for (const key of Client.userConfigKeys) {
+                const value = await Memory.getLocal(key);
+                if (!is.nil(value)) {
+                    data[key] = value;
+                }
+            }
+            return JSON.stringify(data);
+        } catch (error) {
+            throw new ErrorWithData('User config data loading failed!', {error});
+        }
+    }
+
+    public static async saveUserConfigJson(configJson: string): Promise<void>
+    {
+        let data = null;
+        try {
+            data = JSON.parse(configJson);
+        } catch (error) {
+            throw new ErrorWithData('User config decode failed!', {error, configJson});
+        }
+        if (data?.['userConfigVersion'] !== 1) {
+            throw new ErrorWithData('Decoded user config does not contain 1 in userConfigVersion field!', {data, configJson});
+        }
+        try {
+            for (const key of Client.userConfigKeys) {
+                const value = data[key];
+                if (!is.nil(value)) {
+                    await Memory.setLocal(key, value);
+                }
+            }
+        } catch (error) {
+            throw new ErrorWithData('User config save failed!', {error, data, configJson});
+        }
     }
 
     static initLog(): void

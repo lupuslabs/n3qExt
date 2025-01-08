@@ -337,6 +337,20 @@ export class ContentApp extends AppWithDom
         }
     }
 
+    private async detectUserChange(): Promise<void>
+    {
+        const oldUserId = this.userId;
+        if (oldUserId.length === 0) {
+            return;
+        }
+        const userId = await Memory.getLocal(Utils.localStorageKey_Id());
+        if (oldUserId === userId) {
+            return;
+        }
+        log.info('ContentApp.handle_configChanged: User changed. Restarting.');
+        this.messageHandler?.({ 'type': ContentAppNotification.type_restart });
+    }
+
     private isPageDisabledByUrlHash(pageUrl: string): boolean
     {
         const parsedUrl = new URL(pageUrl);
@@ -516,8 +530,8 @@ export class ContentApp extends AppWithDom
     private sendTabStatsToBackground(): void
     {
         this.sendTabStatsTimeoutHandle = null;
-        if (!this.tabContentData.getIsInitialized()) {
-            return; // Not fully started up yet.
+        if (this.isStopped || !this.tabContentData.getIsInitialized()) {
+            return; // Stopped or not fully started up yet.
         }
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
@@ -736,14 +750,19 @@ export class ContentApp extends AppWithDom
     // IPC
 
     private async onBackgroundRequest(message: BackgroundRequest): Promise<BackgroundResponse> {
+        if (this.isStopped) {
+            return BackgroundErrorResponse.ofError('ContentApp has been stopped.');
+        }
         try {
             switch (message.type) {
 
                 case ContentMessage.type_sendStateToBackground: {
+                    this.detectUserChange().catch(error => log.info(error));
                     this.handle_sendStateToBackground();
                 } break;
 
                 case ContentMessage.type_configChanged: {
+                    this.detectUserChange().catch(error => log.info(error));
                     this.handle_configChanged();
                 } break;
 
