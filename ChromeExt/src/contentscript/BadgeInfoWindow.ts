@@ -242,7 +242,7 @@ class BadgeInfoWindowIframeContent implements BadgeInfoWindowContent
 
     private makeContentElem(): HTMLElement
     {
-        const url = this.app.getSafeIframeUrl(this.iframeData.iframeUrl);
+        const url = this.app.getWrappedIframeUrl(this.iframeData.iframeUrl);
         const contentElem = DomUtils.elemOfHtml(`<iframe src="${url}"></iframe>`);
         this.contentElem = contentElem;
         return contentElem;

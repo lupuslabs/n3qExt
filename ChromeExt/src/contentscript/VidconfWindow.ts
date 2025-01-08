@@ -43,7 +43,8 @@ export class VidconfWindow extends Window<VidconfWindowOptions>
         const contentElem = this.contentElem;
         windowElem.classList.add('n3q-vidconfwindow');
 
-        const iframeElem = DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-vidconfwindow-content" src="${this.url}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
+        const urlWrapped = this.app.getWrappedIframeUrl(this.url);
+        const iframeElem = DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-vidconfwindow-content" src="${urlWrapped}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
 
         contentElem.append(iframeElem);
     }

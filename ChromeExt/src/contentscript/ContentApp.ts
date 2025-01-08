@@ -1706,10 +1706,13 @@ export class ContentApp extends AppWithDom
 
     /**
      * Returned URL points at our own iframe page wrapping the given page.
-     * Our iframe page is treated as not having any security header restrictions by the browser.
-     * This allows it to frame any content no matter whether it likes to be framed or not.
+     * Our iframe page is treated as not setting any CORS/CSP restrictions.
+     * This allows it to load any content no matter whether the content page set any CORS/CSP restrictions.
+     *
+     * Known issues:
+     * - X-Frame-Options response header from wrapped page still applies and prevents framing in Firefox.
      */
-    public getSafeIframeUrl(url: string): string
+    public getWrappedIframeUrl(url: string): string
     {
         const iframeUrl: string = chrome.runtime.getURL("assets/iframe.html");
         const urlArg: string = encodeURIComponent(url);

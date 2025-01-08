@@ -5,4 +5,14 @@
     const iframeElem = document.createElement('iframe')
     iframeElem.src = iframeUrl
     document.body.append(iframeElem)
+
+    window.addEventListener('message', (ev) => {
+        if (ev.source === iframeElem.contentWindow) {
+            // Message from proxied iframe.
+            window.parent.postMessage(ev.data, '*')
+        } else {
+            // Message from page or client.
+            iframeElem.contentWindow.postMessage(ev.data, '*')
+        }
+    })
 })()

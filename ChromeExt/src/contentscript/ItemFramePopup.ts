@@ -90,7 +90,8 @@ export class ItemFramePopup
 
             this.windowElem.classList.add('n3q-itemframepopup');
 
-            this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${url}" frameborder="0"></iframe>`);
+            const urlWrapped = this.app.getWrappedIframeUrl(url);
+            this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${urlWrapped}" frameborder="0"></iframe>`);
 
             if (options.hidden) {
                 this.setVisibility(false);

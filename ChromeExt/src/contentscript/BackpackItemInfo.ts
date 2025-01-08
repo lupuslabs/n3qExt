@@ -299,7 +299,8 @@ export class BackpackItemInfo extends Window<BackpackItemInfoOptions>
         const langId = this.app.getLanguage()
         const itemId = this.backpackItem.getItemId()
         const iframeUrl = Payload.makeItemIframeUrl(userId, langId, null, null, itemId, itemProps, iframeUrlTpl);
-        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${iframeUrl}"></iframe>`)
+        const iframeUrlWrapped = this.app.getWrappedIframeUrl(iframeUrl);
+        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${iframeUrlWrapped}"></iframe>`)
         this.iframeContainer.append(this.iframeElem)
     }
 

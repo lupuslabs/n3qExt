@@ -133,8 +133,9 @@ export class TutorialWindow extends Window<WindowOptions> {
         this.videoTitle.textContent = this.videos[this.currentVideoIndex].title;
 
         const videoUrl = this.videos[this.currentVideoIndex].url.replace('youtu.be', 'youtube.com/embed') + Config.get('tutorial.videoArgs', '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1')
+        const videoUrlWrapped = this.app.getWrappedIframeUrl(videoUrl);
         const videoHtmlAllow = Config.get('tutorial.videoHtmlAllow', 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
-        this.videoContainer.innerHTML = `<iframe src="${videoUrl}" frameborder="0" ${videoHtmlAllow}></iframe>`;
+        this.videoContainer.innerHTML = `<iframe src="${videoUrlWrapped}" frameborder="0" ${videoHtmlAllow}></iframe>`;
 
         this.videos.forEach((elem, index) =>
         {
