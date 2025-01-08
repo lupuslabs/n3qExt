@@ -291,7 +291,7 @@ export class BackpackSelectedItems
     }{
         const targetIsBackpack = this.backpack.getIsDropTargetInBackpack(ev)
         const targetIsBadges = this.getDragTargetIsValidEditModeBadgeDrop(ev)
-        const targetIsDropzone = this.getIsSingle() && this.areAllRezable && !this.areAllRezzed
+        const targetIsDropzone = this.getIsSingle() && this.areAllRezable
             && this.app.getIsDropTargetInDropzone(ev)
 
         const selectionClientX = ev.clientX - this.dragStartOffsetFactorX * this.dragBackpackBoundingBox.width
