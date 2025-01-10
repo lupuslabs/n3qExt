@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.4.0', 'Friends', [
+            ['Add', 'Set user id and token in settings dialog (klick icon)'],
             ['Add', 'Infrastructure for iframe in badge info popup'],
             ['Add', 'Infrastructure for theme support'],
             ['Add', 'Small overlay icons visually marking backpack items having selected features'],
