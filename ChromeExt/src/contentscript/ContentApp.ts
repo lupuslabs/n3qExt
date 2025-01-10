@@ -1729,7 +1729,8 @@ export class ContentApp extends AppWithDom
      * This allows it to load any content no matter whether the content page set any CORS/CSP restrictions.
      *
      * Known issues:
-     * - X-Frame-Options response header from wrapped page still applies and prevents framing in Firefox.
+     * - X-Frame-Options response header from wrapped page still applies and prevents framing.
+     * - frame-ancestors option in content-security-policy header from wrapped page still applies and prevents framing.
      */
     public getWrappedIframeUrl(url: string): string
     {
