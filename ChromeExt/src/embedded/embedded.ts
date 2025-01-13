@@ -119,6 +119,7 @@ $(async function ()
                 } break;
                 case ContentAppNotification.type_onTabChangeLeave: {
                     onTabChangeStay = false;
+                    onVisibilitychange() // Deactivate content if not visible.
                 } break;
                 case ContentAppNotification.type_stopped: {
                     deactivateContent();
