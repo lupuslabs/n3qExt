@@ -420,25 +420,6 @@ export class Participant extends Entity
             }
         }
 
-        if (isFirstPresence && this.isSelf && Utils.isBackpackEnabled()) {
-            const propSet = await BackgroundMessage.findBackpackItemProperties({ [Pid.AutorezAspect]: 'true', [Pid.AutorezIsActive]: 'true' })
-                .catch((errorResponse) => {
-                    this.app.onError(errorResponse);
-                    return new ItemPropertiesSet();
-                });
-            for (const itemId in propSet) {
-                const props = propSet[itemId];
-                try {
-                    if (props[Pid.IsRezzed]) {
-                        await BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
-                    }
-                    await BackgroundMessage.rezBackpackItem(itemId, this.room.getJid(), as.Int(props[Pid.RezzedX], -1), this.room.getDestination(), {});
-                } catch (errorResponse) {
-                    this.app.onError(errorResponse);
-                }
-            }
-        }
-
         if (isFirstPresence) {
             this.sendParticipantEventToAllScriptFrames({ event: 'enter' });
         }
