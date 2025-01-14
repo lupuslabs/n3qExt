@@ -405,11 +405,11 @@ export class BackgroundApp
             } break;
 
             case BackgroundMessage.rezBackpackItem.name: {
-                return this.handle_rezBackpackItem(request.itemId, request.roomJid, request.x, request.destination, request.options);
+                return this.handle_rezBackpackItem(request.itemId, request.roomJid, request.x, request.destination);
             } break;
 
             case BackgroundMessage.derezBackpackItem.name: {
-                return this.handle_derezBackpackItem(request.itemId, request.roomJid, request.x, request.y, request.changed, request.deleted, request.options);
+                return this.handle_derezBackpackItem(request.itemId, request.roomJid, request.x, request.y);
             } break;
 
             case BackgroundMessage.deleteBackpackItem.name: {
@@ -615,21 +615,21 @@ export class BackgroundApp
         return new BackgroundSuccessResponse();
     }
 
-    private async handle_rezBackpackItem(itemId: string, room: string, x: number, destination: string, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
+    private async handle_rezBackpackItem(itemId: string, room: string, x: number, destination: string): Promise<BackgroundSuccessResponse>
     {
         if (!Utils.isBackpackEnabled()) {
             throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemsNotAvailable);
         }
-        await this.backpack.rezItem(itemId, room, x, destination, options);
+        await this.backpack.rezItem(itemId, room, x, destination);
         return new BackgroundSuccessResponse();
     }
 
-    private async handle_derezBackpackItem(itemId: string, roomJid: string, x: number, y: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<BackgroundSuccessResponse>
+    private async handle_derezBackpackItem(itemId: string, roomJid: string, x: number, y: number): Promise<BackgroundSuccessResponse>
     {
         if (!Utils.isBackpackEnabled()) {
             throw new ItemException(ItemException.Fact.NotRezzed, ItemException.Reason.ItemsNotAvailable);
         }
-        await this.backpack.derezItem(itemId, roomJid, x, y, changed, deleted, options);
+        await this.backpack.derezItem(itemId, roomJid, x, y);
         return new BackgroundSuccessResponse();
     }
 

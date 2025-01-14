@@ -1468,7 +1468,7 @@ export class ContentApp extends AppWithDom
             if (as.Bool(props[Pid.IsRezzed])) {
                 await this.derezItemAsync(itemId);
             }
-            await BackgroundMessage.rezBackpackItem(itemId, room, x, destination, {});
+            await BackgroundMessage.rezBackpackItem(itemId, room, x, destination);
         }
     }
 
@@ -1514,13 +1514,10 @@ export class ContentApp extends AppWithDom
         const props = await BackgroundMessage.getBackpackItemProperties(itemId);
         const roomJid = props[Pid.RezzedLocation];
         const [x, y] = [xNew ?? -1, yNew ?? -1];
-        const propsDel = [Pid.AutorezIsActive];
         if (Utils.logChannel('items')) {
             log.info('ContentApp.derezItemAsync', 'itemId', itemId, 'roomJid', roomJid);
         }
-        await BackgroundMessage.derezBackpackItem(
-            itemId, roomJid, x, y, {}, propsDel, {}
-        );
+        await BackgroundMessage.derezBackpackItem(itemId, roomJid, x, y);
     }
 
     /**

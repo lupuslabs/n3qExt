@@ -399,15 +399,15 @@ export class BackgroundMessage
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 
-    static async rezBackpackItem(itemId: string, roomJid: string, x: number, destination: string, options: ItemChangeOptions): Promise<void>
+    static async rezBackpackItem(itemId: string, roomJid: string, x: number, destination: string): Promise<void>
     {
-        const request = { type: BackgroundMessage.rezBackpackItem.name, itemId: itemId, 'roomJid': roomJid, 'x': x, 'destination': destination, 'options': options }
+        const request = { type: BackgroundMessage.rezBackpackItem.name, itemId: itemId, 'roomJid': roomJid, 'x': x, 'destination': destination }
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 
-    static async derezBackpackItem(itemId: string, roomJid: string, x: number, y: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    static async derezBackpackItem(itemId: string, roomJid: string, x: number, y: number): Promise<void>
     {
-        const request = { type: BackgroundMessage.derezBackpackItem.name, itemId: itemId, 'roomJid': roomJid, 'x': x, 'y': y, 'changed': changed, 'deleted': deleted, 'options': options }
+        const request = { type: BackgroundMessage.derezBackpackItem.name, itemId: itemId, 'roomJid': roomJid, 'x': x, 'y': y }
         await BackgroundMessage.sendMessageCheckOk(request)
     }
 

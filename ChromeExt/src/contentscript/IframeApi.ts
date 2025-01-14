@@ -99,7 +99,7 @@ export class IframeApi
                 { [Pid.Template]: 'Migration', [Pid.MigrationCid]: cid }
             );
             let itemId = props[Pid.Id];
-            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination());
             await BackgroundMessage.executeBackpackItemAction(itemId, 'Migration.CreateItems', {}, [itemId]);
             await BackgroundMessage.deleteBackpackItem(itemId, {});
         } catch (ex) {
@@ -127,7 +127,7 @@ export class IframeApi
                 { [Pid.Template]: 'CryptoWallet', [Pid.Web3WalletAddress]: address, [Pid.Web3WalletNetwork]: network, }
             );
             let itemId = props[Pid.Id];
-            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination());
             await BackgroundMessage.loadWeb3BackpackItems();
         } catch (ex) {
             new ItemExceptionToast(this.app, Config.get('room.errorToastDurationSec', 8), ex).show();
@@ -282,7 +282,7 @@ export class IframeApi
         const participant = room?.getMyParticipant();
         if (!is.nil(participant)) {
             const x = participant.getPosition() + dx;
-            await BackgroundMessage.rezBackpackItem(itemId, room.getJid(), x, room.getDestination(), {});
+            await BackgroundMessage.rezBackpackItem(itemId, room.getJid(), x, room.getDestination());
         }
     }
 
@@ -359,7 +359,7 @@ export class IframeApi
 
             const participant = this.app.getRoom().getMyParticipant();
             let x = participant.getPosition() + as.Int(request.dx, 120);
-            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination(), {});
+            await BackgroundMessage.rezBackpackItem(itemId, this.app.getRoom().getJid(), x, this.app.getRoom().getDestination());
 
         } catch (error) {
             return new WeblinClientApi.ErrorResponse(error);

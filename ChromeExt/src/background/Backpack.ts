@@ -425,14 +425,14 @@ export class Backpack
         return await this.executeItemAction(itemId, action, args, involvedIds, allowUnrezzed)
     }
 
-    public async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
+    public async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string): Promise<void>
     {
-        await this.getProvider(itemId).rezItem(itemId, roomJid, rezzedX, destinationUrl, options);
+        await this.getProvider(itemId).rezItem(itemId, roomJid, rezzedX, destinationUrl);
     }
 
-    public async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+    public async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number): Promise<void>
     {
-        await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY, changed, deleted, options);
+        await this.getProvider(itemId).derezItem(itemId, roomJid, inventoryX, inventoryY);
     }
 
     public async getItemsByInventoryItemIds(itemsToGet: ItemProperties[]): Promise<ItemProperties[]>

@@ -42,8 +42,8 @@ export class TestBackpack
         await rep.addItem('item2', { 'Provider': 'nine3q', 'Test1': 'Value2', 'Test2': '42' }, { skipPersistentStorage: true });
         await rep.addItem('item3', { 'Provider': 'nine3q', 'Test1': 'Value3', 'Test2': '43' }, { skipPersistentStorage: true });
 
-        await rep.rezItem('item1', 'room1@server', 41, 'Destination1', { skipPersistentStorage: true });
-        await rep.rezItem('item2', 'room1@server', 42, 'Destination2', { skipPersistentStorage: true });
+        await rep.rezItem('item1', 'room1@server', 41, 'Destination1');
+        await rep.rezItem('item2', 'room1@server', 42, 'Destination2');
 
         expect(rep.getItems().get('item1')[Pid.IsRezzed]).to.equal('true');
         expect(rep.getItems().get('item2')[Pid.IsRezzed]).to.equal('true');

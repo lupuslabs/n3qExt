@@ -692,7 +692,7 @@ export namespace HostedInventoryItemProvider
             return await this.itemAction(itemId, action, args, [itemId], true);
         }
 
-        async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string, options: ItemChangeOptions): Promise<void>
+        async rezItem(itemId: string, roomJid: string, rezzedX: number, destinationUrl: string): Promise<void>
         {
             try {
                 await this.itemAction(
@@ -712,7 +712,7 @@ export namespace HostedInventoryItemProvider
             }
         }
 
-        async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number, changed: ItemProperties, deleted: Array<string>, options: ItemChangeOptions): Promise<void>
+        async derezItem(itemId: string, roomJid: string, inventoryX: number, inventoryY: number): Promise<void>
         {
             try {
                 await this.itemAction(

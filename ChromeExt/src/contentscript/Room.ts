@@ -392,14 +392,14 @@ export class Room
                     if (!props || !as.Bool(props[Pid.IsRezzed]) || props[Pid.RezzedLocation] === this.getJid()) {
                         return Promise.resolve();
                     }
-                    return BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1, {}, [], {});
+                    return BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1);
                 }).catch(error => this.app.onError(error))
                 .then(() => {
                     const props = this.app.getOwnItems().get(itemId);
                     if (!props || as.Bool(props[Pid.IsRezzed])) {
                         return Promise.resolve();
                     }
-                    return BackgroundMessage.rezBackpackItem(itemId, this.getJid(), as.Int(props[Pid.RezzedX], -1), this.getDestination(), {});
+                    return BackgroundMessage.rezBackpackItem(itemId, this.getJid(), as.Int(props[Pid.RezzedX], -1), this.getDestination());
                 }).catch(error => this.app.onError(error));
             }
         }
