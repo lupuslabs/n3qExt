@@ -156,10 +156,7 @@ $(async function ()
             if (Config.get('environment.reloadPageOnPanic', false)) {
                 document.location.reload()
             } else {
-                log.debug('Contentscript.onUnload')
-                contentApp.onUnload()
-                contentApp = null
-                contentRequestFromBackgroundHandler = null
+                deactivateContent()
             }
         }
     })

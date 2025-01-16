@@ -95,6 +95,7 @@ export class ContentApp extends AppWithDom
     private readonly tabContentData: TabContentData;
     private readonly urlFetcher: UrlFetcher;
     private params: ContentAppParams;
+    private inCriticalErrorHandler: boolean = false;
     private isStopped: boolean = false;
     private debugUtils: DebugUtils;
     private readonly logger: Logger = new LoglevelLogger('', '');
@@ -213,7 +214,10 @@ export class ContentApp extends AppWithDom
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
         this.params = params;
 
-        this.backgroundCommunicator.start()
+        if (this.isStopped) {
+            log.debug('ContentApp.start: Stopped while starting.');
+            return;
+        }
         BackgroundMessage.backgroundCommunicator = this.backgroundCommunicator;
 
         let tabContentData: [string,unknown][];
@@ -221,15 +225,13 @@ export class ContentApp extends AppWithDom
             const result = await BackgroundMessage.waitReady();
             tabContentData = result.tabContentData
         } catch (error) {
-            log.debug(error);
-            Panic.now();
+            this.onCriticalError(error);
+            return;
         }
-        if (Panic.isOn) { return; }
 
         const userId = await Memory.getLocal(Utils.localStorageKey_Id());
         if (!is.nonEmptyString(userId)) {
-            log.debug('No user ID!');
-            Panic.now();
+            this.onCriticalError(new Error('No user ID!'));
             return;
         }
         this.userId = userId;
@@ -238,10 +240,9 @@ export class ContentApp extends AppWithDom
             const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
             Config.setOnlineTree(config);
         } catch (error) {
-            log.debug(error.message);
-            Panic.now();
+            this.onCriticalError(error);
+            return;
         }
-        if (Panic.isOn) { return; }
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.devConfigName);
@@ -273,6 +274,11 @@ export class ContentApp extends AppWithDom
         }
 
         await Utils.sleep(as.Float(Config.get('vp.deferPageEnterSec', 1)) * 1000);
+        if (this.isStopped) {
+            log.debug('ContentApp.start: Stopped while starting.');
+            this.stop();
+            return;
+        }
 
         this.language = Client.getUserLanguage()
         const translationTable = Config.get('i18n.translations', {})[this.language];
@@ -285,17 +291,18 @@ export class ContentApp extends AppWithDom
         this.avatarGallery = new AvatarGallery();
 
         this.userName = await this.assertUserNickname();
-        if (Panic.isOn) { return; }
         await this.assertUserAvatar();
-        if (Panic.isOn) { return; }
         await this.assertSavedPosition();
-        if (Panic.isOn) { return; }
+        if (Panic.isOn) {
+            this.stop();
+            return;
+        }
 
         try {
             await this.initDisplay();
         } catch (error) {
-            log.debug(error.message);
-            Panic.now();
+            this.onCriticalError(error);
+            return;
         }
 
         const startupRequests: ReadonlyArray<BackgroundRequest> = params.startupRequests ?? [];
@@ -328,12 +335,17 @@ export class ContentApp extends AppWithDom
         this.debugUtils.onAppStartComplete();
         this.statusToPageSender.sendClientActive();
 
-        if (false
-            || this.isStopped // stop has been called while still starting.
-            || is.nil(this.shadowDomRoot?.host?.parentElement) // another instance has removed our div#n3q element.
-        ) {
-            log.debug('ContentApp.start: Stopped while starting.', {this: {...this}});
-            this.stop(); // Redo the stopping to fix the race.
+        if (Panic.isOn) {
+            this.stop();
+            return;
+        }
+        if (this.isStopped) {
+            log.debug('ContentApp.start: Stopped while starting.');
+            this.stop();
+        }
+        if (is.nil(this.shadowDomRoot?.host?.parentElement)) {
+            log.debug('ContentApp.start: Another instance has removed our div#n3q element. Stopping.');
+            this.stop();
         }
     }
 
@@ -487,22 +499,13 @@ export class ContentApp extends AppWithDom
         this.instantMessageManager.stop();
         this.iframeApi?.stop();
         this.stopCheckPageUrl();
-        this.leavePage();
-        this.onUnload();
-        BackgroundMessage.signalContentAppStopToBackground()
-            .catch(error => this.onError(error))
-            .then(() => this.backgroundCommunicator.stop());
-    }
-
-    onUnload()
-    {
-        if (this.room) {
-            this.room.onUnload();
-            this.room = null;
-        }
+        this.leaveRoom();
 
         this.display = null;
-        this.maintainDisplay(); // does the ramainder of the cleanup.
+        this.maintainDisplay(); // does the ramainder of the display cleanup.
+
+        BackgroundMessage.signalContentAppStopToBackground()
+            .catch(error => this.onError(error));
     }
 
     private sendTabStatsTimeoutHandle?: number = null;
@@ -955,11 +958,6 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    private leavePage()
-    {
-        this.leaveRoom();
-    }
-
     private async checkPageUrlChanged()
     {
         try {
@@ -993,7 +991,7 @@ export class ContentApp extends AppWithDom
                 return;
             }
 
-            this.leavePage();
+            this.leaveRoom();
 
             if (newRoomJid !== '') {
                 this.enterRoom(newRoomJid, pageUrl, newDestinationUrl);
@@ -1189,8 +1187,23 @@ export class ContentApp extends AppWithDom
 
     public onCriticalError(error: Error): void
     {
-        this.onError(error);
-        Panic.now();
+        if (this.inCriticalErrorHandler) {
+            return;
+        }
+        this.inCriticalErrorHandler = true;
+
+        const stoppedWhileStarting = this.isStopped;
+        if (stoppedWhileStarting) {
+            log.debug('ContentApp.start: Stopped while starting.');
+        } else {
+            this.onError(error);
+        }
+        this.stop();
+        if (!stoppedWhileStarting) {
+            Panic.now();
+        }
+
+        this.inCriticalErrorHandler = false;
     }
 
     // Window management
@@ -1298,8 +1311,7 @@ export class ContentApp extends AppWithDom
             }
             return nickname;
         } catch (error) {
-            log.info(error);
-            Panic.now();
+            this.onCriticalError(error);
         }
     }
 
@@ -1315,8 +1327,7 @@ export class ContentApp extends AppWithDom
         try {
             await this.avatarGallery.getAvatarFromLocalMemory();
         } catch (error) {
-            log.info(error);
-            Panic.now();
+            this.onCriticalError(error);
         }
     }
 

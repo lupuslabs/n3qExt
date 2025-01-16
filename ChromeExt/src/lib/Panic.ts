@@ -19,7 +19,7 @@ export class Panic
             this.isOn = true;
             if (Panic.callback != undefined) {
                 Panic.inCallback = true;
-                log.debug('I am not feeling well');
+                log.debug(new Error('I am not feeling well'));
                 Panic.callback();
                 Panic.inCallback = false;
             }

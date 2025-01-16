@@ -165,15 +165,6 @@ $(async function ()
         }
     }
 
-    function onUnloadContent()
-    {
-        if (contentApp) {
-            log.debug('Embedded.onUnload');
-            contentApp.onUnload();
-            contentApp = null;
-        }
-    }
-
     function onVisibilitychange()
     {
         const visibilityState = document.visibilityState;
@@ -193,7 +184,7 @@ $(async function ()
     {
         console.log('cdn.weblin.io Embedded', 'dev', Environment.isDevelopment());
         activateBackground()
-        Panic.onNow(() => onUnloadContent());
+        Panic.onNow(() => deactivateContent());
         window.addEventListener('onbeforeunload', () => deactivateContent());
         window.addEventListener('visibilitychange', () => onVisibilitychange());
         onVisibilitychange()

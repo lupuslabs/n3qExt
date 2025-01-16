@@ -167,11 +167,6 @@ export class Room
         this.sendPresence();
         this.removeAllParticipants();
         this.removeAllItems();
-        this.onUnload();
-    }
-
-    public onUnload()
-    {
         this.stopKeepAlive();
     }
 
@@ -227,8 +222,7 @@ export class Room
             };
             this.app.sendRoomPresence(presenceData);
         })().catch(error => {
-            log.info(error);
-            Panic.now();
+            this.app.onCriticalError(error);
         });
     }
 
