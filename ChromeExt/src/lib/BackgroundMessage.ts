@@ -24,6 +24,9 @@ export type SendInstantMessageBackgroundRequest = BackgroundRequest & {
 }
 
 export type TabStats = {
+    isInRoom: boolean,
+    roomUrl: null|string,
+    roomJid: null|string,
     participantCount:  number, // Other participants present in the same room.
     toastCount:        number, // Open toasts.
     hasNewGroupChat:   boolean, // Whether new chat messages/emotes occured.
@@ -33,6 +36,9 @@ export type TabStats = {
 export function makeZeroTabStats(): TabStats
 {
     return {
+        isInRoom: false,
+        roomUrl: null,
+        roomJid: null,
         toastCount: 0,
         participantCount: 0,
         hasNewGroupChat: false,

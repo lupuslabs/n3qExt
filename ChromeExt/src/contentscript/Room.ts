@@ -156,9 +156,6 @@ export class Room
         this.showAvailability = '';
         this.statusMessage = '';
         this.sendPresence();
-        if (this.isEntered) {
-            this.autorezzItems();
-        }
     }
 
     public leave(): void
@@ -287,7 +284,6 @@ export class Room
                 this.isEntered = true;
                 this.keepAlive();
                 this.app.reshowVidconfWindow();
-                this.autorezzItems();
             }
         }
 
@@ -371,32 +367,6 @@ export class Room
             this.items[itemId].remove();
             delete this.items[itemId];
         });
-    }
-
-    private autorezzItems(): void
-    {
-        if (!Utils.isBackpackEnabled()) {
-            return;
-        }
-        for (const [itemId, props] of this.app.getOwnItems()) {
-            if (as.Bool(props[Pid.AutorezAspect]) && as.Bool(props[Pid.AutorezIsActive])) {
-                Promise.resolve()
-                .then(() => {
-                    const props = this.app.getOwnItems().get(itemId);
-                    if (!props || !as.Bool(props[Pid.IsRezzed]) || props[Pid.RezzedLocation] === this.getJid()) {
-                        return Promise.resolve();
-                    }
-                    return BackgroundMessage.derezBackpackItem(itemId, props[Pid.RezzedLocation], -1, -1);
-                }).catch(error => this.app.onError(error))
-                .then(() => {
-                    const props = this.app.getOwnItems().get(itemId);
-                    if (!props || as.Bool(props[Pid.IsRezzed])) {
-                        return Promise.resolve();
-                    }
-                    return BackgroundMessage.rezBackpackItem(itemId, this.getJid(), as.Int(props[Pid.RezzedX], -1), this.getDestination());
-                }).catch(error => this.app.onError(error));
-            }
-        }
     }
 
     // Keepalive

@@ -536,13 +536,16 @@ export class ContentApp extends AppWithDom
         if (this.isStopped || !this.tabContentData.getIsInitialized()) {
             return; // Stopped or not fully started up yet.
         }
+        const isInRoom = this.room?.iAmAlreadyHere() ?? false;
+        const roomUrl = this.room?.getDestination() ?? null;
+        const roomJid = this.room?.getJid() ?? null;
         const participantIds = this.room?.getParticipantIds() ?? [];
         const participantCount = Math.max(0, participantIds.length - 1);
         const maxChatAgeSecs = as.Float(Config.get('system.tabStatsRecentChatAgeSecs'), 1.0);
         const hasNewGroupChat = (this.room?.getChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) ?? 0) !== 0;
         const hasNewPrivateChat = this.instantMessageManager.getUnreadUserMessageCount(maxChatAgeSecs) !== 0;
         const toastCount = this.toasts.size;
-        const stats: TabStats = { participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
+        const stats: TabStats = { isInRoom, roomUrl, roomJid, participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
         const tabContentData = this.tabContentData.getAll();
         BackgroundMessage.sendTabStatsToBackground(stats, tabContentData).catch(error => this.onError(error));
     }

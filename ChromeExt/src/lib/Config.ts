@@ -375,6 +375,11 @@ export class Config
                 maintenanceIntervalSec: 1,
             },
         },
+        itemAutorezzer: {
+            enabled: true,
+            minItemRezIntervalSec: 0.5,
+            itemActionRetryDelaySec: 3,
+        },
         SimpleItemTransfer: {
             enabled: true,
             errorToastDurationSec: 8,

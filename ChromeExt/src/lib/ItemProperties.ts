@@ -241,6 +241,16 @@ export class ItemProperties
         return url.length !== 0 ? url : defaultItemImageUrl;
     }
 
+    static hasAutorezAspect(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.AutorezAspect]);
+    }
+
+    static getAutorezIsActive(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.AutorezAspect]) && as.Bool(itemProperties[Pid.AutorezIsActive]);
+    }
+
     static getItemOverlayDefinitions(itemProperties: ItemProperties): null|ReadonlyMap<string,ItemOverlayDefinition>
     {
         const parsed = ItemProperties.getJsonProperty(itemProperties, Pid.ItemOverlayDefinitions);

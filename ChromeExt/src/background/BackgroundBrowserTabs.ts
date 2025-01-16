@@ -1,4 +1,5 @@
 ﻿import log = require('loglevel')
+import { is } from '../lib/is'
 import { iter, Iter } from '../lib/Iter'
 import { BackgroundApp } from './BackgroundApp'
 import { TabStats, makeZeroTabStats } from '../lib/BackgroundMessage'
@@ -9,7 +10,11 @@ import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 
 type TabData = {
     readonly tabId: number
+    windowId: number
     isActive: boolean
+    isActiveChangeDate: Date
+    isFocused: boolean
+    isFocusedChangeDate: Date
     isContentConnected: boolean
     isContentReady: boolean
     isGuiEnabled: boolean
@@ -34,9 +39,29 @@ export class BackgroundBrowserTab
         return this.tabData.tabId
     }
 
+    public getWindowId(): number
+    {
+        return this.tabData.windowId
+    }
+
     public getIsActive(): boolean
     {
         return this.tabData.isActive
+    }
+
+    public getIsActiveChangeDate(): Date
+    {
+        return this.tabData.isActiveChangeDate
+    }
+
+    public getIsFocused(): boolean
+    {
+        return this.tabData.isFocused
+    }
+
+    public getIsFocusedChangeDate(): Date
+    {
+        return this.tabData.isFocusedChangeDate
     }
 
     public getIsContentConnected(): boolean
@@ -98,9 +123,14 @@ export class BackgroundBrowserTabs
     private readonly tabs: Map<number,BackgroundBrowserTab> = new Map()
     private readonly tabDatas: Map<number,TabData> = new Map()
     private readonly browserTabsSupported: boolean
+    private readonly activeTabIdByWindowId: Map<number,number> = new Map()
+    private focusedWindowId: null|number = 0
+    private focusedTabId: null|number = null
     private readonly callableTabCreatedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabCreated')
     private readonly callableTabActivatedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabActivated')
     private readonly callableTabDeactivatedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabDeactivated')
+    private readonly callableTabFocusedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabFocused')
+    private readonly callableTabUnfocusedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabUnfocused')
     private readonly callableTabRemovedListeners: CallableTabEventListeners = new CallableTabEventListeners('tabRemoved')
     private readonly callableTabContentReadyListeners: CallableTabEventListeners = new CallableTabEventListeners('tabContentReady')
     private readonly callableTabContentStopListeners: CallableTabEventListeners = new CallableTabEventListeners('tabContentStop')
@@ -109,6 +139,8 @@ export class BackgroundBrowserTabs
     public readonly tabCreatedListeners: TabEventListeners
     public readonly tabActivatedListeners: TabEventListeners
     public readonly tabDeactivatedListeners: TabEventListeners
+    public readonly tabFocusedListeners: TabEventListeners
+    public readonly tabUnfocusedListeners: TabEventListeners
     public readonly tabRemovedListeners: TabEventListeners
     public readonly tabContentReadyListeners: TabEventListeners
     public readonly tabContentStopListeners: TabEventListeners
@@ -122,6 +154,8 @@ export class BackgroundBrowserTabs
         this.tabCreatedListeners = this.callableTabCreatedListeners
         this.tabActivatedListeners = this.callableTabActivatedListeners
         this.tabDeactivatedListeners = this.callableTabDeactivatedListeners
+        this.tabFocusedListeners = this.callableTabFocusedListeners
+        this.tabUnfocusedListeners = this.callableTabUnfocusedListeners
         this.tabRemovedListeners = this.callableTabRemovedListeners
         this.tabContentReadyListeners = this.callableTabContentReadyListeners
         this.tabContentStopListeners = this.callableTabContentStopListeners
@@ -129,12 +163,15 @@ export class BackgroundBrowserTabs
 
         if (this.browserTabsSupported) {
             chrome.tabs.onCreated?.addListener(browserTab => {
-                const tabId = browserTab.id
-                this.getTab(tabId)
-                this.checkBrowserTabState(tabId)
+                if (browserTab.active) {
+                    this.handleTabActivated(browserTab.id, browserTab.windowId)
+                } else {
+                    this.handleTabDeactivated(browserTab.id, browserTab.windowId)
+                }
             })
-            chrome.tabs.onActivated?.addListener(activeInfo => this.checkBrowserTabState(activeInfo.tabId))
+            chrome.tabs.onActivated?.addListener(activeInfo => this.handleTabActivated(activeInfo.tabId, activeInfo.windowId))
             chrome.tabs.onRemoved?.addListener((tabId, _activeInfo) => this.forgetTab(tabId))
+            chrome.windows.onFocusChanged?.addListener(windowId => this.handleWindowFocus(windowId))
         }
     }
 
@@ -210,7 +247,7 @@ export class BackgroundBrowserTabs
             return
         }
         this.onTabContentStop(tabId)
-        this.handleTabDeactivated(tabId)
+        this.handleTabDeactivated(tabId, tab.getWindowId())
         this.callableTabRemovedListeners.callListeners(tab)
         this.tabDatas.delete(tabId)
         this.tabs.delete(tabId)
@@ -224,9 +261,9 @@ export class BackgroundBrowserTabs
         chrome.tabs.get(tabId, tabData => {
             try {
                 if (tabData.active) {
-                    this.handleTabActivated(tabId)
+                    this.handleTabActivated(tabId, tabData.windowId)
                 } else {
-                    this.handleTabDeactivated(tabId)
+                    this.handleTabDeactivated(tabId, tabData.windowId)
                 }
             } catch(error) {
                 this.forgetTab(tabId)
@@ -304,7 +341,11 @@ export class BackgroundBrowserTabs
 
         const tabDataNew: TabData = {
             tabId,
+            windowId: 0,
             isActive: false,
+            isActiveChangeDate: new Date(0),
+            isFocused: false,
+            isFocusedChangeDate: new Date(0),
             isContentConnected: false,
             isContentReady: false,
             isGuiEnabled: true,
@@ -319,31 +360,92 @@ export class BackgroundBrowserTabs
         this.callableTabCreatedListeners.callListeners(tab)
 
         if (this.tabDatas.size === 1) {
-            this.handleTabActivated(tabId)
+            this.handleTabActivated(tabId, tabDataNew.windowId)
         }
         this.checkBrowserTabState(tabId)
         return tabDataNew
     }
 
-    private handleTabActivated(tabId: number)
+    private handleTabActivated(tabId: number, windowId: number)
     {
-        const tabData = this.getOrCreateTabData(tabId)
-        if (tabData.isActive) {
-            return
+        const oldActiveTabId = this.activeTabIdByWindowId.get(windowId) ?? null
+        if (!is.nil(oldActiveTabId)) {
+            this.handleTabDeactivated(oldActiveTabId, windowId)
         }
-        this.getAllTabs().filter(tab => tab.getIsActive()).forEach(tab => this.checkBrowserTabState(tab.getTabId()))
-        tabData.isActive = true
-        this.callableTabActivatedListeners.callListeners(this.getTab(tabId))
+        const tabData = this.getOrCreateTabData(tabId)
+        if (tabData.windowId !== windowId) {
+            if (this.activeTabIdByWindowId.get(tabData.windowId) === tabId) {
+                this.activeTabIdByWindowId.delete(tabData.windowId)
+            }
+            tabData.windowId = windowId
+        }
+        this.activeTabIdByWindowId.set(windowId, tabId)
+        if (!tabData.isActive) {
+            tabData.isActive = true
+            tabData.isActiveChangeDate = new Date()
+            this.callableTabActivatedListeners.callListeners(this.getTab(tabId))
+        }
+        this.updateTabFocus()
     }
 
-    private handleTabDeactivated(tabId: number)
+    private handleTabDeactivated(tabId: number, windowId: number)
     {
+        this.handleTabUnfocus(tabId)
         const tabData = this.getOrCreateTabData(tabId)
+        if (this.activeTabIdByWindowId.get(tabData.windowId) === tabId) {
+            this.activeTabIdByWindowId.delete(tabData.windowId)
+        }
+        tabData.windowId = windowId
         if (!tabData.isActive) {
             return
         }
         tabData.isActive = false
+        tabData.isActiveChangeDate = new Date()
         this.callableTabDeactivatedListeners.callListeners(this.getTab(tabId))
+    }
+
+    private handleWindowFocus(windowId: number): void
+    {
+        if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+            this.focusedWindowId = windowId
+        }
+        this.updateTabFocus()
+    }
+
+    private updateTabFocus(): void
+    {
+        this.handleTabFocus(this.activeTabIdByWindowId.get(this.focusedWindowId) ?? null)
+    }
+
+    private handleTabFocus(tabId: null|number): void
+    {
+        if (this.focusedTabId === tabId) {
+            return
+        }
+        this.handleTabUnfocus(this.focusedTabId)
+        const tabData: null|TabData = this.tabDatas.get(tabId) ?? null
+        if (!tabData) {
+            return
+        }
+        this.focusedTabId = tabId
+        tabData.isFocused = true
+        tabData.isFocusedChangeDate = new Date()
+        this.callableTabFocusedListeners.callListeners(this.getTab(tabId))
+    }
+
+    private handleTabUnfocus(tabId: null|number): void
+    {
+        if (this.focusedTabId !== tabId) {
+            return
+        }
+        this.focusedTabId = null
+        const tabData: null|TabData = this.tabDatas.get(tabId) ?? null
+        if (!tabData) {
+            return
+        }
+        tabData.isFocused = false
+        tabData.isFocusedChangeDate = new Date()
+        this.callableTabUnfocusedListeners.callListeners(this.getTab(tabId))
     }
 
     private callOnTabStatsChangedHandlers(tabId: number): void

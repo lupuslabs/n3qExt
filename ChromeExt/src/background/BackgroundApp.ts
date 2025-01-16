@@ -43,6 +43,7 @@ import { WebsocketManager } from './WebsocketManager';
 import { XmppConnectionManager } from './XmppConnectionManager'
 import { RoomPresenceManager } from './RoomPresenceManager';
 import { Backpack } from './Backpack';
+import { ItemAutorezzer } from './ItemAutorezzer'
 import { Translator } from '../lib/Translator';
 import { Environment } from '../lib/Environment';
 import { Client } from '../lib/Client';
@@ -90,6 +91,7 @@ export class BackgroundApp
     private themeManager: BackgroundThemeManager;
     private popupManager: PopupManager;
     private backpack: Backpack;
+    private itemAutorezzer: ItemAutorezzer;
     private friendshipProposalManager: BackgroundFriendshipProposalManager;
 
     private isFirstConfig: boolean = true;
@@ -133,6 +135,7 @@ export class BackgroundApp
         this.themeManager = new BackgroundThemeManager(this);
         this.popupManager = new PopupManager(this);
         this.backpack = new Backpack(this);
+        this.itemAutorezzer = new ItemAutorezzer(this);
         this.friendshipProposalManager = new BackgroundFriendshipProposalManager(this);
 
         if ((typeof chrome !== 'undefined') && !!(chrome.runtime?.onMessageExternal ?? null)) {
@@ -303,6 +306,7 @@ export class BackgroundApp
         this.contentCommunicator.stop()
 
         this.friendshipProposalManager.stop();
+        this.itemAutorezzer.stop();
         this.websocketManager.stop();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
@@ -1079,6 +1083,7 @@ export class BackgroundApp
         this.popupManager.maintain()
         this.configUpdater.maintain() // Required to detect XMPP server change.
         this.backpack.maintain(Utils.isBackpackEnabled());
+        this.itemAutorezzer.maintain()
         this.friendshipProposalManager.maintain()
         this.websocketManager.maintain()
         this.xmppManager.maintain()
