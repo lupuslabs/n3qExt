@@ -1870,7 +1870,6 @@ div#n3q-display {
         background-color: rgba(255, 255, 255, 0.8);
         pointer-events: auto;
         touch-action: none;
-        transition: box-shadow 0.15s ease-in;
 
         * {
             pointer-events: none !important;
@@ -1879,7 +1878,6 @@ div#n3q-display {
         .n3q-backpack-item-image {
             position: relative;
             margin: 2px;
-            transition: opacity 0.15s ease-in, filter 0.1s ease-in;
             > .icon-wrap {
                 display: flex;
                 align-items: center;
@@ -1897,7 +1895,6 @@ div#n3q-display {
             font: normal 11px/12px Arial, sans-serif;
             color: black;
             text-overflow: ellipsis;
-            transition: opacity 0.15s ease-in;
         }
 
         &.selected:not(.selection-rect-remove), &.selection-rect-add {
@@ -1939,7 +1936,6 @@ div#n3q-display {
             width: 8px;
             height: 8px;
             background: #404040;
-            transition: opacity 0.15s ease-in, filter 0.1s ease-in, background 0.15s ease-in;
             &[data-online-status=Unknown] {}
             &[data-online-status=Offline] {}
             &[data-online-status=Online] {
