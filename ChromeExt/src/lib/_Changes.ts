@@ -17,7 +17,9 @@ export class _Changes
             ['Change', 'Private chat now keeps working when users navigate'],
             ['Change', 'More modern layout/styling for chat messages in chat windows'],
             ['Change', 'Smaller tutorial window'],
+            ['Change', 'Remove item transition on backpack tab switch'],
             ['Fix', 'GUI positioning on pages using non-LTR text flow direction'],
+            ['Fix', 'Autorez'],
         ]],
         ['1.3.2', 'PointsLegend', [
             ['Add', 'Description of point and stars'],
