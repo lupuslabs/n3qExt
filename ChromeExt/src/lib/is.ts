@@ -56,7 +56,7 @@ export class is {
 
     static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is Array<T>
     {
-        return val instanceof Array && (is.nil(elemGuard) || !val.some(elem => !elemGuard(elem)))
+        return Array.isArray(val) && (is.nil(elemGuard) || !val.some(elem => !elemGuard(elem)))
     }
 
     static fun(val: unknown): val is Function
