@@ -205,6 +205,26 @@ export class BackgroundBrowserTabs
         return this.tabs.get(tabId)
     }
 
+    public async openTab(url: string, active: boolean): Promise<null|BackgroundBrowserTab> {
+        if (this.browserTabsSupported) {
+            return await new Promise<BackgroundBrowserTab>(resolve => {
+                chrome.tabs.create({url, active}, tabData => {
+                    if (chrome.runtime.lastError) {
+                        throw new Error(`Could not open tab ${url}: ${chrome.runtime.lastError.message}`)
+                    }
+                    this.handleTabDataFromBrowser(tabData)
+                    resolve(this.getTab(tabData.id))
+                })
+            })
+        } else {
+            const newTab = window.open(url, '_blank')
+            if (active) {
+                newTab.focus()
+            }
+            return null
+        }
+    }
+
     // Tab actions
 
     public clearTabStats(tabId: number): void
@@ -259,15 +279,11 @@ export class BackgroundBrowserTabs
             return
         }
         chrome.tabs.get(tabId, tabData => {
-            try {
-                if (tabData.active) {
-                    this.handleTabActivated(tabId, tabData.windowId)
-                } else {
-                    this.handleTabDeactivated(tabId, tabData.windowId)
-                }
-            } catch(error) {
+            if (chrome.runtime.lastError) {
                 this.forgetTab(tabId)
+                return
             }
+            this.handleTabDataFromBrowser(tabData)
         })
     }
 
@@ -364,6 +380,15 @@ export class BackgroundBrowserTabs
         }
         this.checkBrowserTabState(tabId)
         return tabDataNew
+    }
+
+    private handleTabDataFromBrowser(tabData: chrome.tabs.Tab): void
+    {
+        if (tabData.active) {
+            this.handleTabActivated(tabData.id, tabData.windowId)
+        } else {
+            this.handleTabDeactivated(tabData.id, tabData.windowId)
+        }
     }
 
     private handleTabActivated(tabId: number, windowId: number)

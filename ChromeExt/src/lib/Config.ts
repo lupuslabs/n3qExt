@@ -533,6 +533,12 @@ export class Config
                 { title: 'Gaming Features - Mining, Crafting & Recycling', url: 'https://www.youtube.com/embed/7u_g4tmZ3F4', },
             ]
         },
+        newUserExperience: {
+            experiencedUserPointsLimit: 200,
+            firstStartMaxAgeSec: 3600,
+            navigateToPageEnabled: true,
+            navigateToPageUrl: 'https://www.weblin.io/',
+        },
         about: {
             defaultWidth: 650,
             defaultHeight: 300,

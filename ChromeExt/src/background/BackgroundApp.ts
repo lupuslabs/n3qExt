@@ -5,6 +5,7 @@ import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { Logger, LoglevelLogger } from '../lib/Logger'
+import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 import {
     BackgroundRequest,
     BackgroundErrorResponse,
@@ -66,6 +67,7 @@ import { BackgroundBrowserTab, BackgroundBrowserTabs } from './BackgroundBrowser
 import { BackgroundInstantMessageManager } from './BackgroundInstantMessageManager'
 import MessageSender = chrome.runtime.MessageSender
 import { ExtensionMessage } from './ExtensionMessages'
+import { BackgroundNewUserExperience } from './BackgroundNewUserExperience'
 
 export type ContentCommunicatorFactory = (heartbeatHandler: BackgroundHeartbeatHandler, tabHeartbeatHandler: BackgroundTabHeartbeatHandler, requestHandler: BackgroundRequestHandler) => BackgroundToContentCommunicator
 
@@ -93,6 +95,10 @@ export class BackgroundApp
     private backpack: Backpack;
     private itemAutorezzer: ItemAutorezzer;
     private friendshipProposalManager: BackgroundFriendshipProposalManager;
+    private newUserExperience: BackgroundNewUserExperience;
+
+    private callableBackgroundStopListeners: CallableEventListeners<void>;
+    private callableBackgroundReadyListeners: CallableEventListeners<void>;
 
     private isFirstConfig: boolean = true;
     private isReady: boolean = false;
@@ -122,6 +128,9 @@ export class BackgroundApp
         this.userToken = '';
         this.iqStanzaTabId = new Map();
 
+        this.callableBackgroundStopListeners = new CallableEventListeners('backgroundStop');
+        this.callableBackgroundReadyListeners = new CallableEventListeners('backgroundReady');
+
         this.logger = new LoglevelLogger('', '');
         this.tabs = new BackgroundBrowserTabs(this);
         this.urlFetcher = new DirectUrlFetcher();
@@ -137,6 +146,7 @@ export class BackgroundApp
         this.backpack = new Backpack(this);
         this.itemAutorezzer = new ItemAutorezzer(this);
         this.friendshipProposalManager = new BackgroundFriendshipProposalManager(this);
+        this.newUserExperience = new BackgroundNewUserExperience(this);
 
         if ((typeof chrome !== 'undefined') && !!(chrome.runtime?.onMessageExternal ?? null)) {
             const handler = (request, sender, sendResponse) => this.onExternalMessage(request, sender, sendResponse)
@@ -156,6 +166,14 @@ export class BackgroundApp
     public getBrowserTabs(): BackgroundBrowserTabs
     {
         return this.tabs;
+    }
+
+    public getBackgroundStopListeners(): EventListeners<void> {
+        return this.callableBackgroundStopListeners;
+    }
+
+    public getBackgroundReadyListeners(): EventListeners<void> {
+        return this.callableBackgroundReadyListeners;
     }
 
     public async start(): Promise<void>
@@ -293,6 +311,7 @@ export class BackgroundApp
         if (!this.isReady && this.xmppManager.getIsConnected()) {
             this.isReady = true;
             if (Utils.logChannel('startup', true)) { log.info('BackgroundApp', 'isReady'); }
+            this.callableBackgroundReadyListeners.callListeners();
 
             this.maintain();
         }
@@ -305,6 +324,7 @@ export class BackgroundApp
 
         this.contentCommunicator.stop()
 
+        this.callableBackgroundStopListeners.callListeners();
         this.friendshipProposalManager.stop();
         this.itemAutorezzer.stop();
         this.websocketManager.stop();
