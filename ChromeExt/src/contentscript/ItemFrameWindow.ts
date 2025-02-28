@@ -66,7 +66,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
         }
 
         const urlWrapped = this.app.getWrappedIframeUrl(this.url);
-        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${urlWrapped}" frameborder="0" allow="camera; microphone; fullscreen; display-capture"></iframe>`);
+        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${urlWrapped}" frameborder="0" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`);
 
         this.contentElem.append(this.iframeElem);
     }

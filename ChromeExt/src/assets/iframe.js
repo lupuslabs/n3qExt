@@ -4,6 +4,7 @@
     const iframeUrl = new URL(document.URL).searchParams.get('url')
     const iframeElem = document.createElement('iframe')
     iframeElem.src = iframeUrl
+    iframeElem.setAttribute('allow', 'camera; microphone; fullscreen; display-capture; autoplay')
     document.body.append(iframeElem)
 
     window.addEventListener('message', (ev) => {
