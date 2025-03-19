@@ -40,10 +40,15 @@ export class RoomItem extends Entity
     private statsDisplayOpenByLongclick: boolean = false;
     private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;
+    protected readonly themesChangeHandler: (themesCss: string) => void;
 
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
         super(app, room, roomNick, isSelf);
+        this.themesChangeHandler = themesCss => {
+            const themeCss = this.app.themeManager.getEnabledThemesCss();
+            this.sendMessageToScriptFrame(new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
+        };
 
         $(this.getElem()).addClass('roomitem');
         $(this.getElem()).attr('data-nick', roomNick);
@@ -389,7 +394,6 @@ export class RoomItem extends Entity
             if (this.frameWindow) {
                 if (this.frameWindow.isOpen()) {
                     this.frameWindow.setVisibility(true);
-                    this.frameWindow.toFront();
                 }
             } else {
                 openFrame = true;
@@ -658,6 +662,9 @@ export class RoomItem extends Entity
             const iframeUrl = Payload.makeItemIframeUrl(userId, langId, roomJid, participantDisplayName, itemId, this.properties, iframeUrlTpl);
 
             const iframeOptions = ItemProperties.getParsedIframeOptions(this.properties);
+            if ((iframeOptions.ownerOnly ?? false) && !this.myItem) {
+                return;
+            }
 
             let anchorElem: HTMLElement;
             switch (as.String(iframeOptions.anchor, 'Entity')) {
@@ -678,6 +685,7 @@ export class RoomItem extends Entity
                     this.openIframeAsWindow(anchorElem, iframeUrl, iframeOptions);
                     break;
             }
+            this.app.themeManager.themesChangedListeners.addListener(this.themesChangeHandler)
 
         } catch (error) {
             this.app.onError(ErrorWithData.ofError(error));
@@ -686,6 +694,7 @@ export class RoomItem extends Entity
 
     closeFrame(): void
     {
+        this.app.themeManager.themesChangedListeners.removeListener(this.themesChangeHandler)
         if (this.framePopup) {
             this.framePopup.close();
             this.framePopup = null;

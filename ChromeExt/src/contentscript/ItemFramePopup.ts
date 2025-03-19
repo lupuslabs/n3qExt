@@ -185,6 +185,7 @@ export class ItemFramePopup
     {
         if (visible) {
             this.windowElem?.classList.remove('hidden');
+            this.toFront();
         } else {
             this.windowElem?.classList.add('hidden');
         }

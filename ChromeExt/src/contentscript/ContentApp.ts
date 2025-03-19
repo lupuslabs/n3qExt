@@ -97,7 +97,7 @@ export class ContentApp extends AppWithDom
     public readonly logger: Logger = new LoglevelLogger('', '');
     public readonly uiHelper: ContentUiHelper;
     public readonly viewportEventDispatcher: ViewportEventDispatcher;
-    private readonly display: ContentAppDisplay;
+    public readonly display: ContentAppDisplay;
     public readonly themeManager: ContentThemeManager;
     private dropzoneELem: null|HTMLElement = null;
     private isGuiEnabled: boolean = false;
@@ -119,7 +119,7 @@ export class ContentApp extends AppWithDom
     private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
-    private readonly iframeApi: IframeApi;
+    public readonly iframeApi: IframeApi;
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
     private readonly toasts: Set<Toast> = new Set();
@@ -402,6 +402,7 @@ export class ContentApp extends AppWithDom
         this.iframeApi?.stop();
         this.stopCheckPageUrl();
         this.leaveRoom();
+        this.themeManager.stop();
         this.display.stop();
         BackgroundMessage.signalContentAppStopToBackground()
             .catch(error => this.onError(error));

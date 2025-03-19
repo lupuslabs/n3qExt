@@ -14,6 +14,7 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { WeblinClientApi } from '../lib/WeblinClientApi'
 import { ItemException } from '../lib/ItemException'
 import { ItemExceptionToast } from './Toast'
+import { Utils } from '../lib/Utils'
 
 export type BackpackItemInfoOptions = PopupWindowOptions & {
     top: number,
@@ -27,6 +28,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
     protected readonly debuginfoContainer: HTMLElement
+    protected readonly themesChangeHandler: (themesCss: string) => void
 
     protected drawHeader: boolean = true
     protected iframeUrlTpl: string = ''
@@ -47,6 +49,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
         this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
         this.debuginfoContainer = DomUtils.elemOfHtml('<div class="debuginfo-container" data-translate="children"></div>')
+        this.themesChangeHandler = themesCss => this.onThemesChanged(themesCss)
     }
 
     public update(): void
@@ -72,30 +75,45 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         (async () => {
             let response: WeblinClientApi.Response
             switch (request.type) {
+                case WeblinClientApi.ClientGetApiRequest.type: {
+                    response = await this.app.iframeApi.handle_ClientGetApiRequest(<WeblinClientApi.ClientGetApiRequest>request)
+                } break
                 case WeblinClientIframeApi.WindowCloseRequest.type: {
                     response = this.handleWindowCloseRequest(<WeblinClientIframeApi.WindowCloseRequest>request)
-                } break;
+                } break
                 case WeblinClientIframeApi.WindowPositionRequest.type: {
                     response = this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
-                } break;
+                } break
+                case WeblinClientIframeApi.ClientBaseCssRequest.type: {
+                    response = this.handleClientBaseCssRequest(<WeblinClientIframeApi.ClientBaseCssRequest>request)
+                } break
                 case WeblinClientIframeApi.ItemGetPropertiesRequest.type: {
                     response = this.handleItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request)
-                } break;
+                } break
                 case WeblinClientIframeApi.ItemActionRequest.type: {
                     response = await this.handleItemActionRequest(<WeblinClientIframeApi.ItemActionRequest>request)
-                } break;
+                } break
                 case WeblinClientIframeApi.ClientOpenPrivateChatRequest.type: {
                     response = this.handleOpenPrivateChatRequest(<WeblinClientIframeApi.ClientOpenPrivateChatRequest>request);
-                } break;
+                } break
                 default: {
                     response = new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
-                } break;
+                } break
             }
             this.sendResponseToIframe(request, response)
         })().catch(error => {
             this.app.onError(error)
             this.sendResponseToIframe(request, new WeblinClientApi.ErrorResponse(error))
         })
+    }
+
+    protected onThemesChanged(themesCss: string): void
+    {
+        if (!this.iframeElem) {
+            return
+        }
+        const notification = new WeblinClientIframeApi.ClientThemeCssNotification(themesCss)
+        this.sendMessageToIframe(notification);
     }
 
     protected sendPropertiesUpdateToIframe(): void
@@ -109,9 +127,15 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.sendMessageToIframe(notification);
     }
 
-    protected sendResponseToIframe(request: WeblinClientIframeApi.Request, response: WeblinClientApi.Message): void
+    protected sendResponseToIframe(request: WeblinClientIframeApi.Request, response: WeblinClientApi.Response): void
     {
-        response['id'] = request.id;
+        const isRequest = !is.nil(request.id)
+        if (!isRequest && response.ok) {
+            return
+        }
+        if (isRequest) {
+            response['id'] = request.id
+        }
         this.sendMessageToIframe(response)
     }
 
@@ -122,6 +146,12 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         }
         message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true
         this.iframeElem?.contentWindow?.postMessage(message, '*')
+    }
+
+    protected handleClientBaseCssRequest(_request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
+    {
+        this.onThemesChanged(this.app.themeManager.getEnabledThemesCss())
+        return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss())
     }
 
     protected handleWindowCloseRequest(_request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
@@ -190,11 +220,13 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.contentElem.append(this.iframeContainer)
         this.contentElem.append(this.buttonsContainer)
         this.contentElem.append(this.debuginfoContainer)
+        this.app.themeManager.themesChangedListeners.addListener(this.themesChangeHandler)
         this.update()
     }
 
     protected onBeforeClose(): void
     {
+        this.app.themeManager.themesChangedListeners.removeListener(this.themesChangeHandler)
         super.onBeforeClose()
     }
 

@@ -275,4 +275,26 @@ export namespace WeblinClientIframeApi
             super(PersonItemApiShowCancelFriendshipToastRequest.type, id)
         }
     }
+
+    export class ClientBaseCssRequest extends Request
+    {
+        static type = 'Client.GetBaseCss'
+    }
+    export class ClientBaseCssResponse extends WeblinClientApi.ContentResponse
+    {
+        public css: string
+        constructor(css: string) {
+            super('Client.GetBaseCss.Response')
+            this.css = css
+        }
+    }
+    export class ClientThemeCssNotification extends WeblinClientApi.Message
+    {
+        public css: string
+        constructor(css: string) {
+            super('Client.ThemeCssNotification')
+            this.css = css
+        }
+    }
+
 }

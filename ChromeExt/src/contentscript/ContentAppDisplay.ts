@@ -18,6 +18,7 @@ export class ContentAppDisplay {
     private display: null|HTMLElement = null
 
     private isDisplayVisible: boolean = false
+    private baseCss: string = ''
 
     constructor(app: ContentApp, appendToMe: HTMLElement) {
         this.app = app
@@ -33,6 +34,10 @@ export class ContentAppDisplay {
         return this.display
     }
 
+    public getBaseCss(): string {
+        return this.baseCss
+    }
+
     public stop(): void {
         this.appendToMeDomObserver?.disconnect()
         this.shadowDomAnchorDomObserver?.disconnect()
@@ -43,6 +48,7 @@ export class ContentAppDisplay {
         this.shadowDomRoot = null
         this.shadowDomAnchor?.remove()
         this.shadowDomAnchor = null
+        this.baseCss = ''
     }
 
     public setDisplayVisible(isVisible: boolean): void {
@@ -59,11 +65,11 @@ export class ContentAppDisplay {
         this.shadowDomRoot = this.shadowDomAnchor.attachShadow({mode: 'closed'})
 
         if (params.styleUrl) {
-            const style = await this.app.urlFetcher.fetchAsText(params.styleUrl, '1')
-            this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style>\n${style}\n</style>`))
+            this.baseCss = await this.app.urlFetcher.fetchAsText(params.styleUrl, '1')
+            this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style data-type="base">\n${this.baseCss}\n</style>`))
         }
 
-        this.display = DomUtils.elemOfHtml('<div id="n3qD" dir="ltr"></div>')
+        this.display = DomUtils.elemOfHtml('<div id="n3qD" class="client" dir="ltr"></div>')
         this.setDisplayVisible(this.isDisplayVisible)
         DomUtils.preventKeyboardEventBubbling(this.display)
         this.shadowDomRoot.append(this.display)

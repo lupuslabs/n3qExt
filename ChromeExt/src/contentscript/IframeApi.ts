@@ -272,7 +272,7 @@ export class IframeApi
         }
     }
 
-    async handle_ClientGetApiRequest(request: WeblinClientApi.ClientGetApiRequest): Promise<WeblinClientApi.Response>
+    public async handle_ClientGetApiRequest(request: WeblinClientApi.ClientGetApiRequest): Promise<WeblinClientApi.Response>
     {
         try {
             const iframeApi = [
@@ -304,6 +304,7 @@ export class IframeApi
                 WeblinClientIframeApi.WindowSetStyleRequest.type,
                 WeblinClientIframeApi.WindowPositionRequest.type,
                 WeblinClientIframeApi.WindowToFrontRequest.type,
+                WeblinClientIframeApi.ClientBaseCssRequest.type,
                 WeblinClientIframeApi.BackpackSetVisibilityRequest.type,
                 WeblinClientIframeApi.PageDomQueryRequest.type,
             ];
@@ -448,6 +449,7 @@ export class IframeApi
                 case WeblinClientIframeApi.WindowSetStyleRequest.type: { response = this.handle_WindowSetStyleRequest(<WeblinClientIframeApi.WindowSetStyleRequest>request); } break;
                 case WeblinClientIframeApi.WindowPositionRequest.type: { response = this.handle_WindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request); } break;
                 case WeblinClientIframeApi.WindowToFrontRequest.type: { response = this.handle_WindowToFrontRequest(<WeblinClientIframeApi.WindowToFrontRequest>request); } break;
+                case WeblinClientIframeApi.ClientBaseCssRequest.type: { response = this.handle_ClientBaseCssRequest(<WeblinClientIframeApi.ClientBaseCssRequest>request); } break;
                 case WeblinClientIframeApi.BackpackSetVisibilityRequest.type: { response = this.handle_BackpackSetVisibilityRequest(<WeblinClientIframeApi.BackpackSetVisibilityRequest>request); } break;
                 case WeblinClientIframeApi.ClientNavigateRequest.type: { response = this.handle_ClientNavigateRequest(<WeblinClientIframeApi.ClientNavigateRequest>request); } break;
                 case WeblinClientIframeApi.ClientSendPresenceRequest.type: { response = this.handle_ClientSendPresenceRequest(<WeblinClientIframeApi.ClientSendPresenceRequest>request); } break;
@@ -461,15 +463,20 @@ export class IframeApi
             response = new WeblinClientApi.ErrorResponse(error);
         }
 
-        if (request.id) {
-            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
-            if (roomItem) {
-                if (response == null) { response = new WeblinClientApi.SuccessResponse(); }
-                response.id = request.id;
-                if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.handle_IframeApi response', response); }
-                roomItem.sendMessageToScriptFrame(response);
-            }
+        const isRequest = !is.nil(request.id)
+        if (!isRequest && (response?.ok ?? true)) {
+            return;
         }
+        const roomItem = this.app.getRoom()?.getItemByItemId(request.item);
+        if (!roomItem) {
+            return;
+        }
+        response ??= new WeblinClientApi.SuccessResponse()
+        if (isRequest) {
+            response.id = request.id;
+        }
+        if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.handle_IframeApi response', response); }
+        roomItem.sendMessageToScriptFrame(response);
     }
 
     handle_CloseWindowRequest(request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
@@ -834,6 +841,23 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowToFrontRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_ClientBaseCssRequest(request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
+    {
+        try {
+            const roomItem = this.app.getRoom().getItemByItemId(request.item);
+            if (roomItem) {
+                const themeCss = this.app.themeManager.getEnabledThemesCss();
+                roomItem.sendMessageToScriptFrame(new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
+                return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss());
+            } else {
+                return new WeblinClientApi.ErrorResponse('No such item');
+            }
+        } catch (ex) {
+            log.info('IframeApi.handle_ClientBaseCssRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }

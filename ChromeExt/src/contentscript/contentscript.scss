@@ -1196,7 +1196,27 @@
 #n3qD .button.style-popup.close {
 }
 
-/*----------------------------------------------------------------------------*/
+/*============================================================================*/
+/* Item frame content */
+
+#n3qD.inventory-item-frame {
+    padding: var(--widget-shadow-safety-spacing);
+}
+
+#n3qD.room-item-frame {
+}
+#n3qD.room-item-frame.style-popup.transparent {
+    padding: var(--widget-shadow-safety-spacing);
+}
+#n3qD.room-item-frame.style-popup.opaque {
+    padding: var(--base-spacing-vertical) var(--base-spacing-horizontal);
+}
+
+#n3qD.room-item-frame.style-window {
+    padding: var(--widget-shadow-safety-spacing);
+}
+
+/*============================================================================*/
 /* Menu */
 
 #n3qD .button.main-menu-button,

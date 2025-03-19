@@ -1,20 +1,28 @@
 ﻿import { is } from '../lib/is'
 import { as } from '../lib/as'
+import { iter } from '../lib/Iter'
 import { Config } from '../lib/Config'
 import { DomUtils } from '../lib/DomUtils'
 import { ContentApp } from './ContentApp'
 
 import { ThemeUtils } from '../lib/ThemeUtils'
 import Theme = ThemeUtils.Theme
+import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 
 export class ContentThemeManager
 {
     private readonly app: ContentApp
     private themes: Theme[] = []
+    private enabledThemesCss: string = ''
+    private enabledThemesElem: null|HTMLElement = null
+
+    private readonly callableThemesChangedListeners: CallableEventListeners<string> = new CallableEventListeners('themesChanged')
+    public readonly themesChangedListeners: EventListeners<string>
 
     public constructor(app: ContentApp)
     {
         this.app = app
+        this.themesChangedListeners = this.callableThemesChangedListeners
     }
 
     public isFeatureEnabled(): boolean
@@ -27,27 +35,56 @@ export class ContentThemeManager
         return this.themes
     }
 
+    public getEnabledThemesCss(): string
+    {
+        return this.enabledThemesCss
+    }
+
+    public stop(): void
+    {
+        this.themes = []
+        this.update()
+    }
+
     public onThemesFromBackground(message: unknown): void
     {
         const themes: unknown = message?.['themes'] ?? null
-        if (!this.isFeatureEnabled() || !is.array(themes, ThemeUtils.isTheme)) {
-            return
+        if (this.isFeatureEnabled() && is.array(themes, ThemeUtils.isTheme)) {
+            this.themes = [...themes]
         }
-        this.themes = [...themes]
-        this.updateDisplay()
+        this.update()
+    }
+
+    private update(): void
+    {
+        if (this.updateEnabledThemesCss()) {
+            this.updateDisplay()
+            this.callableThemesChangedListeners.callListeners(this.enabledThemesCss)
+        }
+    }
+
+    private updateEnabledThemesCss(): boolean
+    {
+        const newThemesCss = iter(this.themes)
+            .filter(theme => theme.isEnabled)
+            .map(theme => `/* Theme ${theme.id} */\n\n${theme.css.trim()}`)
+            .toString('\n\n')
+        if (newThemesCss === this.enabledThemesCss) {
+            return false
+        }
+        this.enabledThemesCss = newThemesCss
+        return true
     }
 
     private updateDisplay(): void
     {
-        const root = this.app.getShadowDomRoot()
-
-        const styleElemsOld = root.querySelectorAll('style[data-isTheme]')
-        styleElemsOld.forEach(styleElem => styleElem.remove())
-
-        for (const { id, css} of this.themes.filter(theme => theme.isEnabled)) {
-            const styleElem = DomUtils.elemOfHtml(`<style data-isTheme="1">\n${css}\n</style>`)
-            root.appendChild(styleElem)
+        this.enabledThemesElem?.remove()
+        this.enabledThemesElem = null
+        if (this.enabledThemesCss.length === 0) {
+            return
         }
+        this.enabledThemesElem = DomUtils.elemOfHtml(`<style data-type="theme">\n${this.enabledThemesCss}\n</style>`)
+        this.app.getShadowDomRoot().append(this.enabledThemesElem)
     }
 
 }
