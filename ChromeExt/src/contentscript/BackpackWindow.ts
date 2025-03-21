@@ -2,7 +2,7 @@ import { as } from '../lib/as'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
-import { Window, WindowOptions } from './Window'
+import { FullWindow, FullWindowOptions } from './FullWindow'
 import { BackpackItem } from './BackpackItem'
 import { FreeSpace } from './FreeSpace'
 import { DomUtils } from '../lib/DomUtils'
@@ -14,7 +14,7 @@ import { BackpackSelectedItems } from './BackpackSelectedItems'
 import { BackpackUserSelectionRect } from './BackpackUserSelectionRect'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 
-export class BackpackWindow extends Window<WindowOptions>
+export class BackpackWindow extends FullWindow<FullWindowOptions>
 {
     private readonly filters: BackpackWindowItemFilters
     private paneElem: null|HTMLElement
@@ -27,12 +27,20 @@ export class BackpackWindow extends Window<WindowOptions>
     public constructor(app: ContentApp)
     {
         super(app)
-        this.windowName = 'Backpack'
-        this.isResizable = true
+        this.windowSettingsId = 'Backpack'
         this.persistGeometry = true
-        const guiVisibilityHandler = (isFilterGuiVisible: boolean) => this.setButtonBarVisibleState(isFilterGuiVisible)
+        this.windowCssClasses.push('backpackwindow')
+        this.titleText = 'Local Stuff';
+        this.titleTextId = 'BackpackWindow.Inventory';
+        this.defaultWidth = 600
+        this.defaultHeight = 400
+        this.defaultBottom = 200
+        this.defaultAboveBottomOffset = 50
+        this.withActionbar = true
+
+        const guiVisibilityHandler = (isFilterGuiVisible: boolean) => this.setActionBarVisibleState(isFilterGuiVisible)
         const itemVisibilityHandler = (itemId: string, isFilterVisible: boolean) => this.itemFilterVisibilityHandler(itemId, isFilterVisible)
-        this.filters = new BackpackWindowItemFilters(this.app, this.windowName, guiVisibilityHandler, itemVisibilityHandler)
+        this.filters = new BackpackWindowItemFilters(this.app, this.windowSettingsId, guiVisibilityHandler, itemVisibilityHandler)
         this.selectedItems = new BackpackSelectedItems(this.app, this)
     }
 
@@ -88,7 +96,7 @@ export class BackpackWindow extends Window<WindowOptions>
 
     public getIsDropTargetInBackpack(ev: PointerEventData): boolean
     {
-        return ev.dropTarget?.classList.contains('n3q-backpack-pane') ?? false
+        return ev.dropTarget?.classList.contains('backpack-pane') ?? false
     }
 
     public translateClientPosToBackpackPos(clientX: number, clientY: number): [number, number]
@@ -115,26 +123,14 @@ export class BackpackWindow extends Window<WindowOptions>
         this.filters.showFilter(filterId)
     }
 
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom()
-        this.windowCssClasses.push('n3q-backpackwindow')
-        this.titleText = this.app.translateText('BackpackWindow.Inventory', 'Local Stuff')
-        this.withButtonbar = true
-        this.defaultWidth = 600
-        this.defaultHeight = 400
-        this.defaultBottom = 200
-        this.defaultLeft = 50
-    }
-
     protected async makeContent(): Promise<void>
     {
         await super.makeContent()
-        this.buttonbarElem.append(this.filters.getGuiElem())
+        this.actionbarElem.append(this.filters.getGuiElem())
 
-        this.paneElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-backpack-pane" data-translate="children"></div>')
+        this.paneElem = DomUtils.elemOfHtml('<div class="backpack-pane" data-translate="children"></div>')
 
-        this.panePointerEventDispatcher = new PointerEventDispatcher(this.app, this.paneElem)
+        this.panePointerEventDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.paneElem)
         this.panePointerEventDispatcher.addAnyLeftButtonDownListener(ev => this.onPaneLeftButtonDown(ev))
         this.panePointerEventDispatcher.addAnyLeftClickListener(ev => this.onPaneLeftClick(ev))
         this.panePointerEventDispatcher.addDragStartListener(ev => this.onPaneDragStart(this.panePointerEventDispatcher, ev))
@@ -308,7 +304,7 @@ export class BackpackWindow extends Window<WindowOptions>
             item.closeInfo()
             this.selectedItems.itemDeselect(itemId)
         }
-        item?.setCssClass('filterHide', !isFilterVisible)
+        item?.setCssClass('filter-hide', !isFilterVisible)
     }
 
     // Item show/hide, property updates:

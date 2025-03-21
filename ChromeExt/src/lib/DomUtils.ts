@@ -6,6 +6,30 @@ import { PointerEventData } from './PointerEventData'
 
 export namespace DomUtils {
 
+    export type CssClasses = null|string|CssClasses[]
+
+    export function prepareCssClass(cssClass: null|string): string[] {
+        return as.String(cssClass).split(' ').map(e => e.trim()).filter(e => e.length !== 0)
+    }
+    export function prepareCssClasses(cssClasses: CssClasses, defaultCssClasses?: CssClasses): string[] {
+        const prepared = as.FlatArray(prepareCssClass, cssClasses)
+        return prepared.length !== 0 ? prepared : as.FlatArray(prepareCssClass, defaultCssClasses)
+    }
+
+    const elemIdPrefix: string = 'n3q-id-'
+    let elemIdCounter: number = 0
+    export function makeUniqueElemId(): string {
+        elemIdCounter++;
+        return `${elemIdPrefix}${elemIdCounter}`
+    }
+
+    export function parsePxValue(pxValue: string): number {
+        if (pxValue.endsWith('px')) {
+            pxValue = pxValue.substring(0, pxValue.length - 2)
+        }
+        return as.Float(pxValue)
+    }
+
     //------------------------------------------------------------------------------
     // Element creation
 
@@ -28,18 +52,43 @@ export namespace DomUtils {
 
     export function nodesOfText(text: string): Node[] {
         const nodes: Node[] = []
-        let isFirst = true
-        for (const line of text.split('\n')) {
-            const lineTrimmed = line.trim()
-            if (!isFirst) {
-                nodes.push(document.createElement('br'))
-            }
-            isFirst = false
+        for (const lineText of text.split('\n')) {
+            const lineTrimmed = lineText.trim()
             if (lineTrimmed.length !== 0) {
+                if (nodes.length !== 0) {
+                    nodes.push(document.createElement('br'))
+                }
                 nodes.push(document.createTextNode(lineTrimmed))
             }
         }
         return nodes
+    }
+
+    export function paragraphNodesOfText(text: string): Node[] {
+        const nodes: Node[] = []
+        for (const paragraphText of text.split(/\n{2,}/)) {
+            const paragraphNodes: Node[] = DomUtils.nodesOfText(paragraphText)
+            if (paragraphNodes.length !== 0) {
+                const paragraphElem = document.createElement('p')
+                paragraphNodes.forEach(node => paragraphElem.append(node))
+                nodes.push(paragraphElem)
+            }
+        }
+        return nodes
+    }
+
+    export function makeExternalTextLinkElem(url: string, label: string, target: string = '_blank'): HTMLAnchorElement
+    {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url
+        }
+        const linkElem = document.createElement('a')
+        linkElem.classList.add('link', 'external')
+        linkElem.setAttribute('href', url)
+        linkElem.setAttribute('target', target)
+        DomUtils.nodesOfText(label).forEach(node => linkElem.appendChild(node))
+        linkElem.appendChild(DomUtils.elemOfHtml('<span class="icon"/>'));
+        return linkElem
     }
 
     //------------------------------------------------------------------------------
@@ -101,16 +150,9 @@ export namespace DomUtils {
             } else if (!token.match(urlRe)) {
                 nodes.push(document.createTextNode(token))
             } else {
-                let url = token
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                    url = 'http://' + url;
-                }
+                const url = token
                 const label = url.substring(url.match(/^https?:\/\//)?.[0]?.length ?? 0)
-                const node = document.createElement('a')
-                node.setAttribute('href', url)
-                node.setAttribute('target', '_blank')
-                node.appendChild(document.createTextNode(label))
-                nodes.push(node)
+                nodes.push(DomUtils.makeExternalTextLinkElem(url, label))
             }
         }
         return nodes
@@ -199,7 +241,7 @@ export namespace DomUtils {
         const style = getComputedStyle(elem)
         const opacityF: number = Number(style.opacity)
         let opacity = 0
-        opacity = Math.max(opacity, parseComputedStyleColor(style.backgroundColor)[3])
+        opacity = Math.max(opacity, parseComputedStyleColorOpacity(style.backgroundColor))
         if (elem instanceof HTMLImageElement) {
             const [localX, localY] = [clientX - elemDims.left, clientY - elemDims.top]
             opacity = Math.max(opacity, getImgSrcOpacityAtPos(elem, localX, localY))
@@ -207,16 +249,13 @@ export namespace DomUtils {
         return [opacityF * opacity, true]
     }
 
-    export function parseComputedStyleColor(colorStr: string): Array<number>
+    export function parseComputedStyleColorOpacity(colorStr: string): number
     {
-        let match = colorStr.match(/^rgba?\(([\d.]+),\s([\d.]+),\s([\d.]+)(?:,\s([\d.]+))?\)$/i)
+        const match = colorStr.match(/^(?:rgba|lch?)\([\d.]+[,\s]\s?[\d.]+[,\s]\s?[\d.]+(?:\s?[,/]\s?([\d.]+))?\)$/i)
         if (is.nil(match)) {
-            return [0.0, 0.0, 0.0, 0.0]
+            return 0.0
         }
-        match.unshift() // Remove full match string.
-        const rgbaVals = match.map(Number)
-        rgbaVals[3] = rgbaVals[3] ?? 1.0 // RGB alpha defaults to 1.0 (full opacity).
-        return rgbaVals
+        return Number(match[1] ?? 1.0) // Alpha defaults to 1.0 (full opacity).
     }
 
     type GetImgSrcOpacityAtPosElemData = Readonly<{

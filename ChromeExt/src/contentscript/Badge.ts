@@ -32,7 +32,7 @@ export class Badge
         this.badgesDisplay = badgesDisplay;
         this.infoWindow = new BadgeInfoWindow(this.app, this);
         this.iconElem = document.createElement('img');
-        this.iconElem.classList.add('n3q-base', 'n3q-badge');
+        this.iconElem.classList.add('badge');
         this.badgesDisplay.getBadgesContainer().appendChild(this.iconElem);
         this.pointerEventDispatcher = new PointerEventDispatcher(this.app, this.iconElem);
         this.initEventHandling();
@@ -153,7 +153,7 @@ export class Badge
 
         this.pointerEventDispatcher.addDragStartListener(ev => {
             if (this.badgesDisplay.getIsInEditMode()) {
-                this.iconElem.classList.add('n3q-hidden');
+                this.iconElem.classList.add('hidden');
                 this.dragIconElem = this.badgesDisplay.makeDraggedBadgeIcon(this.item, this.item.iconDataUrl);
             } else {
                 this.pointerEventDispatcher.cancelDrag();
@@ -194,7 +194,7 @@ export class Badge
     {
         this.dragIconElem = this.badgesDisplay.disposeDraggedBadgeIcon(this.dragIconElem);
         if (!this.isStopping) {
-            this.iconElem.classList.remove('n3q-hidden');
+            this.iconElem.classList.remove('hidden');
             this.updateDisplay();
         }
     }

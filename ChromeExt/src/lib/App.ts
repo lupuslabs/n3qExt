@@ -4,7 +4,7 @@ export abstract class App {
 
     public abstract onError(error: unknown): void
 
-    public abstract getLogger(): Logger
+    public readonly logger: Logger
 
 }
 

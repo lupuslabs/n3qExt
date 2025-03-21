@@ -49,8 +49,8 @@ export class Avatar implements IObserver
 
     constructor(protected app: ContentApp, private entity: Entity, private isSelf: boolean, private isVisible: boolean)
     {
-        this.imageElem = <HTMLImageElement>DomUtils.elemOfHtml('<img class="n3q-base n3q-avatar-image" />');
-        this.elem = <HTMLDivElement>DomUtils.elemOfHtml('<div class="n3q-base n3q-avatar" />');
+        this.imageElem = <HTMLImageElement>DomUtils.elemOfHtml('<img class="entity-avatar-image" />');
+        this.elem = <HTMLDivElement>DomUtils.elemOfHtml('<div class="entity-avatar" />');
         this.elem.append(this.imageElem);
 
         // const url = 'https://www.virtual-presence.org/images/wolf.png';
@@ -62,7 +62,7 @@ export class Avatar implements IObserver
         this.isDefault = true;
 
         if (!this.isVisible) {
-            this.addClass('n3q-hidden');
+            this.addClass('hidden');
         }
 
         entity.getElem().append(this.elem);
@@ -89,7 +89,7 @@ export class Avatar implements IObserver
             dragImgElem.setAttribute('src', '');
             dragImgElem.setAttribute('src', this.imageElem.getAttribute('src'));
 
-            dragElem.classList.add('n3q-dragging');
+            dragElem.classList.add('dragging');
             this.dragElem = dragElem;
             this.app.getDisplay()?.append(dragElem);
             this.app.toFront(dragElem, ContentApp.LayerDrag);
@@ -122,11 +122,11 @@ export class Avatar implements IObserver
             }
 
             if (targetIsBadges) {
-                this.dragElem.classList.add('n3q-hidden');
+                this.dragElem.classList.add('hidden');
             } else {
                 this.dragElem.style.left = `${ev.clientX - ev.startDomElementOffsetX}px`;
                 this.dragElem.style.top = `${ev.clientY - ev.startDomElementOffsetY}px`;
-                this.dragElem.classList.remove('n3q-hidden');
+                this.dragElem.classList.remove('hidden');
             }
 
             const backpack = this.app.getBackpackWindow()
@@ -138,13 +138,13 @@ export class Avatar implements IObserver
             const dropTargetElem = ev.dropTarget;
             if (this.entity instanceof RoomItem
             && this.app.getEntityByElem(dropTargetElem)?.isValidDropTargetForItem(this.entity) === true) {
-                dropTargetElem?.parentElement?.classList.add('n3q-avatar-drophilite');
+                dropTargetElem?.parentElement?.classList.add('drop-hilite');
             }
         });
 
         this.pointerEventDispatcher.addDragLeaveListener(ev => {
             const dropTargetElem = ev.dropTargetLast;
-            dropTargetElem?.parentElement?.classList.remove('n3q-avatar-drophilite');
+            dropTargetElem?.parentElement?.classList.remove('drop-hilite');
         });
 
         this.pointerEventDispatcher.addDragDropListener(ev => {
@@ -230,7 +230,7 @@ export class Avatar implements IObserver
 
             const avatarElem = elem.parentElement;
             if (avatarElem) {
-                if (avatarElem.classList.contains('n3q-entity')) {
+                if (avatarElem.classList.contains('entity')) {
                     return avatarElem.getAttribute('data-nick');
                 } else {
                     const avatarEntityElem = avatarElem.parentElement;
@@ -253,11 +253,7 @@ export class Avatar implements IObserver
 
     hilite(on: boolean)
     {
-        if (on) {
-            this.imageElem.classList.add('n3q-avatar-hilite');
-        } else {
-            this.imageElem.classList.remove('n3q-avatar-hilite');
-        }
+        DomUtils.setElemClassPresent(this.imageElem, 'hover-hilite', on);
     }
 
     updateObservableProperty(key: string, value: string): void

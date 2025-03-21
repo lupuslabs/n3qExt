@@ -18,7 +18,7 @@ export class ContentInstantMessageManager
     constructor(app: ContentApp)
     {
         this.app = app
-        app.getTabContentData().initListeners.addListener(() => this.onTabContentDataInit())
+        app.tabContentData.initListeners.addListener(() => this.onTabContentDataInit())
     }
 
     public isFeatureEnabled(): boolean
@@ -123,7 +123,7 @@ export class ContentInstantMessageManager
 
     private onTabContentDataInit(): void
     {
-        const openImWindowUserIds = this.app.getTabContentData().get('openImWindowUserIds') ?? []
+        const openImWindowUserIds = this.app.tabContentData.get('openImWindowUserIds') ?? []
         if (!is.array(openImWindowUserIds, is.string)) {
             this.app.onError(new ErrorWithData('TabContentData contains invalid data for key openImWindowUserIds!', { openImWindowUserIds }))
             return
@@ -135,13 +135,13 @@ export class ContentInstantMessageManager
 
     private updateTabContentData(): void
     {
-        this.app.getTabContentData().set('openImWindowUserIds', [...this.openImWindows])
+        this.app.tabContentData.set('openImWindowUserIds', [...this.openImWindows])
     }
 
     private getOrCreateImWindow(otherUser: string|Readonly<PersonData>): InstantMessagesWindow
     {
         if (is.string(otherUser)) {
-            const personMgr = this.app.getPersonManager()
+            const personMgr = this.app.personManager
             otherUser = personMgr.getPersonDataOrNull(otherUser) ?? personMgr.getDummyPersonData(otherUser)
         }
 

@@ -139,7 +139,7 @@ export class ContentPersonManager
         // Only open toast in currently visible tabs to avoid annoying the user
         // Todo: Remove this after implementing autoclosing of all toasts with
         //       same Id in all tabs after user interacts with one of them.
-        if (!this.app.getViewPortEventDispatcher().getVisibility()) {
+        if (!this.app.viewportEventDispatcher.getVisibility()) {
             return
         }
 

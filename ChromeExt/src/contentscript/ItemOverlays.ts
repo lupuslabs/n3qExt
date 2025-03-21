@@ -50,7 +50,7 @@ export class ItemOverlays
 
     private makeOverlayElem({id, imageUrl, tooltipText}: ItemOverlayDefinition): HTMLElement
     {
-        const [elem, _readyPromise] = this.app.makeIcon(imageUrl)
+        const elem = this.app.uiHelper.makeIcon(imageUrl)//, true)
         elem.classList.add(`item-overlay-${id}`)
         const tooltipTextTranslated = tooltipText.get(this.app.getLanguage()) ?? iter(tooltipText.values()).getNext() ?? null
         if (!is.nil(tooltipTextTranslated)) {

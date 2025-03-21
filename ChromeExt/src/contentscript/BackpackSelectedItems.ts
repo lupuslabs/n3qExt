@@ -202,7 +202,7 @@ export class BackpackSelectedItems
         const dragTargetEntity = this.app.getEntityByElem(ev.dropTarget)
         if (dragTargetEntity?.isValidDropTargetForItem(backpackItem)) {
             this.dragTargetEntity = dragTargetEntity
-            ev.dropTarget.parentElement?.classList.add('n3q-avatar-drophilite')
+            ev.dropTarget.parentElement?.classList.add('drop-hilite')
         }
         this.onDragMove(ev)
     }
@@ -213,7 +213,7 @@ export class BackpackSelectedItems
             return
         }
         this.dragTargetEntity = null
-        ev.dropTargetLast?.parentElement?.classList.remove('n3q-avatar-drophilite')
+        ev.dropTargetLast?.parentElement?.classList.remove('drop-hilite')
         this.onDragMove(ev)
     }
 
@@ -391,14 +391,14 @@ class BackpackSelectionDraggedItem
         const dragElem: HTMLElement = <HTMLElement>backpackItemElem.cloneNode(true)
 
         // Work around wrongly applied CSP in Firefox on pages limiting img-src after cloning by unsetting and setting img src:
-        const originalImgElem = backpackItemElem.querySelector('.n3q-backpack-item-image')
-        const dragImgElem = dragElem.querySelector('.n3q-backpack-item-image')
+        const originalImgElem = backpackItemElem.querySelector('.icon')
+        const dragImgElem = dragElem.querySelector('.icon')
         if (originalImgElem && dragImgElem) {
             dragImgElem.setAttribute('src', '')
             dragImgElem.setAttribute('src', originalImgElem.getAttribute('src'))
         }
 
-        dragElem.classList.add('n3q-dragging')
+        dragElem.classList.add('dragging')
         this.dragElem = dragElem
         this.app.getDisplay()?.append(dragElem)
         this.app.toFront(dragElem, ContentApp.LayerDrag)
@@ -428,13 +428,13 @@ class BackpackSelectionDraggedItem
         const [itemClientX, itemClientY] = this.calcItemClientPos(selectionBackpackBox, selectionClientBox)
         this.dragElem.style.left = `${itemClientX}px`
         this.dragElem.style.top = `${itemClientY}px`
-        this.dragElem.classList.remove('n3q-hidden')
+        this.dragElem.classList.remove('hidden')
         this.app.getMyBadgesDisplay()?.hideDraggedBadgeIcon(this.dragBadgeElem)
     }
 
     public drawAsBadge(ev: PointerEventData): void
     {
-        this.dragElem.classList.add('n3q-hidden')
+        this.dragElem.classList.add('hidden')
         this.app.getMyBadgesDisplay()?.showDraggedBadgeIconInside(this.backpackItem.getProperties(), ev, this.dragBadgeElem)
     }
 
@@ -454,7 +454,7 @@ class BackpackSelectionDraggedItem
 
     public setDraggedStyle(isDragging: boolean): void
     {
-        this.backpackItem.setCssClass('n3q-hidden', isDragging)
+        this.backpackItem.setCssClass('hidden', isDragging)
     }
 
 }

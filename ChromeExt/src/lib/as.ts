@@ -116,6 +116,24 @@ export class as
         return res;
     }
 
+    static FlatArray<T extends Exclude<{}, Array<any>>>(converter: (e: unknown) => null|T|T[], val: unknown): T[]
+    {
+        if (is.nil(val)) {
+            return [];
+        }
+        if (is.array(val)) {
+            return val.flatMap(e => as.FlatArray(converter, e));
+        }
+        const converted = converter(val);
+        if (is.nil(converted)) {
+            return [];
+        }
+        if (is.array(converted)) {
+            return converted;
+        }
+        return [converted];
+    }
+
     // static Object(val: any, alt?: any): any
     // {
     //     var res = alt ?? {};

@@ -1,4 +1,4 @@
-import { Window, WindowOptions } from './Window';
+import { FullWindow, FullWindowOptions } from './FullWindow';
 import { ContentApp } from './ContentApp';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -24,7 +24,7 @@ interface Video
     url: string;
 }
 
-export class TutorialWindow extends Window<WindowOptions> {
+export class TutorialWindow extends FullWindow<FullWindowOptions> {
 
     static localStorage_TutorialPopupCount_Key: string = 'client.tutorialPopupCount';
     static localStorage_LastTutorial_Key: string = 'client.lastTutorial';
@@ -32,21 +32,16 @@ export class TutorialWindow extends Window<WindowOptions> {
 
     private videos: Video[] = Config.get('tutorial.videos', []);
     private currentVideoIndex: number = 0;
-    private videoTitle: HTMLElement;
+    private videoTitleElem: HTMLElement;
     private videoContainer: HTMLElement;
     private dotsContainer: HTMLElement;
 
-    constructor(app: ContentApp)
+    public constructor(app: ContentApp)
     {
         super(app);
-        this.isResizable = true;
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.windowCssClasses.push('n3q-tutorialwindow');
-        this.titleText = this.app.translateText('TutorialWindow.Tutorial', 'Tutorial');
+        this.windowCssClasses.push('tutorialwindow');
+        this.titleText = 'Tutorial';
+        this.titleTextId = 'TutorialWindow.Tutorial';
         this.defaultWidth = Config.get('tutorial.defaultWidth', 1040);
         this.defaultHeight = Config.get('tutorial.defaultHeight', 665);
         this.defaultBottom = Config.get('tutorial.defaultBottom', 400);
@@ -56,58 +51,40 @@ export class TutorialWindow extends Window<WindowOptions> {
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
-        const contentElem = this.contentElem;
 
-        const pane = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-pane" data-translate="children"></script></div>');
+        this.videoTitleElem = DomUtils.elemOfHtml('<div class="tutorialwindow-video-title"></div>');
+        this.contentElem.appendChild(this.videoTitleElem);
 
-        this.videoTitle = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-video-title"></div>');
-        this.videoContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-video-container"></div>');
+        this.videoContainer = DomUtils.elemOfHtml('<div class="video-container"></div>');
+        this.contentElem.appendChild(this.videoContainer);
 
-        const navButtons = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-nav-buttons" data-translate="children"></div>');
-        const previousBtn = DomUtils.elemOfHtml('<div class="n3q-button n3q-tutorialwindow-previous" title="Previous" data-translate="attr:title:TutorialWindow text:TutorialWindow">Previous</div>');
+        const navButtons = DomUtils.elemOfHtml('<div class="navigation-row" data-translate="children"></div>');
 
-        const dontShowContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dontshow-container" data-translate="children"></div>');
-        const checkboxId = Utils.randomString(10);
-        const dontShowCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input class="n3q-tutorialwindow-dontshow" type="checkbox" name="checkbox" id="${checkboxId}" />`);
-        const dontShowLabel = DomUtils.elemOfHtml(`<label class="n3q-tutorialwindow-dontshow" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`);
+        const previousBtn = this.app.uiHelper.makeDefaultTextButton('style-big previous-button', `TutorialWindow.Previous`, 'Previous', () => this.onPreviousClick())
+        navButtons.appendChild(previousBtn);
+
+        const dontShowContainer = DomUtils.elemOfHtml('<div class="dontshow-container" data-translate="children"></div>');
+        const checkboxId = DomUtils.makeUniqueElemId();
+        const dontShowCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input type="checkbox" id="${checkboxId}" />`);
         dontShowCheckbox.checked = await TutorialWindow.isDontShow();
         dontShowCheckbox.addEventListener('change', ev => { TutorialWindow.setDontShow(dontShowCheckbox.checked); });
         dontShowContainer.appendChild(dontShowCheckbox);
-        dontShowContainer.appendChild(dontShowLabel);
-
-        const filler1 = DomUtils.elemOfHtml('<div class="n3q-flex-filler"></div>');
-
-        this.dotsContainer = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dots-container"></div>');
-
-        const filler2 = DomUtils.elemOfHtml('<div class="n3q-flex-filler"></div>');
-
-        const nextBtn = DomUtils.elemOfHtml('<div class="n3q-button n3q-tutorialwindow-next" title="Next" data-translate="attr:title:TutorialWindow text:TutorialWindow">Next</div>');
-
-        navButtons.appendChild(previousBtn);
+        dontShowContainer.appendChild(DomUtils.elemOfHtml(`<label class="label" for="${checkboxId}" data-translate="text:TutorialWindow">Do not show again</label>`));
         navButtons.appendChild(dontShowContainer);
-        navButtons.appendChild(filler1);
-        navButtons.appendChild(this.dotsContainer);
-        navButtons.appendChild(filler2);
-        navButtons.appendChild(nextBtn);
 
-        pane.appendChild(this.videoTitle);
-        pane.appendChild(this.videoContainer);
-        pane.appendChild(navButtons);
-
-        contentElem.append(pane);
-
-        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, pane);
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, previousBtn).addUnmodifiedLeftClickListener(ev => { this.onPreviousClick(); });
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, nextBtn).addUnmodifiedLeftClickListener(ev => { this.onNextClick(); });
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, pane);
-
-        this.videos.forEach((elem, index) =>
-        {
-            const dot = DomUtils.elemOfHtml('<div class="n3q-tutorialwindow-dot" data-index="' + index + '" title="' + as.Html(elem.title) + '"></div>');
+        this.dotsContainer = DomUtils.elemOfHtml('<div class="dots-container"></div>');
+        this.videos.forEach((elem, index) => {
+            const dot = DomUtils.elemOfHtml('<div class="dot" data-index="' + index + '" title="' + as.Html(elem.title) + '"></div>');
             PointerEventDispatcher.makeOpaqueDispatcher(this.app, dot).addUnmodifiedLeftClickListener(ev => { this.onDotClick(index); });
             this.dotsContainer.appendChild(dot);
         });
+        navButtons.appendChild(this.dotsContainer);
 
+        const nextBtn = this.app.uiHelper.makeDefaultTextButton('style-big next-button', `TutorialWindow.Next`, 'Next', () => this.onNextClick())
+        navButtons.appendChild(nextBtn);
+
+        this.contentElem.appendChild(navButtons);
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, this.contentElem);
 
         this.currentVideoIndex = await TutorialWindow.getLastVideoIndex();
         if (this.currentVideoIndex < this.videos.length - 1) {
@@ -130,10 +107,10 @@ export class TutorialWindow extends Window<WindowOptions> {
 
     private async updateVideo(): Promise<void>
     {
-        this.videoTitle.textContent = this.videos[this.currentVideoIndex].title;
+        this.videoTitleElem.textContent = this.videos[this.currentVideoIndex].title;
 
         const videoUrl = this.videos[this.currentVideoIndex].url.replace('youtu.be', 'youtube.com/embed') + Config.get('tutorial.videoArgs', '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1')
-        const videoUrlWrapped = this.app.getWrappedIframeUrl(videoUrl);
+        const videoUrlWrapped = this.app.uiHelper.getWrappedIframeUrl(videoUrl);
         const videoHtmlAllow = Config.get('tutorial.videoHtmlAllow', 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
         this.videoContainer.innerHTML = `<iframe src="${videoUrlWrapped}" frameborder="0" ${videoHtmlAllow}></iframe>`;
 
@@ -141,9 +118,9 @@ export class TutorialWindow extends Window<WindowOptions> {
         {
             const dot = this.dotsContainer.querySelector('[data-index="' + index + '"]');
             if (index === this.currentVideoIndex) {
-                dot.classList.add('n3q-active');
+                dot.classList.add('active');
             } else {
-                dot.classList.remove('n3q-active');
+                dot.classList.remove('active');
             }
         });
 
@@ -158,9 +135,9 @@ export class TutorialWindow extends Window<WindowOptions> {
     //     {
     //         const dot = this.dotsContainer.querySelector('[data-index="' + index + '"]');
     //         if (index == this.currentVideoIndex) {
-    //             dot.classList.add('n3q-active');
+    //             dot.classList.add('active');
     //         } else {
-    //             dot.classList.remove('n3q-active');
+    //             dot.classList.remove('active');
     //         }
     //     });
 

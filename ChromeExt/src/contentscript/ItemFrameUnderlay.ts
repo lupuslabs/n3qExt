@@ -26,7 +26,7 @@ export class ItemFrameUnderlay
             let css = JSON.parse(options);
             this.iframeId = Utils.randomString(15);
 
-            this.elem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe id="${this.iframeId}" class="n3q-base n3q-itemframepopunder-content" src="${this.url}" frameborder="0" allow="autoplay; encrypted-media"></iframe>`);
+            this.elem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe id="${this.iframeId}" class="popunder" src="${this.url}" allow="autoplay; encrypted-media"></iframe>`);
             $(this.elem).css(css);
 
             let avatar = this.roomItem.getAvatar();

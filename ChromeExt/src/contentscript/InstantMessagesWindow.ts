@@ -26,18 +26,16 @@ export class InstantMessagesWindow extends ChatWindow
         super(app, chatChannel)
         this.otherUserId = otherUser.userId
         this.otherUser = otherUser
+
+        this.windowCssClasses.push('instantmessageswindow')
+        this.titleText = 'Private Chat with {other}';
+        this.titleTextId = 'PrivateChat.Private Chat with';
+        this.titleTextReplacements.set('{other}', () => this.getUserInfo(this.otherUserId).userName);
     }
 
     public getOtherPersonData(): Readonly<PersonData>
     {
         return this.otherUser
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom()
-        const otherPersonData = this.getUserInfo(this.otherUserId)
-        this.titleText = this.app.translateText('PrivateChat.Private Chat with', 'Private Chat with') + ' ' + otherPersonData.userName
     }
 
     protected async makeContent(): Promise<void>
@@ -48,13 +46,13 @@ export class InstantMessagesWindow extends ChatWindow
     protected onVisible(): void
     {
         super.onVisible()
-        this.app.getInstantMessageManager().onInstantMessagesWindowOpen(this.otherUserId)
+        this.app.instantMessageManager.onInstantMessagesWindowOpen(this.otherUserId)
     }
 
     protected onInvisible(): void
     {
         super.onInvisible()
-        this.app.getInstantMessageManager().onInstantMessagesWindowClose(this.otherUserId)
+        this.app.instantMessageManager.onInstantMessagesWindowClose(this.otherUserId)
     }
 
     protected onViewportVisible(): void
@@ -123,7 +121,7 @@ export class InstantMessagesWindow extends ChatWindow
 
     private getRawUserInfo(userId: string): PersonData
     {
-        const userData: null|PersonData = this.app.getPersonManager().getPersonDataOrNull(userId)
+        const userData: null|PersonData = this.app.personManager.getPersonDataOrNull(userId)
         if (userData) {
             return userData
         }
@@ -142,7 +140,7 @@ export class InstantMessagesWindow extends ChatWindow
         if (userId === this.otherUserId) {
             return this.otherUser
         }
-        return this.app.getPersonManager().getDummyPersonData(userId)
+        return this.app.personManager.getDummyPersonData(userId)
     }
 
     private otherUserChanged(): void

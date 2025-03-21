@@ -1,26 +1,26 @@
-﻿import { RootMenu } from './Menu';
+﻿import { Menu } from './Menu';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 
-export abstract class ParticipantMenu extends RootMenu
+export abstract class ParticipantMenu extends Menu
 {
 
     protected participant: Participant;
-    
+
     public constructor(app: ContentApp, participant: Participant)
     {
-        super(app, 'avatar');
+        super(app, 'participant');
         this.participant = participant;
     }
 
-    public onUserDone(): void {
+    public onItemUserDone(): void {
         this.participant.closeMenu();
     }
 
     public close(): void
     {
         super.close();
-        this.columns = [];
+        this.items = [];
     }
 
     protected render()

@@ -1,3 +1,4 @@
+import { is } from '../lib/is'
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -16,11 +17,8 @@ export class RoomItemStats // Todo: Convert to Window.
 
     public show(): void
     {
-        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops n3q-roomitemstats n3q-shadow-small" data-translate="children"></div>');
-        const hasStats = this.update();
-        if (!hasStats) {
-            return;
-        }
+        this.elem = DomUtils.elemOfHtml('<div class="roomitemstats" data-translate="children"></div>');
+        this.update();
         this.app.getDisplay().append(this.elem);
         this.app.toFront(this.elem, ContentApp.LayerEntityTooltip);
         this.elem.style.opacity = '0';
@@ -34,65 +32,40 @@ export class RoomItemStats // Todo: Convert to Window.
         this.onClose?.();
     }
 
-    public update(): boolean
+    public update(): void
     {
         this.elem.innerHTML = '';
-
-        let props = this.roomItem.getProperties();
+        const props = this.roomItem.getProperties();
 
         let label = as.String(props[Pid.Label]);
         if (!label.length) {
             label = as.String(props[Pid.Template]);
         }
-        if (label) {
-            let labelElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-title" data-translate="text:ItemLabel">' + label + '</div>');
-            this.elem.append(labelElem);
+        if (label.length) {
+            this.elem.append(DomUtils.elemOfHtml(`<div class="title" data-translate="text:ItemLabel">${as.Html(label)}</div>`));
         }
 
-        let description = as.String(props[Pid.Description], '');
+        const description = as.String(props[Pid.Description]);
         if (description.length) {
-            let descriptionElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-description">' + description + '</div>');
-            this.elem.append(descriptionElem);
+            this.elem.append(DomUtils.elemOfHtml(`<div class="description">${as.Html(description)}</div>`));
         }
 
-        let display = ItemProperties.getDisplay(props);
-
-        // if (as.Bool(props[Pid.IsRezzed], false)) {
-        //     display[Pid.IsRezzed] = props[Pid.IsRezzed];
-        //     display[Pid.RezzedDestination] = props[Pid.RezzedDestination];
-        // }
-
+        const displayProps = ItemProperties.getDisplay(props);
         if (this.roomItem.isMyItem()) {
-            display[Pid.OwnerName] = 'You';
+            displayProps[Pid.OwnerName] = 'You';
         } else {
-            display[Pid.OwnerName] = this.roomItem.getOwnerName();
+            displayProps[Pid.OwnerName] = this.roomItem.getOwnerName();
         }
 
-        let listElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-list" data-translate="children"></div>');
-        let hasStats = description !== '';
-        for (let pid in display) {
-            let value = display[pid];
-            if (value) {
-                hasStats = true;
-                let lineElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-itemprops-line" data-translate="children">'
-                    + '<span class="n3q-base n3q-itemprops-key" data-translate="text:ItemPid">'
-                    + pid + '</span><span class="n3q-base n3q-itemprops-value" data-translate="text:ItemValue" title="'
-                    + as.Html(value) + '">'
-                    + as.Html(value) + '</span>'
-                    + '</div>');
-                listElem.append(lineElem);
-            }
+        const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>');
+        for (const [pid, value] of Object.entries(displayProps).filter(([_, value]) => is.nonEmptyString(value))) {
+            listElem.append(DomUtils.elemOfHtml(`<span class="label" data-translate="text:ItemPid">${as.Html(pid)}</span>`));
+            listElem.append(DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`));
         }
-        if (hasStats) {
-            this.elem.append(listElem);
-        }
+        this.elem.append(listElem);
 
         this.app.translateElem(this.elem);
-
-        if (hasStats) {
-            this.updateGeometry();
-        }
-        return hasStats;
+        this.updateGeometry();
     }
 
     public updateGeometry(): void

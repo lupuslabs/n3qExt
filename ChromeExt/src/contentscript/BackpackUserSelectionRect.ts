@@ -24,7 +24,7 @@ export class BackpackUserSelectionRect
     {
         this.app = app
         this.backpack = backpack
-        this.rectElem = DomUtils.elemOfHtml('<dev class="n3q-user-selection-rect"></dev>')
+        this.rectElem = DomUtils.elemOfHtml('<dev class="user-selection-rect"></dev>')
         this.app.getDisplay()?.append(this.rectElem)
         this.app.toFront(this.rectElem, ContentApp.LayerDrag)
         this.eventDispatcher = eventDispatcher

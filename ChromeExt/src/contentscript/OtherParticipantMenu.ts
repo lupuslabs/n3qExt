@@ -2,7 +2,6 @@
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ParticipantMenu } from './ParticipantMenu';
-import { MenuColumn } from './Menu'
 import * as privateVideoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
 import * as privateChatIconUrl from '../assets/icons/ri_chat-private-line.svg';
 import * as greetIconUrl from '../assets/icons/mdi_human-greeting.svg';
@@ -16,45 +15,42 @@ export class OtherParticipantMenu extends ParticipantMenu
 
     protected makeMenuTree(): void
     {
-        let column = this.addColumn('interaction');
-        column.addActionItem('privateVideoConference', privateVideoConferenceIconUrl, 'Private Videoconf', () => {
+        this.addActionItem('privateVideoConference', 'Private Videoconf', privateVideoConferenceIconUrl, true, () => {
             this.participant.initiatePrivateVidconf(this.participant.getElem()).catch(error => this.app.onError(error));
         });
 
-        const imManager = this.app.getInstantMessageManager();
+        const imManager = this.app.instantMessageManager;
         const otherUserId = this.participant.getUserId();
         if (imManager.isFeatureEnabled() && this.participant.getSupportsPrivateChat()) {
             const action = () => imManager.openInstantMessagesWindow(otherUserId);
-            column.addActionItem('privateChat', privateChatIconUrl, 'Private Chat', action);
+            this.addActionItem('privateChat', 'Private Chat', privateChatIconUrl, true, action);
         }
 
-        column.addActionItem('greet', greetIconUrl, 'Greet', () => {
+        this.addActionItem('greet', 'Greet', greetIconUrl, true, () => {
             this.participant.sendPoke('greet');
             this.participant.do('wave', false);
         });
-        column.addActionItem('bye', byeIconUrl, 'Bye', () => {
+        this.addActionItem('bye', 'Bye', byeIconUrl, true, () => {
             this.participant.sendPoke('bye');
             this.participant.do('wave', false);
         });
         if (Utils.isBackpackEnabled() && this.participant.getSupportsPersonApi()) {
-            this.makePersonMenuAndItem(column);
+            this.makePersonMenuAndItem();
         }
-        this.makeDebugMenuAndItem(column);
+        this.makeDebugMenuAndItem();
     }
 
-    protected makePersonMenuAndItem(column: MenuColumn): void
+    protected makePersonMenuAndItem(): void
     {
-        const personData = this.app.getPersonManager().getPersonDataOrNull(this.participant.getUserId())
+        const personData = this.app.personManager.getPersonDataOrNull(this.participant.getUserId())
         if (!personData) {
             return;
         }
         const { userId, userName, userImageUrl, ownFriendStatus, ownPersonItem } = personData;
-
-        const menuItem = column.addSubmenuItem('person', personIconUrl, 'Person');
-        const menuColumn = menuItem.addColumn('person');
+        const personMenu = this.addSubmenuItem('person', 'Person', personIconUrl, true);
 
         if (!ownPersonItem) {
-            menuColumn.addActionItem('remember', null, 'Remember', () => {
+            personMenu.addActionItem('remember', 'Remember', null, null, () => {
                 const method = 'N3q.MemorizePerson';
                 const props = { [Pid.UserId]: this.participant.getUserId() };
                 BackgroundMessage.executeBackpackItemActionOnGenericitem(method, props)
@@ -66,54 +62,53 @@ export class OtherParticipantMenu extends ParticipantMenu
         switch (ownFriendStatus) {
             default:
             case 'No': {
-                menuColumn.addActionItem(menuItemId, null, 'ProposeFriendship', () => {
-                    this.app.getPersonManager().showProposeFriendshipToast(personData);
+                personMenu.addActionItem(menuItemId, 'ProposeFriendship', null, null, () => {
+                    this.app.personManager.showProposeFriendshipToast(personData);
                 });
             } break;
             case 'ProposedByOwner': {
-                menuColumn.addActionItem(menuItemId, null, 'CancelFriendshipProposal', () => {
+                personMenu.addActionItem(menuItemId, 'CancelFriendshipProposal', null, null, () => {
                     const props = { [Pid.UserId]: userId };
                     BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', props)
                         .catch(error => this.app.onError(error))
                 });
             } break;
             case 'ProposedByOther': {
-                menuColumn.addActionItem(menuItemId, null, 'AcceptFriendshipProposal', () => {
+                personMenu.addActionItem(menuItemId, 'AcceptFriendshipProposal', null, null, () => {
                     const props = { [Pid.UserId]: userId };
                     BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.AcceptFriendship', props)
                         .catch(error => this.app.onError(error))
                 });
-                menuColumn.addActionItem(menuItemId, null, 'DeclineFriendshipProposal', () => {
+                personMenu.addActionItem(menuItemId, 'DeclineFriendshipProposal', null, null, () => {
                     const props = { [Pid.UserId]: userId };
                     BackgroundMessage.executeBackpackItemActionOnGenericitem('N3q.CancelFriendship', props)
                         .catch(error => this.app.onError(error))
                 });
             } break;
             case 'Yes': {
-                menuColumn.addActionItem(menuItemId, null, 'CancelFriendship', () => {
-                    this.app.getPersonManager().showCancelFriendshipToast(personData);
+                personMenu.addActionItem(menuItemId, 'CancelFriendship', null, null, () => {
+                    this.app.personManager.showCancelFriendshipToast(personData);
                 });
             } break;
         }
 
         if (ownPersonItem) {
-            menuColumn.addActionItem('forget', null, 'Forget', () => {
+            personMenu.addActionItem('forget', 'Forget', null, null, () => {
                 this.app.deleteItemAsk(ItemProperties.getId(ownPersonItem));
             });
         }
     }
 
-    protected makeDebugMenuAndItem(column: MenuColumn): void
+    protected makeDebugMenuAndItem(): void
     {
         const withRequestUserInfoItem = as.Bool(Config.get('room.showPrivateChatInfoButton'));
         if (!withRequestUserInfoItem) {
             return;
         }
-        const menuItem = column.addSubmenuItem('debug', null, 'Debug');
-        const menuColumn = menuItem.addColumn('debug');
+        const debugMenu = this.addSubmenuItem('debug', 'Debug', null, null);
 
         if (withRequestUserInfoItem) {
-            menuColumn.addActionItem('requestUserInfo', null, 'Info', () => {
+            debugMenu.addActionItem('requestUserInfo', 'Info', null, null, () => {
                 this.participant.fetchVersionInfo();
             });
         }

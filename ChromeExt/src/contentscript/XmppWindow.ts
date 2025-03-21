@@ -2,30 +2,25 @@ import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Window, WindowOptions } from './Window';
+import { FullWindow, FullWindowOptions } from './FullWindow';
 import { Memory } from '../lib/Memory';
 import { DomUtils } from '../lib/DomUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
-export class XmppWindow extends Window<WindowOptions>
+export class XmppWindow extends FullWindow<FullWindowOptions>
 {
-    private readonly label_errpr = 'error';
-    private outElem: HTMLElement;
-    private inInputElem: HTMLTextAreaElement;
+    private readonly label_error: string = 'error';
+    private outElem: null|HTMLElement = null;
+    private inInputElem: null|HTMLTextAreaElement = null;
 
     public constructor(app: ContentApp)
     {
         super(app);
-        this.windowName = 'Xmpp';
-        this.isResizable = true;
+        this.windowSettingsId = 'Xmpp';
         this.persistGeometry = true;
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.windowCssClasses.push('n3q-xmppwindow');
-        this.titleText = this.app.translateText('XmppWindow.Xmpp', 'XMPP');
+        this.windowCssClasses.push('xmppwindow');
+        this.titleText = 'XMPP';
+        this.titleTextId = 'XmppWindow.Xmpp';
         this.minWidth = 180;
         this.minHeight = 160;
         this.defaultWidth = 600;
@@ -39,31 +34,22 @@ export class XmppWindow extends Window<WindowOptions>
         await super.makeContent();
         const contentElem = this.contentElem;
 
-        this.outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-xmppwindow-out" data-translate="children"></div>');
-        const inElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-xmppwindow-in" data-translate="children"></div>');
-        this.inInputElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-xmppwindow-in-input n3q-input n3q-text"></textarea>');
-        const inSendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-send" title="Send">Send</div>');
-        const inSaveElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-in-save" title="Save">Save</div>');
-        const outClearElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-absolutebutton n3q-xmppwindow-out-clear" title="Clear">Clear</div>');
-
-        inElem.append(this.inInputElem);
-
-        contentElem.append(this.outElem);
-        contentElem.append(inElem);
-        contentElem.append(inSendElem);
-        contentElem.append(inSaveElem);
-        contentElem.append(outClearElem);
-
+        this.outElem = DomUtils.elemOfHtml('<div class="code from-server" data-translate="children"></div>');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
+        contentElem.append(this.outElem);
+        const outClearElem = this.app.uiHelper.makeDefaultTextButton('from-server-clear-button', null, 'Clear', () => {this.outElem.innerHTML = ''})
+        contentElem.append(outClearElem);
+        this.inInputElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="to-server-input"></textarea>');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.inInputElem);
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, inSendElem).addUnmodifiedLeftClickListener(ev => this.sendText());
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, inSaveElem).addUnmodifiedLeftClickListener(ev => this.saveText());
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, outClearElem).addUnmodifiedLeftClickListener(ev => {
-            this.outElem.innerHTML = '';
-        });
+        contentElem.append(this.inInputElem);
+        const inButtonsElem = DomUtils.elemOfHtml('<div class="to-server-buttons" data-translate="children"></div>');
+        const inSendElem = this.app.uiHelper.makeDefaultTextButton('to-server-send-button', null, 'Send', () => this.sendText())
+        inButtonsElem.append(inSendElem);
+        const inSaveElem = this.app.uiHelper.makeDefaultTextButton('to-server-save-button', null, 'Save', () => this.saveText())
+        inButtonsElem.append(inSaveElem);
+        contentElem.append(inButtonsElem);
 
         this.getStoredText().then(text => this.setText(text)).catch(error => this.app.onError(error));
-
         this.inInputElem.focus();
     }
 
@@ -136,20 +122,21 @@ export class XmppWindow extends Window<WindowOptions>
 
     public showLine(label: string, text: string)
     {
-        const lineElem = <HTMLElement>$(
-            `<div class="n3q-base n3q-xmppwindow-line` + (label === this.label_errpr ? ' n3q-xmppwindow-line-error' : '') + `">
-                <span class="n3q-base n3q-text n3q-xmppwindow-label">` + as.Html(label) + `</span>
-                <span class="n3q-base n3q-text n3q-xmppwindow-text">`+ as.Html(text) + `</span>
+        const lineElem = DomUtils.elemOfHtml(
+            `<div class="line${label === this.label_error ? ' error' : ''}">
+                <span class="label">${as.Html(label)}</span>
+                <span class="text">${as.Html(text)}</span>
             <div>`
-        ).get(0);
+        );
 
         if (this.outElem) {
-            $(this.outElem).append(lineElem).scrollTop($(this.outElem).get(0).scrollHeight);
+            this.outElem.append(lineElem);
+            this.outElem.scrollTop = this.outElem.scrollHeight;
         }
     }
 
     public showError(text: string)
     {
-        this.showLine(this.label_errpr, text);
+        this.showLine(this.label_error, text);
     }
 }

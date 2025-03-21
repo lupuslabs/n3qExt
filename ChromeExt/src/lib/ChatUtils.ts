@@ -71,7 +71,7 @@ export namespace ChatUtils {
     export function prepareTextHtml(text: string, highlightOwnMentionName?: string): {textNodes: Node[], ownNameMentionFound: boolean}
     {
         const state = {ownNameMentionFound: false} as const
-        let textNodes: Node[] = DomUtils.nodesOfText(text)
+        let textNodes: Node[] = DomUtils.paragraphNodesOfText(text)
         textNodes = DomUtils.convertTextInNodes(textNodes, DomUtils.makeLinksInTextClickable, {})
         if (is.nonEmptyString(highlightOwnMentionName)) {
             const converter = (line: string, _context: DomUtils.NodeConversionContext) =>

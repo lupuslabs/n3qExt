@@ -6,9 +6,9 @@ import { DomUtils } from '../lib/DomUtils';
 import { Badge } from './Badge';
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config';
-import { Window, WindowOptions } from './Window'
+import { PopupWindow, PopupWindowOptions } from './PopupWindow'
 
-export class BadgeInfoWindow extends Window<WindowOptions>
+export class BadgeInfoWindow extends PopupWindow<PopupWindowOptions>
 {
     // Displays information about a single badge.
 
@@ -22,6 +22,10 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     constructor(app: ContentApp, badge: Badge)
     {
         super(app);
+        this.guiLayer = ContentApp.LayerPopup;
+        this.windowCssClasses.push('badgeInfoWindow');
+        this.isResizable = true;
+
         this.badge = badge;
     }
 
@@ -47,12 +51,6 @@ export class BadgeInfoWindow extends Window<WindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
-        this.windowName = 'badge';
-        this.style = 'popup';
-        this.guiLayer = ContentApp.LayerPopup;
-        this.windowCssClasses.push('n3q-badgeInfoWindow');
-        this.isResizable = true;
-        this.geometryInitstrategy = 'afterContent';
         const aboveRect = this.badge.getBoundingClientRect();
         this.givenOptions = {
             left: this.givenOptions.left ?? aboveRect.left,
@@ -135,11 +133,11 @@ class BadgeInfoWindowNativeContent implements BadgeInfoWindowContent
     public makeContent(): MakeContentResult
     {
         const properties = this.properties;
-        const contentElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-columns"></div>');
+        const contentElem = DomUtils.elemOfHtml('<div class="columns"></div>');
 
         const {imageUrl, imageWidth, imageHeight} = ItemProperties.getBadgeImageData(properties);
         if (imageUrl.length !== 0) {
-            const elem = DomUtils.elemOfHtml('<img class="n3q-badgeInfoWindow-image"/>');
+            const elem = DomUtils.elemOfHtml('<img class="image"/>');
             elem.style.width = `${imageWidth}px`;
             elem.style.height = `${imageHeight}px`;
             contentElem.appendChild(elem);
@@ -152,15 +150,17 @@ class BadgeInfoWindowNativeContent implements BadgeInfoWindowContent
 
         const title = ItemProperties.getBadgeTitle(properties);
         if (title.length !== 0) {
-            const elem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-title"></div>');
-            this.makeTextElems(elem, title);
+            const elem = DomUtils.elemOfHtml('<div class="title"></div>');
+            const titleTranslated = this.app.translateText(`badge.${title}`, title);
+            DomUtils.paragraphNodesOfText(titleTranslated).forEach(node => elem.append(node));
             descriptionColumnElems.push(elem);
         }
 
         const description = ItemProperties.getBadgeDescription(properties);
         if (description.length !== 0) {
-            const elem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-description"></div>');
-            this.makeTextElems(elem, description);
+            const elem = DomUtils.elemOfHtml('<div class="description"></div>');
+            const descriptionTranslated = this.app.translateText(`badge.${description}`, description);
+            DomUtils.paragraphNodesOfText(descriptionTranslated).forEach(node => elem.append(node));
             descriptionColumnElems.push(elem);
         }
 
@@ -170,38 +170,20 @@ class BadgeInfoWindowNativeContent implements BadgeInfoWindowContent
             if (linkLabel.length === 0) {
                 linkLabel = Utils.getLabelOfUrl(linkUrl);
             }
-            const elem = DomUtils.elemOfHtml('<a class="n3q-badgeInfoWindow-link" target="_blank"></a>');
-            elem.setAttribute('href', linkUrl);
-            this.makeTextElems(elem, linkLabel);
+            const linkLabelTranslated = this.app.translateText(`badge.${linkLabel}`, linkLabel);
+            const elem = DomUtils.makeExternalTextLinkElem(linkUrl, linkLabelTranslated);
             PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, elem);
             descriptionColumnElems.push(elem);
         }
 
         if (descriptionColumnElems.length !== 0) {
-            const columnElem = DomUtils.elemOfHtml('<div class="n3q-badgeInfoWindow-descriptionColumn"></div>');
+            const columnElem = DomUtils.elemOfHtml('<div class="descriptionColumn"></div>');
             descriptionColumnElems.forEach(elem => columnElem.appendChild(elem));
             contentElem.appendChild(columnElem);
         }
 
         return { contentElem };
     }
-
-    private makeTextElems(container: HTMLElement, text: string): void
-    {
-        text = this.app.translateText(`badge.${text}`, text);
-        text.split('\n\n').forEach(paragraph => {
-            const paragraphElem = document.createElement('span');
-            paragraphElem.classList.add('n3q-badgeInfoWindow-paragraph');
-            paragraph.split('\n').forEach(line => {
-                const lineElem = document.createElement('span');
-                lineElem.classList.add('n3q-badgeInfoWindow-line');
-                lineElem.innerText = line;
-                paragraphElem.appendChild(lineElem);
-            });
-            container.appendChild(paragraphElem);
-        });
-    }
-
 }
 
 class BadgeInfoWindowIframeContent implements BadgeInfoWindowContent
@@ -242,7 +224,7 @@ class BadgeInfoWindowIframeContent implements BadgeInfoWindowContent
 
     private makeContentElem(): HTMLElement
     {
-        const url = this.app.getWrappedIframeUrl(this.iframeData.iframeUrl);
+        const url = this.app.uiHelper.getWrappedIframeUrl(this.iframeData.iframeUrl);
         const contentElem = DomUtils.elemOfHtml(`<iframe src="${url}"></iframe>`);
         this.contentElem = contentElem;
         return contentElem;

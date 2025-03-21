@@ -6,7 +6,7 @@ import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
 import { Environment } from '../lib/Environment';
 import { ContentApp } from './ContentApp';
-import { Window, WindowOptions } from './Window';
+import { FullWindow, FullWindowOptions } from './FullWindow';
 import { ChatUtils } from '../lib/ChatUtils';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
@@ -14,15 +14,15 @@ import { OrderedSet } from '../lib/OrderedSet';
 import { DomUtils } from '../lib/DomUtils';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
-export type ChatWindowOptions = WindowOptions & {
+export type ChatWindowOptions = FullWindowOptions & {
     soundEnabled?: boolean,
 };
 
-export abstract class ChatWindow extends Window<ChatWindowOptions>
+export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 {
-    protected chatoutElem: HTMLElement;
+    protected chatlogElem: HTMLElement;
     protected chatoutAutoScroll: boolean = true;
-    protected chatinInputElem: HTMLTextAreaElement;
+    protected chatInputFieldElem: HTMLTextAreaElement;
     protected chatChannel: ChatUtils.ChatChannel;
     protected chatMessages: OrderedSet<ChatUtils.ChatMessage>;
     protected unreadUserChatMessages: OrderedSet<ChatUtils.ChatMessage>;
@@ -41,9 +41,18 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
         this.unreadUserChatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
-        this.windowName = `Chat${this.chatChannel.type}`;
-        this.isResizable = true;
+
+        this.windowSettingsId = `Chat${this.chatChannel.type}`;
         this.persistGeometry = true;
+        this.windowCssClasses.push('chatwindow')
+        this.titleText = 'Chat';
+        this.titleTextId = 'Chatwindow.Chat History';
+        this.minWidth = 300;
+        this.minHeight = 150;
+        this.defaultWidth = 400;
+        this.defaultHeight = 300;
+        this.defaultBottom = 200;
+        this.defaultLeft = 50;
 
         this.sndChat = new Sound(this.app, KeyboardSound);
 
@@ -71,38 +80,39 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         return messageCount;
     }
 
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.titleText = this.app.translateText('Chatwindow.Chat History', 'Chat');
-        this.minWidth = 300;
-        this.minHeight = 150;
-        this.defaultWidth = 400;
-        this.defaultHeight = 300;
-        this.defaultBottom = 200;
-        this.defaultLeft = 50;
-    }
-
     protected async makeContent(): Promise<void>
     {
         await super.makeContent();
         const options = await this.getSavedOptions(this.givenOptions);
         this.soundEnabled = as.Bool(options.soundEnabled, false);
 
-        this.windowElem.classList.add('n3q-chatwindow');
-        const contentElem = this.contentElem;
+        this.makeHeaderElems();
+        this.makeChatLogElems();
+        this.makeChatInput();
 
-        const chatoutElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatout" data-translate="children" />');
-        const chatinElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-chatin" data-translate="children" />');
-        const chatinTextElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="n3q-chatwindow-chatin-input n3q-input n3q-text" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
-        const chatinSendElem = DomUtils.elemOfHtml('<div class="n3q-button n3q-button-sendchat" data-translate="text:Chatin">Send</div>');
+        this.drawChatMessages();
+    }
 
-        const clearElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-chatwindow-clear" title="Clear" data-translate="attr:title:Chatwindow text:Chatwindow">Clear</div>');
-        const soundCheckboxElem = <HTMLInputElement>DomUtils.elemOfHtml('<input type="checkbox" class="n3q-base n3q-chatwindow-soundcheckbox" />');
-        const soundcheckElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatwindow-soundcheck" title="Enable Sound" data-translate="attr:title:Chatwindow children"><span class="n3q-base n3q-chatwindow-soundlabel" data-translate="text:Chatwindow">Sound</span>:</div>');
-        soundcheckElem.appendChild(soundCheckboxElem);
+    protected makeHeaderElems(): void
+    {
+        const lineElem = DomUtils.elemOfHtml('<div class="chat-header-line" data-translate="children" />');
+        this.contentElem.appendChild(lineElem);
 
-        // const retentionInfoElem = domHtmlElemOfHtml(`<div class="n3q-base n3q-chatwindow-retentioninfo" data-translate="attr:title:Chatwindow children"></div>`);
+        const clearButton = this.app.uiHelper.makeDefaultTextButton('chatlog-clear-button', 'Chatwindow.Clear', 'Clear', () => this.clear());
+        lineElem.appendChild(clearButton);
+
+        const checkboxId = DomUtils.makeUniqueElemId();
+        const soundOptionWrapper = DomUtils.elemOfHtml('<div class="chat-sound-option" data-translate="children" />');
+        const soundLabel = DomUtils.elemOfHtml(`<label class="label" for="${checkboxId}" title="Enable Sound" data-translate="attr:title:Chatwindow text:Chatwindow">Sound</label>`);
+        soundOptionWrapper.appendChild(soundLabel);
+        const soundCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input id="${checkboxId}" type="checkbox" class="chat-sound-option-checkbox" />`);
+        soundCheckbox.checked = this.soundEnabled;
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, soundCheckbox);
+        soundCheckbox.addEventListener('change', ev => this.onChatSoundCheckboxChange(soundCheckbox.checked));
+        soundOptionWrapper.appendChild(soundCheckbox);
+        lineElem.appendChild(soundOptionWrapper);
+
+        // const retentionInfoElem = domHtmlElemOfHtml(`<div class="retentioninfo" data-translate="attr:title:Chatwindow children"></div>`);
         // {
         //     const seconds = as.Float(Config.get(`chatHistory.${this.chat.type}MaxAgeSec`), Number.MAX_VALUE);
         //     let [text, unitCount, unit] = Utils.formatApproximateDurationForHuman(
@@ -116,55 +126,41 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         //     }
         //     retentionInfoElem.innerText = text;
         // }
+        // lineElem.appendChild(retentionInfoElem);
+    }
 
-        chatinElem.appendChild(chatinTextElem);
-        chatinElem.appendChild(chatinSendElem);
-
-        contentElem.appendChild(chatoutElem);
-        contentElem.appendChild(chatinElem);
-        // contentElem.appendChild(retentionInfoElem);
-        contentElem.appendChild(clearElem);
-        contentElem.appendChild(soundcheckElem);
-
-        this.chatinInputElem = chatinTextElem;
-        this.chatoutElem = chatoutElem;
-
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatoutElem);
+    protected makeChatLogElems(): void
+    {
         this.chatoutAutoScroll = true;
-        chatoutElem.onscroll = (ev) => {
-            const maxScrollTop = chatoutElem.scrollHeight - chatoutElem.clientHeight;
-            // Chrome's maximum scrollTop can be slightly less than actual scrollable area when logical pixels don't mqatch device pixels:
+        const chatlogElem = DomUtils.elemOfHtml('<div class="chatlog" data-translate="children" />');
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatlogElem);
+        chatlogElem.onscroll = (ev) => {
+            const maxScrollTop = chatlogElem.scrollHeight - chatlogElem.clientHeight;
+            // Chrome's maximum scrollTop can be slightly less than actual scrollable area when logical pixels don't match device pixels:
             const maxScrollTopCorrected = maxScrollTop - 1;
-            this.chatoutAutoScroll = chatoutElem.scrollTop >= maxScrollTopCorrected;
+            this.chatoutAutoScroll = chatlogElem.scrollTop >= maxScrollTopCorrected;
         };
+        this.chatlogElem = chatlogElem;
+        this.contentElem.appendChild(chatlogElem);
+    }
 
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatinTextElem);
-        chatinTextElem.addEventListener('keydown',ev => this.onChatinKeydown(ev));
+    protected makeChatInput(): void
+    {
+        const lineElem = DomUtils.elemOfHtml('<div class="chat-input-line" data-translate="children" />');
+        this.contentElem.appendChild(lineElem);
 
-        const chatinSendElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, chatinSendElem);
-        chatinSendElemDispatcher.addUnmodifiedLeftClickListener(ev => this.onSendChatUserAction());
+        this.chatInputFieldElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="chat-input-field" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
+        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.chatInputFieldElem);
+        this.chatInputFieldElem.addEventListener('keydown', ev => this.onChatinKeydown(ev));
+        lineElem.appendChild(this.chatInputFieldElem);
 
-        const clearElemDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, clearElem);
-        clearElemDispatcher.addUnmodifiedLeftClickListener(ev => {
-            this.clear();
-            // this.playSound();
-        });
-
-        soundCheckboxElem.checked = this.soundEnabled;
-        PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, soundCheckboxElem);
-        soundCheckboxElem.addEventListener('change', ev => { (async () => {
-            this.soundEnabled = soundCheckboxElem.checked;
-            const options = await this.getSavedOptions();
-            options['soundEnabled'] = this.soundEnabled;
-            await this.saveOptions(options);
-        })().catch(error => this.app.onError(error)); });
-
-        this.drawChatMessages();
+        const sendButton = this.app.uiHelper.makeDefaultTextButton('send-chat-button', 'Chatin.Send', 'Send', () => this.onSendChatUserAction());
+        lineElem.appendChild(sendButton);
     }
 
     protected onVisible() {
         super.onVisible();
-        this.chatinInputElem.focus();
+        this.chatInputFieldElem.focus();
     }
 
     protected onViewportVisible(): void
@@ -177,8 +173,8 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
     {
         super.onBeforeClose();
         this.soundEnabled = false;
-        this.chatoutElem = null;
-        this.chatinInputElem = null;
+        this.chatlogElem = null;
+        this.chatInputFieldElem = null;
     }
 
     public addLine(id: string|null, type: ChatUtils.ChatMessageType, authorUserId: string, authorName: string, authorImageUrl: string, text: string): void
@@ -255,8 +251,8 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
     private drawChatMessages()
     {
-        if (this.chatoutElem) {
-            this.chatoutElem.innerHTML = '';
+        if (this.chatlogElem) {
+            this.chatlogElem.innerHTML = '';
             for (let index = 0; index < this.chatMessages.length(); index++) {
                 this.drawChatMessage(index, false);
             }
@@ -265,7 +261,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
     private drawChatMessage(index: number, replaceExisting: boolean)
     {
-        if (!this.chatoutElem) {
+        if (!this.chatlogElem) {
             return;
         }
         const message: null|ChatUtils.ChatMessage = this.chatMessages.at(index);
@@ -289,7 +285,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         } else {
             continuationClass = 'differentOwner';
         }
-        const messageElem = DomUtils.elemOfHtml(`<div class="n3q-chatwindow-message"></div>`)
+        const messageElem = DomUtils.elemOfHtml(`<div class="chat-message"></div>`)
         messageElem.classList.add(sourceClass, continuationClass, typeClass, ageClass);
 
         const contentElem = DomUtils.elemOfHtml(`<div class="content"></div>`)
@@ -313,14 +309,14 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, messageElem);
 
-        const oldElem = this.chatoutElem.children.item(index);
-        this.chatoutElem.insertBefore(messageElem, oldElem);
+        const oldElem = this.chatlogElem.children.item(index);
+        this.chatlogElem.insertBefore(messageElem, oldElem);
         if (replaceExisting) {
             oldElem?.remove();
         }
 
         if (this.chatoutAutoScroll) {
-            this.chatoutElem.scrollTop = this.chatoutElem.scrollHeight;
+            this.chatlogElem.scrollTop = this.chatlogElem.scrollHeight;
         }
 
         if (message.isUnread && this.getViewportVisibility()) {
@@ -330,7 +326,7 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
 
     private removeChatMessageFromDisplay(index: number): void
     {
-        this.chatoutElem?.children.item(index)?.remove();
+        this.chatlogElem?.children.item(index)?.remove();
     }
 
     public clear()
@@ -388,6 +384,16 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
             });
     }
 
+    private onChatSoundCheckboxChange(soundEneabled: boolean): void
+    {
+        (async () => {
+            this.soundEnabled = soundEneabled;
+            const options = await this.getSavedOptions();
+            options['soundEnabled'] = this.soundEnabled;
+            await this.saveOptions(options);
+        })().catch(error => this.app.onError(error));
+    }
+
     private playSound(): void
     {
         if (this.isSoundEnabled()) {
@@ -420,15 +426,15 @@ export abstract class ChatWindow extends Window<ChatWindowOptions>
         if (this.sendingChat) {
             return;
         }
-        const text: string = this.chatinInputElem.value;
+        const text: string = this.chatInputFieldElem.value;
         if (text.length === 0) {
             return;
         }
         this.sendingChat = true;
         this.sendChat(text)
             .then(() => {
-                this.chatinInputElem.value = '';
-                this.chatinInputElem.focus();
+                this.chatInputFieldElem.value = '';
+                this.chatInputFieldElem.focus();
             }).catch(error => {
                 this.app.onError(error)
             }).finally(() => {

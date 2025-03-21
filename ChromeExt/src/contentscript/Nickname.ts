@@ -22,7 +22,7 @@ export class Nickname implements IObserver
 
     constructor(protected app: ContentApp, private participant: Participant, private isSelf: boolean, private display: HTMLElement)
     {
-        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-nickname n3q-shadow-small" />');
+        this.elem = DomUtils.elemOfHtml('<div class="participant-nickname" />');
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant.select();
@@ -40,22 +40,23 @@ export class Nickname implements IObserver
             }
         });
 
-        const menuElem = document.createElement('span');
-        this.menuElem = menuElem;
-        menuElem.classList.add('n3q-base', 'n3q-menu-open-button');
-        const menuEventdispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, menuElem);
-        menuEventdispatcher.addListener('buttondown', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, ev => {
-            this.participant.openMenu();
+        const [menuElem, menuEventDispatcher] = this.app.uiHelper.makeButton({
+            style: 'undecorated',
+            extraCssClass: 'main-menu-button',
+            onKeyboardClick: () => this.participant.openMenu(),
         });
-        this.elem.appendChild(menuElem);
-
-        const [closedIcon, _closedIconReady] = this.app.makeIcon(menuClosedIconUrl);
+        const closedIcon = this.app.uiHelper.makeIcon(menuClosedIconUrl, true);
         closedIcon.classList.add('closed');
-        const [openIcon, _openIconReady] = this.app.makeIcon(menuOpenIconUrl);
+        menuElem.append(closedIcon);
+        const openIcon = this.app.uiHelper.makeIcon(menuOpenIconUrl, true);
         openIcon.classList.add('open');
-        menuElem.append(closedIcon, openIcon);
+        menuElem.append(openIcon);
+        menuElem.classList.add('main-menu-button');
+        menuEventDispatcher.addUnmodifiedLeftButtonDownListener(ev => this.participant.openMenu());
+        this.menuElem = menuElem;
+        this.elem.appendChild(this.menuElem);
 
-        this.textElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-text" />');
+        this.textElem = DomUtils.elemOfHtml('<div class="text" />');
         this.elem.appendChild(this.textElem);
 
         display.appendChild(this.elem);

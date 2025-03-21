@@ -3,7 +3,6 @@ import { Participant } from './Participant';
 import { DomUtils } from '../lib/DomUtils';
 import { AnimationsDefinition } from './AnimationsXml';
 import { Config } from '../lib/Config';
-import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
 export class Chatin
 {
@@ -14,20 +13,27 @@ export class Chatin
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-chatin n3q-shadow-small" data-translate="children" />');
+        this.elem = DomUtils.elemOfHtml('<div class="participant-chat-to-server" data-translate="children" />');
         this.setVisibility(false);
+        const contentElem = DomUtils.elemOfHtml('<div class="content" data-translate="children" />');
+        this.elem.append(contentElem);
 
-        this.chatinInputElem = <HTMLInputElement> DomUtils.elemOfHtml('<textarea class="n3q-base n3q-input n3q-text" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
+        this.chatinInputElem = <HTMLInputElement> DomUtils.elemOfHtml('<textarea placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
         this.chatinInputElem.addEventListener('keydown', ev => this.onKeydown(ev));
-        this.elem.appendChild(this.chatinInputElem);
+        contentElem.appendChild(this.chatinInputElem);
 
-        this.sendElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-button n3q-button-inline" title="Send" data-translate="attr:title:Chatin"><div class="n3q-base n3q-button-symbol n3q-button-sendchat" /></div>');
-        PointerEventDispatcher.makeOpaqueDispatcher(this.app, this.sendElem).addUnmodifiedLeftClickListener(ev => {
-            this.sendChat();
-        });
-        this.elem.appendChild(this.sendElem);
+        this.sendElem = this.app.uiHelper.makeButton({
+            style: 'undecorated',
+            extraCssClass: 'send-chat-button',
+            title: 'Send',
+            titleId: 'Chatin.Send',
+            iconAsCssMask: true,
+            iconDummy: true,
+            onClick: () => this.sendChat(),
+        })[0];
+        contentElem.appendChild(this.sendElem);
 
-        this.closeElem = this.app.makeWindowCloseButton(() => this.setVisibility(false), 'overlay');
+        this.closeElem = this.app.uiHelper.makeWindowCloseButton(() => this.setVisibility(false), 'overlay');
         this.elem.appendChild(this.closeElem);
 
         this.app.translateElem(this.elem);
@@ -88,10 +94,10 @@ export class Chatin
     {
         this.isVisible = visible;
         if (visible) {
-            this.elem.classList.remove('n3q-hidden');
+            this.elem.classList.remove('hidden');
             this.setFocus();
         } else {
-            this.elem.classList.add('n3q-hidden');
+            this.elem.classList.add('hidden');
         }
     }
 

@@ -98,14 +98,14 @@ export class BackpackWindowItemFilters
         const buttonIsVisible = matchingItemIds.size !== 0
         const buttonElemId = this.makeFilterButtonElemId(filterId)
         const buttonElem = this.filterButtonsBarElem.querySelector(`#${buttonElemId}`)
-        DomUtils.setElemClassPresent(buttonElem, 'hidden', !buttonIsVisible)
+        DomUtils.setElemClassPresent(buttonElem, 'removed', !buttonIsVisible)
 
         return buttonIsVisible
     }
 
     private makeGui(): HTMLElement
     {
-        const filterButtonsBarElem = DomUtils.elemOfHtml('<div class="filters" data-translate="children"></div>')
+        const filterButtonsBarElem = DomUtils.elemOfHtml('<div class="backpack-filters" data-translate="children"></div>')
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, filterButtonsBarElem)
 
         const language = this.app.getLanguage()
@@ -113,22 +113,23 @@ export class BackpackWindowItemFilters
             const filterId = filter.getId()
             const stateElemId = this.makeFilterStateElemId(filterId)
 
-            const stateElem = DomUtils.elemOfHtml(`<input type="radio" id="${stateElemId}" name="n3q-backpack-filter" value="${filterId}"/>`)
-            filterButtonsBarElem.append(stateElem)
+            const stateElem = DomUtils.elemOfHtml(`<input type="radio" class="removed" id="${stateElemId}" name="n3q-backpack-filter" value="${filterId}"/>`)
             stateElem.addEventListener('change', ev => this.userSelectFilter(filterId))
+            filterButtonsBarElem.append(stateElem)
 
             const buttonElemId = this.makeFilterButtonElemId(filterId)
-            const buttonElem = DomUtils.elemOfHtml(`<label id="${buttonElemId}" for="${stateElemId}"></label>`)
-            buttonElem.setAttribute('title', filter.getHelpText(language))
-            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, buttonElem)
+            const [buttonElem, buttonEventDispatcher] = this.app.uiHelper.makeButton({
+                buttonTag: 'label',
+                style: ['default', 'merged'],
+                iconUrl: filter.getIconUrl(),
+                iconAsCssMask: true,
+                text: filter.getLabelText(language),
+                title: filter.getHelpText(language),
+                onClick: () => stateElem.click(),
+            })
+            buttonElem.setAttribute('id', buttonElemId)
+            buttonElem.setAttribute('for', stateElemId)
             filterButtonsBarElem.append(buttonElem)
-
-            const [buttonIconElem, _buttonIconElemReady] = this.app.makeIcon(filter.getIconUrl())
-            buttonElem.append(buttonIconElem)
-
-            const labelTextElem = DomUtils.elemOfHtml(`<span class="text"></span>`)
-            labelTextElem.innerText = filter.getLabelText(language)
-            buttonElem.append(labelTextElem)
         }
         return filterButtonsBarElem
     }

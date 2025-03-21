@@ -3,13 +3,14 @@ import { Environment } from '../lib/Environment';
 import { Config } from '../lib/Config';
 import { is } from '../lib/is';
 import { ParticipantMenu } from './ParticipantMenu';
-import { MenuColumn } from './Menu';
+import { Menu } from './Menu';
 import { as } from '../lib/as';
 import { TestWindow } from './TestWindow'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { TutorialWindow } from './TutorialWindow';
 import { AboutWindow } from './AboutWindow';
 import { SimpleToast } from './Toast';
+import { ItemException } from '../lib/ItemException'
 import * as checkboxUncheckedIconUrl from '../assets/icons/checkbox-unchecked.svg';
 import * as checkboxCheckedIconUrl from '../assets/icons/checkbox-checked.svg';
 import * as getWeblinIconUrl from '../assets/icons/weblin.png';
@@ -22,19 +23,18 @@ import * as chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.sv
 import * as emotesIconUrl from '../assets/icons/smiley.svg';
 import * as personsIconUrl from '../assets/icons/person.svg'
 import * as helpIconUrl from '../assets/icons/weblin.png';
+import { Memory } from '../lib/Memory'
 
 export class OwnParticipantMenu extends ParticipantMenu
 {
 
     protected makeMenuTree(): void
     {
-        let column = this.addColumn('main');
-
         if (Utils.isBackpackEnabled()) {
-            column.addActionItem('backpack', backpackIconUrl, 'Backpack', () => this.app.showBackpackWindow());
+            this.addActionItem('backpack', 'Backpack', backpackIconUrl, true, () => this.app.showBackpackWindow());
         } else if (Environment.isEmbedded()) {
             const url = Config.get('extension.storeUrl', 'https://chrome.google.com/webstore/detail/weblin/cgfkfhdinajjhfeghebnljbanpcjdlkm');
-            column.addActionItem('getWeblin', getWeblinIconUrl, 'Get weblin everywhere', () => this.app.navigate(url, '_top'));
+            this.addActionItem('getWeblin', 'Get weblin everywhere', getWeblinIconUrl, false, () => this.app.navigate(url, '_top'));
         }
 
         if (!is.nil(this.participant.getBadgesDisplay())) {
@@ -49,93 +49,163 @@ export class OwnParticipantMenu extends ParticipantMenu
                     badges.enterEditMode();
                 }
             };
-            column.addActionItem('badgesEditMode', badgesEditModeIconUrl, 'BadgesEditMode', onClick);
+            this.addActionItem('badgesEditMode', 'BadgesEditMode', badgesEditModeIconUrl, true, onClick);
         }
 
-        column.addSeparatorItem('separator');
+        this.addSeparatorItem('separator');
 
-        column.addActionItem('videoConference', videoConferenceIconUrl, 'Video Conference', () => this.app.showVidconfWindow());
+        this.addActionItem('videoConference', 'Video Conference', videoConferenceIconUrl, true, () => this.app.showVidconfWindow());
 
-        column.addActionItem('chat', chatIconUrl, 'Chat', () => this.participant.toggleChatin());
+        this.addActionItem('chat', 'Chat', chatIconUrl, true, () => this.participant.toggleChatin());
 
-        column.addActionItem('chatHistory', chatHistoryIconUrl, 'Chat Window', () => this.app.toggleChatWindow());
+        this.addActionItem('chatHistory', 'Chat Window', chatHistoryIconUrl, true, () => this.app.toggleChatWindow());
 
-        this.makeEmotesMenuAndItem(column);
+        this.makeEmotesMenuAndItem();
 
-        if (this.app.getPersonManager().getMemorizedPersons().size !== 0) {
-            column.addActionItem('persons', personsIconUrl, 'Persons', () => this.app.getPersonManager().showPersonsWindow(null, null));
+        if (this.app.personManager.getMemorizedPersons().size !== 0) {
+            this.addActionItem('persons', 'Persons', personsIconUrl, true, () => this.app.personManager.showPersonsWindow(null, null));
         }
 
-        column.addSeparatorItem('separator');
+        this.addSeparatorItem('separator');
 
-        this.makeHelpMenuAndItem(column);
+        this.makeHelpMenuAndItem();
 
-        column.addActionItem('settings', settingsIconUrl, 'Settings', () => this.app.showSettings(this.participant.getElem()));
+        this.addActionItem('settings', 'Settings', settingsIconUrl, true, () => this.app.showSettings(this.participant.getElem()));
 
         if (Environment.isDevelopment()) {
-            this.makeDebugMenuAndItem(column);
+            this.makeDebugMenuAndItem();
         }
 
         // column.addActionItem(
         //     'stayHere',
-        //     app.getStayHereIsChecked() ? checkboxCheckedIconUrl : checkboxUncheckedIconUrl,
         //     'Stay Here',
+        //     app.getStayHereIsChecked() ? checkboxCheckedIconUrl : checkboxUncheckedIconUrl, true,
         //     () => this.app.toggleStayHereIsChecked()
         // ));
     }
 
-    protected makeEmotesMenuAndItem(column: MenuColumn): void
+    protected makeEmotesMenuAndItem(): void
     {
         const animations = this.participant.getAvatar()?.getAnimations()?.sequences ?? {};
-        const actionsMenu = column.addSubmenuItem('emotes', emotesIconUrl, 'Emotes');
-        const actionsColumn = actionsMenu.addColumn('emotes');
+        const actionsMenu = this.addSubmenuItem('emotes', 'Emotes', emotesIconUrl, true);
         const groupBlocklist = [...Config.get('avatars.animationGroupBlocklistForAvatarMenu', [])];
         for (const key in animations) {
             const action = as.String(animations[key].group);
             if (!groupBlocklist.includes(action)) {
-                actionsColumn.addActionItem(`emote-${action}`, null, action, () => this.participant.do(action));
+                actionsMenu.addActionItem(`emote-${action}`, action, null, null, () => this.participant.do(action));
                 groupBlocklist.push(action);
             }
         }
     }
 
-    protected makeHelpMenuAndItem(column: MenuColumn): void
+    protected makeHelpMenuAndItem(): void
     {
-        const menuItem = column.addSubmenuItem('help', helpIconUrl, 'Help');
-        const menuColumn = menuItem.addColumn('help');
-
-        menuColumn.addActionItem('about', null, 'About weblin', () => new AboutWindow(this.app).show({}));
-        menuColumn.addActionItem('tutorials', null, 'Tutorials', () => new TutorialWindow(this.app).show({}));
+        const helpMenu = this.addSubmenuItem('help', 'Help', helpIconUrl, false);
+        helpMenu.addActionItem('about', 'About weblin', null, null, () => new AboutWindow(this.app).show({}));
+        helpMenu.addActionItem('tutorials', 'Tutorials', null, null, () => new TutorialWindow(this.app).show({}));
     }
 
-    protected makeDebugMenuAndItem(column: MenuColumn): void
+    protected makeDebugMenuAndItem(): void
     {
-        const actionsMenu = column.addSubmenuItem('debug', null, 'Debug');
-        const debugColumn = actionsMenu.addColumn('debug');
-
-        debugColumn.addActionItem('itegrationTests', null, 'Integration tests...', () => new TestWindow(this.app).show({}));
-        debugColumn.addActionItem('avatarEffectTest', null, 'Avatar Effect Test', () => this.app.test());
-        debugColumn.addActionItem('toastTest', null, 'Show a Toast', () =>
-        {
-            new SimpleToast(this.app,
-                'privatevidconfrestestponse',
-                10,
-                'notice',
-                'You Can Claim Activity Points',
-                'Activity points can be claimed')
-                .show()
+        const debugMenu = this.addSubmenuItem('debug', 'Debug', null, null);
+        debugMenu.addActionItem('itegrationTests', 'Integration tests...', null, null, () => new TestWindow(this.app).show({}));
+        debugMenu.addActionItem('avatarEffectTest', 'Avatar Effect Test', null, null, () => this.app.test());
+        debugMenu.addActionItem('youArrowTest', 'Show You Arrow', null, null, () => {
+            Memory.setLocal('client.introYou', '0')
+                .then(() => this.app.getMyParticipant()?.showIntroYouOnce())
+                .catch(error => this.app.onError(error))
         });
-        debugColumn.addActionItem('popupTest', null, 'Open or focus test popup', () =>
+        this.makeDebugToastMenuAndItem(debugMenu)
+        debugMenu.addActionItem('popupTest', 'Open/focus browser popup', null, null, () =>
         {
             BackgroundMessage.openOrFocusPopup({
-                id: 'testPopupWindow',
-                url: 'https://chat.openai.com/chat',
+                id: 'test-popup-window',
+                url: 'https://example.com/#n3qdisable',
                 left: 30,
                 top: 50,
                 width: 400,
                 height: 300,
             }).catch(error => this.app.onError(error));
         });
+    }
+
+    protected makeDebugToastMenuAndItem(debugMenu: Menu): void
+    {
+        const toastsMenu = debugMenu.addSubmenuItem('toasts', 'Toast tests', null, null)
+        const testToastTextShort = 'Short test toast text.\nLorem ipsum dolor sit amet, consectetur adipiscing elit.'
+        const testToastTextLong = 'Long test toast text.\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\nmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm'
+        const uniqueId = `test-toast-${Date.now()}`;
+        toastsMenu.addActionItem(uniqueId, 'Notice, short, don\'t show, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextShort)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.addClosingActionButton('Test Action 3', () => console.log('Test Action 3'))
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Notice, long, don\'t show, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextLong)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.addClosingActionButton('Test Action 3', () => console.log('Test Action 3'))
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Notice, long, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextLong)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.setDontShow(false)
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Notice, short, don\'t show, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextShort)
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Notice, short, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextShort)
+            toast.setDontShow(false)
+            toast.show()
+        })
+        for (const icon of ['question', 'notice', 'warning', 'greeting', 'bye', 'privatechat', 'privatevidconf']) {
+            const name = icon[0].toUpperCase() + icon.substring(1)
+            toastsMenu.addActionItem(uniqueId, `${name}, short, 3s`, null, null, () => {
+                const toast = new SimpleToast(this.app, uniqueId, 3, icon, 'Test toast title', testToastTextShort)
+                toast.setDontShow(false)
+                toast.show()
+            })
+        }
+        toastsMenu.addActionItem(uniqueId, 'Item error', null, null, () => {
+            this.app.onError(new ItemException(
+                ItemException.Fact.InternalError,
+                ItemException.Reason.NetworkProblem,
+                'Test error detail!',
+                'Test error message!',
+                {test: true},
+            ))
+        })
+        toastsMenu.addActionItem(uniqueId, 'Modal, notice, short, don\'t show, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextShort)
+            toast.setIsModal(true)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.addClosingActionButton('Test Action 3', () => console.log('Test Action 3'))
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Modal, notice, long, don\'t show, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'notice', 'Test toast title', testToastTextLong)
+            toast.setIsModal(true)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.addClosingActionButton('Test Action 3', () => console.log('Test Action 3'))
+            toast.show()
+        })
+        toastsMenu.addActionItem(uniqueId, 'Modal, question, short, don\'t show, buttons, 3s', null, null, () => {
+            const toast = new SimpleToast(this.app, uniqueId, 3, 'question', 'Test toast title', testToastTextShort)
+            toast.setIsModal(true)
+            toast.addClosingActionButton('Test Action 1', () => console.log('Test Action 1'))
+            toast.addClosingActionButton('Test Action 2', () => console.log('Test Action 2'))
+            toast.addClosingActionButton('Test Action 3', () => console.log('Test Action 3'))
+            toast.show()
+        })
     }
 
 }

@@ -25,7 +25,7 @@ export class Entity
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
-        this.elem = DomUtils.elemOfHtml('<div class="n3q-base n3q-entity n3q-hidden"></div>');
+        this.elem = DomUtils.elemOfHtml('<div class="entity hidden"></div>');
         app.getDisplay()?.append(this.elem);
         this.app.toFront(this.elem, ContentApp.LayerEntity);
     }
@@ -41,12 +41,12 @@ export class Entity
     {
         if (visible !== this.visible) {
             if (visible) {
-                this.elem.classList.remove('n3q-hidden');
+                this.elem.classList.remove('hidden');
                 this.elem.style.opacity = '0';
                 const transition = { property: 'opacity', duration: `${durationSec}s` };
                 DomUtils.startElemTransition(this.elem, null, transition, '1');
             } else {
-                this.elem.classList.add('n3q-hidden');
+                this.elem.classList.add('hidden');
             }
             this.visible = visible;
         }
@@ -60,7 +60,7 @@ export class Entity
 
     showEffect(effect: string): void
     {
-        const pulseElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-pulse"></div>');
+        const pulseElem = DomUtils.elemOfHtml('<div class="entity-pulse"></div>');
         this.elem.append(pulseElem);
         window.setTimeout(() => { pulseElem?.remove(); }, 1000);
     }
@@ -68,7 +68,7 @@ export class Entity
     setRange(left: number, right: number): void
     {
         this.removeRange();
-        this.rangeElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-range"></div>');
+        this.rangeElem = DomUtils.elemOfHtml('<div class="entity-range-indicator"></div>');
         this.rangeElem.style.left = `${left}px`;
         this.rangeElem.style.width = `${right - left}px`;
         this.elem.prepend(this.rangeElem);

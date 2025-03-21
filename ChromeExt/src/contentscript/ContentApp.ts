@@ -44,10 +44,7 @@ import { SimpleItemTransferController } from './SimpleItemTransferController';
 import { ItemException } from '../lib/ItemException';
 import { Entity } from './Entity';
 import { Avatar } from './Avatar';
-import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomUtils } from '../lib/DomUtils';
-import ButtonId = DomUtils.ButtonId
-import ModifierKeyId = DomUtils.ModifierKeyId
 import { DebugUtils } from './DebugUtils';
 import { Client } from '../lib/Client';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
@@ -55,8 +52,6 @@ import { ChatUtils } from '../lib/ChatUtils';
 import { ViewportEventDispatcher } from '../lib/ViewportEventDispatcher'
 import { ContentToBackgroundCommunicator, ContentRequestHandler } from '../lib/ContentToBackgroundCommunicator'
 import { BackgroundMessageUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
-import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.svg';
-import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg';
 import { BadgesController } from './BadgesController'
 import { PointerEventData } from '../lib/PointerEventData'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
@@ -65,6 +60,8 @@ import { ItemOverlays } from './ItemOverlays'
 import { TabContentData } from './TabContentData'
 import { ContentInstantMessageManager } from './ContentInstantMessageManager'
 import { ContentThemeManager } from './ContentThemeManager'
+import { ContentUiHelper } from './ContentUiHelper'
+import { ContentAppDisplay } from './ContentAppDisplay'
 
 export class ContentAppNotification
 {
@@ -92,22 +89,17 @@ export type ContentAppParams = {
 export class ContentApp extends AppWithDom
 {
     private readonly backgroundCommunicator: ContentToBackgroundCommunicator;
-    private readonly tabContentData: TabContentData;
-    private readonly urlFetcher: UrlFetcher;
-    private params: ContentAppParams;
+    public readonly tabContentData: TabContentData;
+    public readonly urlFetcher: UrlFetcher;
     private inCriticalErrorHandler: boolean = false;
     private isStopped: boolean = false;
-    private debugUtils: DebugUtils;
-    private readonly logger: Logger = new LoglevelLogger('', '');
-    private appendToMe: HTMLElement
-    private appendToMeDomObserver: null|MutationObserver;
-    private shadowDomAnchor: null|HTMLElement;
-    private shadowDomAnchorDomObserver: null|MutationObserver;
-    private shadowDomRoot: null|ShadowRoot;
-    private display: null|HTMLElement;
-    private readonly themeManager: ContentThemeManager;
+    public readonly debugUtils: DebugUtils;
+    public readonly logger: Logger = new LoglevelLogger('', '');
+    public readonly uiHelper: ContentUiHelper;
+    public readonly viewportEventDispatcher: ViewportEventDispatcher;
+    private readonly display: ContentAppDisplay;
+    public readonly themeManager: ContentThemeManager;
     private dropzoneELem: null|HTMLElement = null;
-    private viewportEventDispatcher: ViewportEventDispatcher;
     private isGuiEnabled: boolean = false;
     private windowSizingMode: WindowSizingMode = 'normal';
     private isExclusiveWindowPopup: boolean = false;
@@ -118,7 +110,7 @@ export class ContentApp extends AppWithDom
     private roomEnabled: boolean = true;
     private roomJid: string = '';
     private room: Room|null;
-    private propertyStorage: PropertyStorage = new PropertyStorage();
+    private readonly propertyStorage: PropertyStorage = new PropertyStorage();
     private language = 'en-US';
     private babelfish: Translator;
     private vpi: VpiResolver;
@@ -127,15 +119,15 @@ export class ContentApp extends AppWithDom
     private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
-    private iframeApi: IframeApi;
+    private readonly iframeApi: IframeApi;
     private readonly statusToPageSender: WeblinClientPageApi.ClientStatusToPageSender;
     private avatarGallery: AvatarGallery;
-    private toasts: Set<Toast> = new Set();
-    private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['n3q-backpack-item', 'n3q-badge', 'icon-wrap'];
+    private readonly toasts: Set<Toast> = new Set();
+    private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['backpack-item', 'badge', 'icon-wrap'];
     private readonly ownItems: Map<string,ItemProperties> = new Map();
     private readonly itemOverlays: ItemOverlays
-    private readonly personManager: ContentPersonManager;
-    private readonly instantMessageManager: ContentInstantMessageManager;
+    public readonly personManager: ContentPersonManager;
+    public readonly instantMessageManager: ContentInstantMessageManager;
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
@@ -146,37 +138,30 @@ export class ContentApp extends AppWithDom
 
     // Getter
 
-    getDebugUtils(): DebugUtils { return this.debugUtils; }
-    public getLogger(): Logger { return this.logger; }
-    getTabContentData(): TabContentData { return this.tabContentData; }
-    getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
-    getShadowDomRoot(): ShadowRoot { return this.shadowDomRoot; }
-    getDisplay(): HTMLElement { return this.display; }
-    getThemeManager(): ContentThemeManager { return this.themeManager; }
-    getViewPortEventDispatcher(): ViewportEventDispatcher { return this.viewportEventDispatcher; }
-    getWindowSizingMode(): WindowSizingMode { return this.windowSizingMode; }
-    getIsExclusiveWindowPopup(): boolean { return this.isExclusiveWindowPopup; }
+    public getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
+    public getShadowDomRoot(): ShadowRoot { return this.display.getShadowDomRoot(); }
+    public getDisplay(): HTMLElement { return this.display.getDisplay(); }
+    public getWindowSizingMode(): WindowSizingMode { return this.windowSizingMode; }
+    public getIsExclusiveWindowPopup(): boolean { return this.isExclusiveWindowPopup; }
     public getUserId(): string { return this.userId; }
-    getRoom(): Room|null { return this.room; }
-    getLanguage(): string { return this.language; }
+    public getUserName(): string { return this.userName; }
+    public getRoom(): Room|null { return this.room; }
+    public getLanguage(): string { return this.language; }
 
-    getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
-    getMyBadgesDisplay(): null|BadgesController { return this.room?.getMyParticipant()?.getBadgesDisplay() ?? null; }
+    public getMyParticipant(): undefined | Participant { return this.room?.getMyParticipant(); }
+    public getMyBadgesDisplay(): null|BadgesController { return this.room?.getMyParticipant()?.getBadgesDisplay() ?? null; }
 
-    getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
-    getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
-    getItemOverlays(): ItemOverlays { return this.itemOverlays; }
-    getBackpackWindow(): null|BackpackWindow { return this.backpackWindow; }
+    public getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
+    public getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
+    public getItemOverlays(): ItemOverlays { return this.itemOverlays; }
+    public getBackpackWindow(): null|BackpackWindow { return this.backpackWindow; }
 
-    getPersonManager(): ContentPersonManager { return this.personManager; }
-    getInstantMessageManager(): ContentInstantMessageManager { return this.instantMessageManager; }
-
-    getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
+    public getAvatarGallery(): AvatarGallery { return this.avatarGallery; }
 
     /**
      * null before in a room and receiving first presence for local participant.
      */
-    getSimpleItemTransferController(): undefined | SimpleItemTransferController
+    public getSimpleItemTransferController(): undefined | SimpleItemTransferController
     {
         if (is.nil(this.simpleItemTransferController)
             && !is.nil(this.getMyParticipant())) {
@@ -192,10 +177,11 @@ export class ContentApp extends AppWithDom
         contentCommunicatorFactory: (requestHandler: ContentRequestHandler) => ContentToBackgroundCommunicator,
     ) {
         super();
-        this.appendToMe = appendToMe;
         this.tabContentData = new TabContentData(this);
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
+        this.uiHelper = new ContentUiHelper(this);
+        this.display = new ContentAppDisplay(this, appendToMe);
         this.themeManager = new ContentThemeManager(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
         const requestHandler = request => this.onBackgroundRequest(request)
@@ -204,6 +190,7 @@ export class ContentApp extends AppWithDom
         this.itemOverlays = new ItemOverlays(this)
         this.personManager = new ContentPersonManager(this);
         this.instantMessageManager = new ContentInstantMessageManager(this);
+        this.iframeApi = new IframeApi(this);
     }
 
     async start(params: ContentAppParams)
@@ -212,7 +199,6 @@ export class ContentApp extends AppWithDom
         if (params && params.avatar) { await Memory.setLocal(Utils.localStorageKey_Avatar(), params.avatar); }
         if (params && params.pageUrl) { this.presetPageUrl = params.pageUrl; }
         if (params && params.x) { await Memory.setLocal(Utils.localStorageKey_X(), params.x); }
-        this.params = params;
 
         if (this.isStopped) {
             log.debug('ContentApp.start: Stopped while starting.');
@@ -299,11 +285,17 @@ export class ContentApp extends AppWithDom
         }
 
         try {
-            await this.initDisplay();
+            await this.display.initDisplay(params);
         } catch (error) {
             this.onCriticalError(error);
             return;
         }
+        if (this.isStopped) {
+            log.debug('ContentApp.start: Stopped by ContentAppDisplay.initDisplay while starting.');
+            this.stop();
+            return;
+        }
+        this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
 
         const startupRequests: ReadonlyArray<BackgroundRequest> = params.startupRequests ?? [];
         startupRequests.forEach(request => this.onBackgroundRequest(request).catch(error => this.onError(error)));
@@ -330,7 +322,7 @@ export class ContentApp extends AppWithDom
         }
 
         this.startCheckPageUrl();
-        this.iframeApi = new IframeApi(this).start();
+        this.iframeApi.start();
 
         this.debugUtils.onAppStartComplete();
         this.statusToPageSender.sendClientActive();
@@ -341,10 +333,6 @@ export class ContentApp extends AppWithDom
         }
         if (this.isStopped) {
             log.debug('ContentApp.start: Stopped while starting.');
-            this.stop();
-        }
-        if (is.nil(this.shadowDomRoot?.host?.parentElement)) {
-            log.debug('ContentApp.start: Another instance has removed our div#n3q element. Stopping.');
             this.stop();
         }
     }
@@ -393,92 +381,6 @@ export class ContentApp extends AppWithDom
         return isDisabled;
     }
 
-    private async initDisplay(): Promise<void>
-    {
-        document.querySelector('div#n3q')?.remove();
-
-        this.appendToMeDomObserver = new MutationObserver(() => this.maintainDisplay());
-        this.shadowDomAnchorDomObserver = new MutationObserver(() => this.maintainDisplay());
-        this.shadowDomAnchor = DomUtils.elemOfHtml(`<div></div>`);
-        this.shadowDomRoot = this.shadowDomAnchor.attachShadow({mode: 'closed'});
-
-        const params = this.params;
-        if (params.styleUrl) {
-            const style = await this.urlFetcher.fetchAsText(params.styleUrl, '1')
-            this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style>\n${style}\n</style>`));
-        }
-
-        this.display = DomUtils.elemOfHtml('<div id="n3q-display" dir="ltr"></div>');
-        DomUtils.preventKeyboardEventBubbling(this.display);
-        this.shadowDomRoot.append(this.display);
-
-        const variant = Client.getVariant();
-        if (variant !== 'extension') {
-            this.appendToMe.append(this.shadowDomAnchor);
-        }
-
-        this.maintainDisplay();
-        this.handle_extensionIsGuiEnabledChanged(this.isGuiEnabled);
-    }
-
-    private maintainDisplay()
-    {
-        this.appendToMeDomObserver?.disconnect();
-        this.shadowDomAnchorDomObserver?.disconnect();
-
-        if (!this.display) {
-            this.shadowDomAnchor?.remove();
-            return;
-        }
-        this.stopIfEmbeddedAndExtensionPresent();
-
-        // Move to end of body (prevent max z-index elements from rendering on top):
-        const lastChildOfParent = this.appendToMe.lastElementChild;
-        if (Environment.isExtension() && lastChildOfParent !== this.shadowDomAnchor) {
-            this.appendToMe.append(this.shadowDomAnchor);
-        }
-
-        // Reset anchor:
-        for (const childElem of this.shadowDomAnchor.childNodes) {
-            childElem.remove();
-        }
-        const shadowDomAnchorStyle = 'all: revert !important; position: fixed !important; border: none !important; padding: 0 !important; width: 0 !important; height: 0 !important; overflow: hidden !important; z-index: 2147483647 !important; user-select: text !important;';
-        this.shadowDomAnchor.setAttribute('id', 'n3q');
-        this.shadowDomAnchor.setAttribute('data-client-variant', Client.getVariant());
-        this.shadowDomAnchor.setAttribute('style', shadowDomAnchorStyle);
-
-        // Use experimental popover API to get on top of topmost page content:
-        // Feature disabled by default in Firefox (https://caniuse.com/mdn-api_htmlelement_showpopover).
-        if (Config.get('system.displayPopupShadowDomAnchor')) {
-            this.shadowDomAnchor.setAttribute('popover', 'manual');
-            try {
-                this.shadowDomAnchor['showPopover']?.();
-            } catch (error) {
-                // Already visible.
-            }
-        }
-
-        // React to DOM changes:
-        if (Config.get('system.displayProtectShadowDomAnchor')) {
-            this.appendToMeDomObserver.observe(this.appendToMe, { childList: true });
-            this.shadowDomAnchorDomObserver.observe(this.shadowDomAnchor, { childList: true, attributes: true });
-        }
-    }
-
-    private stopIfEmbeddedAndExtensionPresent()
-    {
-        if (!Environment.isEmbedded()) {
-            return;
-        }
-        for (const elem of document.querySelectorAll('div[id="n3q"]')) {
-            if (elem !== this.shadowDomAnchor) {
-                log.debug('ContentApp.maintainDisplay: Extension shadow DOM root detected. Stopping embedded.');
-                this.stop();
-                return;
-            }
-        }
-    }
-
     sleep(statusMessage: string)
     {
         log.debug('ContentApp.sleep');
@@ -500,10 +402,7 @@ export class ContentApp extends AppWithDom
         this.iframeApi?.stop();
         this.stopCheckPageUrl();
         this.leaveRoom();
-
-        this.display = null;
-        this.maintainDisplay(); // does the ramainder of the display cleanup.
-
+        this.display.stop();
         BackgroundMessage.signalContentAppStopToBackground()
             .catch(error => this.onError(error));
     }
@@ -552,7 +451,7 @@ export class ContentApp extends AppWithDom
 
     test(): void
     {
-        // let frame = <HTMLIFrameElement>$('<iframe class="n3q-base n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
+        // let frame = <HTMLIFrameElement>$('<iframe class="n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
         // this.display.append(frame);
         this.getMyParticipant()?.showEffect('pulse');
     }
@@ -929,11 +828,10 @@ export class ContentApp extends AppWithDom
     handle_extensionIsGuiEnabledChanged(isGuiEnabled: unknown): void
     {
         this.isGuiEnabled = as.Bool(isGuiEnabled, true);
+        this.display.setDisplayVisible(this.isGuiEnabled);
         if (this.isGuiEnabled) {
-            this.display?.classList.remove('n3q-hidden');
             this.wakeup();
         } else {
-            this.display?.classList.add('n3q-hidden');
             this.sleep('GuiHidden');
         }
     }
@@ -1264,16 +1162,16 @@ export class ContentApp extends AppWithDom
             return
         }
         if (is.nil(this.dropzoneELem)) {
-            this.dropzoneELem = DomUtils.elemOfHtml('<div class="n3q-base n3q-dropzone"></div>')
-            this.display.append(this.dropzoneELem)
+            this.dropzoneELem = DomUtils.elemOfHtml('<div class="dropzone"></div>')
+            this.getDisplay()?.append(this.dropzoneELem)
             this.toFront(this.dropzoneELem, ContentApp.LayerBelowEntities)
         }
-        DomUtils.setElemClassPresent(this.dropzoneELem, 'n3q-dropzone-hilite', isHighlighted)
+        DomUtils.setElemClassPresent(this.dropzoneELem, 'hilite', isHighlighted)
     }
 
     public getIsDropTargetInDropzone(ev: PointerEventData): boolean
     {
-        return ev.dropTarget?.classList.contains('n3q-dropzone') ?? false
+        return ev.dropTarget?.classList.contains('dropzone') ?? false
     }
 
     // i18n
@@ -1388,7 +1286,7 @@ export class ContentApp extends AppWithDom
     getDefaultPosition(key: string = null): number
     {
         let pos: number;
-        let width = this.display.offsetWidth;
+        let width = this.display.getDisplay()?.offsetWidth ?? null;
         if (!width) { width = 500; }
         if (key) {
             pos = Utils.pseudoRandomInt(250, width - 80, key, '', 7237);
@@ -1576,7 +1474,7 @@ export class ContentApp extends AppWithDom
             const onNo = () => onCanceled?.(itemId);
 
             if (ItemProperties.getIsPerson(props)) {
-                this.getPersonManager().showPersonActionConfirmationToast(
+                this.personManager.showPersonActionConfirmationToast(
                     ItemProperties.getPersonData(props),
                     'Person.forgetPersonToastTitle',
                     'Person.forgetPersonToastText',
@@ -1642,112 +1540,6 @@ export class ContentApp extends AppWithDom
             this.onError(new ErrorWithData('BackgroundMessage.fetchUrl failed!', { url, errorResponse }));
             return url;
         }
-    }
-
-    // GUI helpers:
-
-    public fetchImage(iconUrl: null|string): [HTMLImageElement, Promise<boolean>]
-    {
-        const image = new Image();
-        const loadedPromise = new Promise<boolean>((resolve) => {
-            image.addEventListener('error', (ev) => {
-                resolve(false);
-            });
-            image.addEventListener('load', (ev) => {
-                resolve(true);
-            });
-            this.fetchUrlAsDataUrl(iconUrl).then(dataUrl => {
-                image.crossOrigin = 'anonymous';
-                image.src = dataUrl;
-            });
-        });
-        return [image, loadedPromise];
-    }
-
-    public makeIcon(iconUrl: null|string): [HTMLElement, Promise<boolean>]
-    {
-        const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>');
-        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl);
-        const readyPromise = isLoadedPromise.then(ok => {
-            if (ok) {
-                iconElem.classList.add('icon');
-                iconWrapElem.append(iconElem);
-            }
-            return ok;
-        });
-        return [iconWrapElem, readyPromise];
-    }
-
-    public makeScaledAndClippedIcon(iconUrl: null|string, opacityMin: number = 10, availableWidth: number, availableHeight: number): [HTMLElement, Promise<boolean>]
-    {
-        const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>');
-        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl);
-        const readyPromise = isLoadedPromise.then(ok => {
-            if (ok) {
-                ok = DomUtils.clipImageElemByOpacityAndLimitDimensions(iconElem, opacityMin, availableWidth, availableHeight);
-            }
-            if (ok) {
-                iconElem.classList.add('icon');
-                iconWrapElem.append(iconElem);
-            }
-            return ok;
-        });
-        return [iconWrapElem, readyPromise];
-    }
-
-    public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
-        let iconUrl: string;
-        switch (style) {
-            case 'window': iconUrl = windowCloseIconDataUrl; break;
-            case 'popup':
-            case 'overlay':
-            default: iconUrl = popupCloseIconDataUrl; break;
-        }
-        const helpText = this.translateText('Common.Close', 'Close');
-        return this.makeWindowButton(onClose, style, 'close', iconUrl, helpText);
-    }
-
-    public makeWindowButton(onClick: () => void, style: WindowStyle, cssClass: string, iconUrl: string, helpText: string): HTMLElement {
-        let buttonBaseCssClass: string;
-        switch (style) {
-            case 'window': buttonBaseCssClass = 'n3q-window-button'; break;
-            case 'popup':
-            case 'overlay':
-            default: buttonBaseCssClass = 'n3q-popup-button'; break;
-        }
-
-        const buttonElem = DomUtils.elemOfHtml('<div></div>');
-        buttonElem.classList.add(buttonBaseCssClass, cssClass);
-        buttonElem.setAttribute('title', helpText);
-        const dispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this, buttonElem);
-        dispatcher.addUnmodifiedLeftClickListener(ev => onClick());
-        dispatcher.addListener('clickstart', ButtonId.first, ModifierKeyId.none, ev => {
-            buttonElem.classList.add('active');
-        });
-        dispatcher.addListener('clickend', null, null, ev => {
-            buttonElem.classList.remove('active');
-        });
-
-        const [iconElem, _iconElemReady] = this.makeIcon(iconUrl);
-        buttonElem.appendChild(iconElem);
-
-        return buttonElem;
-    }
-
-    /**
-     * Returned URL points at our own iframe page wrapping the given page.
-     * Our iframe page is treated as not setting any CORS/CSP restrictions.
-     * This allows it to load any content no matter whether the content page set any CORS/CSP restrictions.
-     *
-     * Known issues:
-     * - X-Frame-Options response header from wrapped page still applies and prevents framing.
-     * - frame-ancestors option in content-security-policy header from wrapped page still applies and prevents framing.
-     */
-    public getWrappedIframeUrl(url: string): string
-    {
-        const iframeUrl: string = chrome.runtime.getURL("assets/iframe.html");
-        const urlArg: string = encodeURIComponent(url);
-        return `${iframeUrl}?url=${urlArg}`;
     }
 
 }

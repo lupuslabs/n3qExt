@@ -67,8 +67,8 @@ export class ItemFramePopup
 
             let windowId = Utils.randomString(15);
 
-            const opacityClass = options.transparent ? 'n3q-transparent' : 'n3q-shadow-medium';
-            this.windowElem = DomUtils.elemOfHtml(`<div id="${windowId}" class="n3q-window n3q-popupwindow ${opacityClass}" data-translate="children"></div>`);
+            const opacityClass = options.transparent ? 'transparent-background' : '';
+            this.windowElem = DomUtils.elemOfHtml(`<div id="${windowId}" class="roomitemframepopup ${opacityClass}" data-translate="children"></div>`);
 
             if (as.Bool(options.closeButton, true)) {
                 this.isClosing = false;
@@ -79,7 +79,7 @@ export class ItemFramePopup
                         this.close();
                     }
                 };
-                this.windowElem.append(this.app.makeWindowCloseButton(onClose, 'popup'));
+                this.windowElem.append(this.app.uiHelper.makeWindowCloseButton(onClose, 'popup'));
             }
 
             this.containerElem.append(this.windowElem);
@@ -88,10 +88,8 @@ export class ItemFramePopup
                 this.app.toFront(this.windowElem, ContentApp.LayerWindow);
             }, { capture: true });
 
-            this.windowElem.classList.add('n3q-itemframepopup');
-
-            const urlWrapped = this.app.getWrappedIframeUrl(url);
-            this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframepopup-content" src="${urlWrapped}" frameborder="0"></iframe>`);
+            const urlWrapped = this.app.uiHelper.getWrappedIframeUrl(url);
+            this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${urlWrapped}"></iframe>`);
 
             if (options.hidden) {
                 this.setVisibility(false);
@@ -180,15 +178,15 @@ export class ItemFramePopup
         if (this.isClosing || !this.windowElem) {
             return false;
         }
-        return !this.windowElem.classList.contains('n3q-hidden');
+        return !this.windowElem.classList.contains('hidden');
     }
 
     public setVisibility(visible: boolean): void
     {
         if (visible) {
-            this.windowElem?.classList.remove('n3q-hidden');
+            this.windowElem?.classList.remove('hidden');
         } else {
-            this.windowElem?.classList.add('n3q-hidden');
+            this.windowElem?.classList.add('hidden');
         }
     }
 }

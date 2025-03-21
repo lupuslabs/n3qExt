@@ -2,14 +2,14 @@ import log = require('loglevel');
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
-import { Window, WindowOptions } from './Window';
+import { FullWindow, FullWindowOptions } from './FullWindow';
 import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
 import { DomUtils } from '../lib/DomUtils'
 import { RoomItem } from './RoomItem'
 import { PopupDefinition } from '../lib/BackgroundMessage'
 
-export type ItemFrameWindowOptions = WindowOptions & {
+export type ItemFrameWindowOptions = FullWindowOptions & {
     above: HTMLElement,
     url: string,
     resizable?: boolean,
@@ -17,7 +17,7 @@ export type ItemFrameWindowOptions = WindowOptions & {
     titleText: string,
 }
 
-export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
+export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
 {
     protected readonly item: RoomItem;
     protected iframeElem: HTMLIFrameElement;
@@ -38,7 +38,7 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
-        this.windowCssClasses.push('n3q-itemframewindow');
+        this.windowCssClasses.push('itemframewindow');
         this.titleText = this.givenOptions.titleText;
         this.isResizable = as.Bool(this.givenOptions.resizable);
         this.minWidth = 180;
@@ -65,8 +65,8 @@ export class ItemFrameWindow extends Window<ItemFrameWindowOptions>
             log.info('ItemFrameWindow.makeContent', this.url);
         }
 
-        const urlWrapped = this.app.getWrappedIframeUrl(this.url);
-        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe class="n3q-base n3q-itemframewindow-content" src="${urlWrapped}" frameborder="0" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`);
+        const urlWrapped = this.app.uiHelper.getWrappedIframeUrl(this.url);
+        this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${urlWrapped}" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`);
 
         this.contentElem.append(this.iframeElem);
     }

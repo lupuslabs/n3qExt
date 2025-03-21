@@ -29,7 +29,7 @@ export class Chatout
         this.app = app;
         this.bubbles = new OrderedSet<BubbleInfo>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
 
-        this.containerElem = DomUtils.elemOfHtml('<div class="n3q-chatout-container"></div>');
+        this.containerElem = DomUtils.elemOfHtml('<div class="participant-chat-from-server-container"></div>');
         this.positionContainerElem(Config.get('room.chatBubblesDefaultBottom', 100));
         display.appendChild(this.containerElem);
     }
@@ -88,9 +88,9 @@ export class Chatout
     {
         this.isVisible = isVisible;
         if (isVisible) {
-            this.containerElem.classList.remove('n3q-hidden');
+            this.containerElem.classList.remove('hidden');
         } else {
-            this.containerElem.classList.add('n3q-hidden');
+            this.containerElem.classList.add('hidden');
         }
     }
 
@@ -116,8 +116,8 @@ export class Chatout
             return;
         }
 
-        const typeClass = 'n3q-chat-type-' + chatMessage.type;
-        const bubbleElem = DomUtils.elemOfHtml(`<div class="n3q-chatout ${typeClass}" style="opacity: 1;"></div>`);
+        const typeClass = 'chat-type-' + chatMessage.type;
+        const bubbleElem = DomUtils.elemOfHtml(`<div class="participant-chat-from-server ${typeClass}" style="opacity: 1;"></div>`);
         const bubble: BubbleInfo = {
             ...chatMessage,
             bubbleElem,
@@ -130,22 +130,22 @@ export class Chatout
             return; // Duplicate detected - keep old version.
         }
 
-        const bubbleBubbleElem = DomUtils.elemOfHtml('<div class="n3q-speech"></div>');
+        const bubbleBubbleElem = DomUtils.elemOfHtml('<div class="bubble"></div>');
         bubbleBubbleElem.onpointerdown = (ev) => this.pinBubble(bubble);
         bubbleElem.appendChild(bubbleBubbleElem);
 
-        const textElem = DomUtils.elemOfHtml('<div class="n3q-text"></div>');
+        const textElem = DomUtils.elemOfHtml('<div class="text"></div>');
         const mentionNameToHighlight = chatMessage.authorUserId !== this.app.getUserId() ? this.app.getUserNickname() : null;
         const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(chatMessage.text, mentionNameToHighlight);
         if (ownNameMentionFound) {
             bubbleElem.classList.add('own-name-mention');
         }
         textNodes.forEach(node => textElem.appendChild(node));
-        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, textElem);
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, bubbleBubbleElem);
         bubbleBubbleElem.appendChild(textElem);
 
         const onCloseClick = () => this.closeBubble(bubble);
-        bubbleElem.appendChild(this.app.makeWindowCloseButton(onCloseClick, 'overlay'));
+        bubbleElem.appendChild(this.app.uiHelper.makeWindowCloseButton(onCloseClick, 'overlay'));
 
         this.bubbles.add(bubble);
         this.containerElem.appendChild(bubbleElem);
@@ -183,7 +183,7 @@ export class Chatout
         if (bubble.bubbleStatus !== 'closed') {
             bubble.bubbleStatus = 'pinned';
             const elem = bubble.bubbleElem;
-            elem.classList.add('n3q-chatout-pinned');
+            elem.classList.add('pinned');
             elem.style.transition = '';
             elem.style.opacity = '1';
         }

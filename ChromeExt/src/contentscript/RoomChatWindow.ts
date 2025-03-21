@@ -1,27 +1,29 @@
 import { ChatUtils } from '../lib/ChatUtils'
-import { ContentApp } from './ContentApp';
-import { ChatWindow } from './ChatWindow';
+import { ContentApp } from './ContentApp'
+import { ChatWindow } from './ChatWindow'
 import { Room } from './Room'
 
 export class RoomChatWindow extends ChatWindow
 {
-    protected room: Room;
+    protected room: Room
 
     public constructor(app: ContentApp, room: Room, chatChannel?: ChatUtils.ChatChannel)
     {
         chatChannel ??= {
-            type:     'roompublic',
-            roomJid:  room.getJid(),
+            type: 'roompublic',
+            roomJid: room.getJid(),
             roomNick: '',
-        };
-        super(app, chatChannel);
+        }
+        super(app, chatChannel)
 
-        this.room = room;
+        this.room = room
+
+        this.windowCssClasses.push('roomchatwindow')
     }
 
     protected async sendChat(text: string): Promise<void>
     {
-        this.room.sendGroupChat(text);
+        this.room.sendGroupChat(text)
     }
 
 }

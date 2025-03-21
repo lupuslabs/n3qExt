@@ -1,21 +1,15 @@
-import { ContentApp } from './ContentApp';
-import { VidconfWindow } from './VidconfWindow';
-import { Participant } from './Participant';
+import { ContentApp } from './ContentApp'
+import { VidconfWindow } from './VidconfWindow'
+import { Participant } from './Participant'
 
 export class PrivateVidconfWindow extends VidconfWindow
 {
-    private readonly participant: Participant;
-
     public constructor(app: ContentApp, participant: Participant)
     {
         super(app);
-        this.participant = participant;
-        this.popupId = 'user.vidconfUndocked:' + participant.getUserId();
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.titleText = this.app.translateText('PrivateVidconf.Private Videoconference with', 'Private Videoconference with') + ' ' + this.participant.getDisplayName();
+        this.titleText = 'Private Videoconference with {other}'
+        this.titleTextId = 'PrivateVidconf.Private Videoconference with'
+        this.titleTextReplacements.set('{other}', () => participant.getDisplayName())
+        this.popupId = 'user.vidconfUndocked:' + participant.getUserId()
     }
 }

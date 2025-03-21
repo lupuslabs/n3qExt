@@ -46,7 +46,7 @@ export class Config
         },
         system: {
             displayProtectShadowDomAnchor: true,
-            displayPopupShadowDomAnchor: false,
+            displayPopupShadowDomAnchor: true,
             submenuHoverOpenDelaySec: 0.5,
             submenuCloseOnItemHoverDelaySec: 0.5,
             windowContainerMarginTop: 3, // [px]
@@ -540,15 +540,13 @@ export class Config
             navigateToPageUrl: 'https://www.weblin.io/',
         },
         about: {
-            defaultWidth: 650,
-            defaultHeight: 300,
             defaultBottom: 400,
             defaultLeft: 50,
             landingPage: 'https://www.weblin.io/',
             projectPage: 'https://www.weblin.io/Start',
             privacyPolicy: 'https://www.weblin.io/PrivacyPolicy',
             extensionLink: 'https://chrome.google.com/webstore/detail/weblin/cgfkfhdinajjhfeghebnljbanpcjdlkm',
-            description: 'The Web is a virtual world. You meet other people - on all pages. </br></br>You have an avatar on every web page and you meet other people who are on the same page at the same time. It\'s anonymous. It\'s on every web page. It\'s real-time.',
+            description: 'The Web is a virtual world. You meet other people - on all pages.\n\nYou have an avatar on every web page and you meet other people who are on the same page at the same time. It\'s anonymous. It\'s on every web page. It\'s real-time.',
         },
         i18n: {
             // overrideBrowserLanguage: 'fr-FR',
@@ -654,12 +652,12 @@ export class Config
                     '/do agree': '*agrees*',
                     '/do yawn': '*yawns*',
 
-                    'PrivateChat.Private Chat with': 'Private Chat with',
+                    'PrivateChat.Private Chat with': 'Private Chat with {other}',
                     'PrivateChat.newMessageToastTitle': 'Unread private chat from {otherUserName}',
                     'PrivateChat.newMessageToastText': 'Unread messages: {unreadMessageCount}\nLast message from {lastUnreadMessageTime}:\n\n{lastUnreadMessageText}',
                     'PrivateChat.newMessageToastOpenChatWindowButtonLabel': 'Open private chat',
 
-                    'PrivateVidconf.Private Videoconference with': 'Private Videoconference with',
+                    'PrivateVidconf.Private Videoconference with': 'Private Videoconference with {other}',
 
                     'Vidconfwindow.Video Conference': 'Video Conference',
                     'Settingswindow.Settings': 'Settings',
@@ -1053,12 +1051,12 @@ export class Config
                     '/do agree': '*stimmt zu*',
                     '/do yawn': '*gähnt*',
 
-                    'PrivateChat.Private Chat with': 'Privater Chat mit',
+                    'PrivateChat.Private Chat with': 'Privater Chat mit {other}',
                     'PrivateChat.newMessageToastTitle': 'Privater Chat von {otherUserName}',
                     'PrivateChat.newMessageToastText': 'Ungelesene Nachrichten: {unreadMessageCount}\nLetzte Nachricht von {lastUnreadMessageTime}:\n\n{lastUnreadMessageText}',
                     'PrivateChat.newMessageToastOpenChatWindowButtonLabel': 'Privaten Chat öffnen',
 
-                    'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit',
+                    'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit {other}',
 
                     'Vidconfwindow.Video Conference': 'Videokonferenz',
                     'Settingswindow.Settings': 'Einstellungen',

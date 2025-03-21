@@ -1,27 +1,21 @@
-import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
-import { Window, WindowOptions } from './Window';
+import { FullWindow, FullWindowOptions } from './FullWindow'
 import { _Changes } from '../lib/_Changes';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
-export class ChangesWindow extends Window<WindowOptions>
+export class ChangesWindow extends FullWindow<FullWindowOptions>
 {
     private outElem: HTMLElement;
 
     public constructor(app: ContentApp)
     {
         super(app);
-        this.windowName = 'Changes';
-        this.isResizable = true;
+        this.windowSettingsId = 'Changes';
         this.persistGeometry = true;
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.windowCssClasses.push('n3q-changeswindow');
-        this.titleText = this.app.translateText('ChangesWindow.Changes', 'Change History');
+        this.windowCssClasses.push('changeswindow');
+        this.titleText = 'Change History';
+        this.titleTextId = 'ChangesWindow.Changes';
         this.defaultWidth = 600;
         this.defaultHeight = 600;
         this.defaultBottom = 400;
@@ -32,7 +26,7 @@ export class ChangesWindow extends Window<WindowOptions>
     {
         await super.makeContent();
         const contentElem = this.contentElem;
-        this.outElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-changeswindow-out" data-translate="children"></div>');
+        this.outElem = DomUtils.elemOfHtml('<div class="code changelog" data-translate="children"></div>');
         contentElem.append(this.outElem);
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.outElem);
         this.showHistory();
@@ -60,8 +54,8 @@ export class ChangesWindow extends Window<WindowOptions>
     protected showLine(text: string): void
     {
         const lineElem = DomUtils.elemOfHtml(
-            `<div class="n3q-base n3q-changeswindow-line">
-                <span class="n3q-base n3q-text n3q-changeswindow-text">${DomUtils.convertTextToHtmlWithClickableLinks(text)}</span>
+            `<div class="line">
+                <span class="text">${DomUtils.convertTextToHtmlWithClickableLinks(text)}</span>
             <div>`
         );
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, lineElem);

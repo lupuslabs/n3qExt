@@ -22,7 +22,7 @@ export class ActivityBar implements IObserver
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-activity" />').get(0);
+        this.elem = <HTMLDivElement>$('<div class="participant-activity" />').get(0);
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
@@ -97,7 +97,7 @@ export class ActivityBar implements IObserver
                     let width = contribution * 5;
                     let title = this.app.translateText('Activity.' + channel) + ': ' + activities[channel];
 
-                    let part = <HTMLDivElement>$('<div class="n3q-base n3q-activity-segment" />').get(0);
+                    let part = <HTMLDivElement>$('<div class="participant-activity-segment" />').get(0);
                     $(part).css(Config.get('points.activities.' + channel + '.css', { backgroundColor: '#808080' }));
                     $(part).css({ position: 'absolute', height: '100%', width: width + 'px', left: left + 'px' });
                     $(part).css({ 'width': width + 'px' });

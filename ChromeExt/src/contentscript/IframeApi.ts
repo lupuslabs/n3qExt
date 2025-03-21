@@ -15,39 +15,25 @@ import { ItemExceptionToast, SimpleErrorToast, SimpleToast } from './Toast';
 
 export class IframeApi
 {
-    private messageHandler: (ev: any) => any;
+    private readonly messageHandler: (ev: MessageEvent) => Promise<any>
 
     constructor(protected app: ContentApp)
     {
+        this.messageHandler = ev => this.onMessage(ev)
     }
 
-    start(): IframeApi
+    start(): void
     {
-        this.messageHandler = this.getMessageHandler();
         window.addEventListener('message', this.messageHandler)
-
-        return this;
     }
 
-    stop(): IframeApi
+    stop(): void
     {
         try {
             window.removeEventListener('message', this.messageHandler)
         } catch (error) {
             //
         }
-
-        return this;
-    }
-
-    getMessageHandler()
-    {
-        var self = this;
-        function onMessageClosure(ev: any)
-        {
-            return self.onMessage(ev);
-        }
-        return onMessageClosure;
     }
 
     async onMessage(ev: any): Promise<any>
@@ -424,7 +410,7 @@ export class IframeApi
             }
 
             if (as.String(request.type).startsWith(WeblinClientIframeApi.PersonItemApiRequestTypePrefix)) {
-                this.app.getPersonManager().handlePersonItemApiRequest(request)
+                this.app.personManager.handlePersonItemApiRequest(request)
                 return;
             }
 

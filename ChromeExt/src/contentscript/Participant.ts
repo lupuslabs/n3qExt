@@ -31,7 +31,7 @@ import { Memory } from '../lib/Memory';
 import { DomUtils } from '../lib/DomUtils';
 import { PointerEventData } from '../lib/PointerEventData';
 import { ChatUtils } from '../lib/ChatUtils';
-import { RootMenu, } from './Menu';
+import { Menu } from './Menu';
 import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { AnimationsDefinition } from './AnimationsXml';
@@ -40,7 +40,7 @@ import * as introYouCloseIconDataUrl from '../assets/icons/inverse-close-circle-
 
 export class Participant extends Entity
 {
-    private menuDisplay: RootMenu;
+    private menuDisplay: Menu;
     private nicknameDisplay: Nickname;
     private pointsDisplay: PointsBar;
     private activityDisplay: ActivityBar;
@@ -60,19 +60,19 @@ export class Participant extends Entity
     {
         super(app, room, roomNick, isSelf);
 
-        this.elem.classList.add('n3q-participant');
+        this.elem.classList.add('participant');
         this.elem.setAttribute('data-nick', roomNick);
 
         if (this.isSelf) {
             this.userId = this.app.getUserId();
-            this.supportsPrivateChat = this.app.getInstantMessageManager().isFeatureEnabled();
+            this.supportsPrivateChat = this.app.instantMessageManager.isFeatureEnabled();
             this.canReceiveItems = Utils.isBackpackEnabled();
             this.supportsPersonApi = Utils.isBackpackEnabled();
-            this.elem.classList.add('n3q-participant-self');
+            this.elem.classList.add('participant-self');
             this.showIntroYouOnce().catch(error => this.app.onError(error));
             this.showTutorialOnce().catch(error => this.app.onError(error));
         } else {
-            this.elem.classList.add('n3q-participant-other');
+            this.elem.classList.add('participant-other');
         }
 
         if (this.isSelf) {
@@ -110,20 +110,19 @@ export class Participant extends Entity
                 await Memory.setLocal('client.introYou', countIntroYou);
 
                 const introYouElem = DomUtils.elemOfHtml(''
-                    + '<div class="n3q-base n3q-intro-you n3q-bounce" data-translate="children">'
-                    + '  <svg class="n3q-base n3q-shadow-small" width="72" height="48" xmlns="http://www.w3.org/2000/svg">'
+                    + '<div class="participant-intro-you n3q-bounce" data-translate="children">'
+                    + '  <svg width="72" height="48" xmlns="http://www.w3.org/2000/svg">'
                     + '    <g>'
-                    + '      <path class="n3q-base" stroke-width="0" stroke="#000" d="m0,25l36,-24l36,24l-18,0l0,24l-36,0l0,-24l-18,0l0,0z" id="svg_1" transform="rotate(-180 36 24)"/>'
+                    + '      <path stroke-width="0" stroke="#000" d="m0,25l36,-24l36,24l-18,0l0,24l-36,0l0,-24l-18,0l0,0z" id="svg_1" transform="rotate(-180 36 24)"/>'
                     + '    </g>'
                     + '  </svg>'
-                    + '  <div class="n3q-base n3q-intro-you-label" data-translate="children"><div class="n3q-base n3q-intro-you-label-text" data-translate="text:Intro">You</div></div>'
+                    + '  <div class="text" data-translate="children"><div data-translate="text:Intro">You</div></div>'
                     + '</div>');
                 const onClose = () => {
                     Memory.setLocal('client.introYou', maxShowIntroYou + 1).catch(error => this.app.onError(error));
                     introYouElem.remove();
                 };
-                const helpText = this.app.translateText('Intro.Got it', 'Got it');
-                const closeElem = this.app.makeWindowButton(onClose, 'overlay', 'close', introYouCloseIconDataUrl, helpText);
+                const closeElem = this.app.uiHelper.makeWindowButton(onClose, 'overlay', 'close', introYouCloseIconDataUrl, 'Intro.Got it', 'Got it');
                 introYouElem.append(closeElem);
                 this.app.translateElem(introYouElem);
                 this.getElem().append(introYouElem);
@@ -294,7 +293,7 @@ export class Participant extends Entity
         if (isFirstPresence) {
             this.avatarDisplay = new Avatar(this.app, this, this.isSelf, true);
             if (Utils.isBackpackEnabled()) {
-                this.avatarDisplay.addClass('n3q-participant-avatar');
+                this.avatarDisplay.addClass('participant-avatar');
             }
 
             if (Utils.isBadgesEnabled()) {
@@ -483,11 +482,11 @@ export class Participant extends Entity
             case 'xa':
             case 'dnd':
                 this.elem.setAttribute('title', this.app.translateText('StatusMessage.' + status));
-                this.elem.classList.add('n3q-ghost');
+                this.elem.classList.add('ghost');
                 break;
             default:
                 this.elem.removeAttribute('title');
-                this.elem.classList.remove('n3q-ghost');
+                this.elem.classList.remove('ghost');
                 break;
         }
     }
@@ -837,7 +836,7 @@ export class Participant extends Entity
         if (this.isSelf) {
             this.toggleChatWindow();
         } else if (this.getSupportsPrivateChat()) {
-            this.app.getInstantMessageManager().toggleInstantMessageWindow(this.userId);
+            this.app.instantMessageManager.toggleInstantMessageWindow(this.userId);
         }
     }
 

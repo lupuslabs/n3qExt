@@ -18,7 +18,7 @@ export class FreeSpace
             this.cell[x] = [];
             for (let y = 0; y < n; y++) {
                 if (elem) {
-                    let cellElem = <HTMLElement>$('<div class="x' + x + ' y' + y + '" class="n3q-base n3q-testFreeSpace" style="opacity:0.8;position:absolute;width:' + dx + 'px;height:' + dy + 'px;left:' + Math.floor(x * dx) + 'px;top:' + Math.floor(y * dy) + 'px;"/>').get(0);
+                    let cellElem = <HTMLElement>$('<div class="x' + x + ' y' + y + '" class="n3q-testFreeSpace" style="opacity:0.8;position:absolute;width:' + dx + 'px;height:' + dy + 'px;left:' + Math.floor(x * dx) + 'px;top:' + Math.floor(y * dy) + 'px;"/>').get(0);
                     $(elem).append(cellElem);
                 }
                 this.cell[x][y] = Math.random();

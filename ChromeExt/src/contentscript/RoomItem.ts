@@ -45,7 +45,7 @@ export class RoomItem extends Entity
     {
         super(app, room, roomNick, isSelf);
 
-        $(this.getElem()).addClass('n3q-item');
+        $(this.getElem()).addClass('roomitem');
         $(this.getElem()).attr('data-nick', roomNick);
     }
 
@@ -79,8 +79,8 @@ export class RoomItem extends Entity
 
     protected getScriptWindow(): undefined | Window
     {
-        let window = this.framePopup ?? this.frameWindow;
-        return window?.getIframeElem()?.contentWindow;
+        const content: null|HTMLIFrameElement = this.framePopup?.getIframeElem() ?? this.frameWindow?.getIframeElem() ?? null;
+        return content?.contentWindow;
     }
 
     public remove(): void
@@ -204,9 +204,6 @@ export class RoomItem extends Entity
                 visible = false;
             }
             this.avatarDisplay = new Avatar(this.app, this, false, visible);
-            if (Utils.isBackpackEnabled()) {
-                this.avatarDisplay.addClass('n3q-item-avatar');
-            }
         }
 
         if (this.avatarDisplay) {

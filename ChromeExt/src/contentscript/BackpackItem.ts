@@ -53,12 +53,12 @@ export class BackpackItem
         this.properties = properties
         this.itemId = itemId
 
-        this.elem = DomUtils.elemOfHtml(`<div class="n3q-backpack-item" data-id="${this.itemId}"></div>`)
-        this.imageCellElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-image"></div>')
+        this.elem = DomUtils.elemOfHtml(`<div class="backpack-item" data-id="${this.itemId}"></div>`)
+        this.imageCellElem = DomUtils.elemOfHtml('<div class="backpack-item-icon"></div>')
         this.elem.append(this.imageCellElem)
-        this.textElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-label"></div>')
+        this.textElem = DomUtils.elemOfHtml('<div class="backpack-item-label"></div>')
         this.elem.append(this.textElem)
-        const overlaysElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-overlays"></div>')
+        const overlaysElem = DomUtils.elemOfHtml('<div class="backpack-item-overlays"></div>')
         this.imageCellElem.append(overlaysElem)
         this.itemOverlaysState = this.app.getItemOverlays().makeItemOverlaysStateOfContainer(overlaysElem)
         this.backpackWindow.getPane().append(this.elem)
@@ -102,7 +102,7 @@ export class BackpackItem
         const imageUrl = ItemProperties.getImageUrl(this.properties)
         if (imageUrl !== this.imageUrl) {
             this.imageUrl = imageUrl
-            const [wrapperElem, donePromise] = this.app.makeScaledAndClippedIcon(this.imageUrl, 10, this.imageWidth, this.imageHeight)
+            const [wrapperElem, donePromise] = this.app.uiHelper.makeScaledAndClippedIcon(this.imageUrl, 10, this.imageWidth, this.imageHeight)
             donePromise.then(() => {
                 this.imageElem?.remove()
                 this.imageElem = wrapperElem
@@ -127,7 +127,7 @@ export class BackpackItem
             return
         }
         if (!this.onlineStatusElem) {
-            this.onlineStatusElem = DomUtils.elemOfHtml('<div class="n3q-backpack-item-online-status"></div>')
+            this.onlineStatusElem = DomUtils.elemOfHtml('<div class="backpack-item-online-status"></div>')
             this.elem.append(this.onlineStatusElem)
         }
         const onlineStatus = ItemProperties.getUserOnlineStatus(this.properties)
@@ -228,9 +228,9 @@ export class BackpackItem
         this.itemOverlaysState = this.app.getItemOverlays().updateItemOverlays(this.properties, this.itemOverlaysState)
 
         if (as.Bool(properties[Pid.IsRezzed])) {
-            this.elem.classList.add('n3q-backpack-item-rezzed')
+            this.elem.classList.add('rezzed')
         } else {
-            this.elem.classList.remove('n3q-backpack-item-rezzed')
+            this.elem.classList.remove('rezzed')
         }
 
         this.info?.update()

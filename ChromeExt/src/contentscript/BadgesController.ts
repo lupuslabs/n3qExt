@@ -169,15 +169,15 @@ export class BadgesController
             return;
         }
         this.isInEditMode = true;
-        this.containerElem.classList.add('n3q-badgesEditMode');
+        this.containerElem.classList.add('edit-mode');
         this.editModeBackgroundElem = document.createElement('div');
-        this.editModeBackgroundElem.classList.add('n3q-base', 'n3q-badgesEditModeBackground');
+        this.editModeBackgroundElem.classList.add('participant-badges-edit-mode-background');
         this.parentDisplay.appendChild(this.editModeBackgroundElem);
         this.editModeHintElem = document.createElement('div');
-        this.editModeHintElem.classList.add('n3q-base', 'n3q-badgesEditModeHint');
+        this.editModeHintElem.classList.add('edit-mode-hint');
         this.editModeHintElem.innerText = this.app.translateText('Badges.editModeHint');
         this.containerElem.appendChild(this.editModeHintElem);
-        this.editModeExitElem = this.app.makeWindowCloseButton(() => this.exitEditMode(), 'overlay');
+        this.editModeExitElem = this.app.uiHelper.makeWindowCloseButton(() => this.exitEditMode(), 'overlay');
         this.containerElem.appendChild(this.editModeExitElem);
         this.updateDisplay();
         if (this.debugLogEnabled) {
@@ -191,7 +191,7 @@ export class BadgesController
             return;
         }
         this.isInEditMode = false;
-        this.containerElem.classList.remove('n3q-badgesEditMode');
+        this.containerElem.classList.remove('edit-mode');
         this.containerElem.removeChild(this.editModeHintElem);
         this.editModeHintElem = null;
         this.parentDisplay.removeChild(this.editModeBackgroundElem);
@@ -228,7 +228,7 @@ export class BadgesController
             return null;
         }
         const iconElem = document.createElement('img');
-        iconElem.classList.add('n3q-base', 'n3q-badge-draggedElem', 'n3q-hidden');
+        iconElem.classList.add('badge-draggedElem', 'hidden');
         if (is.string(iconDataUrl)) {
             iconElem.setAttribute('src', iconDataUrl);
         } else {
@@ -265,7 +265,7 @@ export class BadgesController
         badgeIconElem.style.height = `${iconHeight}px`;
         badgeIconElem.style.left = `${clientX - iconWidthHalf}px`;
         badgeIconElem.style.top = `${clientY - iconHeightHalf}px`;
-        badgeIconElem.classList.remove('n3q-outside', 'n3q-hidden');
+        badgeIconElem.classList.remove('outside', 'hidden');
     }
 
     public showDraggedBadgeIconOutside(
@@ -276,12 +276,12 @@ export class BadgesController
         }
         badgeIconElem.style.left = `${eventData.clientX - eventData.startDomElementOffsetX}px`;
         badgeIconElem.style.top = `${eventData.clientY - eventData.startDomElementOffsetY}px`;
-        badgeIconElem.classList.remove('n3q-hidden');
-        badgeIconElem.classList.add('n3q-outside');
+        badgeIconElem.classList.remove('hidden');
+        badgeIconElem.classList.add('outside');
     }
 
     public hideDraggedBadgeIcon(badgeIconElem?: HTMLImageElement): void {
-        badgeIconElem?.classList.add('n3q-hidden');
+        badgeIconElem?.classList.add('hidden');
     }
 
     public disposeDraggedBadgeIcon(badgeIconElem?: HTMLImageElement): null {
@@ -646,7 +646,7 @@ export class BadgesController
     {
         if (is.nil(this.containerElem)) {
             this.containerElem = document.createElement('div');
-            this.containerElem.classList.add('n3q-base', 'n3q-badges');
+            this.containerElem.classList.add('participant-badges');
             this.parentDisplay.appendChild(this.containerElem);
         }
         const {avatarYTop, avatarXRight, avatarYBottom, avatarXLeft} = this.containerDimensions;

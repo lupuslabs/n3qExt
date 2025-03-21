@@ -20,7 +20,7 @@ export class PointsBar implements IObserver
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="n3q-base n3q-points" data-translate="children" />').get(0);
+        this.elem = <HTMLDivElement>$('<div class="participant-points" data-translate="children" />').get(0);
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
@@ -68,7 +68,7 @@ export class PointsBar implements IObserver
         );
         let digits = pg.getDigitList(this.points);
         let parts = pg.getPartsList(digits);
-        let stars = parts.map(part => <HTMLDivElement>$('<div class="n3q-base n3q-points-icon n3q-points-icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
+        let stars = parts.map(part => <HTMLDivElement>$('<div class="icon icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
         $(this.elem).append(stars);
 
         this.app.translateElem(this.elem);

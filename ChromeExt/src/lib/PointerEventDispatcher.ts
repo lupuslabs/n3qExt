@@ -295,6 +295,9 @@ export class PointerEventDispatcher {
     public addAnyLeftButtonDownListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('buttondown', DomUtils.ButtonId.first, null, listener);
     }
+    public addUnmodifiedLeftButtonDownListener(listener: PointerEventListener): PointerEventDispatcher {
+        return this.addListener('buttondown', DomUtils.ButtonId.first, DomUtils.ModifierKeyId.none, listener);
+    }
 
     public addAnyLeftClickListener(listener: PointerEventListener): PointerEventDispatcher {
         return this.addListener('click', DomUtils.ButtonId.first, null, listener);

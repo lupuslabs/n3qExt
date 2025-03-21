@@ -4,16 +4,16 @@ import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
 import { ItemException } from '../lib/ItemException';
 import { DomUtils } from '../lib/DomUtils'
-import { Window, WindowOptions } from './Window';
+import { WindowBase, WindowBaseOptions } from './WindowBase';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 
-type ToastOptions = WindowOptions;
+type ToastOptions = WindowBaseOptions;
 
 type ToastStatus = 'pinned'|'fadingIn'|'fadingOut'|'closed';
 
 type ToastButtonInfo = { label: string, action: () => void };
 
-export class Toast extends Window<ToastOptions>
+export class Toast extends WindowBase<ToastOptions>
 {
     protected messageType: string;
     protected durationSec: number;
@@ -21,12 +21,15 @@ export class Toast extends Window<ToastOptions>
     protected toastType: string;
     protected title: string;
     protected text: string;
+    protected chatTitle: string;
+    protected chatText: string;
 
     protected iconUrl: string = '';
     protected iconOpacityMin: number = 10;
     protected iconWidthMax: number = 16;
     protected iconHeightMax: number = 16;
 
+    protected modalBackgroundElem: null|HTMLElement = null;
     protected bodyElem: HTMLElement;
     protected buttons: ToastButtonInfo[] = [];
     protected defaultAction: () => void = () => {};
@@ -38,15 +41,18 @@ export class Toast extends Window<ToastOptions>
 
     protected status: ToastStatus = 'closed';
 
-    public constructor(app: ContentApp, messageType: string, durationSec: number, toastType: string, bodyElem: HTMLElement, title: string, text: string)
+    public constructor(app: ContentApp, messageType: string, durationSec: number, toastType: string, title: string, text: string, chatTitle: string, chatText: string)
     {
         super(app);
+        this.withCloseButton = true;
         this.messageType = messageType;
         this.durationSec = durationSec;
         this.toastType = toastType;
-        this.title = title;
-        this.text = text;
-        this.bodyElem = bodyElem;
+        this.title = title.trim();
+        this.text = text.trim();
+        this.chatTitle = chatTitle.trim();
+        this.chatText = chatText.trim();
+        this.bodyElem = DomUtils.elemOfHtml('<div class="toast-body" data-translate="children"/>');
     }
 
     public setDontShow(state: boolean): void
@@ -133,15 +139,24 @@ export class Toast extends Window<ToastOptions>
         }
     }
 
+    public toFront(layer?: number|string): void
+    {
+        super.toFront(layer)
+        if (this.modalBackgroundElem) {
+            this.app.toFront(this.modalBackgroundElem, this.guiLayer)
+        }
+        super.toFront()
+    }
+
     protected prepareMakeDom(): void
     {
         super.prepareMakeDom();
         this.style = 'overlay';
         this.guiLayer = ContentApp.LayerToast;
-        this.windowCssClasses = ['n3q-base', 'n3q-toast']; // Todo: Rebase own style on window base classes.
-        this.contentCssClasses = ['n3q-base', 'n3q-toast-pane', 'n3q-shadow-small'];
+        this.windowCssClasses.push('toast');
         if (this.isModal) {
-            this.windowCssClasses.push('n3q-toast-modal');
+            this.windowCssClasses.push('toast-modal');
+            this.guiLayer = ContentApp.LayerMenu;
         }
         this.isMovable = !this.isModal;
         this.geometryInitstrategy = 'afterContent'; // CSS decides.
@@ -156,7 +171,7 @@ export class Toast extends Window<ToastOptions>
     protected showInfoInChatLog(): void
     {
         const chatlogName = this.app.translateText('Chatwindow.Toast.' + this.toastType, this.toastType);
-        let chatlogText = this.title + ': ' + this.text;
+        let chatlogText = this.chatTitle + ': ' + this.chatText;
         this.buttons.forEach(({ label }) => {
             chatlogText += ' [' + label + ']';
         });
@@ -177,30 +192,14 @@ export class Toast extends Window<ToastOptions>
             this.contentElem.append(iconElem);
         }
 
-        const bodyContainerElem = DomUtils.elemOfHtml('<div class="n3q-base toast-body-container" data-translate="children"></div>');
+        const bodyContainerElem = DomUtils.elemOfHtml('<div class="toast-body-container" data-translate="children"></div>');
         bodyContainerElem.append(this.bodyElem);
         this.contentElem.append(bodyContainerElem);
 
-        if (this.hasDontShowAgainOption) {
-            const footerElem = DomUtils.elemOfHtml('<div class="n3q-base n3q-toast-footer" data-translate="children"></div>');
-            const checkboxId = Utils.randomString(10);
-            const dontShowElem = <HTMLInputElement> DomUtils.elemOfHtml(`<input class="n3q-base" type="checkbox" name="checkbox" id="${checkboxId}" />`);
-            const dontShowLabelElem = DomUtils.elemOfHtml(`<label class="n3q-base" for="${checkboxId}" data-translate="text:Toast">Do not show this message again</label>`);
-            dontShowElem.addEventListener('change', ev => {
-                this.app.setDontShowNoticeType(this.messageType, dontShowElem.checked);
-            });
-            footerElem.append(dontShowElem);
-            footerElem.append(dontShowLabelElem);
-            this.contentElem.append(footerElem);
-            PointerEventDispatcher.protectElementsWithDefaultActions(this.app, footerElem);
-        }
-
-        for (const { label, action } of this.buttons) {
-            const buttonElem = DomUtils.elemOfHtml(`<div class="n3q-base n3q-button n3q-toast-button n3q-toast-button-action" data-translate="text:Toast">${as.Html(label)}</div>`);
-            this.bodyElem.append(buttonElem);
-            this.app.translateElem(buttonElem);
-            PointerEventDispatcher.makeOpaqueDispatcher(this.app, buttonElem).addUnmodifiedLeftClickListener(ev => action());
-        }
+        this.makeTitleElem()
+        this.makeTextElem()
+        this.makeDontShowElem()
+        this.makeButtonsElem()
     }
 
     protected onBeforeShowDone(): void
@@ -212,13 +211,17 @@ export class Toast extends Window<ToastOptions>
         const guard = () => this.status === newStatus;
         const onComplete = () => this.onAnimationDone(newStatus);
         if (this.isModal) {
-            this.contentElem.style.opacity = '0';
-            DomUtils.startElemTransition(this.contentElem, guard, {
+            this.windowElem.style.opacity = '0';
+            DomUtils.startElemTransition(this.windowElem, guard, {
                 property: 'opacity',
                 duration: '200ms',
                 timingFun: 'linear',
             }, '1', onComplete);
+            this.modalBackgroundElem = DomUtils.elemOfHtml('<div class="toast-modal-background"/>');
+            this.app.getDisplay()?.append(this.modalBackgroundElem);
+            this.toFront();
         } else {
+            const finalBottom = window.getComputedStyle(this.windowElem).getPropertyValue('bottom');
             this.windowElem.style.opacity = '0';
             this.windowElem.style.bottom = '-20px';
             DomUtils.startElemTransition(this.windowElem, guard, {
@@ -230,18 +233,98 @@ export class Toast extends Window<ToastOptions>
                 property: 'bottom',
                 duration: '200ms',
                 timingFun: 'linear',
-            }, '10px', onComplete);
+            }, finalBottom, onComplete);
         }
+    }
+
+    protected onViewportResize(): void
+    {
+        if (this.isModal && this.isOpen()) {
+            this.windowElem.style.top = '0'
+            this.windowElem.style.right = '0'
+            this.windowElem.style.bottom = '0'
+            this.windowElem.style.left = '0'
+            this.windowElem.style.margin = 'auto'
+            return
+        }
+        super.onViewportResize();
+    }
+
+    protected onBeforeClose(): void
+    {
+        this.modalBackgroundElem?.remove()
+        this.modalBackgroundElem = null
     }
 
     protected async makeIconElem(): Promise<null|HTMLElement>
     {
         if (this.iconUrl.length === 0) {
-            return DomUtils.elemOfHtml(`<div class="n3q-base n3q-toast-icon n3q-toast-icon-${this.toastType}"></div>`);
+            return DomUtils.elemOfHtml(`<div class="toast-icon toast-icon-${this.toastType}"></div>`);
         }
         const [iconElem, iconElemReadyPromise]
-            = this.app.makeScaledAndClippedIcon(this.iconUrl, this.iconOpacityMin, this.iconWidthMax, this.iconHeightMax);
+            = this.app.uiHelper.makeScaledAndClippedIcon(this.iconUrl, this.iconOpacityMin, this.iconWidthMax, this.iconHeightMax);
+        iconElem.classList.add('toast-image-icon')
         return (await iconElemReadyPromise) ? iconElem : null;
+    }
+
+    protected makeTitleElem(): void
+    {
+        if (!is.nonEmptyString(this.title)) {
+            return
+        }
+        const title = this.app.translateText(`Toast.${this.title}`, this.title)
+        if (title.length === 0) {
+            return
+        }
+        const titleElem = DomUtils.elemOfHtml('<div class="toast-title title"/>')
+        titleElem.innerText = title;
+        this.bodyElem.append(titleElem);
+    }
+
+    protected makeTextElem(): void
+    {
+        if (!is.nonEmptyString(this.text)) {
+            return
+        }
+        const text = this.app.translateText(`Toast.${this.text}`, this.text)
+        if (text.length === 0) {
+            return
+        }
+        const textElem = DomUtils.elemOfHtml('<div class="toast-text"/>')
+        textElem.append(...DomUtils.paragraphNodesOfText(text))
+        this.bodyElem.append(textElem)
+    }
+
+    protected makeDontShowElem(): void
+    {
+        if (!this.hasDontShowAgainOption) {
+            return
+        }
+        const footerElem = DomUtils.elemOfHtml('<div class="toast-footer" data-translate="children"></div>');
+        const checkboxId = Utils.randomString(10);
+        const dontShowElem = <HTMLInputElement> DomUtils.elemOfHtml(`<input type="checkbox" name="checkbox" id="${checkboxId}" />`);
+        const dontShowLabelElem = DomUtils.elemOfHtml(`<label for="${checkboxId}" data-translate="text:Toast">Do not show this message again</label>`);
+        dontShowElem.addEventListener('change', ev => {
+            this.app.setDontShowNoticeType(this.messageType, dontShowElem.checked)
+                .catch(error => this.app.onError(error));
+        });
+        footerElem.append(dontShowElem);
+        footerElem.append(dontShowLabelElem);
+        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, footerElem);
+        this.bodyElem.append(footerElem);
+    }
+
+    protected makeButtonsElem(): void
+    {
+        if (this.buttons.length === 0) {
+            return
+        }
+        const buttonsElem = DomUtils.elemOfHtml('<div class="toast-buttons"/>');
+        for (const { label, action } of this.buttons) {
+            const buttonElem = this.app.uiHelper.makeDefaultTextButton('toast-button', `Toast.${label}`, label, action)
+            buttonsElem.append(buttonElem);
+        }
+        this.bodyElem.append(buttonsElem);
     }
 
     protected onCapturePhasePointerDownInside(ev: PointerEvent): void
@@ -249,7 +332,6 @@ export class Toast extends Window<ToastOptions>
         super.onCapturePhasePointerDownInside(ev);
         this.status = 'pinned';
         clearTimeout(this.delayedTransitionTimeoutHandle);
-        DomUtils.stopElemTransition(this.contentElem, 'opacity', '1');
         DomUtils.stopElemTransition(this.windowElem, 'opacity', '1');
         DomUtils.stopElemTransition(this.windowElem, 'bottom');
     }
@@ -276,7 +358,7 @@ export class Toast extends Window<ToastOptions>
                 const guard = () => this.status === newStatus;
                 const onComplete = () => this.onAnimationDone(newStatus);
                 if (this.isModal) {
-                    const playTransitionFun = () => DomUtils.startElemTransition(this.contentElem, guard, {
+                    const playTransitionFun = () => DomUtils.startElemTransition(this.windowElem, guard, {
                         property: 'opacity',
                         duration: '600ms',
                     }, '0', onComplete);
@@ -307,12 +389,7 @@ export class SimpleToast extends Toast
 {
     constructor(app: ContentApp, messageType: string, durationSec: number, toastType: string, title: string, text: string)
     {
-        super(app, messageType, durationSec, toastType, DomUtils.elemOfHtml(''
-            + '<div class="n3q-base n3q-toast-body" data-translate="children">'
-            + (title != null ? `<div class="n3q-base n3q-title" data-translate="text:Toast attr:title:Toast" title="${as.Html(title)}">${as.Html(title)}</div>` : '')
-            + (text != null ? `<div class="n3q-base n3q-text" data-translate="text:Toast">${as.Html(text)}</div>` : '')
-            + '</div>'
-        ), title, text);
+        super(app, messageType, durationSec, toastType, title, text, title, text);
     }
 }
 
@@ -320,17 +397,11 @@ export class SimpleErrorToast extends Toast
 {
     constructor(app: ContentApp, messageType: string, durationSec: number, toastType: string, fact: string, reason: string, detail: string)
     {
-        const bodyElem = DomUtils.elemOfHtml(''
-            + '<div class="n3q-base n3q-toast-body" data-translate="children">'
-            + `<div class="n3q-base n3q-title" data-translate="text:ErrorFact">${as.Html(fact)}</div>`
-            + '<div class="n3q-base n3q-text" data-translate="children">'
-            + (reason != null && reason !== '' ? `<span class="n3q-base" data-translate="text:ErrorReason">${as.Html(reason)}</span> ` : '')
-            + (detail != null && detail !== '' ? `<span class="n3q-base" data-translate="text:ErrorDetail">${as.Html(detail)}</span> ` : '')
-            + '</div>'
-            + '</div>'
-        );
-
-        super(app, messageType, durationSec, toastType, bodyElem, fact, `${reason} ${detail}`);
+        const title = app.translateText(`ErrorFact.${fact}`, fact)
+        const reasonTranslated = app.translateText(`ErrorReason.${reason}`, reason)
+        const detailTranslated = app.translateText(`ErrorDetail.${detail}`, detail)
+        const text = `${reasonTranslated} ${detailTranslated}`
+        super(app, messageType, durationSec, toastType, title, text, title, text);
     }
 }
 
@@ -343,7 +414,6 @@ export class ItemExceptionToast extends SimpleErrorToast
         const messageType = `Warning-${fact}-${reason}`;
         const detail = ex.detail;
         const toastType = 'warning';
-
         super(app, messageType, durationSec, toastType, fact, reason, detail);
     }
 }
