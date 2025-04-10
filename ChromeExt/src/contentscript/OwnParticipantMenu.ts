@@ -103,6 +103,16 @@ export class OwnParticipantMenu extends ParticipantMenu
         const helpMenu = this.addSubmenuItem('help', 'Help', helpIconUrl, false);
         helpMenu.addActionItem('about', 'About weblin', null, null, () => new AboutWindow(this.app).show({}));
         helpMenu.addActionItem('tutorials', 'Tutorials', null, null, () => new TutorialWindow(this.app).show({}));
+        helpMenu.addActionItem('feedback', 'Feedback', null, null, () => {
+            BackgroundMessage.openOrFocusPopup({
+                id: 'test-popup-window',
+                url: 'https://forms.office.com/Pages/ResponsePage.aspx?id=JvnN0H3np0ampfQuOROE_DvLG9SnUatHp-dXDHpbTjJUOUpWSk1PMEdDRTNSTzlNOVZDUTFIVU9BVy4u#n3qdisable',
+                left: 40,
+                top: 40,
+                width: 600,
+                height: 700,
+            }).catch(error => this.app.onError(error));
+        });
     }
 
     protected makeDebugMenuAndItem(): void
