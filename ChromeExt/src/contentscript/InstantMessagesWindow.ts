@@ -91,7 +91,7 @@ export class InstantMessagesWindow extends ChatWindow
     }
 
     protected async sendChat(text: string): Promise<void> {
-        await BackgroundMessage.sendInstantMessage(this.chatChannel.roomJid, text)
+        await BackgroundMessage.sendInstantMessage(this.chatChannel.roomJid, 'chat', text)
     }
 
     private getUserInfo(userId: string): Readonly<PersonData>

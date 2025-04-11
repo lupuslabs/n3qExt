@@ -6,7 +6,9 @@ import { ContentToBackgroundCommunicator } from './ContentToBackgroundCommunicat
 import { Config } from './Config'
 import { as } from './as'
 import { is } from './is'
+
 import ChatMessage = ChatUtils.ChatMessage
+import InstantMessageType = ChatUtils.InstantMessageType
 
 export type BackgroundRequest = {
     type: string,
@@ -20,6 +22,7 @@ export function isBackgroundRequest(val: unknown): val is BackgroundRequest
 
 export type SendInstantMessageBackgroundRequest = BackgroundRequest & {
     otherUserId: string,
+    instantMessageType: InstantMessageType,
     text: string,
 }
 
@@ -519,9 +522,9 @@ export class BackgroundMessage
         return response
     }
 
-    static async sendInstantMessage(otherUserId: string, text: string): Promise<void>
+    static async sendInstantMessage(otherUserId: string, instantMessageType: InstantMessageType, text: string): Promise<void>
     {
-        const request: SendInstantMessageBackgroundRequest = { type: BackgroundMessage.sendInstantMessage.name, otherUserId, text }
+        const request: SendInstantMessageBackgroundRequest = { type: BackgroundMessage.sendInstantMessage.name, otherUserId, instantMessageType, text }
         await BackgroundMessage.sendMessageCheckOk<BackgroundSuccessResponse>(request)
     }
 

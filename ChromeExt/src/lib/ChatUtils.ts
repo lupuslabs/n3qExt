@@ -21,6 +21,10 @@ export namespace ChatUtils {
     export type UserChatMessageType = typeof userChatMessageTypes[number]
     void((a: UserChatMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in UserChatMessageType.
 
+    const instantMessageTypes = ['chat'] as const
+    export type InstantMessageType = typeof instantMessageTypes[number]
+    void((a: InstantMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in InstantMessageType.
+
     export type ChatMessage = {
         timestamp: string
         isUnread: boolean
@@ -35,6 +39,11 @@ export namespace ChatUtils {
     export function isUserChatMessageType(val: unknown): val is UserChatMessageType
     {
         return userChatMessageTypes.some(elem => elem === val)
+    }
+
+    export function isInstantMessageType(val: unknown): val is InstantMessageType
+    {
+        return instantMessageTypes.some(elem => elem === val)
     }
 
     export function areChatMessagesOfSameUser(msgA: ChatMessage, msgB: ChatMessage): boolean

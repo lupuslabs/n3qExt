@@ -133,6 +133,7 @@ export namespace WebsocketMessage {
                     String(messageData.RecipientUserId),
                     String(messageData.InstantMessageId),
                     time,
+                    String(messageData.InstantMessageType),
                     String(messageData.InstantMessage),
                 )
             }
@@ -361,6 +362,7 @@ export namespace WebsocketMessage {
         public constructor(
             Id: string,
             public RecipientUserId: string,
+            public InstantMessageType: string,
             public InstantMessage: string
         ) { super(Id) }
     }
@@ -383,6 +385,7 @@ export namespace WebsocketMessage {
             public RecipientUserId: string,
             public InstantMessageId: string,
             public Time: Date,
+            public InstantMessageType: string,
             public InstantMessage: string,
         ) { super(Id) }
     }

@@ -9,6 +9,9 @@ import { ItemException } from '../lib/ItemException'
 import { BackgroundBrowserTab } from './BackgroundBrowserTabs'
 import { ContentMessage } from '../lib/ContentMessage'
 
+import InstantMessageType = ChatUtils.InstantMessageType
+import isInstantMessageType = ChatUtils.isInstantMessageType
+
 export class BackgroundInstantMessageManager
 {
     private readonly app: BackgroundApp
@@ -33,13 +36,13 @@ export class BackgroundInstantMessageManager
         }
     }
 
-    public async sendInstantMessage(otherUserId: string, text: string): Promise<void>
+    public async sendInstantMessage(otherUserId: string, type: InstantMessageType, text: string): Promise<void>
     {
         if (this.isStopped || !this.isFeatureEnabled()) {
             throw new ItemException(ItemException.Fact.NotExecuted, ItemException.Reason.NotStarted, 'Not ready or feature disabled.')
         }
-        this.logDebug('Sending instant message to server.', { otherUserId, text })
-        const response = await this.app.getWebsocketManager().sendRequest(new WsMessage.SendInstantMessageRequest(WsMessage.makeId(), otherUserId, text))
+        this.logDebug('Sending instant message to server.', { otherUserId, type, text })
+        const response = await this.app.getWebsocketManager().sendRequest(new WsMessage.SendInstantMessageRequest(WsMessage.makeId(), otherUserId, type, text))
         if (!(response instanceof WsMessage.SendInstantMessageOkResponse)) {
             throw new ItemException(ItemException.Fact.InternalError, ItemException.Reason.InternalError, 'Invalid response from server.')
         }
@@ -53,7 +56,7 @@ export class BackgroundInstantMessageManager
             timestamp: Utils.utcStringOfDate(response.Time),
             isUnread: false,
             id: response.InstantMessageId,
-            type: 'chat',
+            type,
             authorUserId: userId,
             authorName: '',
             authorImageUrl: '',
@@ -74,28 +77,41 @@ export class BackgroundInstantMessageManager
                 return
             }
             this.logDebug('Handling instant message.', notification)
+
             const chatChannel: ChatUtils.ChatChannel = {
                 type: 'instantMessage',
                 roomJid: notification.AuthorUserId,
                 roomNick: '',
             }
+
+            let messageType: string = notification.InstantMessageType
+            if (messageType.length === 0) {
+                messageType = 'chat'
+            }
+            if (!isInstantMessageType(messageType)) {
+                this.logError('Instant message isn\'t of supported type.', notification)
+                return
+            }
+
             const messageId = notification.InstantMessageId
             const chatMessage: ChatUtils.ChatMessage = {
                 timestamp: Utils.utcStringOfDate(notification.Time),
                 isUnread: true,
                 id: messageId,
-                type: 'chat',
+                type: messageType,
                 authorUserId: notification.AuthorUserId,
                 authorName: notification.AuthorName,
                 authorImageUrl: notification.AuthorImageUrl,
                 text: notification.InstantMessage,
             }
+
             try {
                 await this.app.handle_newChatMessage(chatChannel, chatMessage, false)
             } catch (error) {
                 this.logError('', error, { chatChannel, chatMessage })
                 return
             }
+
             this.logDebug('Informing server about seen instant message.', { instantMessageId: messageId })
             try {
                 const socketMsg = new WsMessage.InstantMessageHasBeenReceivedRequest(WsMessage.makeId(), messageId)

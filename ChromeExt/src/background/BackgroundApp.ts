@@ -492,8 +492,8 @@ export class BackgroundApp
                 return this.handle_newChatMessage(request.chatChannel, request.chatMessage, request.deduplicate);
             } break;
             case BackgroundMessage.sendInstantMessage.name: {
-                const { otherUserId, text } = <SendInstantMessageBackgroundRequest>request;
-                await this.instantMessageManager.sendInstantMessage(otherUserId, text);
+                const { otherUserId, instantMessageType, text } = <SendInstantMessageBackgroundRequest>request;
+                await this.instantMessageManager.sendInstantMessage(otherUserId, instantMessageType, text);
                 return new BackgroundSuccessResponse();
             } break;
             case BackgroundMessage.getChatHistory.name: {
