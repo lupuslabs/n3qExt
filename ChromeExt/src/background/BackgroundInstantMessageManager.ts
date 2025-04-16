@@ -68,59 +68,52 @@ export class BackgroundInstantMessageManager
 
     public handleInstantMessageNotification(notification: WsMessage.InstantMessageNotification): void
     {
-        (async () => {
-            if (this.isStopped || !this.isFeatureEnabled()) {
-                return
-            }
-            if (notification.RecipientUserId !== this.app.getUserId()) {
-                this.logError('Instant message isn\'t for us.', notification)
-                return
-            }
-            this.logDebug('Handling instant message.', notification)
+        if (this.isStopped || !this.isFeatureEnabled()) {
+            return
+        }
+        this.sendMessageReceivedConfirmation(notification) // Message is resent and blocks the queue until confirmed.
 
-            const chatChannel: ChatUtils.ChatChannel = {
-                type: 'instantMessage',
-                roomJid: notification.AuthorUserId,
-                roomNick: '',
-            }
+        if (notification.RecipientUserId !== this.app.getUserId()) {
+            this.logError('Instant message isn\'t for us.', notification)
+            return
+        }
+        this.logDebug('Handling instant message.', notification)
 
-            let messageType: string = notification.InstantMessageType
-            if (messageType.length === 0) {
-                messageType = 'chat'
-            }
-            if (!isInstantMessageType(messageType)) {
-                this.logError('Instant message isn\'t of supported type.', notification)
-                return
-            }
+        const chatChannel: ChatUtils.ChatChannel = {
+            type: 'instantMessage',
+            roomJid: notification.AuthorUserId,
+            roomNick: '',
+        }
 
-            const messageId = notification.InstantMessageId
-            const chatMessage: ChatUtils.ChatMessage = {
-                timestamp: Utils.utcStringOfDate(notification.Time),
-                isUnread: true,
-                id: messageId,
-                type: messageType,
-                authorUserId: notification.AuthorUserId,
-                authorName: notification.AuthorName,
-                authorImageUrl: notification.AuthorImageUrl,
-                text: notification.InstantMessage,
-            }
+        let messageType: string = notification.InstantMessageType
+        if (messageType.length === 0) {
+            messageType = 'chat'
+        }
+        if (!isInstantMessageType(messageType)) {
+            this.logError('Instant message isn\'t of supported type.', notification)
+            return
+        }
 
-            try {
-                await this.app.handle_newChatMessage(chatChannel, chatMessage, false)
-            } catch (error) {
-                this.logError('', error, { chatChannel, chatMessage })
-                return
-            }
+        const messageId = notification.InstantMessageId
+        const chatMessage: ChatUtils.ChatMessage = {
+            timestamp: Utils.utcStringOfDate(notification.Time),
+            isUnread: true,
+            id: messageId,
+            type: messageType,
+            authorUserId: notification.AuthorUserId,
+            authorName: notification.AuthorName,
+            authorImageUrl: notification.AuthorImageUrl,
+            text: notification.InstantMessage,
+        }
 
-            this.logDebug('Informing server about seen instant message.', { instantMessageId: messageId })
-            try {
-                const socketMsg = new WsMessage.InstantMessageHasBeenReceivedRequest(WsMessage.makeId(), messageId)
-                await this.app.getWebsocketManager().sendRequest(socketMsg)
-            } catch (error) {
-                this.logError('', error, { chatChannel, chatMessage })
-                return
-            }
-        })()
+        this.app.handle_newChatMessage(chatChannel, chatMessage, false)
+            .catch(error => this.logError('', error, {chatChannel, chatMessage}))
+    }
+
+    private sendMessageReceivedConfirmation(notification: WsMessage.InstantMessageNotification): void {
+        const socketMsg = new WsMessage.InstantMessageHasBeenReceivedRequest(WsMessage.makeId(), notification.InstantMessageId)
+        this.app.getWebsocketManager().sendRequest(socketMsg)
+            .catch(error =>this.logError('', error, {notification}))
     }
 
     private sendUnreadChannelsToTab(tab: BackgroundBrowserTab): void
