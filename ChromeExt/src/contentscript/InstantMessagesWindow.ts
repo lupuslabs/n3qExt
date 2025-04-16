@@ -154,7 +154,10 @@ export class InstantMessagesWindow extends ChatWindow
             this.hideUnreadMessageToast()
             return
         }
-        const lastMessage = iter(this.unreadUserChatMessages.reverse()).getNext()
+        const relevantMessages = iter(this.unreadChatMessages)
+            .filter(msg => ChatUtils.isUserChatMessageType(msg.type))
+            .toArray()
+        const lastMessage = relevantMessages[relevantMessages.length - 1] ?? null
         if (!lastMessage) {
             this.hideUnreadMessageToast()
             return
@@ -163,7 +166,7 @@ export class InstantMessagesWindow extends ChatWindow
             return
         }
         this.hideUnreadMessageToast()
-        this.showUnreadMessageToast(lastMessage, this.unreadUserChatMessages.length())
+        this.showUnreadMessageToast(lastMessage, relevantMessages.length)
     }
 
     private hideUnreadMessageToast(): void

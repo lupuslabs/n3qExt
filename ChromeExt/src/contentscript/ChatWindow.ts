@@ -25,7 +25,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
     protected chatInputFieldElem: HTMLTextAreaElement;
     protected chatChannel: ChatUtils.ChatChannel;
     protected chatMessages: OrderedSet<ChatUtils.ChatMessage>;
-    protected unreadUserChatMessages: OrderedSet<ChatUtils.ChatMessage>;
+    protected unreadChatMessages: OrderedSet<ChatUtils.ChatMessage>;
     protected lastIncommingChatMessageTimeMs: number = 0;
     protected sessionStartTs: string;
     protected historyLoading: boolean = false;
@@ -39,7 +39,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         super(app);
         this.chatChannel = chatChannel;
         this.chatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
-        this.unreadUserChatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
+        this.unreadChatMessages = new OrderedSet<ChatUtils.ChatMessage>([], ChatUtils.chatMessageCmpFun, ChatUtils.areChatMessagesIdentical);
         this.sessionStartTs = Utils.utcStringOfDate(new Date());
 
         this.windowSettingsId = `Chat${this.chatChannel.type}`;
@@ -70,14 +70,18 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
     public getUnreadUserMessageCount(maxAgeSecs: number): number
     {
-        let messageCount = 0;
         const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
-        for (const message of this.unreadUserChatMessages) {
-            if (message.timestamp >= maxAgeTimestamp && ChatUtils.isUserChatMessageType(message.type)) {
-                messageCount++;
-            }
-        }
+        const messageCount = iter(this.unreadChatMessages)
+            .filter(msg => msg.timestamp >= maxAgeTimestamp && ChatUtils.isUserChatMessageType(msg.type))
+            .count()
         return messageCount;
+    }
+
+    public markMessagesAsReadByType(messageType: ChatUtils.ChatMessageType): void
+    {
+        iter(this.unreadChatMessages)
+            .filter(msg => msg.type === messageType)
+            .forEach(msg => this.markMessageAsRead(msg))
     }
 
     protected async makeContent(): Promise<void>
@@ -166,7 +170,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
     protected onViewportVisible(): void
     {
         super.onViewportVisible();
-        this.markAllMessagesAsRead();
+        ChatUtils.userChatMessageTypes.forEach(type => this.markMessagesAsReadByType(type))
     }
 
     protected onBeforeClose(): void
@@ -235,11 +239,6 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             this.app.onError(error);
             this.historyLoading = false;
         });
-    }
-
-    private markAllMessagesAsRead(): void
-    {
-        iter(this.unreadUserChatMessages).forEach(msg => this.markMessageAsRead(msg));
     }
 
     private markMessageAsRead(message: ChatUtils.ChatMessage): void
@@ -346,11 +345,13 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
     protected storeChatMessage(chatMessage: ChatUtils.ChatMessage): void
     {
         const {index, replacedExisting} = this.chatMessages.add(chatMessage);
-        if (chatMessage.isUnread && ChatUtils.isUserChatMessageType(chatMessage.type) && chatMessage.authorUserId !== this.app.getUserId()) {
-            this.unreadUserChatMessages.add(chatMessage);
-            this.playSound();
+        if (chatMessage.isUnread && chatMessage.authorUserId !== this.app.getUserId()) {
+            this.unreadChatMessages.add(chatMessage);
+            if (ChatUtils.isUserChatMessageType(chatMessage.type)) {
+                this.playSound();
+            }
         } else {
-            this.unreadUserChatMessages.remove(chatMessage);
+            this.unreadChatMessages.remove(chatMessage);
         }
         this.drawChatMessage(index, replacedExisting);
         this.giveMessageToChatOut(chatMessage);
@@ -377,7 +378,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
                     const message = this.chatMessages.at(index);
                     if (message.timestamp < olderThanTime) {
                         this.chatMessages.removeAt(index);
-                        this.unreadUserChatMessages.remove(message);
+                        this.unreadChatMessages.remove(message);
                         this.removeChatMessageFromDisplay(index);
                     }
                 }
