@@ -165,6 +165,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
     protected onVisible() {
         super.onVisible();
         this.chatInputFieldElem.focus();
+        this.doAutoscroll()
     }
 
     protected onViewportVisible(): void
@@ -314,12 +315,17 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             oldElem?.remove();
         }
 
-        if (this.chatoutAutoScroll) {
-            this.chatlogElem.scrollTop = this.chatlogElem.scrollHeight;
-        }
+        this.doAutoscroll()
 
         if (message.isUnread && this.getViewportVisibility()) {
             this.markMessageAsRead(message);
+        }
+    }
+
+    protected doAutoscroll(): void
+    {
+        if (this.chatoutAutoScroll) {
+            this.chatlogElem.scrollTop = this.chatlogElem.scrollHeight;
         }
     }
 
