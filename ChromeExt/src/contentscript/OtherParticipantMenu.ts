@@ -15,15 +15,14 @@ export class OtherParticipantMenu extends ParticipantMenu
 
     protected makeMenuTree(): void
     {
-        this.addActionItem('privateVideoConference', 'Private Videoconf', privateVideoConferenceIconUrl, true, () => {
-            this.participant.initiatePrivateVidconf(this.participant.getElem()).catch(error => this.app.onError(error));
-        });
-
-        const imManager = this.app.instantMessageManager;
-        const otherUserId = this.participant.getUserId();
-        if (imManager.isFeatureEnabled() && this.participant.getSupportsPrivateChat()) {
-            const action = () => imManager.openInstantMessagesWindow(otherUserId);
-            this.addActionItem('privateChat', 'Private Chat', privateChatIconUrl, true, action);
+        const imManager = this.app.instantMessageManager
+        const otherUserId = this.participant.getUserId()
+        const otherUserInfo = this.app.personManager.getPersonDataOrNull(otherUserId)
+        if (imManager.isFeatureEnabled() && this.participant.getSupportsPrivateChat() && otherUserInfo) {
+            const vidconfAction = () => imManager.initiatePrivateVidconf(otherUserInfo)
+            this.addActionItem('privateVideoConference', 'Private Videoconf', privateVideoConferenceIconUrl, true, vidconfAction)
+            const privateChatAction = () => imManager.openInstantMessagesWindow(otherUserId)
+            this.addActionItem('privateChat', 'Private Chat', privateChatIconUrl, true, privateChatAction)
         }
 
         this.addActionItem('greet', 'Greet', greetIconUrl, true, () => {

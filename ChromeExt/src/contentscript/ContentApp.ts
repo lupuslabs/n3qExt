@@ -18,7 +18,7 @@ import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
 import { Logger, LoglevelLogger } from '../lib/Logger'
 import { AvatarGallery } from '../lib/AvatarGallery';
-import { Translator } from '../lib/Translator';
+import { Translator, TranslationOpts } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
 import {
     BackpackUpdateData,
@@ -133,7 +133,6 @@ export class ContentApp extends AppWithDom
     private backpackIsOpen: boolean = false;
     private vidconfIsOpen: boolean = false;
     private chatIsOpen: boolean = false;
-    private privateVidconfIsOpen: boolean = false;
     private countRezzedItems: number = 0;
 
     // Getter
@@ -190,6 +189,8 @@ export class ContentApp extends AppWithDom
         this.itemOverlays = new ItemOverlays(this)
         this.personManager = new ContentPersonManager(this);
         this.instantMessageManager = new ContentInstantMessageManager(this);
+        this.instantMessageManager.privateVidchatWindowOpenListeners.addListener(() => this.evaluateStayOnTabChange())
+        this.instantMessageManager.privateVidchatWindowCloseListeners.addListener(() => this.evaluateStayOnTabChange())
         this.iframeApi = new IframeApi(this);
     }
 
@@ -586,12 +587,6 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    setPrivateVidconfIsOpen(value: boolean): void
-    {
-        this.privateVidconfIsOpen = value;
-        this.evaluateStayOnTabChange();
-    }
-
     setChatIsOpen(value: boolean): void
     {
         this.chatIsOpen = value; this.evaluateStayOnTabChange();
@@ -643,7 +638,7 @@ export class ContentApp extends AppWithDom
             || this.vidconfIsOpen
             || this.chatIsOpen
             // || this.stayHereIsChecked
-            || this.privateVidconfIsOpen
+            || this.instantMessageManager.isAnyPrivateVidconfWindowOpen()
             || this.countRezzedItems > 0
             ;
         if (stay) {
@@ -1177,9 +1172,9 @@ export class ContentApp extends AppWithDom
 
     // i18n
 
-    translateText(key: string, defaultText: string = null): string
+    translateText(key: string, defaultTextOrOptions?: null|string|TranslationOpts): string
     {
-        return this.babelfish.translateText(key, defaultText);
+        return this.babelfish.translateText(key, defaultTextOrOptions);
     }
 
     translateElem(elem: HTMLElement): void

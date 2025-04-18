@@ -15,6 +15,11 @@ interface ITranslationResponse
 
 type TranslatorLanguageMapper = (key: null|string) => string
 
+export type TranslationOpts = {
+    replacements?: ([string,string]|[string,string,TranslationOpts])[]
+    default?: string
+}
+
 export class Translator
 {
 
@@ -60,21 +65,29 @@ export class Translator
         return this.language
     }
 
-    public translateText(key: string, defaultText?: null|string): string
+    public translateText(key: string, defaultTextOrOptions?: null|string|TranslationOpts): string
     {
-        const translated = this.translations[key] ?? null
-        if (is.string(translated)) {
-            return translated
+        let translated = this.translations[key] ?? null
+        if (!is.string(translated) && is.nonEmptyString(defaultTextOrOptions)) {
+            if (is.nonEmptyString(defaultTextOrOptions)) {
+                translated = defaultTextOrOptions
+            } else {
+                translated = defaultTextOrOptions?.['default']
+            }
         }
-        if (is.nonEmptyString(defaultText)) {
-            return defaultText
+        if (!is.string(translated)) {
+            translated = key.split('.', 2)[1] ?? key
         }
 
-        const parts = key.split('.', 2)
-        if (parts.length === 2) {
-            return parts[1]
+        for (const [token, replacement, options] of defaultTextOrOptions?.['replacements'] ?? []) {
+            if (options) {
+                translated = translated.replace(token, this.translateText(replacement, options))
+            } else {
+                translated = translated.replace(token, replacement)
+            }
         }
-        return key
+
+        return translated
     }
 
     public translateElem(elem: HTMLElement): void

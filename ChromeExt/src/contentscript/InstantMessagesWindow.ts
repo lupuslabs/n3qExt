@@ -7,6 +7,8 @@ import { SimpleToast, Toast } from './Toast'
 import { PersonData } from '../lib/ItemProperties'
 import { BackgroundMessage, BackgroundRequest, PopupDefinition } from '../lib/BackgroundMessage'
 import { Utils } from '../lib/Utils'
+import { DomUtils } from '../lib/DomUtils'
+import { TranslationOpts } from '../lib/Translator'
 import { ContentMessage, ContentOpenInstantMessagesWindowMessage, ContentSetGuiModeMessage } from '../lib/ContentMessage'
 
 export class InstantMessagesWindow extends ChatWindow
@@ -38,9 +40,10 @@ export class InstantMessagesWindow extends ChatWindow
         return this.otherUser
     }
 
-    protected async makeContent(): Promise<void>
+    protected makeVidconfButton(): null|HTMLElement
     {
-        await super.makeContent()
+        const action = () => this.app.instantMessageManager.initiatePrivateVidconf(this.otherUser)
+        return this.app.uiHelper.makeDefaultTextButton('open-vidconf-button', 'Menu.Private Videoconf', null, action);
     }
 
     protected onVisible(): void
@@ -92,6 +95,43 @@ export class InstantMessagesWindow extends ChatWindow
 
     protected async sendChat(text: string): Promise<void> {
         await BackgroundMessage.sendInstantMessage(this.chatChannel.roomJid, 'chat', text)
+    }
+
+    protected makeMessageTextHtmlElement(message: ChatUtils.ChatMessage): [string[], HTMLElement]
+    {
+        if (message.type === 'vidconfInvite') {
+            return this.makePrivateVidconfInviteMessageTextHtmlElement(message)
+        }
+        if (message.type === 'vidconfDecline') {
+            return this.makePrivateVidconfdeclineMessageTextHtmlElement(message)
+        }
+        return super.makeMessageTextHtmlElement(message)
+    }
+
+    protected makePrivateVidconfInviteMessageTextHtmlElement(message: ChatUtils.ChatMessage): [string[], HTMLElement]
+    {
+        const translateOpts: TranslationOpts = {replacements: [['{otherUserName}', this.otherUser.userName]]}
+        const text = this.app.translateText('PrivateChat.PrivateVidconfInviteMessage', translateOpts)
+        const textElem = DomUtils.elemOfHtml(`<span class="text"></span>`)
+        const linkNode = DomUtils.elemOfHtml(`<a class="link"></a>`)
+        linkNode.setAttribute('title', this.app.translateText('PrivateChat.PrivateVidconfInviteMessageLinkTooltip', translateOpts))
+        linkNode.addEventListener('click', _ => this.app.instantMessageManager.openPrivateVidconfWindow(this.otherUser))
+        linkNode.textContent = text
+        const pNode = document.createElement('p')
+        pNode.append(linkNode)
+        textElem.append(pNode)
+        return [[], textElem];
+    }
+
+    protected makePrivateVidconfdeclineMessageTextHtmlElement(message: ChatUtils.ChatMessage): [string[], HTMLElement]
+    {
+        const translateOpts: TranslationOpts = {replacements: [['{otherUserName}', this.otherUser.userName]]}
+        const text = this.app.translateText('PrivateChat.PrivateVidconfDeclineMessage', translateOpts)
+        const textElem = DomUtils.elemOfHtml(`<span class="text"></span>`)
+        const pNode = document.createElement('p')
+        pNode.textContent = text
+        textElem.append(pNode)
+        return [[], textElem];
     }
 
     private getUserInfo(userId: string): Readonly<PersonData>
@@ -181,21 +221,21 @@ export class InstantMessagesWindow extends ChatWindow
         const userId = this.chatChannel.roomJid
         const personData = this.getUserInfo(userId)
 
-        const textReplacements: [string,string][] = [
+        const translateOpts: TranslationOpts = {replacements: [
             ['{otherUserName}', personData.userName],
             ['{unreadMessageCount}', String(unreadMessageCount)],
             ['{lastUnreadMessageTime}', Utils.dateOfUtcString(lastMessage.timestamp).toLocaleTimeString()],
             ['{lastUnreadMessageText}', this.prepareMessageTextForToast(lastMessage.text)],
-        ]
+        ]}
 
         const toastId = `newInstantMessage.${userId}`
         const type = 'question'
-        const title = this.translateText(textReplacements, 'PrivateChat.newMessageToastTitle')
-        const text = this.translateText(textReplacements, 'PrivateChat.newMessageToastText')
+        const title = this.app.translateText('PrivateChat.newMessageToastTitle', translateOpts)
+        const text = this.app.translateText('PrivateChat.newMessageToastText', translateOpts)
         const toast = new SimpleToast(this.app, toastId, 0, type, title, text)
         toast.setIcon(personData.userImageUrl, 10, 64, 64)
 
-        const openChatButtonText = this.translateText(textReplacements, 'PrivateChat.newMessageToastOpenChatWindowButtonLabel')
+        const openChatButtonText = this.app.translateText('PrivateChat.newMessageToastOpenChatWindowButtonLabel', translateOpts)
         const openChatButtonAction = () => {
             const options = { undocked: this.app.getWindowSizingMode() !== 'normal' }
             this.show(options)
@@ -219,15 +259,6 @@ export class InstantMessagesWindow extends ChatWindow
             return shortText
         }
         return `${shortText}\n⋯`
-    }
-
-    private translateText(textReplacements: [string,string][], textId: string): string
-    {
-        let text = this.app.translateText(textId)
-        for (const [key, replacement] of textReplacements) {
-            text = text.replace(key, replacement)
-        }
-        return text
     }
 
 }

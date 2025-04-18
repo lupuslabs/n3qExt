@@ -105,6 +105,11 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         const clearButton = this.app.uiHelper.makeDefaultTextButton('chatlog-clear-button', 'Chatwindow.Clear', 'Clear', () => this.clear());
         lineElem.appendChild(clearButton);
 
+        const vidconfButton = this.makeVidconfButton()
+        if (vidconfButton) {
+            lineElem.appendChild(vidconfButton);
+        }
+
         const checkboxId = DomUtils.makeUniqueElemId();
         const soundOptionWrapper = DomUtils.elemOfHtml('<div class="chat-sound-option" data-translate="children" />');
         const soundLabel = DomUtils.elemOfHtml(`<label class="label" for="${checkboxId}" title="Enable Sound" data-translate="attr:title:Chatwindow text:Chatwindow">Sound</label>`);
@@ -131,6 +136,12 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         //     retentionInfoElem.innerText = text;
         // }
         // lineElem.appendChild(retentionInfoElem);
+    }
+
+    protected makeVidconfButton(): null|HTMLElement
+    {
+        const action = () => this.app.showVidconfWindow()
+        return this.app.uiHelper.makeDefaultTextButton('open-vidconf-button', 'Menu.Video Conference', null, action);
     }
 
     protected makeChatLogElems(): void
@@ -295,14 +306,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             const authorHtml = as.Html(authorName)
             contentElem.appendChild(DomUtils.elemOfHtml(`<span class="nick">${authorHtml}</span>`));
         }
-
-        const textElem = DomUtils.elemOfHtml(`<span class="text"></span>`);
-        const mentionNameToHighlight = isNew && !isOwnMessage ? this.app.getUserNickname() : null;
-        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(message.text, mentionNameToHighlight);
-        if (ownNameMentionFound) {
-            messageElem.classList.add('own-name-mention');
-        }
-        textNodes.forEach(node => textElem.appendChild(node));
+        const [extraMsgCssClasses, textElem] = this.makeMessageTextHtmlElement(message)
+        messageElem.classList.add(...extraMsgCssClasses);
         contentElem.appendChild(textElem);
         const timeHtml = as.Html(Utils.dateOfUtcString(message.timestamp).toLocaleTimeString());
         contentElem.appendChild(DomUtils.elemOfHtml(`<span class="time">${timeHtml}</span>`));
@@ -317,7 +322,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
         this.doAutoscroll()
 
-        if (message.isUnread && this.getViewportVisibility()) {
+        if (message.isUnread && this.getViewportVisibility() && ChatUtils.isUserChatMessageType(message.type)) {
             this.markMessageAsRead(message);
         }
     }
@@ -327,6 +332,26 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         if (this.chatoutAutoScroll) {
             this.chatlogElem.scrollTop = this.chatlogElem.scrollHeight;
         }
+    }
+
+    protected makeMessageTextHtmlElement(message: ChatUtils.ChatMessage): [string[], HTMLElement]
+    {
+        return this.makeChatMessageTextHtmlElement(message)
+    }
+
+    protected makeChatMessageTextHtmlElement(message: ChatUtils.ChatMessage): [string[], HTMLElement]
+    {
+        const messageCssClasses = []
+        const textElem = DomUtils.elemOfHtml(`<span class="text"></span>`)
+        const isNew = message.timestamp >= this.sessionStartTs
+        const isOwnMessage = message.authorUserId === this.app.getUserId()
+        const mentionNameToHighlight = isNew && !isOwnMessage ? this.app.getUserNickname() : null
+        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(message.text, mentionNameToHighlight)
+        if (ownNameMentionFound) {
+            messageCssClasses.push('own-name-mention')
+        }
+        textNodes.forEach(node => textElem.appendChild(node))
+        return [messageCssClasses, textElem];
     }
 
     private removeChatMessageFromDisplay(index: number): void

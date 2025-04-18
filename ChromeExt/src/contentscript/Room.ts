@@ -4,10 +4,8 @@ import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
-import { Panic } from '../lib/Panic';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
-import { VpProtocol } from '../lib/VpProtocol';
 import { ContentApp } from './ContentApp';
 import { Entity } from './Entity';
 import { Participant } from './Participant';
@@ -486,13 +484,6 @@ export class Room
         }
     }
 
-    sendPrivateChat(text: string, nick: string)
-    {
-        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
-        message.c('body', {}).t(text);
-        this.app.sendStanza(message);
-    }
-
     sendPoke(nick: string, type: string, countsAsActivity: boolean = true)
     {
         const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
@@ -503,20 +494,6 @@ export class Room
             BackgroundMessage.pointsActivity(Pid.PointsChannelGreet, 1)
                 .catch(error => { log.info('Room.sendPoke', error); });
         }
-    }
-
-    sendPrivateVidconf(nick: string, url: string)
-    {
-        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
-        message.c('x', { 'xmlns': VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfRequest.key_url]: url });
-        this.app.sendStanza(message);
-    }
-
-    sendDeclinePrivateVidconfResponse(nick: string, comment: string)
-    {
-        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
-        message.c('x', { 'xmlns': VpProtocol.Response.xmlns, [VpProtocol.Response.key_to]: VpProtocol.PrivateVideoconfRequest.xmlns, [VpProtocol.PrivateVideoconfResponse.key_type]: [VpProtocol.PrivateVideoconfResponse.type_decline], [VpProtocol.PrivateVideoconfResponse.key_comment]: comment });
-        this.app.sendStanza(message);
     }
 
     showChatWindow(aboveElem?: HTMLElement): void
@@ -574,16 +551,15 @@ export class Room
         } else {
             const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://video.weblin.io/Vidconf?room=weblin{room}&name={name}');
             const url = urlTemplate
-                .replace('{room}', this.jid)
-                .replace('{name}', displayName)
+                .replace('{room}', encodeURIComponent(this.jid))
+                .replace('{name}', encodeURIComponent(displayName))
                 ;
 
             this.app.setVidconfIsOpen(true);
 
-            this.vidconfWindow = new VidconfWindow(this.app);
+            this.vidconfWindow = new VidconfWindow(this.app, url);
             this.vidconfWindow.show({
                 'above': aboveElem,
-                'url': url,
                 'undocked': true,
                 onClose: () =>
                 {

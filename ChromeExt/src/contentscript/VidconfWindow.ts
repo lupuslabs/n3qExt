@@ -4,16 +4,12 @@ import { Config } from '../lib/Config';
 import { DomUtils } from '../lib/DomUtils'
 import { PopupDefinition } from '../lib/BackgroundMessage'
 
-export type VidconfWindowOptions = FullWindowOptions & {
-    url: string,
-};
-
-export class VidconfWindow extends FullWindow<VidconfWindowOptions>
+export class VidconfWindow extends FullWindow<FullWindowOptions>
 {
     protected popupId: string;
     private url: string;
 
-    public constructor(app: ContentApp)
+    public constructor(app: ContentApp, url: string)
     {
         super(app);
         this.windowSettingsId = 'Vidconf';
@@ -28,13 +24,8 @@ export class VidconfWindow extends FullWindow<VidconfWindowOptions>
         this.defaultBottom = 200;
         this.defaultLeft = 50;
 
+        this.url = url;
         this.popupId = 'room.vidconfUndocked:' + (app.getRoom()?.getJid() ?? '');
-    }
-
-    protected prepareMakeDom(): void
-    {
-        super.prepareMakeDom();
-        this.url = encodeURI(this.givenOptions.url);
     }
 
     protected async makeContent(): Promise<void>

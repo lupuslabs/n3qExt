@@ -1,15 +1,15 @@
 import { ContentApp } from './ContentApp'
 import { VidconfWindow } from './VidconfWindow'
-import { Participant } from './Participant'
+import { PersonData } from '../lib/ItemProperties'
 
 export class PrivateVidconfWindow extends VidconfWindow
 {
-    public constructor(app: ContentApp, participant: Participant)
+    public constructor(app: ContentApp, url: string, otherUserInfo: PersonData)
     {
-        super(app);
+        super(app, url);
         this.titleText = 'Private Videoconference with {other}'
         this.titleTextId = 'PrivateVidconf.Private Videoconference with'
-        this.titleTextReplacements.set('{other}', () => participant.getDisplayName())
-        this.popupId = 'user.vidconfUndocked:' + participant.getUserId()
+        this.titleTextReplacements.set('{other}', () => otherUserInfo.userName)
+        this.popupId = 'user.vidconfUndocked:' + otherUserInfo.userId
     }
 }

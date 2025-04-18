@@ -531,7 +531,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     private makeCheckedUndockPopupDefinition(): null|PopupDefinition
     {
-        if (this.givenOptions.undockable === false || this.app.getIsExclusiveWindowPopup()) {
+        if (this.givenOptions.undockable === false || (this.isOpen() && this.app.getIsExclusiveWindowPopup())) {
             return null
         }
         const popupDefinition = this.makeUndockPopupDefinition()

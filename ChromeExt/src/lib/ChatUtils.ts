@@ -1,4 +1,5 @@
 ﻿import { is } from './is'
+import { as } from './as'
 import { Utils } from './Utils'
 import { DomUtils } from './DomUtils';
 import { ParseUtils } from './ParseUtils'
@@ -14,16 +15,20 @@ export namespace ChatUtils {
         roomNick:  string
     }
 
-    const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug'] as const
+    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug', 'vidconfInvite', 'vidconfDecline'] as const
     export type ChatMessageType = typeof chatMessageTypes[number]
 
     export const userChatMessageTypes = ['chat', 'emote'] as const
     export type UserChatMessageType = typeof userChatMessageTypes[number]
     void((a: UserChatMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in UserChatMessageType.
 
-    const instantMessageTypes = ['chat'] as const
+    export const instantMessageTypes = ['chat', 'vidconfInvite', 'vidconfDecline'] as const
     export type InstantMessageType = typeof instantMessageTypes[number]
     void((a: InstantMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in InstantMessageType.
+
+    export const vidconfMessageTypes = ['vidconfInvite', 'vidconfDecline'] as const
+    export type VidconfMessageType = typeof vidconfMessageTypes[number]
+    void((a: VidconfMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in InstantMessageType.
 
     export type ChatMessage = {
         timestamp: string
@@ -36,6 +41,10 @@ export namespace ChatUtils {
         text:      string
     }
 
+    export type VidconfInviteData = {
+        vidconfId: string
+    }
+
     export function isUserChatMessageType(val: unknown): val is UserChatMessageType
     {
         return userChatMessageTypes.some(elem => elem === val)
@@ -44,6 +53,21 @@ export namespace ChatUtils {
     export function isInstantMessageType(val: unknown): val is InstantMessageType
     {
         return instantMessageTypes.some(elem => elem === val)
+    }
+
+    export function isVidconfMessageType(val: unknown): val is VidconfMessageType
+    {
+        return vidconfMessageTypes.some(elem => elem === val)
+    }
+
+    export function parseVidconfInviteData(valJson: string): VidconfInviteData
+    {
+        const val = JSON.parse(valJson)
+        const vidconfId = as.String(val?.vidconfId)
+        if (vidconfId.length === 0) {
+            throw new Error('Missing vidconfId!')
+        }
+        return {vidconfId}
     }
 
     export function areChatMessagesOfSameUser(msgA: ChatMessage, msgB: ChatMessage): boolean

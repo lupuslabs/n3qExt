@@ -7,7 +7,7 @@ import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { IObserver } from '../lib/ObservableProperty';
-import { ItemProperties, ItemPropertiesSet, Pid } from '../lib/ItemProperties';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemException } from '../lib/ItemException';
 import { ContentApp } from './ContentApp';
@@ -19,11 +19,9 @@ import { Chatout } from './Chatout';
 import { Chatin } from './Chatin';
 import { RoomItem } from './RoomItem';
 import { ItemExceptionToast, SimpleToast } from './Toast';
-import { PrivateVidconfWindow } from './PrivateVidconfWindow';
 import { PointsBar } from './PointsBar';
 import { ActivityBar } from './ActivityBar';
 import { BadgesController } from './BadgesController';
-import { VpProtocol } from '../lib/VpProtocol';
 import { BackpackItem } from './BackpackItem';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { Environment } from '../lib/Environment';
@@ -49,7 +47,6 @@ export class Participant extends Entity
     private chatinDisplay: Chatin;
     private isFirstPresence: boolean = true;
     private userId: string = '';
-    private privateVidconfWindow: PrivateVidconfWindow;
     private decorationsVisibleByLongclick: boolean = false;
     private hideDecorationsTimeoutHandle: number|null = null;
     private supportsPrivateChat: boolean = false;
@@ -571,13 +568,11 @@ export class Participant extends Entity
         const vidconfNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:vidconf');
         if (vidconfNode) {
             isChat = false;
-            this.onReceiveVidconf(vidconfNode);
         }
 
         const responseNode = stanza.getChildren('x').find(child => (child.attrs == null) ? false : child.attrs.xmlns === 'vp:response');
         if (responseNode) {
             isChat = false;
-            this.onReceiveResponse(responseNode);
         }
 
         if (this.app.getSimpleItemTransferController()?.onStanza(stanza)) {
@@ -610,41 +605,6 @@ export class Participant extends Entity
                 toast.close();
             })
             toast.show();
-        } catch (error) {
-            //
-        }
-    }
-
-    onReceiveVidconf(node: ltx.Element): void
-    {
-        try {
-            const url = node.attrs.url;
-            const toast = new SimpleToast(this.app, 'privatevidconf', as.Float(Config.get('room.privateVidconfToastDurationSec'), 60), 'privatevidconf', this.getDisplayName(), 'Wants to start a private videoconference');
-            toast.actionButton('Accept', () =>
-            {
-                this.openPrivateVidconf(this.getElem(), url);
-                toast.close();
-            });
-            toast.actionButton('Decline', () =>
-            {
-                this.room?.sendDeclinePrivateVidconfResponse(this.roomNick, '');
-                toast.close();
-            })
-            toast.show();
-        } catch (error) {
-            //
-        }
-    }
-
-    onReceiveResponse(node: ltx.Element): void
-    {
-        try {
-            if (node.attrs.to === VpProtocol.PrivateVideoconfRequest.xmlns) {
-                if (node.attrs.type === VpProtocol.PrivateVideoconfResponse.type_decline) {
-                    const toast = new SimpleToast(this.app, 'privatevidconfresponse', as.Float(Config.get('room.privateVidconfToastDurationSec'), 60), 'privatevidconf', this.getDisplayName(), 'Refuses to join the private videoconference');
-                    toast.show();
-                }
-            }
         } catch (error) {
             //
         }
@@ -995,11 +955,6 @@ export class Participant extends Entity
         this.room?.showChatWindow(this.getElem());
     }
 
-    showVidconfWindow(): void
-    {
-        this.app.showVidconfWindow();
-    }
-
     showBackpackWindow(): void
     {
         this.app.showBackpackWindow();
@@ -1016,51 +971,6 @@ export class Participant extends Entity
             this.chatinDisplay.setVisibility(true);
             this.chatinDisplay.setText(text);
             this.chatinDisplay.setFocus();
-        }
-    }
-
-    async initiatePrivateVidconf(aboveElem: HTMLElement): Promise<void>
-    {
-        const roomJid = jid(this.room.getJid());
-
-        let vidconfSecret = as.String(await Memory.getLocal('client.vidconfSecret'));
-        if (vidconfSecret === '') {
-            vidconfSecret = Utils.randomString(10);
-            await Memory.setLocal('client.vidconfSecret', vidconfSecret);
-        }
-
-        const confId = 'private-' + roomJid.getLocal() + '-' + vidconfSecret;
-
-        const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://video.weblin.io/Vidconf?room=weblin{room}&name={name}');
-        const url = urlTemplate
-            .replace('{room}', confId)
-            ;
-
-        this.room?.sendPrivateVidconf(this.roomNick, url);
-        this.openPrivateVidconf(aboveElem, url);
-    }
-
-    private openPrivateVidconf(aboveElem: HTMLElement, urlTemplate: string): void
-    {
-        if (this.privateVidconfWindow == null) {
-            const displayName = this.room.getMyParticipant()?.getDisplayName();
-            if (!is.nil(displayName)) {
-                const url = urlTemplate.replace('{name}', displayName);
-
-                this.app.setPrivateVidconfIsOpen(true);
-
-                this.privateVidconfWindow = new PrivateVidconfWindow(this.app, this);
-                this.privateVidconfWindow.show({
-                    above: aboveElem,
-                    url: url,
-                    undocked: true,
-                    onClose: () =>
-                    {
-                        this.privateVidconfWindow = null;
-                        this.app.setPrivateVidconfIsOpen(false);
-                    },
-                });
-            }
         }
     }
 
