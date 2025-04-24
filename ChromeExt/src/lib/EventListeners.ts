@@ -29,7 +29,7 @@ export class CallableEventListeners<EventDataType>
         if (index === -1) {
             return
         }
-        this.listeners = this.listeners.splice(index, 1)
+        this.listeners.splice(index, 1)
     }
 
     public callListeners(eventData: EventDataType): void

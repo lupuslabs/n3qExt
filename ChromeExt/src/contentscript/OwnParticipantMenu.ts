@@ -63,7 +63,7 @@ export class OwnParticipantMenu extends ParticipantMenu
         this.makeEmotesMenuAndItem();
 
         if (this.app.personManager.getMemorizedPersons().size !== 0) {
-            this.addActionItem('persons', 'Persons', personsIconUrl, true, () => this.app.personManager.showPersonsWindow(null, null));
+            this.addActionItem('persons', 'Persons', personsIconUrl, true, () => this.app.setPersonsWindowOpen(true));
         }
 
         this.addSeparatorItem('separator');

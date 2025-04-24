@@ -11,6 +11,7 @@ export namespace ItemFilters {
     export interface ItemFilter
     {
         getId(): string
+        hasTag(tag: string): boolean
         getIconUrl(): string
         getLabelText(language: string): string
         getHelpText(language: string): string
@@ -24,11 +25,12 @@ export namespace ItemFilters {
         }
         try {
             const id = parseString(filterDef, 'id')
+            const tags = parseTags(filterDef)
             const iconUrl = parseStringOrNull(filterDef, 'iconUrl')
             const labelTexts = parseLangTexts(filterDef, 'labelTexts', false)
             const helpTexts = parseLangTexts(filterDef, 'helpTexts', true)
             const rule = parseRule(filterDef['rule'])
-            return new BasicItemFilter(id, iconUrl, labelTexts, helpTexts, rule)
+            return new BasicItemFilter(id, tags, iconUrl, labelTexts, helpTexts, rule)
         } catch (error) {
             error['filterDef'] = filterDef
             throw error
@@ -59,8 +61,6 @@ export namespace ItemFilters {
         }
     }
 
-    // Private
-
     function parseString(filterDef: {[p:string]:unknown}, name: string): string
     {
         const value = filterDef[name] ?? null
@@ -77,6 +77,15 @@ export namespace ItemFilters {
             throw new Error(`Itemfilter.Parser.parseString: filterDef.${name} invalid!`)
         }
         return value.length === 0 ? null : value
+    }
+
+    function parseTags(filterDef: {[p:string]:unknown}): Set<string>
+    {
+        const tagDefs = filterDef['tags'] ?? []
+        if (!is.array(tagDefs, (tagDef): tagDef is string => is.nonEmptyString(tagDef))) {
+            throw new Error(`ItemFilter.Parser.parseTags: filterDef.${name} invalid!`)
+        }
+        return new Set(tagDefs)
     }
 
     function parseLangTexts(filterDef: {[p:string]:unknown}, name: string, allowEmpty: boolean): Map<string,string>
@@ -162,16 +171,18 @@ export namespace ItemFilters {
         return ruleDefs.map(parseRule)
     }
 
-    class BasicItemFilter implements ItemFilter
+    export class BasicItemFilter implements ItemFilter
     {
         protected readonly id: string
+        protected readonly tags: ReadonlySet<string>
         protected readonly iconUrl: null|string
         protected readonly labels: Map<string,string>
         protected readonly helpTexts: Map<string,string>
         protected readonly matchFun: (item: ItemProperties) => boolean
 
-        public constructor(id: string, iconUrl: null|string, labels: Map<string,string>, helpTexts: Map<string,string>, matchFun: (item: ItemProperties) => boolean) {
+        public constructor(id: string, tags: ReadonlySet<string>, iconUrl: null|string, labels: Map<string,string>, helpTexts: Map<string,string>, matchFun: (item: ItemProperties) => boolean) {
             this.id = id
+            this.tags = tags
             this.iconUrl = iconUrl
             this.labels = labels
             this.helpTexts = helpTexts
@@ -180,6 +191,10 @@ export namespace ItemFilters {
 
         getId(): string {
             return this.id
+        }
+
+        hasTag(tag: string): boolean {
+            return this.tags.has(tag)
         }
 
         getIconUrl(): string {

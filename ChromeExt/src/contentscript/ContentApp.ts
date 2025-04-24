@@ -28,6 +28,7 @@ import {
 } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { OwnItemRepository } from './OwnItemRepository'
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
@@ -36,6 +37,7 @@ import { SettingsWindow } from './SettingsWindow';
 import { XmppWindow } from './XmppWindow';
 import { ChangesWindow } from './ChangesWindow';
 import { BackpackWindow } from './BackpackWindow';
+import { PersonsWindow } from './PersonsWindow'
 import { ItemExceptionToast, SimpleToast, Toast } from './Toast';
 import { IframeApi } from './IframeApi';
 import { RandomNames } from '../lib/RandomNames';
@@ -103,6 +105,7 @@ export class ContentApp extends AppWithDom
     private isGuiEnabled: boolean = false;
     private windowSizingMode: WindowSizingMode = 'normal';
     private isExclusiveWindowPopup: boolean = false;
+    private exclusiveWindowId: null|string = null;
     private userId: string = '';
     private userName: string = '';
     private pageUrl: string;
@@ -116,6 +119,7 @@ export class ContentApp extends AppWithDom
     private vpi: VpiResolver;
     private xmppWindow: XmppWindow;
     private backpackWindow: null|BackpackWindow = null;
+    private personsWindow: null|PersonsWindow = null;
     private simpleItemTransferController: undefined | SimpleItemTransferController;
     private settingsWindow: SettingsWindow;
     private stanzasResponses: { [stanzaId: string]: StanzaResponseHandler } = {};
@@ -124,13 +128,14 @@ export class ContentApp extends AppWithDom
     private avatarGallery: AvatarGallery;
     private readonly toasts: Set<Toast> = new Set();
     private readonly itemDragTransparentCssClasses: Readonly<string[]> = ['backpack-item', 'badge', 'icon-wrap'];
-    private readonly ownItems: Map<string,ItemProperties> = new Map();
+    public readonly ownItems: OwnItemRepository
     private readonly itemOverlays: ItemOverlays
     public readonly personManager: ContentPersonManager;
     public readonly instantMessageManager: ContentInstantMessageManager;
 
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
+    private personsIsOpen: boolean = false;
     private vidconfIsOpen: boolean = false;
     private chatIsOpen: boolean = false;
     private countRezzedItems: number = 0;
@@ -142,6 +147,14 @@ export class ContentApp extends AppWithDom
     public getDisplay(): HTMLElement { return this.display.getDisplay(); }
     public getWindowSizingMode(): WindowSizingMode { return this.windowSizingMode; }
     public getIsExclusiveWindowPopup(): boolean { return this.isExclusiveWindowPopup; }
+    public setExclusiveWindowId(windowId: string): boolean
+    {
+        if (is.string(this.exclusiveWindowId)) {
+            return false;
+        }
+        this.exclusiveWindowId = windowId;
+        return true;
+    }
     public getUserId(): string { return this.userId; }
     public getUserName(): string { return this.userName; }
     public getRoom(): Room|null { return this.room; }
@@ -151,7 +164,6 @@ export class ContentApp extends AppWithDom
     public getMyBadgesDisplay(): null|BadgesController { return this.room?.getMyParticipant()?.getBadgesDisplay() ?? null; }
 
     public getItemDragTransparentCssClasses(): Readonly<string[]> { return this.itemDragTransparentCssClasses; }
-    public getOwnItems(): ReadonlyMap<string,ItemProperties> { return this.ownItems; }
     public getItemOverlays(): ItemOverlays { return this.itemOverlays; }
     public getBackpackWindow(): null|BackpackWindow { return this.backpackWindow; }
 
@@ -179,6 +191,7 @@ export class ContentApp extends AppWithDom
         this.tabContentData = new TabContentData(this);
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
+        this.ownItems = new OwnItemRepository(this);
         this.uiHelper = new ContentUiHelper(this);
         this.display = new ContentAppDisplay(this, appendToMe);
         this.themeManager = new ContentThemeManager(this);
@@ -314,10 +327,12 @@ export class ContentApp extends AppWithDom
         if (this.roomJid !== '') {
             // this.stayHereIsChecked = as.Bool(await Memory.getLocal(Utils.localStorageKey_StayOnTabChange(this.roomJid)));
             this.backpackIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_BackpackIsOpen(this.roomJid)));
+            this.personsIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_PersonsIsOpen(this.roomJid)));
             this.chatIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_ChatIsOpen(this.roomJid)));
             this.vidconfIsOpen = as.Bool(await Memory.getLocal(Utils.localStorageKey_VidconfIsOpen(this.roomJid)));
 
             this.reshowBackpackWindow();
+            this.reshowPersonsWindow();
             this.reshowChatWindow();
             // this.reshowVidconfWindow(); // must be after enter
         }
@@ -503,6 +518,26 @@ export class ContentApp extends AppWithDom
         }
     }
 
+    private reshowPersonsWindow(): void
+    {
+        if (this.personsIsOpen) { this.setPersonsWindowOpen(true); }
+    }
+    public setPersonsWindowOpen(open: boolean): void
+    {
+        if (open && Utils.isBackpackEnabled()) {
+            if (!this.personsWindow) {
+                this.setPersonsIsOpen(true);
+                this.personsWindow = new PersonsWindow(this);
+                this.personsWindow.show({
+                    'above': this.getMyParticipantELem(),
+                    onClose: () => { this.personsWindow = null; this.setPersonsIsOpen(false); }
+                });
+            }
+        } else {
+            this.personsWindow?.close();
+        }
+    }
+
     reshowVidconfWindow(): void
     {
         if (this.vidconfIsOpen) { this.showVidconfWindow(); } // must be after enter
@@ -576,6 +611,17 @@ export class ContentApp extends AppWithDom
         }
     }
 
+    private setPersonsIsOpen(value: boolean): void
+    {
+        this.personsIsOpen = value;
+        this.evaluateStayOnTabChange();
+        if (value) {
+            /* await */ Memory.setLocal(Utils.localStorageKey_PersonsIsOpen(this.roomJid), value);
+        } else {
+            /* await */ Memory.deleteLocal(Utils.localStorageKey_PersonsIsOpen(this.roomJid));
+        }
+    }
+
     setVidconfIsOpen(value: boolean): void
     {
         this.vidconfIsOpen = value;
@@ -635,6 +681,7 @@ export class ContentApp extends AppWithDom
             || this.isExclusiveWindowPopup // Don't stop app when in popup mode.
             || as.Bool(Config.get('room.stayOnTabChange'))
             || this.backpackIsOpen
+            || this.personsIsOpen
             || this.vidconfIsOpen
             || this.chatIsOpen
             // || this.stayHereIsChecked
@@ -724,6 +771,9 @@ export class ContentApp extends AppWithDom
                     const otherPerson = (<ContentOpenInstantMessagesWindowMessage> message).otherPerson;
                     this.instantMessageManager.openInstantMessagesWindow(otherPerson);
                 } break;
+                case ContentMessage.type_openPersonsWindow: {
+                    this.setPersonsWindowOpen(true);
+                } break;
             }
         } catch (error) {
             this.onError(error)
@@ -732,19 +782,15 @@ export class ContentApp extends AppWithDom
         return { ok: true };
     }
 
-    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
+    private onBackpackUpdate(itemsHide: ReadonlyArray<Readonly<ItemProperties>>, itemsShowOrSet: ReadonlyArray<Readonly<ItemProperties>>): void
     {
-        itemsHide.forEach(item => this.ownItems.delete(item[Pid.Id]));
-        itemsShowOrSet.forEach(item => this.ownItems.set(item[Pid.Id], item));
-        this.personManager.onBackpackUpdate(itemsHide, itemsShowOrSet);
-        this.itemOverlays.onBackpackUpdate(itemsHide, itemsShowOrSet);
-        this.backpackWindow?.onBackpackUpdate(itemsHide, itemsShowOrSet);
-        this.room?.getMyParticipant()?.getBadgesDisplay()?.onBackpackUpdate(itemsHide, itemsShowOrSet);
+        this.ownItems.onBackpackUpdate(itemsHide, itemsShowOrSet)
     }
 
     public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
-        this.getBackpackWindow()?.handleItemInventoryiframeApiRequest(request)
+        this.backpackWindow?.handleItemInventoryiframeApiRequest(request)
+        this.personsWindow?.handleItemInventoryiframeApiRequest(request)
     }
 
     handle_sendStateToBackground(): void
@@ -845,6 +891,7 @@ export class ContentApp extends AppWithDom
                 this.roomEnabled = false;
                 this.windowSizingMode = 'maximized';
                 this.isExclusiveWindowPopup = true;
+                this.handle_extensionIsGuiEnabledChanged(true);
             } break;
         }
         if (this.roomEnabled) {
@@ -1296,7 +1343,7 @@ export class ContentApp extends AppWithDom
 
     public setItemBackpackPosition(itemId: string, newX: number, newY: number): void
     {
-        const item = this.ownItems.get(itemId)
+        const item = this.ownItems.getItemById(itemId)
         if (!item) {
             return // Item got deleted
         }
@@ -1327,7 +1374,7 @@ export class ContentApp extends AppWithDom
             this.onError(error)
 
             // Undo local change if not overwritten by concurrent change:
-            const item = this.ownItems.get(itemId)
+            const item = this.ownItems.getItemById(itemId)
             if (item && item[Pid.InventoryX] === newXStr && item[Pid.InventoryY] === newYStr) {
                 this.onBackpackUpdate([], [{
                     ...item,
@@ -1461,7 +1508,7 @@ export class ContentApp extends AppWithDom
         onFailed?: (itemId: string) => void, // For cleanups. Defaults to onCanceled.
     ): void {
         try {
-            const props = this.ownItems.get(itemId);
+            const props = this.ownItems.getItemById(itemId);
             if (!props) {
                 (onFailed ?? onCanceled)?.(itemId);
                 return;

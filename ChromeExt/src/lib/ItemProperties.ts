@@ -279,6 +279,27 @@ export class ItemProperties
         return !isInvisible || as.Bool(Config.get('backpack.showInvisibleItems', false));
     }
 
+    static getHasValidBackpackPosition(item: ItemProperties): boolean
+    {
+        const {x, y} = ItemProperties.getBackpackPosition(item)
+        return x >= 0 && y >= 0
+    }
+
+    static getBackpackPosition(item: ItemProperties): {x, y}
+    {
+        const x = as.Int(item[Pid.InventoryX], -1)
+        const y = as.Int(item[Pid.InventoryY], -1)
+        return {x, y}
+    }
+
+    static getImageData(item: ItemProperties): {imageUrl: string, width: number, height: number}
+    {
+        const imageUrl = ItemProperties.getImageUrl(item)
+        const width = as.Int(item[Pid.Width], 1)
+        const height = as.Int(item[Pid.Height], 1)
+        return {imageUrl, width, height}
+    }
+
     static getDisplay(props: ItemProperties): ItemProperties
     {
         let display: ItemProperties = {};

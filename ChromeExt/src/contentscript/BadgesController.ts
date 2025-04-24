@@ -3,6 +3,7 @@ import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
+import { BackpackUpdateEventData } from './OwnItemRepository'
 import { Entity } from './Entity';
 import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -35,6 +36,7 @@ export class BadgesController
     private readonly entity: Entity;
     private readonly parentDisplay: HTMLElement;
     private readonly isLocal: boolean;
+    private readonly backPackUpdateListener: (data: BackpackUpdateEventData) => void
 
     private debugLogEnabled: boolean;
     private badgesEnabledMax: number;
@@ -54,10 +56,12 @@ export class BadgesController
         this.entity = entity;
         this.parentDisplay = parentDisplay;
         this.isLocal = entity.getIsSelf();
+        this.backPackUpdateListener = ({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged)
 
         this.onUserSettingsChanged();
         if (this.isLocal && Utils.isBackpackEnabled()) {
             this.updateBadgesFromBackpack();
+            this.app.ownItems.backpackUpdateListeners.addListener(this.backPackUpdateListener)
         }
         if (this.debugLogEnabled) {
             log.info('BadgesDisplay.constructor: Construction complete.', {this: {...this}});
@@ -206,6 +210,7 @@ export class BadgesController
 
     public stop(): void
     {
+        this.app.ownItems.backpackUpdateListeners.removeListener(this.backPackUpdateListener)
         this.exitEditMode();
         for (const [badgeKey, badgeDisplay] of this.badges) {
             badgeDisplay.stop();
@@ -455,7 +460,7 @@ export class BadgesController
 
     private updateBadgesFromBackpack(): void
     {
-        this.onBackpackUpdate([], [...this.app.getOwnItems().values()]);
+        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()]);
     }
 
     private removeBadge(badgeKey: string): void

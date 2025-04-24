@@ -17,9 +17,10 @@ export class ItemOverlays
     public constructor(app: ContentApp)
     {
         this.app = app
+        this.app.ownItems.backpackUpdateListeners.addListener(({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged))
     }
 
-    public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
+    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
     {
         itemsShowOrSet.forEach(item => this.parseOverlays(item))
     }

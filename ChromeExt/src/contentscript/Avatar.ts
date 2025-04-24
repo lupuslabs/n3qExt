@@ -214,7 +214,7 @@ export class Avatar implements IObserver
         const y = Math.round(drggedElemBackpackY + as.Float(itemProps.Height) / 2 + LabelHeightHalf);
 
         this.app.derezItem(roomItem.getItemId(), x, y); // x, y is center of item with label in backpack.
-        backpack.getItem(roomItem.getItemId())?.toFront();
+        backpack.itemToFront(roomItem.getItemId());
     }
 
     addClass(className: string): void

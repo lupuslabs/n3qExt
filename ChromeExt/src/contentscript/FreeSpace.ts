@@ -8,30 +8,26 @@ export class FreeSpace
 
     constructor(private n: number, private contentW: number, private contentH: number, private rects: Array<{ left: number, top: number, right: number, bottom: number }>) { }
 
-    getFreeCoordinate(elem: HTMLElement = null): { x: number, y: number }
+    getFreeCoordinate(width: number, height: number): { x: number, y: number }
     {
-        $(elem).find('.n3q-testFreeSpace').remove();
         let n = Math.max(1, this.n);
         let dx = Math.max(1, this.contentW) / n;
         let dy = Math.max(1, this.contentH) / n;
         for (let x = 0; x < n; x++) {
             this.cell[x] = [];
             for (let y = 0; y < n; y++) {
-                if (elem) {
-                    let cellElem = <HTMLElement>$('<div class="x' + x + ' y' + y + '" class="n3q-testFreeSpace" style="opacity:0.8;position:absolute;width:' + dx + 'px;height:' + dy + 'px;left:' + Math.floor(x * dx) + 'px;top:' + Math.floor(y * dy) + 'px;"/>').get(0);
-                    $(elem).append(cellElem);
-                }
                 this.cell[x][y] = Math.random();
             }
         }
+        const widthOffset = 0.5 * width
+        const heightOffset = 0.5 * height
         let innerWeight = 1;
         let outerWeight = 4;
-        for (let i in this.rects) {
-            let r = this.rects[i];
-            let firstCol = Math.floor(r.left / dx);
-            let lastCol =  Math.floor(r.right / dx);
-            let firstRow = Math.floor(r.top / dy);
-            let lastRow =  Math.floor(r.bottom / dy);
+        for (let r of this.rects) {
+            let firstCol = Math.floor((r.left - widthOffset) / dx);
+            let lastCol =  Math.floor((r.right + widthOffset) / dx);
+            let firstRow = Math.floor((r.top - heightOffset) / dy);
+            let lastRow =  Math.floor((r.bottom + heightOffset) / dy);
             for (let x = firstCol; x <= lastCol; x++) {
                 for (let y = firstRow; y <= lastRow; y++) {
                     this.add(x-1, y-1, innerWeight);
@@ -55,14 +51,6 @@ export class FreeSpace
             this.add(0, y, borderWeight);
             this.add(n-1, y, borderWeight);
         }
-        if (elem) {
-            for (let x = 0; x < this.n; x++) {
-                for (let y = 0; y < this.n; y++) {
-                    let c = 255 - 255 / this.max * this.cell[x][y];
-                    $(elem).find('.x' + x + '.y' + y).css({ backgroundColor: 'rgb(' + c + ', ' + c + ', ' + c + ')' });
-                }
-            }
-        }
         let linear: Array<{ occ: number, x: number, y: number }> = [];
         for (let x = 0; x < n; x++) {
             for (let y = 0; y < n; y++) {
@@ -73,8 +61,6 @@ export class FreeSpace
         let destX = linear[0].x;
         let destY = linear[0].y;
 
-        if (elem) { $(elem).find('.x' + destX + '.y' + destY).css({ backgroundColor: '#ff0000' }); }
-
         return { x: Math.floor(destX * dx + dx / 2), y: Math.floor(destY * dy + dy / 2) };
     }
 
@@ -84,10 +70,9 @@ export class FreeSpace
         x = Math.max(Math.min(x, n-1), 0);
         y = Math.max(Math.min(y, n-1), 0);
         let v = this.cell[x][y];
-        v = Math.min(v += inc, this.limit);
+        v = Math.min(v + inc, this.limit);
         this.cell[x][y] = v;
         if (this.max < v) { this.max = v; }
     }
-
 
 }

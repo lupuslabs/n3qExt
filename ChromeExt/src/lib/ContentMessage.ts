@@ -22,6 +22,7 @@ export namespace ContentMessage
     export const type_themes = 'themes';
     export const type_setGuiMode = 'setGuiMode';
     export const type_openInstantMessagesWindow = 'openInstantMessagesWindow';
+    export const type_openPersonsWindow = 'openPersonsWindow';
 }
 
 export type FriendshipProposalState = {
@@ -51,4 +52,8 @@ export type ContentSetGuiModeMessage = {
 export type ContentOpenInstantMessagesWindowMessage = {
     type: typeof ContentMessage.type_openInstantMessagesWindow
     otherPerson: Readonly<PersonData>
+}
+
+export type ContentOpenPersonsWindowMessage = {
+    type: typeof ContentMessage.type_openPersonsWindow
 }

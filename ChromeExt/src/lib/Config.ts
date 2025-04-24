@@ -516,6 +516,13 @@ export class Config
                 },
             ],
         },
+        personsWindow: {
+            itemFilterId: 'persons',
+            undockedWidth: 300,
+            undockedHeight: 530,
+            undockedLeft: 100,
+            undockedTop: 100,
+        },
         tutorial: {
             experiencedUserPointsLimit: 200,
             defaultWidth: 658,

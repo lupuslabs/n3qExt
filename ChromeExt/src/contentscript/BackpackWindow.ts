@@ -1,14 +1,12 @@
-import { as } from '../lib/as'
-import { ItemProperties, Pid } from '../lib/ItemProperties'
+import { ItemProperties } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'
-import { BackgroundMessage } from '../lib/BackgroundMessage'
+import { BackpackUpdateEventData } from './OwnItemRepository'
 import { FullWindow, FullWindowOptions } from './FullWindow'
 import { BackpackItem } from './BackpackItem'
-import { FreeSpace } from './FreeSpace'
 import { DomUtils } from '../lib/DomUtils'
 import ModifierKeyId = DomUtils.ModifierKeyId
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { BackpackWindowItemFilters } from './BackpackWindowItemFilters'
+import { BackpackWindowItemFilters, ItemVisibility } from './BackpackWindowItemFilters'
 import { PointerEventData } from '../lib/PointerEventData'
 import { BackpackSelectedItems } from './BackpackSelectedItems'
 import { BackpackUserSelectionRect } from './BackpackUserSelectionRect'
@@ -16,6 +14,9 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 
 export class BackpackWindow extends FullWindow<FullWindowOptions>
 {
+    private readonly backPackUpdateListener: (data: BackpackUpdateEventData) => void
+    protected singleFilterId: null|string = null
+    protected hideFilterTags: string[] = ['notInBackpack']
     private readonly filters: BackpackWindowItemFilters
     private paneElem: null|HTMLElement
     private panePointerEventDispatcher: null|PointerEventDispatcher
@@ -27,6 +28,16 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
     public constructor(app: ContentApp)
     {
         super(app)
+        this.initWindowSettings()
+
+        this.backPackUpdateListener = ({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged)
+        const guiVisibilityHandler = (isFilterGuiVisible: boolean) => this.setActionBarVisibleState(isFilterGuiVisible)
+        const itemVisibilityHandler = (itemId: string, isFilterVisible: ItemVisibility) => this.itemFilterVisibilityHandler(itemId, isFilterVisible)
+        this.filters = new BackpackWindowItemFilters(this.app, this.singleFilterId, this.hideFilterTags, this.windowSettingsId, guiVisibilityHandler, itemVisibilityHandler)
+        this.selectedItems = new BackpackSelectedItems(this.app, this)
+    }
+
+    protected initWindowSettings(): void {
         this.windowSettingsId = 'Backpack'
         this.persistGeometry = true
         this.windowCssClasses.push('backpackwindow')
@@ -37,11 +48,6 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         this.defaultBottom = 200
         this.defaultAboveBottomOffset = 50
         this.withActionbar = true
-
-        const guiVisibilityHandler = (isFilterGuiVisible: boolean) => this.setActionBarVisibleState(isFilterGuiVisible)
-        const itemVisibilityHandler = (itemId: string, isFilterVisible: boolean) => this.itemFilterVisibilityHandler(itemId, isFilterVisible)
-        this.filters = new BackpackWindowItemFilters(this.app, this.windowSettingsId, guiVisibilityHandler, itemVisibilityHandler)
-        this.selectedItems = new BackpackSelectedItems(this.app, this)
     }
 
     public getPane() {
@@ -53,9 +59,9 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         return this.paneElem?.getBoundingClientRect() ?? new DOMRectReadOnly()
     }
 
-    public getItem(itemId: string): null|BackpackItem
+    public itemToFront(itemId: string): void
     {
-        return this.backpackItems.get(itemId) ?? null
+        this.backpackItems.get(itemId)?.toFront();
     }
 
     public getAllItems(): ReadonlyMap<string,BackpackItem>
@@ -65,27 +71,12 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
 
     public getVisibleItemIds(): ReadonlySet<string>
     {
-        return this.filters.getVisibleItemIdsView()
+        return this.filters.getFullVisibilityItemIds()
     }
 
     public getSelectedItemIds(): ReadonlySet<string>
     {
         return this.selectedItems.getSelectedItemIds()
-    }
-
-    private getFreeCoordinate(): { x: number, y: number }
-    {
-        const { width, height } = this.paneElem.getBoundingClientRect()
-
-        const rects: Array<{ left: number, top: number, right: number, bottom: number }> = []
-        for (const item of this.backpackItems.values()) {
-            rects.push(item.getElem().getBoundingClientRect())
-        }
-        rects.push({ left: width - 50, top: 0, right: width, bottom: 50 });
-
-        const f = new FreeSpace(Math.max(10, Math.floor((width + height) / 2 / 64)), width, height, rects)
-        return f.getFreeCoordinate(null)
-        // return f.getFreeCoordinate(this.paneElem)
     }
 
     public setIsDropTargetStyle(isADropTarget: boolean, highlight: boolean = false): void
@@ -141,12 +132,14 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         this.contentElem.append(this.paneElem)
 
         this.isReady = true
-        this.onBackpackUpdate([], [...this.app.getOwnItems().values()])
+        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()])
+        this.app.ownItems.backpackUpdateListeners.addListener(this.backPackUpdateListener)
     }
 
     protected onBeforeClose(): void
     {
         super.onBeforeClose()
+        this.app.ownItems.backpackUpdateListeners.removeListener(this.backPackUpdateListener)
         this.isReady = false
         this.filters.getGuiElem().remove()
         this.selectedItems.itemDeselectAll()
@@ -167,18 +160,18 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         this.selectedItems.itemDeselectAll()
     }
 
-    public onPaneDragStart(evDispatcher: PointerEventDispatcher, ev: PointerEventData): void
+    private onPaneDragStart(evDispatcher: PointerEventDispatcher, ev: PointerEventData): void
     {
         this.onPaneDragEnd()
         this.selectionRect = new BackpackUserSelectionRect(this.app, this, evDispatcher, ev)
     }
 
-    public onPaneDragMove(ev: PointerEventData): void
+    private onPaneDragMove(ev: PointerEventData): void
     {
         this.selectionRect?.onDragMove(ev)
     }
 
-    public onPaneDragDrop(ev: PointerEventData): void
+    private onPaneDragDrop(ev: PointerEventData): void
     {
         this.selectedItems.itemDeselectAll()
         const items = this.selectionRect?.getResultingItemSelection() ?? []
@@ -186,7 +179,7 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
 
     }
 
-    public onPaneDragEnd(): void
+    private onPaneDragEnd(): void
     {
         this.selectionRect?.stop()
         this.selectionRect = null
@@ -295,95 +288,52 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         }
     }
 
-    // Item filters:
+    // Item updates:
 
-    private itemFilterVisibilityHandler(itemId: string, isFilterVisible: boolean): void
+    private itemFilterVisibilityHandler(itemId: string, itemVisibility: ItemVisibility): void
     {
-        const item = this.backpackItems.get(itemId)
-        if (!isFilterVisible) {
-            item.closeInfo()
+        if (itemVisibility === 'none') {
             this.selectedItems.itemDeselect(itemId)
+            this.backpackItems.get(itemId)?.destroy()
+            this.backpackItems.delete(itemId)
+            return
         }
-        item?.setCssClass('filter-hide', !isFilterVisible)
-    }
-
-    // Item show/hide, property updates:
-
-    public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
-    {
-        if (!this.isReady) {
-            return;
-        }
-        const [itemsHideFiltered, itemsShowOrSetFiltered] = this.filterBackpackUpdate(itemsHide, itemsShowOrSet)
-        itemsHideFiltered.forEach(item => this.onHideItem(item));
-        itemsShowOrSetFiltered.forEach(item => this.onShowOrSetItem(item));
-        this.filters.onBackpackUpdate(itemsHideFiltered, itemsShowOrSetFiltered);
-        this.selectedItems.onAfterBackpackUpdate(itemsHideFiltered, itemsShowOrSetFiltered)
-    }
-
-    private filterBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): [ReadonlyArray<ItemProperties>, ReadonlyArray<ItemProperties>]
-    {
-        const itemsHideFiltered = [...itemsHide]
-        const itemsShowOrSetFiltered = []
-        itemsShowOrSet.forEach(item => {
-            if (ItemProperties.getIsVisibleInBackpack(item)) {
-                itemsShowOrSetFiltered.push(item)
-            } else {
-                this.onHideItem(item)
-                itemsHideFiltered.push(item)
+        let item = this.backpackItems.get(itemId) ?? null
+        if (!item) {
+            const properties = this.app.ownItems.getItemById(itemId)
+            if (!properties) {
+                return
             }
-        })
-        return [itemsHideFiltered, itemsShowOrSetFiltered]
-    }
-
-    private onShowOrSetItem(properties: ItemProperties): void
-    {
-        const itemId = properties[Pid.Id]
-        let item = this.backpackItems.get(itemId)
-        this.fixItemPosition(item, properties)
-        if (item) {
-            item.setProperties(properties)
-        } else {
             item = new BackpackItem(this.app, this, properties)
             this.backpackItems.set(itemId, item)
             item.toFront()
         }
+        const isFaded = itemVisibility === 'faded'
+        if (isFaded) {
+            item.closeInfo()
+            this.selectedItems.itemDeselect(itemId)
+        }
+        item?.setCssClass('filter-hide', isFaded)
     }
 
-    private onHideItem(properties: ItemProperties): void
+    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
     {
-        const itemId = properties[Pid.Id]
-        this.backpackItems.get(itemId)?.destroy()
-        this.backpackItems.delete(itemId)
-    }
-
-    private fixItemPosition(itemOld: null|BackpackItem, propertiesNew: ItemProperties): void
-    {
-        let x = as.IntOrNull(propertiesNew[Pid.InventoryX])
-        let y = as.IntOrNull(propertiesNew[Pid.InventoryY])
-        if (x !== null && y !== null) {
-            return
+        if (!this.isReady) {
+            return;
+        }
+        for (const item of itemsShowOrSet) {
+            this.backpackItems.get(ItemProperties.getId(item))?.setProperties(item)
         }
 
-        const propertiesOld = itemOld?.getProperties()
-        x = as.IntOrNull(propertiesOld?.[Pid.InventoryX])
-        y = as.IntOrNull(propertiesOld?.[Pid.InventoryY])
-        if (x === null || y === null) {
-            ({x, y} = this.getFreeCoordinate())
-        }
+        this.filters.onBackpackUpdate(itemsHide, itemsShowOrSet)
+        this.selectedItems.onAfterBackpackUpdate(itemsHide, itemsShowOrSet)
 
-        const xStr = as.String(x)
-        const yStr = as.String(y)
-        propertiesNew[Pid.InventoryX] = xStr
-        propertiesNew[Pid.InventoryY] = yStr
         if (document.visibilityState === 'visible') {
-            this.app.setItemBackpackPosition(ItemProperties.getId(propertiesNew), x, y)
-            BackgroundMessage.modifyBackpackItemProperties(
-                ItemProperties.getId(propertiesNew),
-                { [Pid.InventoryX]: xStr, [Pid.InventoryY]: yStr },
-                [],
-                { }
-            ).catch(error => this.app.onError(error))
+            const paneRect = this.paneElem?.getBoundingClientRect() ?? null
+            if (paneRect) {
+                this.app.ownItems.fixItemInventoryPositions(paneRect.width, paneRect.height, [...this.getVisibleItemIds()])
+            }
         }
     }
+
 }

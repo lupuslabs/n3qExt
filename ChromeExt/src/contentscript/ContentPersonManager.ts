@@ -24,6 +24,7 @@ export class ContentPersonManager
     public constructor(app: ContentApp)
     {
         this.app = app
+        this.app.ownItems.backpackUpdateListeners.addListener(({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged))
     }
 
     public getPersonDataOrNull(otherUserId: string): null|PersonData
@@ -71,15 +72,6 @@ export class ContentPersonManager
     public getMemorizedPersons(): ReadonlyMap<string,Readonly<PersonData>>
     {
         return this.itemPersons
-    }
-
-    public showPersonsWindow(aboveElem: null|HTMLElement, filterId: null|string): void
-    {
-        if (!this.app.getBackpackWindow()) {
-            this.app.showBackpackWindow(aboveElem);
-        }
-        filterId ??= 'persons';
-        this.app.getBackpackWindow()?.showFilter(filterId);
     }
 
     public showProposeFriendshipToast(otherPersonData: Readonly<PersonData>): Toast
@@ -164,7 +156,7 @@ export class ContentPersonManager
         this.openOwnProposalToasts.delete(otherUserId)
     }
 
-    public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
+    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
     {
         for (const item of itemsHide) {
             if (ItemProperties.getIsPerson(item)) {

@@ -104,11 +104,16 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         }
         this.givenOptions = options
         this.isShowing = true
+        const inExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup()
 
         try {
             this.prepareMakeDom()
             if (as.Bool(this.givenOptions.undocked)) {
                 this.isClosing = this.undock()
+            } else if (inExclusiveWindowPopup && this.style === 'window') {
+                if (!this.app.setExclusiveWindowId(this.windowSettingsId)) {
+                    this.isClosing = this.undock()
+                }
             }
         } catch (error) {
             this.app.onError(error)
@@ -121,7 +126,6 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             return
         }
 
-        const inExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup()
         if (this.style === 'window') {
             this.sizingMode = this.app.getWindowSizingMode()
             this.withCloseButton = !inExclusiveWindowPopup
@@ -354,14 +358,14 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected makeButtonbar(): void
     {
-        this.actionbarElem = DomUtils.elemOfHtml('<div class="window-actionbar hidden" data-translate="children"></div>')
+        this.actionbarElem = DomUtils.elemOfHtml('<div class="window-actionbar" data-translate="children"></div>')
         this.windowRowsElem.append(this.actionbarElem)
         this.setActionBarVisibleState(false)
     }
 
     protected setActionBarVisibleState(isVisible: boolean): void
     {
-        DomUtils.setElemClassPresent(this.actionbarElem, 'hidden', !isVisible)
+        DomUtils.setElemClassPresent(this.actionbarElem, 'removed', !isVisible)
     }
 
     /**
