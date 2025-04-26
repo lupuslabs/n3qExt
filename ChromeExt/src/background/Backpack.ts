@@ -14,6 +14,9 @@ import { is } from '../lib/is';
 import { RetryStrategyMaker, RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
 import { ItemPropertiesUrlProcessor } from './ItemPropertiesUrlProcessor'
 import { DependentPresenceHelper } from './DependentPresenceHelper'
+import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
+
+export type BackpackUpdateEventData = {itemsDeleted: ReadonlyArray<Readonly<ItemProperties>>, itemsNewOrChanged: ReadonlyArray<Readonly<ItemProperties>>}
 
 export class Backpack
 {
@@ -27,12 +30,17 @@ export class Backpack
     private readonly rooms: Map<string,Set<string>> = new Map(); // room JID => Set of item ID
     private readonly providers: Map<string, IItemProvider> = new Map<string, IItemProvider>();
 
+    private readonly callableBackpackUpdateListeners: CallableEventListeners<BackpackUpdateEventData> = new CallableEventListeners('backpackUpdate');
+
+    public readonly backpackUpdateListeners: EventListeners<BackpackUpdateEventData>;
+
     constructor(app: BackgroundApp)
     {
         this.app = app;
         this.retryStrategyMaker = new RetryStrategyFactorGrowthMaker(1.0, 2.0, 120.0);
         this.dependentPresenceHelper = new DependentPresenceHelper(app);
         this.itemPropertiesUrlProcessor = new ItemPropertiesUrlProcessor(app);
+        this.backpackUpdateListeners = this.callableBackpackUpdateListeners;
     }
 
     public isItem(itemId: string): boolean
@@ -95,6 +103,10 @@ export class Backpack
         this.sendUpdateToAllTabs(reallyDeletedItems, reallyChangedItems);
         for (const room of changedRooms) {
             this.app.sendRoomPresence(room);
+        }
+        if (reallyDeletedItems.length !== 0 || reallyChangedItems.length !== 0) {
+            const data = {itemsDeleted: reallyDeletedItems, itemsNewOrChanged: reallyChangedItems}
+            this.callableBackpackUpdateListeners.callListeners(data)
         }
     }
 

@@ -133,6 +133,9 @@ export enum Pid
     EditableProperties = 'EditableProperties',
     PropertiesUrl = 'PropertiesUrl',
     PropertiesUrlRefreshInterval = 'PropertiesUrlRefreshInterval',
+    ThemeAspect = 'ThemeAspect',
+    ThemeCss = 'ThemeCss',
+    ThemeIsActive = 'ThemeIsActive',
 }
 
 export function isPid(value: unknown): value is Pid
@@ -569,6 +572,29 @@ export class ItemProperties
         }
         const refreshInterval = ItemProperties.getPropertiesUrlRefreshInterval(itemProperties)
         return { propertiesUrl, refreshInterval }
+    }
+
+    static hasThemeAspect(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.ThemeAspect]);
+    }
+
+    static isThemeEnabled(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.ThemeIsActive]);
+    }
+
+    static getThemeData(itemProperties: ItemProperties): null|{id: string, name: string, isEnabled: boolean, css: string, x: number, y: number}
+    {
+        if (!ItemProperties.hasThemeAspect(itemProperties)) {
+            return null;
+        }
+        const id = ItemProperties.getId(itemProperties);
+        const name = ItemProperties.getLabel(itemProperties);
+        const isEnabled = ItemProperties.isThemeEnabled(itemProperties);
+        const css = as.StringOrNull(itemProperties[Pid.ThemeCss], 0);
+        const {x, y} = ItemProperties.getBackpackPosition(itemProperties);
+        return {id, name, isEnabled, css, x, y}
     }
 
     static getJsonProperty(itemProperties: ItemProperties, pid: Pid): unknown

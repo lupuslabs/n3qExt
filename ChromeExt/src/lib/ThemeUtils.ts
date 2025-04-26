@@ -2,13 +2,15 @@
 
 export namespace ThemeUtils {
 
+    const ThemeSourceItemTypeValue = 'item'
     const ThemeSourceExtensionTypeValue = 'extension'
     const ThemeSourceUserTypeValue = 'user'
-    export type ThemeSourceType = typeof ThemeSourceExtensionTypeValue | typeof ThemeSourceUserTypeValue
+    export type ThemeSourceType = typeof ThemeSourceItemTypeValue | typeof ThemeSourceExtensionTypeValue | typeof ThemeSourceUserTypeValue
 
     const sourceTypeOrderValues: { [p in ThemeSourceType]: number } = {
         [ThemeSourceExtensionTypeValue]: 1,
-        [ThemeSourceUserTypeValue]: 2,
+        [ThemeSourceItemTypeValue]: 2,
+        [ThemeSourceUserTypeValue]: 3,
     }
 
     export function isThemeSourceType(val: unknown): val is ThemeSourceType

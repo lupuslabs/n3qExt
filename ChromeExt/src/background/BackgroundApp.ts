@@ -141,9 +141,9 @@ export class BackgroundApp
         this.chatHistoryStorage = new ChatHistoryStorage(this);
         this.instantMessageManager = new BackgroundInstantMessageManager(this);
         this.browserActionGui = new BrowserActionGui(this);
-        this.themeManager = new BackgroundThemeManager(this);
         this.popupManager = new PopupManager(this);
         this.backpack = new Backpack(this);
+        this.themeManager = new BackgroundThemeManager(this);
         this.itemAutorezzer = new ItemAutorezzer(this);
         this.friendshipProposalManager = new BackgroundFriendshipProposalManager(this);
         this.newUserExperience = new BackgroundNewUserExperience(this);

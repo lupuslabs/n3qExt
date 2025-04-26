@@ -236,9 +236,22 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     {
         this.titlebarElem = DomUtils.elemOfHtml('<div class="window-title-bar" data-translate="children"></div>')
         const titleTextElem = DomUtils.elemOfHtml(`<div class="window-title-text"></div>`)
-        titleTextElem.innerText = this.translateTitleText()
         this.windowRowsElem.append(this.titlebarElem)
         this.titlebarElem.append(titleTextElem)
+        this.updateTitleText()
+    }
+
+    protected setTitleText(titleText: string): void {
+        this.titleTextId = null
+        this.titleText = titleText
+        this.updateTitleText()
+    }
+
+    protected updateTitleText(): void {
+        const textelem = <HTMLElement> this.titlebarElem?.querySelector('.window-title-text') ?? null
+        if (textelem) {
+            textelem.innerText = this.translateTitleText()
+        }
     }
 
     protected translateTitleText(): string

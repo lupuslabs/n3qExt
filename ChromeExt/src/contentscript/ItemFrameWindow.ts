@@ -31,6 +31,10 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
         this.item = item;
     }
 
+    public setTitleText(titleText: string): void {
+        super.setTitleText(titleText)
+    }
+
     public getIframeElem(): null|HTMLIFrameElement {
         return this.iframeElem;
     }

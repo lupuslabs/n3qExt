@@ -74,6 +74,7 @@ export class RoomItem extends Entity
         const changed = !ItemProperties.areEqual(this.properties, props);
         if (changed) {
             this.properties = props;
+            this.frameWindow?.setTitleText(this.getIframeWindowTitle())
 
             // if (as.Bool(this.properties[Pid.IframeLive])) {
             //     this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemGetPropertiesResponse(this.properties));
@@ -762,11 +763,16 @@ export class RoomItem extends Entity
                 undocked: as.Bool(windowOptions.undocked),
                 transparent: as.Bool(windowOptions.transparent),
                 hidden: as.Bool(windowOptions.hidden),
-                titleText: as.String(this.properties[Pid.Description], as.String(this.properties[Pid.Label], 'Item')),
+                titleText: this.getIframeWindowTitle(),
             };
 
             this.frameWindow.show(options);
         }
+    }
+
+    private getIframeWindowTitle(): string
+    {
+        return as.String(this.properties[Pid.Description], as.String(this.properties[Pid.Label], 'Item'))
     }
 
     public positionFrame(width: number, height: number, left: number, bottom: number, options: any = null): void
