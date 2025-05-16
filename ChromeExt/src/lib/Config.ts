@@ -546,6 +546,13 @@ export class Config
             navigateToPageEnabled: true,
             navigateToPageUrl: 'https://www.weblin.io/',
         },
+        feedbackFormPopup: {
+            url: 'https://forms.office.com/Pages/ResponsePage.aspx?id=JvnN0H3np0ampfQuOROE_DvLG9SnUatHp-dXDHpbTjJUOUpWSk1PMEdDRTNSTzlNOVZDUTFIVU9BVy4u#n3qdisable',
+            left: 40,
+            top: 40,
+            width: 600,
+            height: 700,
+        },
         about: {
             defaultBottom: 400,
             defaultLeft: 50,
