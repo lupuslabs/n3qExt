@@ -254,7 +254,7 @@ export class InstantMessagesWindow extends ChatWindow
             .map(line => line.trim())
             .filter(line => line.length !== 0)
             .limit(3)
-            .toString('\n')
+            .join('\n')
         if (shortText === text) {
             return shortText
         }

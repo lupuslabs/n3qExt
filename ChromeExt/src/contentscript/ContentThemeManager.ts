@@ -68,7 +68,7 @@ export class ContentThemeManager
         const newThemesCss = iter(this.themes)
             .filter(theme => theme.isEnabled)
             .map(theme => `/* Theme ${theme.id} */\n\n${theme.css.trim()}`)
-            .toString('\n\n')
+            .join('\n\n')
         if (newThemesCss === this.enabledThemesCss) {
             return false
         }
