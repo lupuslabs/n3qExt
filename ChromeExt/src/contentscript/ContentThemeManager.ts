@@ -1,6 +1,5 @@
 ﻿import { is } from '../lib/is'
 import { as } from '../lib/as'
-import { iter } from '../lib/Iter'
 import { Config } from '../lib/Config'
 import { DomUtils } from '../lib/DomUtils'
 import { ContentApp } from './ContentApp'
@@ -65,7 +64,7 @@ export class ContentThemeManager
 
     private updateEnabledThemesCss(): boolean
     {
-        const newThemesCss = iter(this.themes)
+        const newThemesCss = this.themes
             .filter(theme => theme.isEnabled)
             .map(theme => `/* Theme ${theme.id} */\n\n${theme.css.trim()}`)
             .join('\n\n')

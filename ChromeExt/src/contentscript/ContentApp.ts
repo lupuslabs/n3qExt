@@ -316,6 +316,7 @@ export class ContentApp extends AppWithDom
 
         this.tabContentData.changeListeners.addListener(() => this.onTabStatsChanged());
         this.tabContentData.initWithDataFromBackground(tabContentData);
+        this.sendTabStatsToBackground(); // sendStateToBackground messages from background have been ignored till now.
         if (Utils.isBackpackEnabled()) {
             BackgroundMessage.requestBackpackState().catch(ex => this.onError(ex));
         }
