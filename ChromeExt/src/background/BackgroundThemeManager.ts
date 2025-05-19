@@ -130,28 +130,28 @@ export class BackgroundThemeManager
         this.onThemes('user', '', themes)
     }
 
-    private onThemes(sourceType: ThemeSourceType, sourceId: string, themes: {name: string, isEnabled?: null|boolean, css: string}[]): void
+    private onThemes(sourceType: ThemeSourceType, sourceId: string, themes: {id?: string, name: string, isEnabled?: null|boolean, css: string}[]): void
     {
         if (!this.isFeatureEnabled()) {
             return
         }
-        themes = themes.filter(({ name }) => name.length !== 0)
         let isChanged = false
 
         // Add/update given themes of source:
+        const idsToKeep = new Set()
         let orderIndex = 0
-        for (const { name, isEnabled, css } of themes) {
-            const id = `${sourceType}:${sourceId}:${name}`
+        for (const theme of themes) {
+            const id = `${sourceType}:${sourceId}:${theme.id}:${theme.name}`
+            idsToKeep.add(id)
             orderIndex++
-            if (this.onTheme(id, name, orderIndex, sourceType, sourceId, isEnabled, css)) {
+            if (this.onTheme(id, theme.name, orderIndex, sourceType, sourceId, theme.isEnabled, theme.css)) {
                 isChanged = true
             }
         }
 
         // Delete missing themes of source:
-        const namesToKeep = new Set(themes.map(({ name }) => name))
         const themesToDelete = iter(this.themes.values())
-            .filter(theme => theme.sourceType === sourceType && theme.sourceId === sourceId && !namesToKeep.has(theme.name))
+            .filter(theme => theme.sourceType === sourceType && theme.sourceId === sourceId && !idsToKeep.has(theme.id))
         for (const theme of themesToDelete) {
             this.themes.delete(theme.id)
             isChanged = true
