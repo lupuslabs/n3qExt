@@ -135,7 +135,6 @@ export enum Pid
     PropertiesUrlRefreshInterval = 'PropertiesUrlRefreshInterval',
     ThemeAspect = 'ThemeAspect',
     ThemeCss = 'ThemeCss',
-    ThemeIsActive = 'ThemeIsActive',
 }
 
 export function isPid(value: unknown): value is Pid
@@ -579,9 +578,9 @@ export class ItemProperties
         return as.Bool(itemProperties[Pid.ThemeAspect]);
     }
 
-    static isThemeEnabled(itemProperties: ItemProperties): boolean
+    static getActivatableIsActive(itemProperties: ItemProperties): boolean
     {
-        return as.Bool(itemProperties[Pid.ThemeIsActive]);
+        return as.Bool(itemProperties[Pid.ActivatableIsActive]);
     }
 
     static getThemeData(itemProperties: ItemProperties): null|{id: string, name: string, isEnabled: boolean, css: string, x: number, y: number}
@@ -591,7 +590,7 @@ export class ItemProperties
         }
         const id = ItemProperties.getId(itemProperties);
         const name = ItemProperties.getLabel(itemProperties);
-        const isEnabled = ItemProperties.isThemeEnabled(itemProperties);
+        const isEnabled = ItemProperties.getActivatableIsActive(itemProperties);
         const css = as.StringOrNull(itemProperties[Pid.ThemeCss], 0);
         const {x, y} = ItemProperties.getBackpackPosition(itemProperties);
         return {id, name, isEnabled, css, x, y}
