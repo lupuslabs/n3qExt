@@ -6,6 +6,14 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.5.0', 'ThemedRedesign', [
+            ['Add', 'Modern design incl. HTML rewrite'],
+            ['Add', 'Theme items'],
+            ['Add', 'Separate contacts window'],
+            ['Add', 'Video conference button in chat window'],
+            ['Add', 'Feedback form in help menu'],
+            ['Add', 'Show debug info in BackpackItemInfo with Alt-click'],
+        ]],
         ['1.4.0', 'Friends', [
             ['Add', 'Set user id and token in settings dialog (klick icon)'],
             ['Add', 'Infrastructure for iframe in badge info popup'],
