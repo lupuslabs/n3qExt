@@ -8,6 +8,7 @@ import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ItemOverlaysState } from './ItemOverlays'
+import { Config } from '../lib/Config'
 
 export class BackpackItem
 {
@@ -191,20 +192,20 @@ export class BackpackItem
         DomUtils.setElemClassPresent(this.elem, cssClass, isSet)
     }
 
-    public toggleInfo(clientX: number, clientY: number): void
+    public toggleInfo(clientX: number, clientY: number, withDebugInfo: boolean): void
     {
         if (is.nil(this.info)) {
-            this.openInfo(clientX, clientY)
+            this.openInfo(clientX, clientY, withDebugInfo)
         } else {
             this.closeInfo()
         }
     }
 
-    public openInfo(clientX: number, clientY: number): void
+    public openInfo(clientX: number, clientY: number, withDebugInfo: boolean): void
     {
         if (is.nil(this.info)) {
             const onClose = () => { this.info = null }
-            this.info = new BackpackItemInfo(this.app, this, onClose)
+            this.info = new BackpackItemInfo(this.app, this, withDebugInfo, onClose)
             this.info.show({ left: clientX, top: clientY })
         }
     }

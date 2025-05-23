@@ -14,7 +14,6 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { WeblinClientApi } from '../lib/WeblinClientApi'
 import { ItemException } from '../lib/ItemException'
 import { ItemExceptionToast } from './Toast'
-import { Utils } from '../lib/Utils'
 
 export type BackpackItemInfoOptions = PopupWindowOptions & {
     top: number,
@@ -24,6 +23,7 @@ export type BackpackItemInfoOptions = PopupWindowOptions & {
 export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 {
     protected readonly backpackItem: BackpackItem
+    protected readonly withDebugInfo: boolean
     protected readonly headerContainer: HTMLElement
     protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
@@ -33,10 +33,10 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected drawHeader: boolean = true
     protected iframeUrlTpl: string = ''
     protected iframeElem: null|HTMLIFrameElement = null
-
+    
     public getElem(): HTMLElement { return this.contentElem }
 
-    public constructor(app: ContentApp, backpackItem: BackpackItem, onClose: () => void)
+    public constructor(app: ContentApp, backpackItem: BackpackItem, withDebugInfo: boolean, onClose: () => void)
     {
         super(app)
         this.windowCssClasses.push('backpackiteminfo')
@@ -44,6 +44,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.minHeight = 50;
 
         this.backpackItem = backpackItem
+        this.withDebugInfo = withDebugInfo
         this.onClose = onClose
         this.headerContainer = DomUtils.elemOfHtml('<div class="header-container" data-translate="children"></div>')
         this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
@@ -397,9 +398,8 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected updateDebugInfo(): void
     {
         this.debuginfoContainer.innerHTML = ''
-        const withDebugInfo = Config.get('backpack.itemInfoExtended', false)
-        DomUtils.setElemClassPresent(this.debuginfoContainer, 'removed', !withDebugInfo)
-        if (!withDebugInfo) {
+        DomUtils.setElemClassPresent(this.debuginfoContainer, 'removed', !this.withDebugInfo)
+        if (!this.withDebugInfo) {
             return
         }
         const props = this.backpackItem.getProperties()

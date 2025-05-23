@@ -11,6 +11,7 @@ import { PointerEventData } from '../lib/PointerEventData'
 import { BackpackSelectedItems } from './BackpackSelectedItems'
 import { BackpackUserSelectionRect } from './BackpackUserSelectionRect'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
+import { Config } from '../lib/Config'
 
 export class BackpackWindow extends FullWindow<FullWindowOptions>
 {
@@ -219,7 +220,13 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
             case ModifierKeyId.none: {
                 backpackItem.toFront()
                 this.selectedItems.itemSelectExclusively(backpackItem)
-                backpackItem.toggleInfo(ev.clientX, ev.clientY)
+                const withDebugInfo = Config.get('backpack.itemInfoExtended', false)
+                backpackItem.toggleInfo(ev.clientX, ev.clientY, withDebugInfo)
+            } break
+            case ModifierKeyId.alt: {
+                backpackItem.toFront()
+                this.selectedItems.itemSelectExclusively(backpackItem)
+                backpackItem.toggleInfo(ev.clientX, ev.clientY, true)
             } break
             case ModifierKeyId.shift: {
                 this.selectedItems.itemToggleSelect(backpackItem)
