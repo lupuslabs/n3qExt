@@ -697,6 +697,8 @@ export class Config
                     'Backpack.You are close to the limit of items on a page.': 'You are close to the limit of items on a page. All items will be hidden if the number rises above the limit.',
                     'Backpack.Page items disabled.': 'Page items have been disabled. Collect items from the backpack to show them again.',
 
+                    'BackpackItemInfo.Title': '{itemLabel}',
+
                     'TutorialWindow.Previous': 'Previous',
                     'TutorialWindow.Next': 'Next',
                     'TutorialWindow.Do not show again': 'Don\'t show again',
@@ -1101,6 +1103,8 @@ export class Config
                     'Backpack.Too many items': 'Zu viele Gegenstände',
                     'Backpack.You are close to the limit of items on a page.': 'Du hast bald zu viele Gegenstände auf der Seite. Wenn die Grenze überschritten wird, werden alle Gegenstände ausgeblendet.',
                     'Backpack.Page items disabled.': 'Die Gegenstände auf der Seite sind ausgeblendet. Gehe in den Rucksack und sammle einige ein, um sie wieder anzuzeigen.',
+
+                    'BackpackItemInfo.Title': '{itemLabel}',
 
                     'TutorialWindow.Previous': 'Zurück',
                     'TutorialWindow.Next': 'Weiter',

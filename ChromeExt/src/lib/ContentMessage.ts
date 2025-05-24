@@ -23,6 +23,7 @@ export namespace ContentMessage
     export const type_setGuiMode = 'setGuiMode';
     export const type_openInstantMessagesWindow = 'openInstantMessagesWindow';
     export const type_openPersonsWindow = 'openPersonsWindow';
+    export const type_openBackpackItemInfo = 'openBackpackItemInfo';
 }
 
 export type FriendshipProposalState = {
@@ -56,4 +57,10 @@ export type ContentOpenInstantMessagesWindowMessage = {
 
 export type ContentOpenPersonsWindowMessage = {
     type: typeof ContentMessage.type_openPersonsWindow
+}
+
+export type ContentOpenBackpackItemInfo = {
+    type: typeof ContentMessage.type_openBackpackItemInfo
+    itemId: string
+    withDebugInfo: null|boolean
 }

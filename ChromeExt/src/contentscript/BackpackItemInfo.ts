@@ -1,10 +1,9 @@
 import log = require('loglevel');
 import { is } from '../lib/is'
 import { as } from '../lib/as'
-import { BackgroundMessage } from '../lib/BackgroundMessage'
+import { BackgroundMessage, BackgroundRequest, PopupDefinition } from '../lib/BackgroundMessage'
 import { Config } from '../lib/Config'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
-import { BackpackItem } from './BackpackItem'
 import { ContentApp } from './ContentApp'
 import { DomUtils } from '../lib/DomUtils'
 import { PopupWindow, PopupWindowOptions } from './PopupWindow'
@@ -14,6 +13,7 @@ import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { WeblinClientApi } from '../lib/WeblinClientApi'
 import { ItemException } from '../lib/ItemException'
 import { ItemExceptionToast } from './Toast'
+import { ContentMessage, ContentOpenBackpackItemInfo, ContentSetGuiModeMessage } from '../lib/ContentMessage'
 
 export type BackpackItemInfoOptions = PopupWindowOptions & {
     top: number,
@@ -22,43 +22,58 @@ export type BackpackItemInfoOptions = PopupWindowOptions & {
 
 export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 {
-    protected readonly backpackItem: BackpackItem
+    protected readonly itemId: string
+    protected itemProperties: Readonly<ItemProperties> = {}
     protected readonly withDebugInfo: boolean
     protected readonly headerContainer: HTMLElement
     protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
     protected readonly debuginfoContainer: HTMLElement
     protected readonly themesChangeHandler: (themesCss: string) => void
+    protected readonly itemUpdateHandler: (item: null|ItemProperties) => void
+    protected readonly itemFrameRequestHandler: (request: WeblinClientIframeApi.Request) => void
 
     protected drawHeader: boolean = true
     protected iframeUrlTpl: string = ''
     protected iframeElem: null|HTMLIFrameElement = null
-    
+
     public getElem(): HTMLElement { return this.contentElem }
 
-    public constructor(app: ContentApp, backpackItem: BackpackItem, withDebugInfo: boolean, onClose: () => void)
+    public constructor(app: ContentApp, itemId: string, withDebugInfo: null|boolean, onClose: () => void)
     {
         super(app)
+        this.withUndockButton = false
         this.windowCssClasses.push('backpackiteminfo')
+        this.titleText = '{itemLabel}';
+        this.titleTextId = 'BackpackItemInfo.Title';
+        this.titleTextReplacements.set('{itemLabel}', () => ItemProperties.getLabel(this.itemProperties));
         this.guiLayer = ContentApp.LayerWindowContent
-        this.minHeight = 50;
+        this.minHeight = 50
 
-        this.backpackItem = backpackItem
-        this.withDebugInfo = withDebugInfo
+        this.itemId = itemId
+        this.withDebugInfo = withDebugInfo ?? Config.get('backpack.itemInfoExtended', false)
         this.onClose = onClose
         this.headerContainer = DomUtils.elemOfHtml('<div class="header-container" data-translate="children"></div>')
         this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
         this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
         this.debuginfoContainer = DomUtils.elemOfHtml('<div class="debuginfo-container" data-translate="children"></div>')
-        this.themesChangeHandler = themesCss => this.onThemesChanged(themesCss)
+        this.themesChangeHandler = themesCss => this.handleThemesChanged(themesCss)
+        this.itemUpdateHandler = item => this.handleItemUpdate(item)
+        this.itemFrameRequestHandler = request => this.handleItemInventoryiframeApiRequest(request)
     }
 
-    public update(): void
+    protected handleItemUpdate(itemProperties: null|ItemProperties): void
     {
+        this.itemProperties = itemProperties ?? {}
         if (!this.isOpen()) {
             return
         }
-        this.drawHeader = ItemProperties.getInventoryIframeUrl(this.backpackItem.getProperties()).length === 0
+        if (!itemProperties) {
+            this.close()
+            return
+        }
+        this.drawHeader = ItemProperties.getInventoryIframeUrl(this.itemProperties).length === 0
+        this.updateTitleText()
         this.updateHeader()
         this.updateIframe()
         this.updateButtons()
@@ -67,7 +82,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.updateGeometryFromContent()
     }
 
-    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
+    protected handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
     {
         if (!this.iframeElem) {
             this.sendResponseToIframe(request, new WeblinClientApi.ErrorResponse('Item inventory iframe not found!'))
@@ -108,7 +123,31 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         })
     }
 
-    protected onThemesChanged(themesCss: string): void
+    protected makeUndockPopupDefinition(): PopupDefinition
+    {
+        const itemId: string = this.itemId
+        const popupId = `BackpackItemInfo:${itemId}`
+        const setGuiRequest: ContentSetGuiModeMessage = {
+            type: ContentMessage.type_setGuiMode, mode: 'popupWindow',
+        }
+        const openImRequest: ContentOpenBackpackItemInfo = {
+            type: ContentMessage.type_openBackpackItemInfo, itemId, withDebugInfo: this.withDebugInfo,
+        }
+        const startupRequests: BackgroundRequest[] = [setGuiRequest, openImRequest]
+        const startupRequestsArg = encodeURIComponent(JSON.stringify(startupRequests))
+        const popupDefinition: PopupDefinition = {
+            id: popupId,
+            url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
+            top: Config.get('backpackItemInfo.undockedTop', 100),
+            left: Config.get('backpackItemInfo.undockedLeft', 100),
+            height: Config.get('backpackItemInfo.undockedHeight', 400),
+            width: Config.get('backpackItemInfo.undockedWidth', 600),
+            allowContentApp: true,
+        }
+        return popupDefinition
+    }
+
+    protected handleThemesChanged(themesCss: string): void
     {
         if (!this.iframeElem) {
             return
@@ -122,8 +161,8 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         if (!this.iframeElem) {
             return
         }
-        const itemId = this.backpackItem.getItemId()
-        const props = this.backpackItem.getProperties()
+        const itemId = this.itemId
+        const props = this.itemProperties
         const notification = new WeblinClientIframeApi.ItemPropertiesChangedNotification(itemId, props)
         this.sendMessageToIframe(notification);
     }
@@ -151,7 +190,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 
     protected handleClientBaseCssRequest(_request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
     {
-        this.onThemesChanged(this.app.themeManager.getEnabledThemesCss())
+        this.handleThemesChanged(this.app.themeManager.getEnabledThemesCss())
         return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss())
     }
 
@@ -178,14 +217,13 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 
     protected handleItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): WeblinClientApi.Response
     {
-        const props = this.backpackItem.getProperties()
-        const propsFiltered = ItemProperties.getStrings(props, request.pids)
+        const propsFiltered = ItemProperties.getStrings(this.itemProperties, request.pids)
         return new WeblinClientIframeApi.ItemGetPropertiesResponse(propsFiltered)
     }
 
     protected async handleItemActionRequest(request: WeblinClientIframeApi.ItemActionRequest): Promise<WeblinClientApi.Response>
     {
-        const itemId = this.backpackItem.getItemId();
+        const itemId = this.itemId
         const actionName = request.action;
         const args = request.args;
         const involvedIds = [itemId];
@@ -222,11 +260,15 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.contentElem.append(this.buttonsContainer)
         this.contentElem.append(this.debuginfoContainer)
         this.app.themeManager.themesChangedListeners.addListener(this.themesChangeHandler)
-        this.update()
+        this.app.ownItems.itemUpdateListeners.addListener(this.itemId, this.itemUpdateHandler)
+        this.app.iframeApi.iframeApiRequestListeners.addListener(this.itemId, this.itemFrameRequestHandler)
+        this.handleItemUpdate(this.app.ownItems.getItemById(this.itemId))
     }
 
     protected onBeforeClose(): void
     {
+        this.app.iframeApi.iframeApiRequestListeners.removeListener(this.itemId, this.itemFrameRequestHandler)
+        this.app.ownItems.itemUpdateListeners.removeListener(this.itemId, this.itemUpdateHandler)
         this.app.themeManager.themesChangedListeners.removeListener(this.themesChangeHandler)
         super.onBeforeClose()
     }
@@ -260,7 +302,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         if (!this.drawHeader) {
             return
         }
-        const props = this.backpackItem.getProperties()
+        const props = this.itemProperties
 
         let label = as.String(props[Pid.Label])
         if (label === '') {
@@ -305,7 +347,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 
     protected updateIframe(): void
     {
-        const itemProps = this.backpackItem.getProperties()
+        const itemProps = this.itemProperties
         const iframeUrlTpl = ItemProperties.getInventoryIframeUrl(itemProps)
         if (iframeUrlTpl === this.iframeUrlTpl) {
             // Iframe content takes care of updating itself.
@@ -323,7 +365,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 
         const userId = this.app.getUserId()
         const langId = this.app.getLanguage()
-        const itemId = this.backpackItem.getItemId()
+        const itemId = this.itemId
         const iframeUrl = Payload.makeItemIframeUrl(userId, langId, null, null, itemId, itemProps, iframeUrlTpl);
         const iframeUrlWrapped = this.app.uiHelper.getWrappedIframeUrl(iframeUrl);
         this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${iframeUrlWrapped}"></iframe>`)
@@ -333,8 +375,8 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected updateButtons(): void
     {
         this.buttonsContainer.innerHTML = ''
-        const itemId = this.backpackItem.getItemId()
-        const props = this.backpackItem.getProperties()
+        const itemId = this.itemId
+        const props = this.itemProperties
 
         if (as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect])) {
             const activateGroup = DomUtils.elemOfHtml('<div class="item-active" data-translate="children"></div>')
@@ -402,7 +444,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         if (!this.withDebugInfo) {
             return
         }
-        const props = this.backpackItem.getProperties()
+        const props = this.itemProperties
         const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>')
         for (const pid of Object.keys(props).sort()) {
             const value = props[pid]

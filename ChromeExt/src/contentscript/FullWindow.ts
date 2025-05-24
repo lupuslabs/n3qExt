@@ -9,6 +9,7 @@ export abstract class FullWindow<OptionsType extends FullWindowOptions> extends 
         super(app)
         this.style = 'window'
         this.withCloseButton = true
+        this.withTitlebar = true
         this.withActionbar = false
         this.closeIsHide = false
         this.isMovable = true

@@ -1,6 +1,6 @@
 import { is } from '../lib/is'
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils'
-import { ContentApp, WindowStyle, WindowSizingMode } from './ContentApp'
+import { ContentApp, WindowStyle } from './ContentApp'
 import { Memory } from '../lib/Memory'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -29,6 +29,8 @@ export type WindowBaseOptions = {
 
 export type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none'
 
+export type WindowSizingMode = 'normal' | 'maximized';
+
 export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 {
     protected readonly app: ContentApp
@@ -49,6 +51,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected closeIsHide: boolean = false
 
     protected withCloseButton: boolean = false
+    protected withUndockButton: boolean = true
     protected withTitlebar: boolean = false
     protected withPageTitle: boolean = false
     protected withActionbar: boolean = false
@@ -105,13 +108,16 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         this.givenOptions = options
         this.isShowing = true
         const inExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup()
+        const mayBeExlusiveWindow = inExclusiveWindowPopup && !!this.makeCheckedUndockPopupDefinition()
+        let isExlusiveWindow = false
 
         try {
             this.prepareMakeDom()
             if (as.Bool(this.givenOptions.undocked)) {
                 this.isClosing = this.undock()
-            } else if (inExclusiveWindowPopup && this.style === 'window') {
-                if (!this.app.setExclusiveWindowId(this.windowSettingsId)) {
+            } else if (mayBeExlusiveWindow) {
+                isExlusiveWindow = this.app.setExclusiveWindowId(this.windowSettingsId)
+                if (!isExlusiveWindow) {
                     this.isClosing = this.undock()
                 }
             }
@@ -126,14 +132,12 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             return
         }
 
-        if (this.style === 'window') {
-            this.sizingMode = this.app.getWindowSizingMode()
-            this.withCloseButton = !inExclusiveWindowPopup
-            this.withPageTitle = inExclusiveWindowPopup
-            this.withTitlebar = !inExclusiveWindowPopup
-        }
-        if (this.sizingMode === 'maximized') {
+        if (isExlusiveWindow) {
+            this.sizingMode = 'maximized'
+            this.withPageTitle = true
+            this.withTitlebar = false
             this.withCloseButton = false
+            this.withUndockButton = false
             this.isMovable = false
             this.isResizable = false
             this.geometryInitstrategy = 'beforeContent'
@@ -203,12 +207,11 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         this.windowRowsElem = DomUtils.elemOfHtml(`<div class="window-rows" data-translate="children"></div>`)
         this.windowElem.append(this.windowRowsElem)
 
-        if (this.withPageTitle) {
-            document.title = this.translateTitleText()
-        }
         if (this.withTitlebar) {
             this.makeTitlebar()
         }
+        this.updateTitleText()
+
         if (this.withActionbar) {
             this.makeButtonbar()
         }
@@ -238,7 +241,6 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         const titleTextElem = DomUtils.elemOfHtml(`<div class="window-title-text"></div>`)
         this.windowRowsElem.append(this.titlebarElem)
         this.titlebarElem.append(titleTextElem)
-        this.updateTitleText()
     }
 
     protected setTitleText(titleText: string): void {
@@ -248,9 +250,13 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     }
 
     protected updateTitleText(): void {
+        const titleText = this.translateTitleText()
+        if (this.withPageTitle) {
+            document.title = titleText
+        }
         const textelem = <HTMLElement> this.titlebarElem?.querySelector('.window-title-text') ?? null
         if (textelem) {
-            textelem.innerText = this.translateTitleText()
+            textelem.innerText = titleText
         }
     }
 
@@ -288,7 +294,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected makeUndockButton(): void
     {
-        if (!this.makeCheckedUndockPopupDefinition()) {
+        if (!this.withUndockButton || !this.makeCheckedUndockPopupDefinition()) {
             return
         }
         const button = this.app.uiHelper.makeWindowButton(() => this.undock(), 'window', 'undock', windowUndockIconDataUrl, 'Common.Undock', 'Undock')

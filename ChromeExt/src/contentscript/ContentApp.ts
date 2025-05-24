@@ -25,10 +25,11 @@ import {
     ContentMessage,
     ContentOpenInstantMessagesWindowMessage,
     ContentSetGuiModeMessage,
+    ContentOpenBackpackItemInfo,
 } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { OwnItemRepository } from './OwnItemRepository'
+import { BackpackUpdateEventData, OwnItemRepository } from './OwnItemRepository'
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { PropertyStorage } from './PropertyStorage';
 import { Room } from './Room';
@@ -56,7 +57,6 @@ import { ContentToBackgroundCommunicator, ContentRequestHandler } from '../lib/C
 import { BackgroundMessageUrlFetcher, UrlFetcher } from '../lib/UrlFetcher'
 import { BadgesController } from './BadgesController'
 import { PointerEventData } from '../lib/PointerEventData'
-import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentPersonManager } from './ContentPersonManager'
 import { ItemOverlays } from './ItemOverlays'
 import { TabContentData } from './TabContentData'
@@ -64,6 +64,7 @@ import { ContentInstantMessageManager } from './ContentInstantMessageManager'
 import { ContentThemeManager } from './ContentThemeManager'
 import { ContentUiHelper } from './ContentUiHelper'
 import { ContentAppDisplay } from './ContentAppDisplay'
+import { BackpackItemInfo } from './BackpackItemInfo'
 
 export class ContentAppNotification
 {
@@ -77,7 +78,6 @@ interface ContentAppNotificationCallback { (msg: any): void }
 interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
 export type WindowStyle = 'window' | 'popup' | 'overlay';
-export type WindowSizingMode = 'normal' | 'maximized';
 
 export type ContentAppParams = {
     nickname?: string,
@@ -103,7 +103,6 @@ export class ContentApp extends AppWithDom
     public readonly themeManager: ContentThemeManager;
     private dropzoneELem: null|HTMLElement = null;
     private isGuiEnabled: boolean = false;
-    private windowSizingMode: WindowSizingMode = 'normal';
     private isExclusiveWindowPopup: boolean = false;
     private exclusiveWindowId: null|string = null;
     private userId: string = '';
@@ -145,7 +144,6 @@ export class ContentApp extends AppWithDom
     public getPropertyStorage(): PropertyStorage { return this.propertyStorage; }
     public getShadowDomRoot(): ShadowRoot { return this.display.getShadowDomRoot(); }
     public getDisplay(): HTMLElement { return this.display.getDisplay(); }
-    public getWindowSizingMode(): WindowSizingMode { return this.windowSizingMode; }
     public getIsExclusiveWindowPopup(): boolean { return this.isExclusiveWindowPopup; }
     public setExclusiveWindowId(windowId: string): boolean
     {
@@ -775,6 +773,15 @@ export class ContentApp extends AppWithDom
                 case ContentMessage.type_openPersonsWindow: {
                     this.setPersonsWindowOpen(true);
                 } break;
+                case ContentMessage.type_openBackpackItemInfo: {
+                    const {itemId, withDebugInfo} = <ContentOpenBackpackItemInfo> message
+                    const backpackUpdateHandler = (_: BackpackUpdateEventData) => {
+                        this.ownItems.backpackUpdateListeners.removeListener(backpackUpdateHandler)
+                        const itemInfo = new BackpackItemInfo(this, itemId, withDebugInfo, () => window.close())
+                        itemInfo.show({top: 0, left: 0})
+                    }
+                    this.ownItems.backpackUpdateListeners.addListener(backpackUpdateHandler)
+                } break;
             }
         } catch (error) {
             this.onError(error)
@@ -786,12 +793,6 @@ export class ContentApp extends AppWithDom
     private onBackpackUpdate(itemsHide: ReadonlyArray<Readonly<ItemProperties>>, itemsShowOrSet: ReadonlyArray<Readonly<ItemProperties>>): void
     {
         this.ownItems.onBackpackUpdate(itemsHide, itemsShowOrSet)
-    }
-
-    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
-    {
-        this.backpackWindow?.handleItemInventoryiframeApiRequest(request)
-        this.personsWindow?.handleItemInventoryiframeApiRequest(request)
     }
 
     handle_sendStateToBackground(): void
@@ -885,12 +886,10 @@ export class ContentApp extends AppWithDom
             default:
             case 'full': {
                 this.roomEnabled = true;
-                this.windowSizingMode = 'normal';
                 this.isExclusiveWindowPopup = false;
             } break;
             case 'popupWindow': {
                 this.roomEnabled = false;
-                this.windowSizingMode = 'maximized';
                 this.isExclusiveWindowPopup = true;
                 this.handle_extensionIsGuiEnabledChanged(true);
             } break;

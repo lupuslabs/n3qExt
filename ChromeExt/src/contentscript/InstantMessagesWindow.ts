@@ -237,7 +237,7 @@ export class InstantMessagesWindow extends ChatWindow
 
         const openChatButtonText = this.app.translateText('PrivateChat.newMessageToastOpenChatWindowButtonLabel', translateOpts)
         const openChatButtonAction = () => {
-            const options = { undocked: this.app.getWindowSizingMode() !== 'normal' }
+            const options = { undocked: this.app.getIsExclusiveWindowPopup() }
             this.show(options)
         }
         toast.addClosingActionButton(openChatButtonText, openChatButtonAction)

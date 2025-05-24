@@ -44,3 +44,55 @@ export class CallableEventListeners<EventDataType>
     }
 
 }
+
+export type EventListeners1D<Id1Type,EventDataType> = Readonly<{
+    readonly addListener: (id1: Id1Type, listener: (eventData: EventDataType) => void) => void
+    readonly removeListener: (id1: Id1Type, listener: (eventData: EventDataType) => void) => void
+}>
+
+export class CallableEventListeners1D<Id1Type,EventDataType>
+{
+    private readonly eventName: string
+    private listeners: Map<Id1Type,((eventData: EventDataType) => void)[]> = new Map()
+
+    public constructor(eventName: string)
+    {
+        this.eventName = eventName
+    }
+
+    public addListener(id1: Id1Type, listener: (eventData: EventDataType) => void): void
+    {
+        let listeners = this.listeners.get(id1)
+        if ((listeners?.indexOf(listener) ?? -1) !== -1) {
+            return
+        }
+        if (!listeners) {
+            listeners = []
+            this.listeners.set(id1, listeners)
+        }
+        listeners.push(listener)
+    }
+
+    public removeListener(id1: Id1Type, listener: (eventData: EventDataType) => void): void
+    {
+        const listeners = this.listeners.get(id1) ?? []
+        const index = listeners.indexOf(listener)
+        if (index === -1) {
+            return
+        }
+        listeners.splice(index, 1)
+    }
+
+    public callListeners(id1: Id1Type, eventData: EventDataType): void
+    {
+        const listeners = this.listeners.get(id1) ?? []
+        for (const handler of listeners) {
+            try {
+                handler(eventData)
+            } catch (error) {
+                log.info(`EventHandlers.callHandlers: ${this.eventName} handler failed!`, { eventData, handler })
+            }
+        }
+    }
+
+}

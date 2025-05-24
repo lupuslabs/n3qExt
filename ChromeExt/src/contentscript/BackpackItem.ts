@@ -6,9 +6,7 @@ import { BackpackWindow } from './BackpackWindow'
 import { BackpackItemInfo } from './BackpackItemInfo'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ItemOverlaysState } from './ItemOverlays'
-import { Config } from '../lib/Config'
 
 export class BackpackItem
 {
@@ -36,7 +34,7 @@ export class BackpackItem
     private onlineStatusElem: null|HTMLElement = null
     private readonly pointerEventDispatcher: PointerEventDispatcher
 
-    private properties: ItemProperties
+    private properties: Readonly<ItemProperties>
     private x: number = 0
     private y: number = 0
     private imageUrl: string = ''
@@ -91,11 +89,6 @@ export class BackpackItem
     public getItemId(): string
     {
         return this.itemId
-    }
-
-    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
-    {
-        this.info?.handleItemInventoryiframeApiRequest(request)
     }
 
     private applyImage(): void
@@ -192,7 +185,7 @@ export class BackpackItem
         DomUtils.setElemClassPresent(this.elem, cssClass, isSet)
     }
 
-    public toggleInfo(clientX: number, clientY: number, withDebugInfo: boolean): void
+    public toggleInfo(clientX: number, clientY: number, withDebugInfo: null|boolean): void
     {
         if (is.nil(this.info)) {
             this.openInfo(clientX, clientY, withDebugInfo)
@@ -201,11 +194,11 @@ export class BackpackItem
         }
     }
 
-    public openInfo(clientX: number, clientY: number, withDebugInfo: boolean): void
+    public openInfo(clientX: number, clientY: number, withDebugInfo: null|boolean): void
     {
         if (is.nil(this.info)) {
             const onClose = () => { this.info = null }
-            this.info = new BackpackItemInfo(this.app, this, withDebugInfo, onClose)
+            this.info = new BackpackItemInfo(this.app, this.itemId, withDebugInfo, onClose)
             this.info.show({ left: clientX, top: clientY })
         }
     }
@@ -217,7 +210,7 @@ export class BackpackItem
 
     // events
 
-    public setProperties(properties: ItemProperties): void
+    public setProperties(properties: Readonly<ItemProperties>): void
     {
         this.properties = properties
 
@@ -233,8 +226,6 @@ export class BackpackItem
         } else {
             this.elem.classList.remove('rezzed')
         }
-
-        this.info?.update()
     }
 
     public destroy(): void

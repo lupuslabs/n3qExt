@@ -1,6 +1,9 @@
 import { ItemProperties } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'
-import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
+import {
+    CallableEventListeners, EventListeners,
+    CallableEventListeners1D, EventListeners1D,
+} from '../lib/EventListeners'
 import { FreeSpace } from './FreeSpace'
 
 export type BackpackUpdateEventData = {itemsDeleted: ReadonlyArray<Readonly<ItemProperties>>, itemsNewOrChanged: ReadonlyArray<Readonly<ItemProperties>>}
@@ -12,13 +15,16 @@ export class OwnItemRepository
     private readonly positionFixedItemIds: Set<string> = new Set();
 
     private readonly callableBackpackUpdateListeners: CallableEventListeners<BackpackUpdateEventData> = new CallableEventListeners('backpackUpdate')
+    private readonly callableItemUpdateListeners: CallableEventListeners1D<string,null|ItemProperties> = new CallableEventListeners1D('itemUpdate')
 
     public readonly backpackUpdateListeners: EventListeners<BackpackUpdateEventData>
+    public readonly itemUpdateListeners: EventListeners1D<string,null|ItemProperties>
 
     public constructor(app: ContentApp)
     {
         this.app = app
         this.backpackUpdateListeners = this.callableBackpackUpdateListeners
+        this.itemUpdateListeners = this.callableItemUpdateListeners
     }
 
     public getAllItems(): ReadonlyMap<string,Readonly<ItemProperties>> { return this.ownItems }
@@ -30,6 +36,8 @@ export class OwnItemRepository
         itemsDeleted.forEach(item => this.ownItems.delete(ItemProperties.getId(item)))
         itemsNewOrChanged.forEach(item => this.ownItems.set(ItemProperties.getId(item), item))
         this.callableBackpackUpdateListeners.callListeners({itemsDeleted, itemsNewOrChanged})
+        itemsDeleted.forEach(item => this.callableItemUpdateListeners.callListeners(ItemProperties.getId(item), null))
+        itemsNewOrChanged.forEach(item => this.callableItemUpdateListeners.callListeners(ItemProperties.getId(item), item))
     }
 
     public fixItemInventoryPositions(paneWidth: number, paneHeight: number, itemIds: ReadonlyArray<string>): void

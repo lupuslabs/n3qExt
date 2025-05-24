@@ -4,22 +4,30 @@ import { as } from '../lib/as';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { ItemException } from '../lib/ItemException';
-import { ItemProperties, ItemPropertiesSet, Pid } from '../lib/ItemProperties';
+import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { Utils } from '../lib/Utils';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { WeblinClientPageApi } from '../lib/WeblinClientPageApi';
 import { Client } from '../lib/Client';
 import { ContentApp } from './ContentApp';
-import { ItemExceptionToast, SimpleErrorToast, SimpleToast } from './Toast';
+import { ItemExceptionToast, SimpleToast } from './Toast';
+import { CallableEventListeners1D, EventListeners1D } from '../lib/EventListeners'
 
 export class IframeApi
 {
+    protected readonly app: ContentApp
     private readonly messageHandler: (ev: MessageEvent) => Promise<any>
 
-    constructor(protected app: ContentApp)
+    private readonly callableIframeApiRequestListeners: CallableEventListeners1D<string,WeblinClientIframeApi.Request> = new CallableEventListeners1D('iframeApiRequest')
+
+    public readonly iframeApiRequestListeners: EventListeners1D<string,WeblinClientIframeApi.Request>
+
+    constructor(app: ContentApp)
     {
+        this.app = app
         this.messageHandler = ev => this.onMessage(ev)
+        this.iframeApiRequestListeners = this.callableIframeApiRequestListeners
     }
 
     start(): void
@@ -36,15 +44,18 @@ export class IframeApi
         }
     }
 
-    async onMessage(ev: any): Promise<any>
+    async onMessage(ev: MessageEvent<any>): Promise<any>
     {
-        let request = <WeblinClientApi.Request>ev.data;
+        const request = ev.data;
+        if (!is.object(request)) {
+            return;
+        }
 
         if (request[Config.get('iframeApi.messageMagicW2WMigration', 'hbv67u5rf_w2wMigrate')]) {
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
-            let cid = (<any>request).cid;
+            const cid = as.StringOrNull(request['cid'], 1);
             if (cid) {
-                let nickname = as.String((<any>request).nickname, cid);
+                const nickname = as.String(request['nickname'], cid);
                 await this.handle_W2WMigration(cid, nickname);
             }
             return;
@@ -52,10 +63,10 @@ export class IframeApi
 
         if (request[Config.get('iframeApi.messageMagicCreateCryptoWallet', 'tr67rftghg_CreateCryptoWallet')]) {
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
-            let address = (<any>request).address;
-            let network = (<any>request).network;
-            let auth = (<any>request).auth;
-            if (address != null && network != null) {
+            const address = request['address'];
+            const network = request['network'];
+            const auth = as.String(request['auth']);
+            if (is.nonEmptyString(address) && is.nonEmptyString(network)) {
                 await this.handle_CreateCryptoWallet(address, network, auth);
             }
             return;
@@ -63,12 +74,12 @@ export class IframeApi
 
         if (request[Config.get('iframeApi.messageMagic', 'a67igu67puz_iframeApi')]) {
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
-            await this.handle_IframeApi(<WeblinClientIframeApi.Request>request);
+            await this.handle_IframeApi(<WeblinClientIframeApi.Request>(<unknown>request));
         }
 
         if (request[Config.get('iframeApi.messageMagicPage', 'x7ft76zst7g_pageApi')]) {
             if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.onMessage', request); }
-            await this.handle_PageApi(<WeblinClientPageApi.Request>request);
+            await this.handle_PageApi(<WeblinClientPageApi.Request>(<unknown>request));
         }
     }
 
@@ -402,26 +413,27 @@ export class IframeApi
     async handle_IframeApi(request: WeblinClientIframeApi.Request): Promise<void>
     {
         let response: WeblinClientApi.Response = null;
-
+        const itemId = request.item ?? null
+        const requestType = as.String(request.type)
+        const roomId = as.String(request['room']);
         try {
-
-            if (is.nil(request.item)) {
+            if (is.nil(itemId)) {
                 log.info('IframeApi', 'missing request.item');
                 return;
             }
 
-            if (as.String(request.type).startsWith(WeblinClientIframeApi.PersonItemApiRequestTypePrefix)) {
+            if (requestType.startsWith(WeblinClientIframeApi.PersonItemApiRequestTypePrefix)) {
                 this.app.personManager.handlePersonItemApiRequest(request)
                 return;
             }
 
-            if (!is.nonEmptyString(request['room'])) {
+            if (!is.nonEmptyString(roomId)) {
                 // Inventory item iframe
-                this.app.handleItemInventoryiframeApiRequest(request);
+                this.callableIframeApiRequestListeners.callListeners(itemId, request);
                 return;
             }
 
-            switch (request.type) {
+            switch (requestType) {
 
                 case WeblinClientIframeApi.ItemActionRequest.legacyType:
                 case WeblinClientIframeApi.ItemActionRequest.type: response = await this.handle_ItemActionRequest(<WeblinClientIframeApi.ItemActionRequest>request); break;
@@ -467,7 +479,7 @@ export class IframeApi
         if (!isRequest && (response?.ok ?? true)) {
             return;
         }
-        const roomItem = this.app.getRoom()?.getItemByItemId(request.item);
+        const roomItem = this.app.getRoom()?.getItemByItemId(itemId);
         if (!roomItem) {
             return;
         }

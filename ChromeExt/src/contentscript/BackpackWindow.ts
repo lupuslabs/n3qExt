@@ -10,8 +10,6 @@ import { BackpackWindowItemFilters, ItemVisibility } from './BackpackWindowItemF
 import { PointerEventData } from '../lib/PointerEventData'
 import { BackpackSelectedItems } from './BackpackSelectedItems'
 import { BackpackUserSelectionRect } from './BackpackUserSelectionRect'
-import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
-import { Config } from '../lib/Config'
 
 export class BackpackWindow extends FullWindow<FullWindowOptions>
 {
@@ -103,11 +101,6 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
     {
         const [left, top] = this.translateClientPosToBackpackPos(clientBox.left, clientBox.top)
         return new DOMRectReadOnly(left, top, clientBox.width, clientBox.height)
-    }
-
-    public handleItemInventoryiframeApiRequest(request: WeblinClientIframeApi.Request): void
-    {
-        this.backpackItems.get(request.item)?.handleItemInventoryiframeApiRequest(request)
     }
 
     public showFilter(filterId: string): void
@@ -220,8 +213,7 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
             case ModifierKeyId.none: {
                 backpackItem.toFront()
                 this.selectedItems.itemSelectExclusively(backpackItem)
-                const withDebugInfo = Config.get('backpack.itemInfoExtended', false)
-                backpackItem.toggleInfo(ev.clientX, ev.clientY, withDebugInfo)
+                backpackItem.toggleInfo(ev.clientX, ev.clientY, null)
             } break
             case ModifierKeyId.alt: {
                 backpackItem.toFront()
