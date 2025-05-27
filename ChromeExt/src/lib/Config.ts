@@ -139,6 +139,8 @@ export class Config
             nameGeneratorBlocklistRetries: 30,
             nameGeneratorBlocklist: ['black', 'bronze', 'brown', 'chocolate', 'coffee', 'maroon', 'white', 'yellow'],
             avatarGeneratorLink: 'https://www.weblin.io/Avatars',
+            contentAdditionalWidth: 100, // Extra width to account for the user opening the dev options.
+            contentAdditionalHeight: 80, // Extra height to account for the user opening the dev options.
         },
         design: {
             name: 'basic',

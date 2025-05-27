@@ -1,5 +1,6 @@
 import log = require('loglevel');
 import { is } from '../lib/is';
+import { as } from '../lib/as'
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
@@ -36,6 +37,8 @@ export class SettingsWindow extends FullWindow<FullWindowOptions>
         this.titleTextId = 'Settingswindow.Settings';
         this.defaultBottom = 150;
         this.defaultLeft = 50;
+        this.contentAdditionalWidth = as.Int(Config.get('settings.contentAdditionalWidth', 0))
+        this.contentAdditionalHeight = as.Int(Config.get('settings.contentAdditionalHeight', 0))
     }
 
     protected async makeContent(): Promise<void>

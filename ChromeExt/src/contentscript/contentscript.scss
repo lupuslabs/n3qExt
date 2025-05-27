@@ -2615,7 +2615,7 @@
     grid-template-columns: min-content auto;
     grid-auto-rows: min-content;
     column-gap: var(--base-spacing-horizontal);
-    row-gap: var(--base-spacing-vertical);
+    row-gap: var(--wide-spacing-vertical);
     padding: var(--narrow-spacing-vertical) 0;
     padding-right: var(--narrow-spacing-horizontal);
 }

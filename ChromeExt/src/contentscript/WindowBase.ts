@@ -72,6 +72,8 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected minHeight: number = 100
     protected defaultWidth: 'content'|number = 180
     protected defaultHeight: 'content'|number = 100
+    protected contentAdditionalWidth: number = 0;
+    protected contentAdditionalHeight: number = 0;
     protected defaultBottom: number = 10
     protected defaultAboveBottomOffset: number = 10 // Only used when bottom derived from givenOptions.above and givenOptions.bottomOffset not given.
     protected defaultLeft: number = 10
@@ -446,19 +448,9 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         }
 
         // Get final dimensions first:
-        const windowRect = this.windowElem.getBoundingClientRect()
-        let optionsWidthRaw: 'content'|string|number = options.width ?? this.defaultWidth
-        if (optionsWidthRaw === 'content') {
-            optionsWidthRaw = windowRect.width
-        }
-        const optionsWidth = Math.ceil(as.Float(optionsWidthRaw))
-        let optionsHeightRaw: 'content'|string|number = options.height ?? this.defaultHeight
-        if (optionsHeightRaw === 'content') {
-            optionsHeightRaw = windowRect.height
-        }
-        const optionsHeight = Math.ceil(as.Float(optionsHeightRaw))
+        const {preferredWidth, preferredHeight} = this.getPreferredDimensions(options)
         const {width, height} = Utils.fitLeftBottomRect(
-            {left: 0, bottom: 0, width: optionsWidth, height: optionsHeight},
+            {left: 0, bottom: 0, width: preferredWidth, height: preferredHeight},
             containerWidth, containerHeight, this.minWidth, this.minHeight,
             this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
         )
@@ -502,6 +494,29 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
         )
         return geometry
+    }
+
+    protected getPreferredDimensions(options: Partial<OptionsType>): {preferredWidth: number, preferredHeight: number}
+    {
+        const windowRect = this.windowElem.getBoundingClientRect()
+        let preferredWidth: number;
+        let preferredHeight: number;
+
+        const optionsWidthRaw: 'content'|string|number = options.width ?? this.defaultWidth
+        if (optionsWidthRaw === 'content') {
+            preferredWidth = Math.ceil(windowRect.width) + this.contentAdditionalWidth
+        } else {
+            preferredWidth = Math.ceil(as.Float(optionsWidthRaw))
+        }
+
+        const optionsHeightRaw: 'content'|string|number = options.height ?? this.defaultHeight
+        if (optionsHeightRaw === 'content') {
+            preferredHeight = Math.ceil(windowRect.height) + this.contentAdditionalHeight
+        } else {
+            preferredHeight = Math.ceil(as.Float(optionsHeightRaw))
+        }
+
+        return {preferredWidth, preferredHeight}
     }
 
     protected async getSavedOptions(presetOptions?: OptionsType): Promise<OptionsType>
