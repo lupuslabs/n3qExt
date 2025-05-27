@@ -401,10 +401,13 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             this.buttonsContainer.append(activateGroup)
         }
 
+        const isExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup()
         if (as.Bool(props[Pid.IsRezzed])) {
             const derezBtn = this.app.uiHelper.makeDefaultTextButton('derez-button', 'Backpack.Derez item', 'Derez item', () => {
                 this.app.derezItem(itemId)
-                this.close()
+                if (!isExclusiveWindowPopup) {
+                    this.close()
+                }
             })
             this.buttonsContainer.append(derezBtn)
 
@@ -416,7 +419,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                 this.buttonsContainer.append(goBtn)
             }
         } else {
-            if (as.Bool(props[Pid.IsRezable], true)) {
+            if (!isExclusiveWindowPopup && as.Bool(props[Pid.IsRezable], true)) {
                 const rezBtn = this.app.uiHelper.makeDefaultTextButton('rez-button', 'Backpack.Rez item', 'Rez item', () => {
                     const rezzedX = as.Int(props[Pid.RezzedX], -1);
                     this.app.rezItemInCurrentRoom(props[Pid.Id], rezzedX);
@@ -429,7 +432,9 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = this.app.uiHelper.makeDefaultTextButton('delete-button', 'Backpack.Delete item', 'Delete item', () => {
                 this.app.deleteItemAsk(itemId)
-                this.close()
+                if (!isExclusiveWindowPopup) {
+                    this.close()
+                }
             })
             this.buttonsContainer.append(delBtn)
         }
