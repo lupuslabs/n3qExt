@@ -1331,7 +1331,7 @@ export class Config
                     'ErrorReason.NetworkProblem': 'Netzwerkproblem',
                     'ErrorReason.CantDropOnSelf': 'Der Gegenstand kann nicht auf dich selbst angewandt werden.',
                     'ErrorReason.NotDeletable': 'Der Gegenstand kann nicht gelöscht werden.',
-                    'ErrorReason.ItemIsNotRezzed': 'Der Gegenstand kann nicht auf einer Seite.',
+                    'ErrorReason.ItemIsNotRezzed': 'Der Gegenstand ist nicht auf einer Seite.',
 
                     'ErrorDetail.Applier.Apply': 'Beim Anwenden eines Gegenstands auf einen anderen.',
                     'ErrorDetail.Pid.Id': 'Id',
