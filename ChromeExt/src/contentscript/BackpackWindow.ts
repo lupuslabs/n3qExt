@@ -16,8 +16,8 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
     private readonly backPackUpdateListener: (data: BackpackUpdateEventData) => void
     protected singleFilterId: null|string = null
     protected hideFilterTags: string[] = ['notInBackpack']
-    private readonly filters: BackpackWindowItemFilters
-    private paneElem: null|HTMLElement
+    protected readonly filters: BackpackWindowItemFilters
+    protected paneElem: null|HTMLElement
     private panePointerEventDispatcher: null|PointerEventDispatcher
     private readonly backpackItems: Map<string, BackpackItem> = new Map()
     private readonly selectedItems: BackpackSelectedItems
@@ -291,6 +291,12 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
 
     private itemFilterVisibilityHandler(itemId: string, itemVisibility: ItemVisibility): void
     {
+        this.setItemVisibility(itemId, itemVisibility)
+        this.onAfterItemVisibilityChange()
+    }
+
+    private setItemVisibility(itemId: string, itemVisibility: ItemVisibility): void
+    {
         if (itemVisibility === 'none') {
             this.selectedItems.itemDeselect(itemId)
             this.backpackItems.get(itemId)?.destroy()
@@ -314,6 +320,8 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         }
         item?.setCssClass('filter-hide', isFaded)
     }
+
+    protected onAfterItemVisibilityChange(): void {}
 
     private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
     {

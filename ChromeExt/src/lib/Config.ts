@@ -777,6 +777,9 @@ export class Config
                     'Person.friendshipAcceptedToastTitle': 'New Friend',
                     'Person.friendshipAcceptedToastText': '{otherUserName} is now your friend.',
 
+                    'PersonsWindow.title': 'Contacts',
+                    'PersonsWindow.noItemsInfoText': 'You have no contacts yet',
+
                     'iframeApi.avatarCreateTitle': 'Accept Avatar',
                     'iframeApi.avatarActivateTitle': 'Activate Avatar',
                     'iframeApi.avatarCreateActivateTitle': 'Accept and Activate Avatar',
@@ -1185,6 +1188,9 @@ export class Config
                     'Person.cancelFriendshipToastCancelButtonLabel': 'Nein, nichts machen',
                     'Person.friendshipAcceptedToastTitle': 'Neuer Freund',
                     'Person.friendshipAcceptedToastText': '{otherUserName} ist jetzt dein Freund.',
+
+                    'PersonsWindow.title': 'Kontakte',
+                    'PersonsWindow.noItemsInfoText': 'Du hast noch keine Kontakte',
 
                     'iframeApi.avatarCreateTitle': 'Avatar erstellen',
                     'iframeApi.avatarActivateTitle': 'Avatar aktivieren',

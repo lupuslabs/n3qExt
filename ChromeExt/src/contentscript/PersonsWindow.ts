@@ -1,3 +1,4 @@
+import { DomUtils } from '../lib/DomUtils'
 import { BackgroundRequest, PopupDefinition } from '../lib/BackgroundMessage'
 import { ContentMessage, ContentOpenPersonsWindowMessage, ContentSetGuiModeMessage } from '../lib/ContentMessage'
 import { Config } from '../lib/Config'
@@ -5,12 +6,14 @@ import { BackpackWindow } from './BackpackWindow'
 
 export class PersonsWindow extends BackpackWindow
 {
+    private noItemsInfoElem: null|HTMLElement = null;
+
     protected initWindowSettings(): void {
         super.initWindowSettings()
         this.windowSettingsId = 'Contacts'
-        this.windowCssClasses.push('contacts')
+        this.windowCssClasses.push('personswindow')
         this.titleText = 'Contacts'
-        this.titleTextId = 'Menu.Persons'
+        this.titleTextId = 'PersonsWindow.title'
         this.singleFilterId = Config.get('personsWindow.itemFilterId', 'persons')
     }
 
@@ -36,4 +39,27 @@ export class PersonsWindow extends BackpackWindow
         }
         return popupDefinition
     }
+
+    protected async makeContent(): Promise<void>
+    {
+        await super.makeContent()
+        this.noItemsInfoElem = DomUtils.elemOfHtml('<div class="no-items-info"></div>')
+        const text = this.app.translateText('PersonsWindow.noItemsInfoText', 'You have no contacts yet')
+        this.noItemsInfoElem.append(...DomUtils.paragraphNodesOfText(text))
+        this.paneElem.append(this.noItemsInfoElem)
+        this.updateNoItemsInfoVisibility()
+    }
+
+    protected onAfterItemVisibilityChange(): void
+    {
+        super.onAfterItemVisibilityChange()
+        this.updateNoItemsInfoVisibility()
+    }
+
+    protected updateNoItemsInfoVisibility(): void
+    {
+        const hasItems = this.filters.getFullVisibilityItemIds().size !== 0
+        DomUtils.setElemClassPresent(this.noItemsInfoElem, 'removed', hasItems)
+    }
+
 }

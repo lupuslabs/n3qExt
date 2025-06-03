@@ -2486,6 +2486,20 @@
 }
 
 /*----------------------------------------------------------------------------*/
+/* Persons window */
+
+#n3qD .personswindow .no-items-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--base-spacing-vertical) var(--base-spacing-horizontal);
+    text-align: center;
+    --filter: var(--disabled-filter) opacity(var(--disabled-opacity));
+    filter: var(--filter);
+}
+
+/*----------------------------------------------------------------------------*/
 /* Chat windows */
 
 #n3qD .chatwindow .window-content {
