@@ -61,7 +61,9 @@ export class ItemFramePopup
 
             this.options = options;
 
-            log.debug('ItemFramePopup', url);
+            if (Utils.logChannel('iframeApi', false)) {
+                log.debug('ItemFramePopup', {url, options});
+            }
             this.onClose = options.onClose;
             this.closeIsHide = options.closeIsHide;
 
