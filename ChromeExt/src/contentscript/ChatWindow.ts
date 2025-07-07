@@ -253,7 +253,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         });
     }
 
-    private markMessageAsRead(message: ChatUtils.ChatMessage): void
+    protected markMessageAsRead(message: ChatUtils.ChatMessage): void
     {
         const messageRead: ChatUtils.ChatMessage = { ...message, isUnread: false };
         BackgroundMessage.handleNewChatMessage(this.chatChannel, messageRead, false)

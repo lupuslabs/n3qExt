@@ -242,6 +242,12 @@ export class InstantMessagesWindow extends ChatWindow
         }
         toast.addClosingActionButton(openChatButtonText, openChatButtonAction)
 
+        const markAsReadButtonText = this.app.translateText('PrivateChat.newMessageToastMarkAsReadButtonLabel', translateOpts)
+        const markAsReadButtonAction = () => {
+            this.markMessageAsRead(lastMessage)
+        }
+        toast.addClosingActionButton(markAsReadButtonText, markAsReadButtonAction)
+
         toast.setDontShow(false)
         this.unreadMessageToast = toast
         this.unreadMessageToastMessageId = lastMessage.id
