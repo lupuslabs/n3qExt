@@ -11,7 +11,7 @@
         "default_title": "weblin.io"
     },
     "icons": {
-        "128": "./assets/icon.png"
+        "128": "assets/icon.png"
     },
     "content_scripts": [
         {
