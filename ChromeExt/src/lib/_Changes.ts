@@ -13,6 +13,7 @@ export class _Changes
             ['Add', 'Video conference button in chat window'],
             ['Add', 'Feedback form in help menu'],
             ['Add', 'Show debug info in BackpackItemInfo with Alt-click'],
+            ['Change', 'manifest icon path'],
         ]],
         ['1.4.0', 'Friends', [
             ['Add', 'Set user id and token in settings dialog (klick icon)'],
