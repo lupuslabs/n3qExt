@@ -319,16 +319,18 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             this.headerContainer.append(descriptionElem)
         }
 
+        const hasActiveToggle = as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect]);
         const displayProps = ItemProperties.getDisplay(props)
         if (as.Bool(props[Pid.IsRezzed])) {
             displayProps[Pid.IsRezzed] = props[Pid.IsRezzed]
             displayProps[Pid.RezzedDestination] = props[Pid.RezzedDestination]
         }
         const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>')
-        let hasStats = false
         for (const [pid, value] of Object.entries(displayProps).filter(([_, value]) => is.nonEmptyString(value))) {
+            if (hasActiveToggle && pid === Pid.ActivatableIsActive) {
+                continue;
+            }
             let value = displayProps[pid]
-            hasStats = true
 
             if (pid === Pid.RezzedDestination) {
                 if (value.startsWith('http://')) { value = value.substring('http://'.length) }
@@ -339,7 +341,31 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             listElem.append(DomUtils.elemOfHtml(`<span class="label" data-translate="text:ItemPid">${as.Html(pid)}</span>`));
             listElem.append(DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`));
         }
-        if (hasStats) {
+        if (hasActiveToggle) {
+            const labelElem = DomUtils.elemOfHtml(`<span class="label" data-translate="text:Backpack">Active</span>`);
+            const valueElem = DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue"/>`);
+            const checkedAttr = as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : '';
+            const activateCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input type="checkbox" class="item-active-checkbox" data-translate="text:Backpack"${checkedAttr}/>`) // Active
+            valueElem.append(activateCheckbox);
+            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, activateCheckbox)
+            activateCheckbox.addEventListener('change', ev => {
+                ev.stopPropagation();
+                (async () =>
+                {
+                    const isChecked = activateCheckbox.checked
+                    await BackgroundMessage.executeBackpackItemAction(this.itemId, 'Activatable.SetState', { 'Value': isChecked }, [this.itemId])
+
+                    if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
+                        this.app.getRoom()?.sendPresence()
+                    }
+                })().catch(error => this.app.onError(error))
+            })
+
+            listElem.append(labelElem);
+            listElem.append(valueElem);
+        }
+
+        if (listElem.childElementCount !== 0) {
             this.headerContainer.append(listElem)
         }
         this.app.translateElem(this.headerContainer)
@@ -375,48 +401,27 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected updateButtons(): void
     {
         this.buttonsContainer.innerHTML = ''
-        const itemId = this.itemId
         const props = this.itemProperties
 
-        if (as.Bool(props[Pid.IsUnrezzedAction]) && as.Bool(props[Pid.ActivatableAspect])) {
-            const activateGroup = DomUtils.elemOfHtml('<div class="item-active" data-translate="children"></div>')
-            const activateLabel = DomUtils.elemOfHtml('<span class="" data-translate="text:Backpack">Active</div>')
-            const activateCheckbox = <HTMLInputElement>DomUtils.elemOfHtml(`<input type="checkbox" class="item-active-checkbox" data-translate="text:Backpack"${as.Bool(props[Pid.ActivatableIsActive]) ? ' checked' : ''}/>`) // Active
-            PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, activateCheckbox)
-            activateCheckbox.addEventListener('change', ev =>
-            {
-                ev.stopPropagation();
-                (async () =>
-                {
-                    const isChecked = activateCheckbox.checked
-                    await BackgroundMessage.executeBackpackItemAction(itemId, 'Activatable.SetState', { 'Value': isChecked }, [itemId])
-
-                    if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
-                        this.app.getRoom()?.sendPresence()
-                    }
-                })().catch(error => this.app.onError(error))
-            })
-            activateGroup.append(activateLabel)
-            activateGroup.append(activateCheckbox)
-            this.buttonsContainer.append(activateGroup)
-        }
+        const leftBtnElems = []
+        const rightBtnElems = []
 
         const isExclusiveWindowPopup = this.app.getIsExclusiveWindowPopup()
         if (as.Bool(props[Pid.IsRezzed])) {
             const derezBtn = this.app.uiHelper.makeDefaultTextButton('derez-button', 'Backpack.Derez item', 'Derez item', () => {
-                this.app.derezItem(itemId)
+                this.app.derezItem(this.itemId)
                 if (!isExclusiveWindowPopup) {
                     this.close()
                 }
             })
-            this.buttonsContainer.append(derezBtn)
+            leftBtnElems.push(derezBtn)
 
             const destination = as.String(props[Pid.RezzedDestination])
             if (destination) {
                 const goBtn = this.app.uiHelper.makeDefaultTextButton('navigate-to-item-button', 'Backpack.Go to item', 'Go to item', () => {
                     window.location.assign(destination)
                 })
-                this.buttonsContainer.append(goBtn)
+                leftBtnElems.push(goBtn)
             }
         } else {
             if (!isExclusiveWindowPopup && as.Bool(props[Pid.IsRezable], true)) {
@@ -425,21 +430,25 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                     this.app.rezItemInCurrentRoom(props[Pid.Id], rezzedX);
                     this.close();
                 });
-                this.buttonsContainer.append(rezBtn);
+                leftBtnElems.push(rezBtn);
             }
         }
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
             const delBtn = this.app.uiHelper.makeDefaultTextButton('delete-button', 'Backpack.Delete item', 'Delete item', () => {
-                this.app.deleteItemAsk(itemId)
+                this.app.deleteItemAsk(this.itemId)
                 if (!isExclusiveWindowPopup) {
                     this.close()
                 }
             })
-            this.buttonsContainer.append(delBtn)
+            rightBtnElems.push(delBtn)
         }
 
-        this.app.translateElem(this.buttonsContainer)
+        this.buttonsContainer.append(...leftBtnElems)
+        if (rightBtnElems.length !== 0) {
+            this.buttonsContainer.append(DomUtils.elemOfHtml('<span class="flex-spacer stretch"/>'))
+            this.buttonsContainer.append(...rightBtnElems)
+        }
     }
 
     protected updateDebugInfo(): void

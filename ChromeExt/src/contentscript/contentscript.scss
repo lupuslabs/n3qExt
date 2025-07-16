@@ -575,17 +575,6 @@
     margin-block-end: 0.5em;
 }
 
-#n3qD .sub-content-pane {
-    border: var(--sub-content-pane-border);
-    border-radius: var(--sub-content-pane-border-radius);
-    background: var(--sub-content-pane-background);
-    backdrop-filter: var(--sub-content-pane-backdrop-filter);
-    padding: var(--sub-content-pane-padding);
-}
-#n3qD .sub-content-pane:not(:first-child) {
-    margin-top: var(--base-spacing-vertical);
-}
-
 /*----------------------------------------------------------------------------*/
 /* Generic state and utility classes */
 
@@ -705,6 +694,17 @@
     display: block;
 }
 
+#n3qD .sub-content-pane {
+    border: var(--sub-content-pane-border);
+    border-radius: var(--sub-content-pane-border-radius);
+    background: var(--sub-content-pane-background);
+    backdrop-filter: var(--sub-content-pane-backdrop-filter);
+    padding: var(--sub-content-pane-padding);
+}
+#n3qD .sub-content-pane:not(:first-child) {
+    margin-top: var(--base-spacing-vertical);
+}
+
 #n3qD .kv-grid {
     display: grid;
     grid-template-columns: min-content auto;
@@ -739,6 +739,10 @@
     line-height: var(--base-spacing-vertical);
     letter-spacing: 0.15em;
     content: ":::::";
+}
+
+#n3qD .flex-spacer.stretch {
+    flex-grow: 1;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2471,6 +2475,8 @@
 }
 
 #n3qD .backpackiteminfo .buttons-container {
+    display: flex;
+    flex-direction: row;
     max-width: var(--base-text-max-line-length);
 }
 #n3qD .backpackiteminfo .buttons-container .button {
