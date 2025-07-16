@@ -519,9 +519,8 @@ export class Participant extends Entity
                 return;
             }
             const chatWindow = this.room.getChatWindow();
-            for (const child of queryResult) {
-                chatWindow.addLine(null, 'cmdResult', '', child.name, '', child.text());
-            }
+            const text = queryResult.map(node => `${node.name}: ${node.text()}`).join('\n');
+            chatWindow.addLine(null, 'cmdResult', '', `Returned info from: ${this.getDisplayName()}`, '', text);
             this.room.showChatWindow();
         });
     }

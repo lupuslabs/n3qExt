@@ -129,13 +129,13 @@ export namespace DomUtils {
             case Node.ELEMENT_NODE: {
                 const subContext = {...context}
                 subContext.forbidA = subContext.forbidA || invalidATagParents.indexOf(node.nodeName) !== -1
+                const newNode = node.cloneNode(false)
                 const newChildren = convertTextInNodes(node.childNodes, converter, context)
-                node.childNodes.forEach(child => node.removeChild(child))
-                newChildren.forEach(child => node.appendChild(child))
-                return [node]
+                newChildren.forEach(child => newNode.appendChild(child))
+                return [newNode]
             }
         }
-        return [node]
+        return [node.cloneNode(true)]
     }
 
     export function makeLinksInTextClickable(text: string, context: NodeConversionContext): Node[]

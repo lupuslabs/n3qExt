@@ -104,15 +104,16 @@ export namespace ChatUtils {
     export function prepareTextHtml(text: string, highlightOwnMentionName?: string): {textNodes: Node[], ownNameMentionFound: boolean}
     {
         const state = {ownNameMentionFound: false} as const
-        let textNodes: Node[] = DomUtils.paragraphNodesOfText(text)
-        textNodes = DomUtils.convertTextInNodes(textNodes, DomUtils.makeLinksInTextClickable, {})
+        const paragraphs: Node[] = DomUtils.paragraphNodesOfText(text)
+        const paragraphsWithLinks = DomUtils.convertTextInNodes(paragraphs, DomUtils.makeLinksInTextClickable, {})
+        let paragraphsWithLinksAndMentions = paragraphsWithLinks
         if (is.nonEmptyString(highlightOwnMentionName)) {
             const converter = (line: string, _context: DomUtils.NodeConversionContext) =>
                 highlightOwnNameMentionInHtml(line, highlightOwnMentionName, state)
-            textNodes = DomUtils.convertTextInNodes(textNodes, converter, {})
+            paragraphsWithLinksAndMentions = DomUtils.convertTextInNodes(paragraphsWithLinks, converter, {})
         }
         const {ownNameMentionFound} = state
-        return {textNodes, ownNameMentionFound}
+        return {textNodes: paragraphsWithLinksAndMentions, ownNameMentionFound}
     }
 
     export function highlightOwnNameMentionInHtml(text: string, ownMentionName: string, state: {ownNameMentionFound: boolean}): Node[]
