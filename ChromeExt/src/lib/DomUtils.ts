@@ -306,7 +306,7 @@ export namespace DomUtils {
     }
 
     //------------------------------------------------------------------------------
-    // Other element properties
+    // Element CSS classes
 
     export function setElemClassPresent(elem: null|Element, className: string, hasClass: boolean): void
     {
@@ -323,6 +323,9 @@ export namespace DomUtils {
         }
         return false
     }
+
+    //------------------------------------------------------------------------------
+    // Element geometry
 
     export function getElemLeftBottomRect(container: Element, content: Element): LeftBottomRect
     {
@@ -346,6 +349,101 @@ export namespace DomUtils {
         elem.style.top = `${box.top}px`
         elem.style.width = `${box.width}px`
         elem.style.height = `${box.height}px`
+    }
+
+    //------------------------------------------------------------------------------
+    // Helpers for resizeable widgets
+
+    export type VerticalSplitPaneElemHeightInfo = {startHeight: number, maxHeightDec: number}
+    export type VerticalSplitPaneMoveInfo = {topStartHeight: number, bottomStartHeight: number, maxUp: number, maxDown: number}
+    export type VerticalSplitPaneElemHeights = {topHeight: number, bottomHeight: number}
+
+    function getElemHeightResizeInfo(elem: HTMLElement): VerticalSplitPaneElemHeightInfo
+    {
+        const style = window.getComputedStyle(elem)
+        const startHeight = elem.offsetHeight
+        const minHeight = Math.min(startHeight, DomUtils.parsePxValue(style.minHeight))
+        const maxHeightDec = startHeight - minHeight
+        return {startHeight, maxHeightDec}
+    }
+
+    export function getVerticalSplitPaneMoveInfo(topElem: HTMLElement, bottomElem: HTMLElement): VerticalSplitPaneMoveInfo
+    {
+        const topInfo: VerticalSplitPaneElemHeightInfo = getElemHeightResizeInfo(topElem)
+        const bottomInfo: VerticalSplitPaneElemHeightInfo = getElemHeightResizeInfo(bottomElem)
+        const topStartHeight = topInfo.startHeight
+        const bottomStartHeight = bottomInfo.startHeight
+        const maxUp = topInfo.maxHeightDec
+        const maxDown = bottomInfo.maxHeightDec
+        return {topStartHeight, bottomStartHeight, maxUp, maxDown}
+    }
+
+    export function calcVerticalSplitPaneElemHeights(paneInfo: VerticalSplitPaneMoveInfo, movement: number): VerticalSplitPaneElemHeights
+    {
+        if (movement < 0) {
+            const movementUp = Math.min(paneInfo.maxUp, Math.abs(movement))
+            return {topHeight: paneInfo.topStartHeight - movementUp, bottomHeight: paneInfo.bottomStartHeight + movementUp}
+        }
+        const movementDown = Math.min(paneInfo.maxDown, movement)
+        return {topHeight: paneInfo.topStartHeight + movementDown, bottomHeight: paneInfo.bottomStartHeight - movementDown}
+    }
+
+    export function updateVerticalSplitPaneElemHeights(
+        topElem: null|HTMLElement, bottomElem: null|HTMLElement, paneInfo: VerticalSplitPaneMoveInfo, movement: number,
+    ): void {
+        const {topHeight, bottomHeight}: VerticalSplitPaneElemHeights = calcVerticalSplitPaneElemHeights(paneInfo, movement)
+        if (topElem) {
+            topElem.style.height = `${topHeight}px`
+        }
+        if (bottomElem) {
+            bottomElem.style.height = `${bottomHeight}px`
+        }
+    }
+
+    export function makeElemAutoscroll(elem: HTMLElement): void
+    {
+        let scrollTopOld = elem.scrollTop
+        let doAutoscroll = true
+        let inResizeHandler = false
+
+        const mutationObserver = new MutationObserver(elems => {
+            if (elem.childElementCount === 0) {
+                doAutoscroll = true
+            }
+            if (doAutoscroll) {
+                scrollTopOld = elem.scrollHeight - elem.clientHeight
+                elem.scrollTop = scrollTopOld
+            }
+        })
+        mutationObserver.observe(elem, {subtree: true, characterData: true, childList: true})
+
+        const resizeObserver = new ResizeObserver(elems => {
+            if (inResizeHandler) {
+                return
+            }
+            inResizeHandler = true
+            const oldDoAutoscroll = doAutoscroll
+            const oldScrollTopOld = scrollTopOld
+            requestAnimationFrame(() => {
+                doAutoscroll = oldDoAutoscroll
+                scrollTopOld = oldScrollTopOld
+                inResizeHandler = false
+                const maxScrollTop = elem.scrollHeight - elem.clientHeight
+                const scrollTopNew = doAutoscroll ? maxScrollTop : Math.min(maxScrollTop, scrollTopOld)
+                elem.scrollTop = scrollTopNew
+                scrollTopOld = scrollTopNew
+            })
+        })
+        resizeObserver.observe(elem)
+
+        elem.onscroll = (ev) => {
+            const _mutationObserver = mutationObserver // Forces observer to be in scope until elem gets discarded.
+            const _resizeObserver = resizeObserver // Forces observer to be in scope until elem gets discarded.
+            const maxScrollTop = elem.scrollHeight - elem.clientHeight
+            const maxScrollTopCorrected = maxScrollTop - 1
+            scrollTopOld = elem.scrollTop
+            doAutoscroll = scrollTopOld >= maxScrollTopCorrected
+        }
     }
 
     //------------------------------------------------------------------------------

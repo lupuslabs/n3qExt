@@ -171,4 +171,17 @@ export class ContentUiHelper {
         return `${iframeUrl}?url=${urlArg}`
     }
 
+    public makeVerticalSplitPaneResizeBottom(topElem: HTMLElement, splitterElem: HTMLElement, bottomElem: HTMLElement): void {
+        const pevDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, splitterElem)
+        splitterElem.classList.add('splitter', 'vertical')
+        splitterElem.append(DomUtils.elemOfHtml('<div class="text"/>'))
+        let paneInfo = null
+        pevDispatcher.addDragStartListener(ev => {
+            paneInfo = null
+        })
+        pevDispatcher.addDragMoveListener(ev => {
+            paneInfo ??= DomUtils.getVerticalSplitPaneMoveInfo(topElem, bottomElem)
+            DomUtils.updateVerticalSplitPaneElemHeights(null, bottomElem, paneInfo, ev.distanceY)
+        })
+    }
 }

@@ -21,7 +21,6 @@ export type ChatWindowOptions = FullWindowOptions & {
 export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 {
     protected chatlogElem: HTMLElement;
-    protected chatoutAutoScroll: boolean = true;
     protected chatInputFieldElem: HTMLTextAreaElement;
     protected chatChannel: ChatUtils.ChatChannel;
     protected chatMessages: OrderedSet<ChatUtils.ChatMessage>;
@@ -91,8 +90,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         this.soundEnabled = as.Bool(options.soundEnabled, false);
 
         this.makeHeaderElems();
-        this.makeChatLogElems();
-        this.makeChatInput();
+        this.makeChatElems();
 
         this.drawChatMessages();
     }
@@ -144,39 +142,36 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         return this.app.uiHelper.makeDefaultTextButton('open-vidconf-button', 'Menu.Video Conference', null, action);
     }
 
-    protected makeChatLogElems(): void
+    protected makeChatElems(): void
     {
-        this.chatoutAutoScroll = true;
+        // chat log elems:
         const chatlogElem = DomUtils.elemOfHtml('<div class="chatlog" data-translate="children" />');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, chatlogElem);
-        chatlogElem.onscroll = (ev) => {
-            const maxScrollTop = chatlogElem.scrollHeight - chatlogElem.clientHeight;
-            // Chrome's maximum scrollTop can be slightly less than actual scrollable area when logical pixels don't match device pixels:
-            const maxScrollTopCorrected = maxScrollTop - 1;
-            this.chatoutAutoScroll = chatlogElem.scrollTop >= maxScrollTopCorrected;
-        };
+        DomUtils.makeElemAutoscroll(chatlogElem);
         this.chatlogElem = chatlogElem;
         this.contentElem.appendChild(chatlogElem);
-    }
 
-    protected makeChatInput(): void
-    {
-        const lineElem = DomUtils.elemOfHtml('<div class="chat-input-line" data-translate="children" />');
-        this.contentElem.appendChild(lineElem);
+        // splitter elem:
+        const splitterElem = document.createElement('div');
+        this.contentElem.appendChild(splitterElem);
 
+        // chat input elems:
+        const inputRowElem = DomUtils.elemOfHtml('<div class="chat-input-line" data-translate="children" />');
+        this.contentElem.appendChild(inputRowElem);
         this.chatInputFieldElem = <HTMLTextAreaElement> DomUtils.elemOfHtml('<textarea class="chat-input-field" rows="1" placeholder="Enter chat here..." data-translate="attr:placeholder:Chatin"></textarea>');
         PointerEventDispatcher.makeOpaqueDefaultActionsDispatcher(this.app, this.chatInputFieldElem);
         this.chatInputFieldElem.addEventListener('keydown', ev => this.onChatinKeydown(ev));
-        lineElem.appendChild(this.chatInputFieldElem);
-
+        inputRowElem.appendChild(this.chatInputFieldElem);
         const sendButton = this.app.uiHelper.makeDefaultTextButton('send-chat-button', 'Chatin.Send', 'Send', () => this.onSendChatUserAction());
-        lineElem.appendChild(sendButton);
+        inputRowElem.appendChild(sendButton);
+
+        // Init splitter:
+        this.app.uiHelper.makeVerticalSplitPaneResizeBottom(this.chatlogElem, splitterElem, inputRowElem);
     }
 
     protected onVisible() {
         super.onVisible();
         this.chatInputFieldElem.focus();
-        this.doAutoscroll()
     }
 
     protected onViewportVisible(): void
@@ -320,17 +315,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             oldElem?.remove();
         }
 
-        this.doAutoscroll()
-
         if (message.isUnread && this.getViewportVisibility() && ChatUtils.isUserChatMessageType(message.type)) {
             this.markMessageAsRead(message);
-        }
-    }
-
-    protected doAutoscroll(): void
-    {
-        if (this.chatoutAutoScroll) {
-            this.chatlogElem.scrollTop = this.chatlogElem.scrollHeight;
         }
     }
 
@@ -361,7 +347,6 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
     public clear()
     {
-        this.chatoutAutoScroll = true;
         BackgroundMessage.deleteChatHistory(this.chatChannel, Utils.utcStringOfDate(new Date()))
             .catch(error => this.app.onError(error));
     }
