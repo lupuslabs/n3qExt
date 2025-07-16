@@ -506,7 +506,7 @@ export class Participant extends Entity
     {
         const stanzaId = Utils.randomString(15);
         const attr = { 'xmlns': 'jabber:iq:version' };
-        if (Environment.isDevelopment() || Config.get('xmpp.verboseVersionQuery', false)) {
+        if (Environment.isDevelopment() && Config.get('xmpp.verboseVersionQuery', false)) {
             attr['auth'] = Config.get('xmpp.verboseVersionQueryWeakAuth', '');
         }
         const iq = new ltx.Element('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
