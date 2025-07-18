@@ -64,6 +64,7 @@ import { ContentInstantMessageManager } from './ContentInstantMessageManager'
 import { ContentThemeManager } from './ContentThemeManager'
 import { ContentUiHelper } from './ContentUiHelper'
 import { ContentAppDisplay } from './ContentAppDisplay'
+import { ContentAppWindows } from './ContentAppWindows'
 import { BackpackItemInfo } from './BackpackItemInfo'
 
 export class ContentAppNotification
@@ -100,6 +101,7 @@ export class ContentApp extends AppWithDom
     public readonly uiHelper: ContentUiHelper;
     public readonly viewportEventDispatcher: ViewportEventDispatcher;
     public readonly display: ContentAppDisplay;
+    public readonly windows: ContentAppWindows;
     public readonly themeManager: ContentThemeManager;
     private dropzoneELem: null|HTMLElement = null;
     private isGuiEnabled: boolean = false;
@@ -192,6 +194,7 @@ export class ContentApp extends AppWithDom
         this.ownItems = new OwnItemRepository(this);
         this.uiHelper = new ContentUiHelper(this);
         this.display = new ContentAppDisplay(this, appendToMe);
+        this.windows = new ContentAppWindows(this);
         this.themeManager = new ContentThemeManager(this);
         this.viewportEventDispatcher = new ViewportEventDispatcher(this);
         const requestHandler = request => this.onBackgroundRequest(request)
@@ -298,6 +301,7 @@ export class ContentApp extends AppWithDom
 
         try {
             await this.display.initDisplay(params);
+            this.windows.init();
         } catch (error) {
             this.onCriticalError(error);
             return;
@@ -418,6 +422,7 @@ export class ContentApp extends AppWithDom
         this.stopCheckPageUrl();
         this.leaveRoom();
         this.themeManager.stop();
+        this.windows.stop();
         this.display.stop();
         BackgroundMessage.signalContentAppStopToBackground()
             .catch(error => this.onError(error));

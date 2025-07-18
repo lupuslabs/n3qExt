@@ -25,6 +25,7 @@ export type WindowBaseOptions = {
     center?:       string|number, // Used when left unset.
     undockable?:   boolean, // Makes window non-undockable when set to false.
     undocked?:     boolean, // Undocks instead of showing when show is called and window is undockable.
+    ignoreRootElems?: Element[], // Pointer down on these elements aren't considered outside the window.
 }
 
 export type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none'
@@ -39,6 +40,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected readonly viewportInvisibleListener: () => void
     protected readonly viewportResizeListener: () => void
 
+    protected windowId: null|number = null
     protected style: WindowStyle = 'overlay'
     protected guiLayer: number|string = ContentApp.LayerWindow
     protected sizingMode: WindowSizingMode = 'normal'
@@ -49,8 +51,11 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected showHidden: boolean = false
     protected closeIsHide: boolean = false
+    protected closeOnPointerdownOutside: boolean = false
+    protected isUserPinnedOpen: boolean = false // Set by pin open button.
 
     protected withCloseButton: boolean = false
+    protected withPinOpenButton: boolean = false
     protected withUndockButton: boolean = true
     protected withTitlebar: boolean = false
     protected withPageTitle: boolean = false
@@ -139,7 +144,9 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             this.withPageTitle = true
             this.withTitlebar = false
             this.withCloseButton = false
+            this.withPinOpenButton = false
             this.withUndockButton = false
+            this.closeOnPointerdownOutside = false
             this.isMovable = false
             this.isResizable = false
             this.geometryInitstrategy = 'beforeContent'
@@ -226,7 +233,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         this.windowRowsElem.append(contentWrapperElem)
 
         this.makeCloseButton()
-
+        this.makePinOpenButton()
         this.makeUndockButton()
 
         if (this.isMovable) {
@@ -292,6 +299,16 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         }
         const closeElem = this.app.uiHelper.makeWindowCloseButton(onCloseBtnClick, this.style)
         this.windowButtonsElem.append(closeElem)
+    }
+
+    protected makePinOpenButton(): void
+    {
+        if (!this.withPinOpenButton) {
+            return
+        }
+        const onToggle = (isPinnedOpen: boolean) => {this.isUserPinnedOpen = isPinnedOpen}
+        const btnElem = this.app.uiHelper.makeWindowPinOpenButton(onToggle, this.style)
+        this.windowButtonsElem.append(btnElem)
     }
 
     protected makeUndockButton(): void
@@ -662,6 +679,13 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         this.toFront()
     }
 
+    protected onPointerDownOutside(): void
+    {
+        if (this.closeOnPointerdownOutside && !this.isUserPinnedOpen) {
+            this.close()
+        }
+    }
+
     public toFront(layer?: number|string): void
     {
         if (this.windowElem) {
@@ -706,6 +730,11 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             this.windowElem.classList.remove('hidden')
             this.toFront()
             this.onVisible()
+            this.windowId = this.app.windows.registerWindow({
+                windowRootElems: [this.windowElem],
+                ignoredRootElems: this.givenOptions.ignoreRootElems ?? [],
+                pointerDownOutsideHandler: () => this.onPointerDownOutside(),
+            })
             if (viewportEvents.getVisibility()) {
                 this.onViewportVisible()
             } else {
@@ -715,6 +744,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             viewportEvents.removeVisibleListener(this.viewportVisibleListener)
             viewportEvents.removeInvisibleListener(this.viewportInvisibleListener)
             viewportEvents.removeResizeListener(this.viewportResizeListener)
+            this.app.windows.forgetWindow(this.windowId)
             this.windowElem.classList.add('hidden')
             this.onInvisible()
         }

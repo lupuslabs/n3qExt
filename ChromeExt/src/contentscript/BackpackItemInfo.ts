@@ -42,6 +42,8 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     public constructor(app: ContentApp, itemId: string, withDebugInfo: null|boolean, onClose: () => void)
     {
         super(app)
+        this.closeOnPointerdownOutside = true
+        this.withPinOpenButton = true
         this.withUndockButton = false
         this.windowCssClasses.push('backpackiteminfo')
         this.titleText = '{itemLabel}';

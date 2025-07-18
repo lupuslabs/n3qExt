@@ -226,7 +226,6 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
             case ModifierKeyId.control: {
                 backpackItem.toFront()
                 this.selectedItems.itemSelectExclusively(backpackItem)
-                backpackItem.closeInfo()
                 const item = backpackItem.getProperties()
                 if (ItemProperties.getIsRezzed(item)) {
                     this.app.derezItem(itemId)
@@ -315,7 +314,6 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         }
         const isFaded = itemVisibility === 'faded'
         if (isFaded) {
-            item.closeInfo()
             this.selectedItems.itemDeselect(itemId)
         }
         item?.setCssClass('filter-hide', isFaded)

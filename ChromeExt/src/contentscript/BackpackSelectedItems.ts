@@ -376,7 +376,6 @@ class BackpackSelectionDraggedItem
     {
         this.app = app
         this.backpackItem = backpackItem
-        this.backpackItem.closeInfo()
         this.setDraggedStyle(true)
         this.onAfterBackpackUpdate()
     }

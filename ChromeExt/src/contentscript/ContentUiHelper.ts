@@ -5,6 +5,10 @@ import { ContentApp } from './ContentApp'
 
 import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.svg'
 import * as popupCloseIconDataUrl from '../assets/icons/ci-close-small.svg'
+import * as windowPinOpenIconDataUrl from '../assets/icons/pin-open-small.svg'
+import * as windowPinOpenPinnedIconDataUrl from '../assets/icons/pin-open-pinned-small.svg'
+import * as popupPinOpenIconDataUrl from '../assets/icons/pin-open-small.svg'
+import * as popupPinOpenPinnedIconDataUrl from '../assets/icons/pin-open-pinned-small.svg'
 
 export type WindowStyle = 'window' | 'popup' | 'overlay'
 export type ButtonStyle = 'default' | 'undecorated' | 'merged' | 'big' | WindowStyle
@@ -148,6 +152,34 @@ export class ContentUiHelper {
     public makeWindowCloseButton(onClose: () => void, style: WindowStyle): HTMLElement {
         const iconUrl: string = style === 'window' ? windowCloseIconDataUrl : popupCloseIconDataUrl
         return this.makeWindowButton(onClose, style, 'close', iconUrl, 'Common.Close', 'Close')
+    }
+
+    public makeWindowPinOpenButton(onToggle: (isPinned: boolean) => void, style: WindowStyle): HTMLElement {
+        const iconUrlUnpinned: string = style === 'window' ? windowPinOpenIconDataUrl : popupPinOpenIconDataUrl
+        const iconUrlPinned: string = style === 'window' ? windowPinOpenPinnedIconDataUrl : popupPinOpenPinnedIconDataUrl
+        const titleUnpinned: string = this.app.translateText('Common.PinOpen', 'Pin')
+        const titlePinned: string = this.app.translateText('Common.PinOpenPinned', 'Unpin')
+        const iconUnpinnedElem: HTMLElement = this.makeIcon(iconUrlUnpinned, true)
+        const iconPinnedElem: HTMLElement = this.makeIcon(iconUrlPinned, true)
+        iconPinnedElem.classList.add('removed')
+        let btnElem: HTMLElement
+        let isPinned: boolean = false
+        const onClick = () => {
+            isPinned = !isPinned
+            btnElem.setAttribute('title', isPinned ? titlePinned : titleUnpinned)
+            DomUtils.setElemClassPresent(iconUnpinnedElem, 'removed', isPinned)
+            DomUtils.setElemClassPresent(iconPinnedElem, 'removed', !isPinned)
+            onToggle(isPinned)
+        }
+        btnElem = this.makeButton({
+            style: style === 'window' ? style : 'popup',
+            extraCssClass: ['pin-open'],
+            title: titleUnpinned,
+            iconAsCssMask: true,
+            onClick
+        })[0]
+        btnElem.append(iconUnpinnedElem, iconPinnedElem)
+        return btnElem
     }
 
     public makeWindowButton(onClick: () => void, style: WindowStyle, extraCssClass: string, iconUrl: string, titleId: string, title: string): HTMLElement {

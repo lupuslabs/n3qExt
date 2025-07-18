@@ -332,6 +332,8 @@
     --button-disabled-text-decoration: var(--button-text-decoration);
     --button-disabled-text-color: lch(from var(--button-text-color) l c h / var(--disabled-opacity));
 
+    --popup-button-size: 16px;
+
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
     /* Menus */
 
@@ -1169,7 +1171,6 @@
 }
 
 #n3qD .button.style-popup {
-    --popup-button-size: 14px;
     position: absolute;
     top: calc(-0.5 * var(--popup-button-size) + 1px);
     right: calc(-0.5 * var(--popup-button-size) + 1px);
@@ -1269,13 +1270,6 @@
 #n3qD .button.main-menu-button.open .icon-wrap.closed,
 #n3qD .button.main-menu-button:not(.open) .icon-wrap.open {
     display: none;
-}
-
-#n3qD .menu-pointer-catcher {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    pointer-events: auto;
 }
 
 #n3qD .menu {
@@ -2088,6 +2082,15 @@
 
 #n3qD .window.window-style-popup {
     --window-filter: var(--hard-shadow-filter);
+}
+#n3qD .window.window-style-popup .window-buttons {
+    top: calc(-0.5 * var(--popup-button-size));
+    right: calc(-0.5 * var(--popup-button-size));
+}
+#n3qD .window.window-style-popup .window-buttons .button.style-popup {
+    position: static;
+    top: 0;
+    right: 0;
 }
 
 #n3qD .window.window-style-overlay {

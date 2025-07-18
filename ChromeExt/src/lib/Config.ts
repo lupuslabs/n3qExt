@@ -583,6 +583,8 @@ export class Config
                     'StatusMessage.GuiHidden': 'GUI hidden',
 
                     'Common.Close': 'Close',
+                    'Common.PinOpen': 'Keep open',
+                    'Common.PinOpenPinned': 'Pinned open',
                     'Common.Undock': 'Open in separate window',
 
                     'Intro.Got it': 'Got it',
@@ -994,6 +996,8 @@ export class Config
                     'StatusMessage.GuiHidden': 'GUI ausgeblendet',
 
                     'Common.Close': 'Schließen',
+                    'Common.PinOpen': 'Anheften',
+                    'Common.PinOpenPinned': 'Angeheftet',
                     'Common.Undock': 'Im eigenen Fenster öffnen',
 
                     'Intro.Got it': 'Verstanden',

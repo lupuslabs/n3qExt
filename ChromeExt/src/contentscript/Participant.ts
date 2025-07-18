@@ -1024,6 +1024,15 @@ export class Participant extends Entity
         }
     }
 
+    public toggleMenu(): void
+    {
+        if (this.menuDisplay.isOpen()) {
+           this.closeMenu();
+        } else {
+            this.openMenu();
+        }
+    }
+
     public closeMenu(): void
     {
         if (this.menuDisplay.isOpen()) {
@@ -1038,7 +1047,7 @@ export class Participant extends Entity
             const alignmentElem = this.nicknameDisplay?.getElem() ?? this.elem;
             const clientRect = alignmentElem.getBoundingClientRect();
             this.menuDisplay.open(clientRect.left, clientRect.top);
-            this.nicknameDisplay?.onMenuOpen();
+            this.nicknameDisplay?.onMenuOpen(this.menuDisplay);
         }
     }
 

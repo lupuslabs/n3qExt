@@ -4,10 +4,10 @@ import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
 import { PointerEventData } from '../lib/PointerEventData';
-import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
 import { DomUtils } from '../lib/DomUtils';
 import * as menuClosedIconUrl from '../assets/icons/menu.svg';
 import * as menuOpenIconUrl from '../assets/icons/close-circle-o.svg';
+import { Menu } from './Menu'
 
 export class Nickname implements IObserver
 {
@@ -43,7 +43,7 @@ export class Nickname implements IObserver
         const [menuElem, menuEventDispatcher] = this.app.uiHelper.makeButton({
             style: 'undecorated',
             extraCssClass: 'main-menu-button',
-            onKeyboardClick: () => this.participant.openMenu(),
+            onKeyboardClick: () => this.participant.toggleMenu(),
         });
         const closedIcon = this.app.uiHelper.makeIcon(menuClosedIconUrl, true);
         closedIcon.classList.add('closed');
@@ -52,7 +52,7 @@ export class Nickname implements IObserver
         openIcon.classList.add('open');
         menuElem.append(openIcon);
         menuElem.classList.add('main-menu-button');
-        menuEventDispatcher.addUnmodifiedLeftButtonDownListener(ev => this.participant.openMenu());
+        menuEventDispatcher.addUnmodifiedLeftButtonDownListener(ev => this.participant.toggleMenu());
         this.menuElem = menuElem;
         this.elem.appendChild(this.menuElem);
 
@@ -89,10 +89,11 @@ export class Nickname implements IObserver
         return this.nickname;
     }
 
-    public onMenuOpen(): void
+    public onMenuOpen(menu: Menu): void
     {
         this.menuElem.classList.add('open');
         this.isMenuOpen = true;
+        this.app.windows.registerIgnoredRootElement(menu.getWindowId(), this.menuElem);
     }
 
     public onMenuClose(): void

@@ -27,6 +27,10 @@ abstract class MenuItem {
         this.iconIsMask = as.Bool(iconIsMask)
     }
 
+    public getWindowId(): number {
+        return this.menu.getWindowId()
+    }
+
     public hasIcon(): boolean {
         return is.nonEmptyString(this.iconUrl)
     }
@@ -260,11 +264,11 @@ class SubmenuMenuItem extends MenuItem {
 
 export class Menu {
     protected readonly app: ContentApp
+    protected windowId: number = -1
     protected readonly parentItem: null|SubmenuMenuItem
     protected readonly extraCssClasses: string[] = []
     protected items: MenuItem[] = []
 
-    protected pointerCatcherElem: null|HTMLElement
     protected menuElem: null|HTMLElement
     protected enabledItems: MenuItem[] = []
 
@@ -280,6 +284,10 @@ export class Menu {
             this.extraCssClasses.push('rootmenu')
         }
         this.extraCssClasses.push(`menu-${id}`)
+    }
+
+    public getWindowId(): number {
+        return this.windowId
     }
 
     public isEmpty(): boolean {
@@ -313,9 +321,11 @@ export class Menu {
     }
 
     public close(): void {
-        this.pointerCatcherElem?.parentNode?.removeChild(this.pointerCatcherElem)
-        this.pointerCatcherElem = null
-        this.menuElem?.parentNode?.removeChild(this.menuElem)
+        this.app.windows.forgetWindowRootElement(this.windowId, this.menuElem)
+        if (!this.parentItem) {
+            this.app.windows.forgetWindow(this.windowId)
+        }
+        this.menuElem?.remove()
         this.menuElem = null
         this.focusedItem = null
         this.enabledItems = []
@@ -416,14 +426,6 @@ export class Menu {
     }
 
     protected render(): void {
-        if (!this.parentItem) {
-            const catcherElem = document.createElement('div')
-            catcherElem.classList.add('menu-pointer-catcher')
-            const eventDispatcher = PointerEventDispatcher.makeOpaqueDispatcher(this.app, catcherElem)
-            eventDispatcher.addAnyButtonDownListener(ev => this.onItemUserDone())
-            this.pointerCatcherElem = catcherElem
-        }
-
         const menuElem = document.createElement('div')
         menuElem.classList.add('menu', ...this.extraCssClasses, 'hidden')
 
@@ -449,6 +451,13 @@ export class Menu {
         const displayElem = this.app.getDisplay()
         displayElem.appendChild(menuElem)
         this.menuElem = menuElem
+
+        if (this.parentItem) {
+            this.windowId = this.parentItem.getWindowId()
+        } else {
+            this.windowId = this.app.windows.registerWindow({pointerDownOutsideHandler: () => this.close()})
+        }
+        this.app.windows.registerWindowRootElement(this.windowId, this.menuElem)
     }
 
     protected renderItemGroup(columnElem: HTMLElement, menuItemElems: HTMLElement[]): void {
@@ -462,10 +471,6 @@ export class Menu {
     }
 
     protected applyPosition(clientX: number, clientY: number): void {
-        if (this.pointerCatcherElem) {
-            this.app.getDisplay().appendChild(this.pointerCatcherElem)
-            this.app.toFront(this.pointerCatcherElem, ContentApp.LayerMenu)
-        }
         if (!this.menuElem) {
             return
         }

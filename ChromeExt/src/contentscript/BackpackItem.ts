@@ -199,7 +199,7 @@ export class BackpackItem
         if (is.nil(this.info)) {
             const onClose = () => { this.info = null }
             this.info = new BackpackItemInfo(this.app, this.itemId, withDebugInfo, onClose)
-            this.info.show({ left: clientX, top: clientY })
+            this.info.show({ left: clientX, top: clientY, ignoreRootElems: [this.elem] })
         }
     }
 
