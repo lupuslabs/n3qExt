@@ -893,7 +893,7 @@ export class Config
                     'ErrorFact.NotApplied': 'Item Not Applied',
                     'ErrorFact.NotSent': 'Not Sent',
                     'ErrorFact.NotProcessed': 'Not Processed',
-                    'ErrorFact.ClaimFailed': 'Failed to Claim the Pge',
+                    'ErrorFact.ClaimFailed': 'Failed to Claim the Page',
                     'ErrorFact.NotTransferred': 'Item Not Transferred',
                     'ErrorFact.NotDropped': 'Item Not Applied',
 
