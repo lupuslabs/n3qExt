@@ -456,7 +456,7 @@ export class Config
         },
         web3: {
             provider: {
-                ETH: 'https://eth-mainnet.alchemyapi.io/v2/0_7o5JNttyfeUapKv8oI58Nslg5cwkDh',
+                ETH: 'https://mainnet.infura.io/v3/f300ce7aa4244933ae5ba6353d733026', //'https://eth-mainnet.alchemyapi.io/v2/0_7o5JNttyfeUapKv8oI58Nslg5cwkDh',
                 rinkeby: 'https://eth-rinkeby.alchemyapi.io/v2/r2gUsunv9dqoULzKRpZsIwo2MgOIYkO9',
             },
             weblinItemContractAddess: {
