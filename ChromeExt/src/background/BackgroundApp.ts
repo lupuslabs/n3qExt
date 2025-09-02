@@ -303,7 +303,7 @@ export class BackgroundApp
             this.maintain();
 
             this.sendToAllTabs({ type: ContentMessage.type_configChanged });
-        })().catch(error => log.info(error));
+        })().catch(error => log.info('BackgroundApp.onConfigUpdated', error));
     }
 
     public onXmppOnline(): void

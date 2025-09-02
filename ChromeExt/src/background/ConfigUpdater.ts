@@ -56,7 +56,7 @@ export class ConfigUpdater
         try {
             this.onUpdate()
         } catch (error) {
-            log.info(error)
+            log.info('ConfigUpdater.callOnUpdate', error)
         }
     }
 

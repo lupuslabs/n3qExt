@@ -229,7 +229,7 @@ export class ChatHistoryStorage {
         } catch (error) {
             await this.disposeErroneousTransaction(transaction, transactionPromise);
             const errorMsg = 'ChatHistoryStorage.maintain: Failed!';
-            log.info(errorMsg, error);
+            log.info('ChatHistoryStorage.maintain', errorMsg, error);
             throw new ErrorWithData(errorMsg, {originalError: error});
         }
     }

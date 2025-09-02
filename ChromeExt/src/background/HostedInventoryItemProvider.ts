@@ -360,7 +360,7 @@ export namespace HostedInventoryItemProvider
                     idsCreatedByWallet.push(...idsCreatedByWalletAndContract);
                 }
             } catch (error) {
-                log.info(error);
+                log.info('HostedInventoryItemProvider.loadWeb3ItemsForWallet', error);
             }
 
             try {
@@ -453,7 +453,7 @@ export namespace HostedInventoryItemProvider
                             knownIds.push(itemId);
                             if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', 'Creating', template, itemId, data); }
                         } catch (error) {
-                            log.info(error);
+                            log.info('HostedInventoryItemProvider.getOrCreateWeb3ItemFromMetadata', error);
                         }
                     } else {
                         for (const item of existingItems) {

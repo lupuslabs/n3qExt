@@ -143,7 +143,7 @@ export class XmppConnectionManager
             this.xmppConfig = xmppConfigNew
             this.xmppConfigChanged = true
             this.maintain()
-        }).catch(error => log.info(error))
+        }).catch(error => log.info('XmppConnectionManager.onConfigUpdated', error))
     }
 
     private areXmppConfigsEqual(a: XmppConfig, b: XmppConfig): boolean
