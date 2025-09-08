@@ -188,7 +188,7 @@ export class ContentInstantMessageManager
             const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://video.weblin.io/Vidconf?room=weblin{room}&name={name}');
             const url = urlTemplate
                 .replace('{room}', encodeURIComponent(vidconfRoomId))
-                .replace('{name}', encodeURIComponent(otherUserInfo.userName))
+                .replace('{name}', encodeURIComponent(this.app.getUserName()))
             const privateVidconfWindow = new PrivateVidconfWindow(this.app, url, otherUserInfo)
 
             const aboveElem = this.app.getRoom()?.getParticipantByUserId(otherUserId)?.getElem() ?? null
