@@ -10,6 +10,7 @@ export class _Changes
             ['Fix', 'Typos'],
             ['Fix', 'Mitigate supply chain attack on nodejs'],
             ['Change', 'web3 gateway'],
+            ['Change', 'code-text-font to monospace'],
         ]],
         ['1.5.0', 'ThemedRedesign', [
             ['Add', 'Modern design incl. HTML rewrite'],
