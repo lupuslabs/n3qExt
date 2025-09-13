@@ -474,13 +474,12 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             return
         }
         const props = this.itemProperties
-        const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>')
+        const listElem = DomUtils.elemOfHtml('<div class="itemprops"></div>')
         for (const pid of Object.keys(props).sort()) {
             const value = props[pid]
-            listElem.append(DomUtils.elemOfHtml(`<span class="label" data-translate="text:ItemPid">${as.Html(pid)}</span>`));
-            listElem.append(DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`));
+            listElem.append(DomUtils.elemOfHtml(`<span class="label">${as.Html(pid)}</span>`))
+            listElem.append(DomUtils.elemOfHtml(`<span class="value" title="${as.Html(value)}">${as.Html(value)}</span>`))
         }
         this.debuginfoContainer.append(listElem)
-        this.app.translateElem(this.debuginfoContainer)
     }
 }
