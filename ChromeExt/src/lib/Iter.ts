@@ -107,7 +107,7 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         return new IteratorIter(function*(iterable){
             for (const element of iterable) {
                 if (!is.nil(element)) {
-                    yield element
+                    yield element as NonNullable<T>
                 }
             }
         }(this))

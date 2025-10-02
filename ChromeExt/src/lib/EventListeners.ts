@@ -1,6 +1,4 @@
-﻿import log = require('loglevel');
-
-export type EventListeners<EventDataType> = Readonly<{
+﻿export type EventListeners<EventDataType> = Readonly<{
     readonly addListener: (listener: (eventData: EventDataType) => void) => void
     readonly removeListener: (listener: (eventData: EventDataType) => void) => void
 }>
@@ -38,7 +36,7 @@ export class CallableEventListeners<EventDataType>
             try {
                 handler(eventData)
             } catch (error) {
-                log.info(`EventHandlers.callHandlers: ${this.eventName} handler failed!`, { eventData, handler })
+                console.log(`EventHandlers.callHandlers: ${this.eventName} handler failed!`, { eventData, handler, error })
             }
         }
     }
@@ -90,7 +88,7 @@ export class CallableEventListeners1D<Id1Type,EventDataType>
             try {
                 handler(eventData)
             } catch (error) {
-                log.info(`EventHandlers.callHandlers: ${this.eventName} handler failed!`, { eventData, handler })
+                console.log(`EventHandlers.callHandlers: ${this.eventName} handler failed!`, { eventData, handler, error })
             }
         }
     }
