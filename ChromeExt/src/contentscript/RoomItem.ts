@@ -128,6 +128,8 @@ export class RoomItem extends Entity
                         stanzaProperties[attrName] = attrs[attrName];
                     }
                 }
+                delete stanzaProperties.type
+                delete stanzaProperties.xmlns
                 this.setProperties(stanzaProperties);
             }
         }
