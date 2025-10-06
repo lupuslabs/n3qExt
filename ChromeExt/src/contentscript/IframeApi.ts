@@ -652,13 +652,16 @@ export class IframeApi
     handle_ItemGetPropertiesRequest(request: WeblinClientIframeApi.ItemGetPropertiesRequest): WeblinClientApi.Response
     {
         try {
-            let itemId = as.String(request.itemId, request.item);
-            let roomItem = this.app.getRoom()?.getItemByItemId(itemId);
-            if (roomItem) {
-                return new WeblinClientIframeApi.ItemGetPropertiesResponse(roomItem.getProperties(request.pids));
-            } else {
+            const itemId = as.String(request.itemId, request.item);
+            let props: null|ItemProperties = this.app.ownItems.getItemById(itemId);
+            if (is.nil(props)) {
+                props = this.app.getRoom()?.getItemByItemId(itemId)?.getProperties();
+            }
+            if (is.nil(props)) {
                 return new WeblinClientApi.ErrorResponse('No such item');
             }
+            const propsFiltered = ItemProperties.getStrings(props, request.pids);
+            return new WeblinClientIframeApi.ItemGetPropertiesResponse(propsFiltered);
         } catch (ex) {
             log.info('IframeApi.handle_ItemGetPropertiesRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
