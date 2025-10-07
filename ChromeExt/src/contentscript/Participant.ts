@@ -1037,7 +1037,6 @@ export class Participant extends Entity
     {
         if (this.menuDisplay.isOpen()) {
             this.menuDisplay.close();
-            this.nicknameDisplay?.onMenuClose();
         }
     }
 
@@ -1047,8 +1046,17 @@ export class Participant extends Entity
             const alignmentElem = this.nicknameDisplay?.getElem() ?? this.elem;
             const clientRect = alignmentElem.getBoundingClientRect();
             this.menuDisplay.open(clientRect.left, clientRect.top);
-            this.nicknameDisplay?.onMenuOpen(this.menuDisplay);
         }
+    }
+
+    public onMenuOpen(): void
+    {
+        this.nicknameDisplay?.onMenuOpen(this.menuDisplay);
+    }
+
+    public onMenuClose(): void
+    {
+        this.nicknameDisplay?.onMenuClose();
     }
 
     private showDecorations(openByLongclick: boolean): void
