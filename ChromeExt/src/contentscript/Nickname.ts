@@ -13,7 +13,7 @@ export class Nickname implements IObserver
 {
     private elem: HTMLElement;
     private textElem: HTMLElement;
-    private menuElem: HTMLElement;
+    private menuBtnElem: HTMLElement;
     private nickname: string;
     private isMenuOpen: boolean = false;
     private lastLeaveEvent: PointerEventData;
@@ -53,8 +53,8 @@ export class Nickname implements IObserver
         menuElem.append(openIcon);
         menuElem.classList.add('main-menu-button');
         menuEventDispatcher.addUnmodifiedLeftButtonDownListener(ev => this.participant.toggleMenu());
-        this.menuElem = menuElem;
-        this.elem.appendChild(this.menuElem);
+        this.menuBtnElem = menuElem;
+        this.elem.appendChild(this.menuBtnElem);
 
         this.textElem = DomUtils.elemOfHtml('<div class="text" />');
         this.elem.appendChild(this.textElem);
@@ -91,14 +91,14 @@ export class Nickname implements IObserver
 
     public onMenuOpen(menu: Menu): void
     {
-        this.menuElem.classList.add('open');
+        this.menuBtnElem.classList.add('open');
         this.isMenuOpen = true;
-        this.app.windows.registerIgnoredRootElement(menu.getWindowId(), this.menuElem);
+        this.app.windows.registerIgnoredRootElement(menu.getWindowId(), this.menuBtnElem);
     }
 
     public onMenuClose(): void
     {
-        this.menuElem.classList.remove('open');
+        this.menuBtnElem.classList.remove('open');
         this.isMenuOpen = false;
         if (!is.nil(this.lastLeaveEvent)) {
             // Menu's pointercatcher destructed, so if pointer is hovering, a pointerenter follows after next dom update:

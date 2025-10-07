@@ -102,6 +102,9 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                 case WeblinClientIframeApi.WindowPositionRequest.type: {
                     response = this.handleWindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request)
                 } break
+                case WeblinClientIframeApi.WindowToFrontRequest.type: {
+                    response = this.handleWindowWindowToFrontRequest(<WeblinClientIframeApi.WindowToFrontRequest>request)
+                } break
                 case WeblinClientIframeApi.ClientBaseCssRequest.type: {
                     response = this.handleClientBaseCssRequest(<WeblinClientIframeApi.ClientBaseCssRequest>request)
                 } break
@@ -210,6 +213,13 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.iframeElem.style.width = `${request.width}px`
         this.iframeElem.style.height = `${request.height}px`
         this.updateGeometryFromContent()
+        return new WeblinClientApi.SuccessResponse()
+    }
+
+    protected handleWindowWindowToFrontRequest(request: WeblinClientIframeApi.WindowToFrontRequest): WeblinClientApi.Response
+    {
+        this.toFront()
+        this.app.windows.onIframePointerDown(this.iframeElem)
         return new WeblinClientApi.SuccessResponse()
     }
 

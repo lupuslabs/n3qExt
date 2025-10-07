@@ -20,7 +20,7 @@ export type ItemFrameWindowOptions = FullWindowOptions & {
 export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
 {
     protected readonly item: RoomItem;
-    protected iframeElem: HTMLIFrameElement;
+    protected iframeElem: null|HTMLIFrameElement = null;
     private url: string;
     private width = 400;
     private height = 400;
@@ -81,6 +81,12 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
         const offset = this.givenOptions.above.getBoundingClientRect();
         left += offset.left;
         this.setGeometry({ left, bottom, width, height });
+    }
+
+    public toFrontFrame(layer?: undefined | number | string): void
+    {
+        this.toFront(layer);
+        this.app.windows.onIframePointerDown(this.iframeElem);
     }
 
     protected makeUndockPopupDefinition(): PopupDefinition

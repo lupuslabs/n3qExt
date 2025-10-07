@@ -34,7 +34,7 @@ export class ItemFramePopup
 
     private isClosing: boolean;
 
-    private iframeElem: HTMLIFrameElement;
+    private iframeElem: null|HTMLIFrameElement = null;
     private options: ItemFramePopupOptions;
 
     public constructor(app: ContentApp)
@@ -42,7 +42,7 @@ export class ItemFramePopup
         this.app = app;
     }
 
-    public getIframeElem(): HTMLIFrameElement
+    public getIframeElem(): null|HTMLIFrameElement
     {
         return this.iframeElem;
     }
@@ -158,6 +158,12 @@ export class ItemFramePopup
             return;
         }
         this.app.toFront(this.windowElem, layer ?? ContentApp.LayerPopup);
+    }
+
+    public toFrontFrame(layer?: undefined | number | string): void
+    {
+        this.toFront(layer);
+        this.app.windows.onIframePointerDown(this.iframeElem);
     }
 
     public getWindowElem(): null|HTMLElement

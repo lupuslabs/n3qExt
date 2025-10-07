@@ -785,8 +785,8 @@ export class RoomItem extends Entity
 
     public toFrontFrame(guiLayer?: number|string): void
     {
-        this.framePopup?.toFront(guiLayer);
-        this.frameWindow?.toFront(guiLayer);
+        this.framePopup?.toFrontFrame(guiLayer);
+        this.frameWindow?.toFrontFrame(guiLayer);
     }
 
     public async setItemProperty(pid: string, value: any): Promise<void>

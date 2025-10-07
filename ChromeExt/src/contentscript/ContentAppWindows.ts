@@ -70,11 +70,21 @@ export class ContentAppWindows {
         this.windows.get(windowId)?.ignoredRootElems.delete(rootElem);
     }
 
+    public onIframePointerDown(iframeElem: null|HTMLElement): void {
+        if (this.isStopped || !iframeElem) {
+            return;
+        }
+        this.onPointerDownForElems(this.getElemParentChain(iframeElem));
+    }
+
     private onDocumentPointerDown(ev: PointerEvent): void {
         if (this.isStopped) {
             return;
         }
-        const targetWindowElems = this.getPotentialWindowElemAtViewportCoords(ev.clientX, ev.clientY);
+        this.onPointerDownForElems(this.getPotentialWindowElemAtViewportCoords(ev.clientX, ev.clientY));
+    }
+
+    private onPointerDownForElems(targetWindowElems: Element[]): void {
         for (const {windowRootElems, ignoredRootElems, pointerDownOutsideHandler} of this.windows.values()) {
             if (targetWindowElems.some(elem => ignoredRootElems.has(elem))) {
                 continue;
@@ -91,8 +101,13 @@ export class ContentAppWindows {
     }
 
     private getPotentialWindowElemAtViewportCoords(x: number, y: number): Element[] {
-        const elems = [];
-        let elem = this.app.display.getShadowDomRoot().elementFromPoint(x, y);
+        const pointerElem = this.app.display.getShadowDomRoot().elementFromPoint(x, y);
+        return this.getElemParentChain(pointerElem);
+    }
+
+    private getElemParentChain(topElem: null|Element): Element[] {
+        const elems: Element[] = [];
+        let elem = topElem;
         while (elem) {
             elems.push(elem);
             elem = elem.parentElement;
