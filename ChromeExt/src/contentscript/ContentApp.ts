@@ -41,6 +41,7 @@ import { BackpackWindow } from './BackpackWindow';
 import { PersonsWindow } from './PersonsWindow'
 import { ItemExceptionToast, SimpleToast, Toast } from './Toast';
 import { IframeApi } from './IframeApi';
+import { ItemFrameContextFactory } from '../lib/ItemFrameContextFactory';
 import { RandomNames } from '../lib/RandomNames';
 import { Participant } from './Participant';
 import { SimpleItemTransferController } from './SimpleItemTransferController';
@@ -103,6 +104,7 @@ export class ContentApp extends AppWithDom
     public readonly display: ContentAppDisplay;
     public readonly windows: ContentAppWindows;
     public readonly themeManager: ContentThemeManager;
+    public readonly itemFrameContexts: ItemFrameContextFactory;
     private dropzoneELem: null|HTMLElement = null;
     private isGuiEnabled: boolean = false;
     private isExclusiveWindowPopup: boolean = false;
@@ -206,6 +208,7 @@ export class ContentApp extends AppWithDom
         this.instantMessageManager.privateVidchatWindowOpenListeners.addListener(() => this.evaluateStayOnTabChange())
         this.instantMessageManager.privateVidchatWindowCloseListeners.addListener(() => this.evaluateStayOnTabChange())
         this.iframeApi = new IframeApi(this);
+        this.itemFrameContexts = new ItemFrameContextFactory();
     }
 
     async start(params: ContentAppParams)
@@ -236,6 +239,11 @@ export class ContentApp extends AppWithDom
             return;
         }
         this.userId = userId;
+        this.itemFrameContexts.setUserId(userId);
+        {
+            const userToken = as.String(await Memory.getLocal(Utils.localStorageKey_Token()));
+            this.itemFrameContexts.setUserToken(userToken);
+        }
 
         try {
             const config = await BackgroundMessage.getConfigTree(Config.onlineConfigName);
@@ -282,6 +290,7 @@ export class ContentApp extends AppWithDom
         }
 
         this.language = Client.getUserLanguage()
+        this.itemFrameContexts.setLanguageId(this.language)
         const translationTable = Config.get('i18n.translations', {})[this.language];
         const serviceUrl = Config.get('i18n.serviceUrl', '')
         this.babelfish = new Translator(translationTable, this.language, serviceUrl, this.urlFetcher);

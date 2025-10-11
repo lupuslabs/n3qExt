@@ -10,7 +10,6 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { Memory } from '../lib/Memory';
 import { ItemException } from '../lib/ItemException';
-import { Payload } from '../lib/Payload';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { SimpleErrorToast, SimpleToast } from './Toast';
 import { ContentApp } from './ContentApp';
@@ -608,13 +607,10 @@ export class RoomItem extends Entity
         const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id()));
 
         if (url !== '' && room && userId !== '') {
-            const tokenOptions = {};
-            if (this.myItem) {
-                tokenOptions['properties'] = await BackgroundMessage.getBackpackItemProperties(this.getItemId());
-            } else {
-                tokenOptions['properties'] = this.properties;
-            }
-            const contextToken = Payload.getContextToken(userId, this.getItemId(), this.app.getLanguage(), 600, { 'room': room.getJid() }, tokenOptions);
+            const roomJid = room.getJid()
+            const itemId = this.getItemId()
+            const itemProps = this.myItem ? await BackgroundMessage.getBackpackItemProperties(itemId) : this.properties;
+            const contextToken = this.app.itemFrameContexts.getContextToken(roomJid, itemProps);
             url = url.replace('{context}', encodeURIComponent(contextToken));
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
@@ -655,14 +651,9 @@ export class RoomItem extends Entity
                 return;
             }
 
-            const userId = this.app.getUserId();
-            const itemId = this.getItemId();
-            const langId = this.app.getLanguage()
             const room = this.getRoom();
             const roomJid = room.getJid();
-            const participant = room.getMyParticipant();
-            const participantDisplayName = participant?.getDisplayName() ?? null;
-            const iframeUrl = Payload.makeItemIframeUrl(userId, langId, roomJid, participantDisplayName, itemId, this.properties, iframeUrlTpl);
+            const iframeUrl = this.app.itemFrameContexts.makeItemIframeUrl(roomJid, this.properties, iframeUrlTpl);
 
             const iframeOptions = ItemProperties.getParsedIframeOptions(this.properties);
             if ((iframeOptions.ownerOnly ?? false) && !this.myItem) {

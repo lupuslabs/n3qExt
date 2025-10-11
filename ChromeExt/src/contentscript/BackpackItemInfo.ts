@@ -8,7 +8,6 @@ import { ContentApp } from './ContentApp'
 import { DomUtils } from '../lib/DomUtils'
 import { PopupWindow, PopupWindowOptions } from './PopupWindow'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
-import { Payload } from '../lib/Payload'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { WeblinClientApi } from '../lib/WeblinClientApi'
 import { ItemException } from '../lib/ItemException'
@@ -414,10 +413,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             return
         }
 
-        const userId = this.app.getUserId()
-        const langId = this.app.getLanguage()
-        const itemId = this.itemId
-        const iframeUrl = Payload.makeItemIframeUrl(userId, langId, null, null, itemId, itemProps, iframeUrlTpl);
+        const iframeUrl = this.app.itemFrameContexts.makeItemIframeUrl('', itemProps, iframeUrlTpl);
         const iframeUrlWrapped = this.app.uiHelper.getWrappedIframeUrl(iframeUrl);
         this.iframeElem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe src="${iframeUrlWrapped}"></iframe>`)
         this.iframeContainer.append(this.iframeElem)

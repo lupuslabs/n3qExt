@@ -2,7 +2,6 @@ import { sut } from '../lib/sut';
 import { sutGui } from '../lib/sutGui';
 import { FullWindow, FullWindowOptions } from './FullWindow';
 import { ContentApp } from './ContentApp';
-import { LiveTestPayload } from './LiveTestPayload';
 import { LiveTestSimpleRpc } from './LiveTestSimpleRpc';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -52,7 +51,6 @@ export class TestWindow extends FullWindow<FullWindowOptions>
         const s = new sut();
 
         s.addTestClass(LiveTestSimpleRpc);
-        s.addTestClass(LiveTestPayload);
 
         s.run().then(() =>
         {
