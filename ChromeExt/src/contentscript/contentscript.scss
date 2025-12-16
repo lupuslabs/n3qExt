@@ -21,6 +21,9 @@
     overflow: hidden !important;
     z-index: 2147483647 !important;
 }
+:host(#n3q)::before, :host(#n3q)::after, :host(#n3q)::backdrop {
+    all: revert !important;
+}
 
 #n3qD.client {
     position: fixed;
