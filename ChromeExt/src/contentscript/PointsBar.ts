@@ -68,7 +68,7 @@ export class PointsBar implements IObserver
         );
         let digits = pg.getDigitList(this.points);
         let parts = pg.getPartsList(digits);
-        let stars = parts.map(part => <HTMLDivElement>$('<div class="icon icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
+        let stars = parts.map(part => <HTMLDivElement>$('<div class="user-points-icon user-points-icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
         $(this.elem).append(stars);
 
         this.app.translateElem(this.elem);
