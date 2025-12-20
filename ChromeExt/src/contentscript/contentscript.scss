@@ -47,6 +47,7 @@
     --brightness-factor: 1; /* 1 for light theme, -1 for dark theme */
 
     --base-icon-color: lch(33 0 0);
+    --thick-icon-color: lch(from var(--base-icon-color) calc(var(--brightness-factor) * 15 + l) c h);
 
     --base-shadow-color: lch(54 0 0);
     --base-border-color: lch(43 0 0);
@@ -110,8 +111,13 @@
     --sub-content-pane-backdrop-filter: ;
     --sub-content-pane-border: 0 none;
     --sub-content-pane-border-radius: var(--tiny-pane-border-radius);
+    --sub-content-pane-padding-top: var(--narrow-spacing-vertical);
+    --sub-content-pane-padding-right: var(--base-spacing-horizontal);
+    --sub-content-pane-padding-bottom: var(--narrow-spacing-vertical);
+    --sub-content-pane-padding-left: var(--base-spacing-horizontal);
     --sub-content-pane-padding:
-        var(--narrow-spacing-vertical) var(--base-spacing-horizontal);
+        var(--sub-content-pane-padding-top) var(--sub-content-pane-padding-right)
+        var(--sub-content-pane-padding-bottom) var(--sub-content-pane-padding-left);
 
     --base-spacing: 14px;
     --base-spacing-horizontal: var(--base-spacing);
@@ -540,6 +546,7 @@
     color-scheme: light; /* Fixes iframe background being ignored in dark themes */
     width: 100%;
     height: 100%;
+    user-select: none;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -750,6 +757,21 @@
     flex-grow: 1;
 }
 
+#n3qD .sort-indicator:after {
+    display: inline-block;
+    width: 1em;
+    content: " ";
+    color: var(--base-icon-color);
+}
+#n3qD .sort-indicator.ascending:after {
+    position: relative;
+    top: 2px;
+    content: "🞁";
+}
+#n3qD .sort-indicator.descending:after {
+    content: "🞃";
+}
+
 /*----------------------------------------------------------------------------*/
 /* Fields */
 
@@ -912,15 +934,15 @@
     padding-top: var(--button-text-offset-top);
 }
 
-#n3qD .button.style-merged.style-merged.style-merged:not(:last-child),
-#n3qD .button.style-merged.style-merged.style-merged:not(:last-child):hover,
-#n3qD .button.style-merged.style-merged.style-merged:not(:last-child):active {
+#n3qD .button.style-merged.style-merged.style-merged.style-merged:not(:last-child),
+#n3qD .button.style-merged.style-merged.style-merged.style-merged:not(:last-child):hover,
+#n3qD .button.style-merged.style-merged.style-merged.style-merged:not(:last-child):active {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
-#n3qD .button.style-merged ~ .button.style-merged.style-merged,
-#n3qD .button.style-merged ~ .button.style-merged.style-merged:hover,
-#n3qD .button.style-merged ~ .button.style-merged.style-merged:active {
+#n3qD .button.style-merged ~ .button.style-merged.style-merged.style-merged,
+#n3qD .button.style-merged ~ .button.style-merged.style-merged.style-merged:hover,
+#n3qD .button.style-merged ~ .button.style-merged.style-merged.style-merged:active {
     margin-left: -1px;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
@@ -1052,7 +1074,18 @@
     height: calc(1.5 * var(--button-height));
 }
 
-/* Use together with style-default for buttons giving an item and conatining an item image and the item's label: */
+#n3qD .button.style-default.style-square {
+    padding: 0;
+    height: var(--button-height);
+    width: var(--button-height);
+}
+#n3qD .button.style-default.style-square.style-big {
+    padding: 0;
+    height: calc(1.5 * var(--button-height));
+    width: calc(1.5 * var(--button-height));
+}
+
+/* Use together with style-default for buttons giving an item and containing an item image and the item's label: */
 #n3qD .button.style-item {
     width: 8em;
     height: auto;
@@ -1276,6 +1309,41 @@
 #n3qD .user-points-icon-7-3 { background-image: url(../assets/points/7-3.png); }
 #n3qD .user-points-icon-8   { background-image: url(../assets/points/8.png)  ; }
 #n3qD .user-points-icon-9   { background-image: url(../assets/points/9.png)  ; }
+
+/*============================================================================*/
+/* Currencies */
+
+#n3qD .dot-currency {}
+#n3qD .dot-currency::after {
+    display: inline-block;
+    margin-left: 0.07em;
+    content: "●";
+    color: var(--thick-icon-color);
+    font-size: 1.9em;
+    line-height: 0;
+    position: relative;
+    top: 2px;
+}
+#n3qD .no-currency-symbol .dot-currency::after {
+    display: none;
+}
+
+#n3qD .kala-currency {}
+#n3qD .kala-currency::after {
+    display: inline-block;
+    margin-left: 0.3em;
+    content: " ";
+    aspect-ratio: 1;
+    height: 0.85em;
+    line-height: 0;
+    background-image: url(../assets/icons/KalaSymbol.svg);
+    background-size: contain;
+    position: relative;
+    top: 1px;
+}
+#n3qD .no-currency-symbol .kala-currency::after {
+    display: none;
+}
 
 /*============================================================================*/
 /* Item frame content */
@@ -2104,6 +2172,11 @@
 
 #n3qD .window.window-style-overlay {
     --window-filter: var(--hard-shadow-filter);
+}
+
+#n3qD .window.window-style-noninteractive,
+#n3qD .window.window-style-noninteractive .window-content {
+    pointer-events: none;
 }
 
 #n3qD .window.window-sizing-maximized {
