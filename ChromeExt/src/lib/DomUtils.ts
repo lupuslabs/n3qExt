@@ -714,8 +714,8 @@ export namespace DomUtils {
             for (let x = imgWidth - 1; x >= 0; x--, index -= 4) {
                 if (imgBytes[index] > opacityMin) {
                     top = Math.min(top, y)
-                    right = Math.max(right, x)
-                    bottom = Math.max(bottom, y)
+                    right = Math.max(right, x + 1)
+                    bottom = Math.max(bottom, y + 1)
                     left = Math.min(left, x)
                 }
             }
