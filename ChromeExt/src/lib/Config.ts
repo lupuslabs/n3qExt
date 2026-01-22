@@ -1351,7 +1351,7 @@ export class Config
                     'ItemPid.ClaimStrength': 'Stärke',
                     'ItemPid.ClaimUrl': 'Domain',
                     'ItemPid.ClaimAccumulatedDuration': 'Angesammelt',
-                    'ItemPid.CommodityConversionFactor': 'Effzienz',
+                    'ItemPid.CommodityConversionFactor': 'Effizienz',
                     'ItemPid.OwnerName': 'Besitzer',
                     'ItemPid.DispenserAvailable': 'Übrig',
                     'ItemPid.TimedCooldownSec': 'Erholungszeit',
