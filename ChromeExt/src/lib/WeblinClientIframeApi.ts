@@ -251,6 +251,12 @@ export namespace WeblinClientIframeApi
         userId: string;
     }
 
+    export class ClientOpenPrivateVidconfRequest extends Request
+    {
+        static type = 'Client.OpenPrivateVidconfRequest';
+        userId: string;
+    }
+
     export class PageDomQueryRequest extends Request
     {
         static type = 'Page.DomQuery';

@@ -114,6 +114,9 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                 case WeblinClientIframeApi.ClientOpenPrivateChatRequest.type: {
                     response = this.handleOpenPrivateChatRequest(<WeblinClientIframeApi.ClientOpenPrivateChatRequest>request);
                 } break
+                case WeblinClientIframeApi.ClientOpenPrivateVidconfRequest.type: {
+                    response = this.handleOpenPrivateVidconfRequest(<WeblinClientIframeApi.ClientOpenPrivateVidconfRequest>request);
+                } break
                 default: {
                     response = new WeblinClientApi.ErrorResponse('Unhandled request: ' + request.type)
                 } break
@@ -214,6 +217,16 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     {
         const userId = as.String(request.userId);
         this.app.instantMessageManager.openInstantMessagesWindow(userId);
+        return new WeblinClientApi.SuccessResponse()
+    }
+
+    protected handleOpenPrivateVidconfRequest(request: WeblinClientIframeApi.ClientOpenPrivateVidconfRequest): WeblinClientApi.Response
+    {
+        const userId = as.String(request.userId);
+        const personData = this.app.personManager.getPersonDataOrNull(userId);
+        if (personData) {
+            this.app.instantMessageManager.initiatePrivateVidconf(personData);
+        }
         return new WeblinClientApi.SuccessResponse()
     }
 
