@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.5.1', 'Fixes', [
+            ['Add', 'Videoconference button to Person item popup'],
             ['Fix', 'Typos'],
             ['Fix', 'Mitigate supply chain attack on nodejs'],
             ['Change', 'web3 gateway'],
