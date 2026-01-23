@@ -67,7 +67,9 @@ export class VpiResolver
             try {
                 data = await this.urlFetcher.fetchAsText(vpiUrl, '');
             } catch (errorResponse) {
-                // Ignore error.
+                const errorMsg = `Failed to fetch VPI data from ${vpiUrl}: ${JSON.stringify(errorResponse)}`;
+                this.trace('Error', errorMsg);
+                log.debug('VpiResolver', errorResponse);
                 continue;
             }
 
