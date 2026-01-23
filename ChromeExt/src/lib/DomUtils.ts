@@ -91,6 +91,21 @@ export namespace DomUtils {
         return linkElem
     }
 
+    export function makeExternalPlainTextWithIconLink(url: string, label: string, target: string = '_blank'): Node[]
+    {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url
+        }
+        const nodes: Node[] = DomUtils.nodesOfText(label)
+        const iconLink = document.createElement('a')
+        iconLink.classList.add('link', 'external')
+        iconLink.setAttribute('href', url)
+        iconLink.setAttribute('target', target)
+        iconLink.appendChild(DomUtils.elemOfHtml('<span class="icon"/>'))
+        nodes.push(iconLink)
+        return nodes
+    }
+
     //------------------------------------------------------------------------------
     // Text manipulation
 
@@ -153,6 +168,22 @@ export namespace DomUtils {
                 const url = token
                 const label = url.substring(url.match(/^https?:\/\//)?.[0]?.length ?? 0)
                 nodes.push(DomUtils.makeExternalTextLinkElem(url, label))
+            }
+        }
+        return nodes
+    }
+
+    export function makeLinksInTextPlainWithIcon(text: string, context: NodeConversionContext): Node[]
+    {
+        const nodes: Node[] = []
+        for (const token of text.split(urlRe)) {
+            if (!is.nonEmptyString(token)) {
+                // Omit.
+            } else if (!token.match(urlRe)) {
+                nodes.push(document.createTextNode(token))
+            } else {
+                const url = token
+                nodes.push(...DomUtils.makeExternalPlainTextWithIconLink(url, url))
             }
         }
         return nodes

@@ -332,7 +332,11 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         const isNew = message.timestamp >= this.sessionStartTs
         const isOwnMessage = message.authorUserId === this.app.getUserId()
         const mentionNameToHighlight = isNew && !isOwnMessage ? this.app.getUserNickname() : null
-        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(message.text, mentionNameToHighlight)
+        const plainTextLinks = message.authorName.startsWith('[map')
+        const {textNodes, ownNameMentionFound} = ChatUtils.prepareTextHtml(message.text, {
+            highlightOwnMentionName: mentionNameToHighlight,
+            plainTextLinks,
+        })
         if (ownNameMentionFound) {
             messageCssClasses.push('own-name-mention')
         }

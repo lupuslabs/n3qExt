@@ -9,6 +9,7 @@ export class _Changes
         ['1.5.2', 'ContactVidconfeBtn', [
             ['Add', 'Videoconference button to Person item popup'],
             ['Fix', 'Display error message when /map command fails'],
+            ['Change', 'Show URLs as plain text in /map output'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

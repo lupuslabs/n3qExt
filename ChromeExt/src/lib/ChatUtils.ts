@@ -101,15 +101,24 @@ export namespace ChatUtils {
         return msgA.id === msgB.id && msgA.timestamp === msgB.timestamp
     }
 
-    export function prepareTextHtml(text: string, highlightOwnMentionName?: string): {textNodes: Node[], ownNameMentionFound: boolean}
+    export type PrepareTextHtmlOptions = {
+        highlightOwnMentionName?: string
+        plainTextLinks?: boolean
+    }
+
+    export function prepareTextHtml(text: string, highlightOwnMentionNameOrOptions?: string | PrepareTextHtmlOptions): {textNodes: Node[], ownNameMentionFound: boolean}
     {
+        const options: PrepareTextHtmlOptions = typeof highlightOwnMentionNameOrOptions === 'string'
+            ? { highlightOwnMentionName: highlightOwnMentionNameOrOptions }
+            : (highlightOwnMentionNameOrOptions ?? {})
         const state = {ownNameMentionFound: false} as const
         const paragraphs: Node[] = DomUtils.paragraphNodesOfText(text)
-        const paragraphsWithLinks = DomUtils.convertTextInNodes(paragraphs, DomUtils.makeLinksInTextClickable, {})
+        const linkConverter = options.plainTextLinks ? DomUtils.makeLinksInTextPlainWithIcon : DomUtils.makeLinksInTextClickable
+        const paragraphsWithLinks = DomUtils.convertTextInNodes(paragraphs, linkConverter, {})
         let paragraphsWithLinksAndMentions = paragraphsWithLinks
-        if (is.nonEmptyString(highlightOwnMentionName)) {
+        if (is.nonEmptyString(options.highlightOwnMentionName)) {
             const converter = (line: string, _context: DomUtils.NodeConversionContext) =>
-                highlightOwnNameMentionInHtml(line, highlightOwnMentionName, state)
+                highlightOwnNameMentionInHtml(line, options.highlightOwnMentionName, state)
             paragraphsWithLinksAndMentions = DomUtils.convertTextInNodes(paragraphsWithLinks, converter, {})
         }
         const {ownNameMentionFound} = state
