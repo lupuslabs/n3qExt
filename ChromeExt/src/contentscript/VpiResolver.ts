@@ -75,7 +75,8 @@ export class VpiResolver
             switch (result.status) {
 
                 case VpiResolverEvaluateResultType.Error: {
-                    this.trace(VpiResolverEvaluateResultType[result.error], '');
+                    const errorMsg = result.error?.message ?? String(result.error);
+                    this.trace('Error', errorMsg);
                     log.debug('VpiResolver', result.error);
                 } break;
 
@@ -106,6 +107,10 @@ export class VpiResolver
 
             }
         } while (locationUrl === '' && iterationCounter > 0);
+
+        if (locationUrl === '') {
+            throw new Error('URL mapping failed: no location found');
+        }
 
         const url = new URL(locationUrl);
         const roomJid = url.pathname;

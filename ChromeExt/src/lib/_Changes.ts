@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.5.2', 'ContactVidconfeBtn', [
             ['Add', 'Videoconference button to Person item popup'],
+            ['Fix', 'Display error message when /map command fails'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

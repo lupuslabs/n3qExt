@@ -155,6 +155,12 @@ export class ChatConsole
                             .join('\n');
                         ChatConsole.out(context, [['[map]', text]]);
                     }
+                }).catch(error => {
+                    const errorText = error?.message ?? String(error);
+                    const traceText = lines.length > 0
+                        ? lines.map(([action, target]) => `${action} ${target}`).join('\n') + '\n'
+                        : '';
+                    ChatConsole.out(context, [['[map error]', traceText + 'Error: ' + errorText]]);
                 });
             } break;
         }
