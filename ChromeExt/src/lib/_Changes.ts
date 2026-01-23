@@ -6,6 +6,9 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
+        ['1.5.2', 'ContactVidconfeBtn', [
+            ['Add', 'Videoconference button to Person item popup'],
+        ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],
             ['Fix', 'Typos'],
