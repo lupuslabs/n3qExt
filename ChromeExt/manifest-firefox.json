@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "Weblin",
     "short_name": "Weblin",
-    "version": "1.5.1.0",
+    "version": "1.5.2.0",
     "description": "Avatars and Things on Web Pages",
     "browser_specific_settings": {
         "gecko": {
