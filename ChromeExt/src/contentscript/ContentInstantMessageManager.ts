@@ -193,7 +193,7 @@ export class ContentInstantMessageManager
 
             const aboveElem = this.app.getRoom()?.getParticipantByUserId(otherUserId)?.getElem() ?? null
             privateVidconfWindow.show({
-                above: aboveElem,
+                anchor: aboveElem,
                 undocked: true,
                 onClose: () => {
                     this.openPrivateVidconfWindows.delete(otherUserId)
@@ -279,7 +279,7 @@ export class ContentInstantMessageManager
         }
         const otherUserId = window.getOtherPersonData().userId
         const participantElem = this.app.getRoom()?.getParticipantByUserId(otherUserId)?.getElem() ?? null
-        window.show({ above: participantElem })
+        window.show({ anchor: participantElem })
     }
 
     public closeInstantMessagesWindow(otherUserId: string): void

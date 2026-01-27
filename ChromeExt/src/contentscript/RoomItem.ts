@@ -17,6 +17,7 @@ import { Entity } from './Entity';
 import { Room } from './Room';
 import { Avatar } from './Avatar';
 import { RoomItemStats } from './RoomItemStats';
+import { IItemFrameWindow } from './IItemFrameWindow';
 import { ItemFrameUnderlay } from './ItemFrameUnderlay';
 import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow';
 import { ItemFramePopup, ItemFramePopupOptions } from './ItemFramePopup';
@@ -28,8 +29,7 @@ import { PointerEventData } from '../lib/PointerEventData';
 export class RoomItem extends Entity
 {
     private properties: { [pid: string]: string } = {};
-    private frameWindow: ItemFrameWindow;
-    private framePopup: ItemFramePopup;
+    private frameWindow: null|IItemFrameWindow = null;
     private isFirstPresence: boolean = true;
     protected statsDisplay: RoomItemStats;
     protected screenUnderlay: ItemFrameUnderlay;
@@ -84,8 +84,7 @@ export class RoomItem extends Entity
 
     protected getScriptWindow(): undefined | Window
     {
-        const content: null|HTMLIFrameElement = this.framePopup?.getIframeElem() ?? this.frameWindow?.getIframeElem() ?? null;
-        return content?.contentWindow;
+        return this.frameWindow?.getIframeElem()?.contentWindow;
     }
 
     public remove(): void
@@ -367,57 +366,42 @@ export class RoomItem extends Entity
 
     private handleUnmodifiedClickForIframeAspect(): void
     {
-        const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
-        const frame = frameOpts.frame ?? 'Window';
-        let openFrame = false;
-        if (frame === 'Popup') {
-            if (this.framePopup) {
-                if (frameOpts.closeIsHide) {
-                    if (this.framePopup.getVisibility()) {
-                        this.framePopup.setVisibility(false);
-                    } else {
-                        this.framePopup.setVisibility(true);
-                    }
-                } else {
-                    const magicKey = Config.get(
-                        'iframeApi.messageMagicRezactive',
-                        'tr67rftghg_Rezactive');
-                    const msg = { [magicKey]: true, type: 'Window.Close' };
-                    this.getScriptWindow()?.postMessage(msg, '*');
-                    window.setTimeout((): void =>
-                    {
-                        this.framePopup.close();
-                    }, 100);
-                }
-            } else {
-                openFrame = true;
-            }
-        } else {
-            if (this.frameWindow) {
-                if (this.frameWindow.isOpen()) {
-                    this.frameWindow.setVisibility(true);
-                }
-            } else {
-                openFrame = true;
-            }
+        if (!as.Bool(this.properties[Pid.IframeAspect])) {
+            return;
         }
-        if (openFrame) {
+        if (!this.frameWindow) {
             this.openFrame();
+            return;
         }
+        if (this.frameWindow instanceof ItemFrameWindow) {
+            if (this.frameWindow.isOpen()) {
+                this.frameWindow.setVisibility(true);
+            }
+            return;
+        }
+        // Item frame window is a popup.
+        const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
+        if (frameOpts.closeIsHide) {
+            this.frameWindow.setVisibility(!this.frameWindow.getVisibility());
+            return;
+        }
+        const magicKey = as.String(Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive'));
+        const msg = { [magicKey]: true, type: 'Window.Close' };
+        this.getScriptWindow()?.postMessage(msg, '*');
+        window.setTimeout((): void => { this.frameWindow?.close() }, 100);
     }
 
     public onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
     {
         super.onUnmodifiedLeftDoubleclickAvatar(ev);
-        if (as.Bool(this.properties[Pid.IframeAspect])) {
-            if (this.framePopup) {
-                const visible = this.framePopup.getVisibility();
-                this.framePopup.setVisibility(!visible);
-            } else if (this.frameWindow) {
-                const visible = this.frameWindow.getVisibility();
-                this.frameWindow.setVisibility(!visible);
-            }
+        if (!as.Bool(this.properties[Pid.IframeAspect])) {
+            return;
         }
+        if (!this.frameWindow) {
+            this.openFrame();
+            return;
+        }
+        this.frameWindow?.setVisibility(!this.frameWindow.getVisibility());
     }
 
     public onDragAvatarStart(ev: PointerEventData): void
@@ -425,12 +409,12 @@ export class RoomItem extends Entity
         super.onDragAvatarStart(ev);
         this.hideStatsDisplay(0);
 
-        if (this.framePopup) {
+        if (this.frameWindow instanceof ItemFramePopup) {
             const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
             if (frameOpts.closeIsHide) {
                 // Intentionally keep open and visible.
             } else {
-                this.framePopup.close();
+                this.frameWindow.close();
             }
         }
     }
@@ -532,10 +516,10 @@ export class RoomItem extends Entity
             this.checkIframeAutoRange();
         }
 
-        if (this.framePopup) {
+        if (this.frameWindow) {
             const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
             if (frameOpts.anchor !== 'Base') {
-                this.framePopup.move();
+                this.frameWindow.moveToAnchor();
             }
         }
     }
@@ -545,9 +529,9 @@ export class RoomItem extends Entity
         const itemId = this.getItemId();
         const passiveItemId = passiveItem.getItemId();
 
-        if (this.framePopup) {
+        if (this.frameWindow) {
             this.getScriptWindow()?.postMessage({ [Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')]: true, type: 'Window.Close' }, '*');
-            window.setTimeout(() => { this.framePopup.close(); }, 100);
+            window.setTimeout(() => { this.frameWindow?.close(); }, 100);
         }
 
         if (!await BackgroundMessage.isBackpackItem(passiveItemId)) {
@@ -600,7 +584,7 @@ export class RoomItem extends Entity
         this.screenUnderlay?.sendMessage(message);
     }
 
-    public async openDocumentUrl(aboveElem: HTMLElement): Promise<void>
+    public async openDocumentUrl(aboveElem: null|HTMLElement): Promise<void>
     {
         let url = as.String(this.properties[Pid.DocumentUrl]);
         const room = this.app.getRoom();
@@ -667,7 +651,7 @@ export class RoomItem extends Entity
                     anchorElem = this.elem;
                     break;
                 case 'Base':
-                    anchorElem = this.app.getDisplay();
+                    anchorElem = null;
                     break;
             }
             switch (as.String(iframeOptions.frame, 'Window')) {
@@ -689,67 +673,58 @@ export class RoomItem extends Entity
     closeFrame(): void
     {
         this.app.themeManager.themesChangedListeners.removeListener(this.themesChangeHandler)
-        if (this.framePopup) {
-            this.framePopup.close();
-            this.framePopup = null;
-        } else if (this.frameWindow) {
-            this.frameWindow.close();
-            this.frameWindow = null;
-        }
+        this.frameWindow?.close();
+        this.frameWindow = null;
     }
 
     setFrameVisibility(visible: boolean): void
     {
-        (this.framePopup ?? this.frameWindow)?.setVisibility(visible);
+        this.frameWindow?.setVisibility(visible);
     }
 
     setWindowStyle(style: string): void
     {
-        const window = this.framePopup ?? this.frameWindow;
-        const elem = window?.getWindowElem();
-        if (!is.nil(elem)) {
-            elem.style.cssText += style;
-        }
+        this.frameWindow?.setWindowStyle(style);
     }
 
-    protected openIframeAsPopup(anchorElem: HTMLElement, iframeUrl: string, popupOptions: any): void
+    protected openIframeAsPopup(anchorElem: null|HTMLElement, iframeUrl: string, popupOptions: any): void
     {
-        if (this.elem && this.framePopup == null) {
-            this.framePopup = new ItemFramePopup(this.app);
+        if (this.elem && this.frameWindow == null) {
+            const popup = new ItemFramePopup(this.app);
 
             const width = as.Int(popupOptions.width, 100);
             const options: ItemFramePopupOptions = {
-                item: this,
-                elem: anchorElem,
+                anchor: anchorElem,
                 url: iframeUrl,
-                onClose: () => { this.framePopup = null; },
+                closeButton: as.Bool(popupOptions.closeButton, true),
+                onClose: () => { this.frameWindow = null },
+                closeIsHide: as.Bool(popupOptions.closeIsHide, false),
                 hidden: as.Bool(popupOptions.hidden),
                 width: width,
                 height: as.Int(popupOptions.height, 100),
-                left: as.Int(popupOptions.left),
-                leftAnchor: anchorElem === this.elem ? 'center' : 'left',
+                left: as.IntOrNull(popupOptions.left),
                 bottom: as.Int(popupOptions.bottom, 50),
-                closeButton: as.Bool(popupOptions.closeButton, true),
                 transparent: as.Bool(popupOptions.transparent, false),
-                closeIsHide: as.Bool(popupOptions.closeIsHide, false),
             };
 
-            this.framePopup.show(options);
+            popup.show(options);
+            this.frameWindow = popup;
         }
     }
 
-    protected openIframeAsWindow(anchorElem: HTMLElement, iframeUrl: string, windowOptions: any): void
+    protected openIframeAsWindow(anchorElem: null|HTMLElement, iframeUrl: string, windowOptions: any): void
     {
         if (this.elem && this.frameWindow == null) {
-            this.frameWindow = new ItemFrameWindow(this.app, this);
+            const win = new ItemFrameWindow(this.app, this.getItemId());
 
             const options: ItemFrameWindowOptions = {
-                above: anchorElem,
+                anchor: anchorElem,
                 url: iframeUrl,
-                onClose: () => { this.frameWindow = null; },
+                onClose: () => { this.frameWindow = null },
+                closeIsHide: as.Bool(windowOptions.closeIsHide, false),
                 width: as.Int(windowOptions.width, 100),
                 height: as.Int(windowOptions.height, 100),
-                left: windowOptions.left,
+                left: as.IntOrNull(windowOptions.left),
                 bottom: as.Int(windowOptions.bottom, 50),
                 resizable: as.Bool(windowOptions.rezizable, true),
                 undockable: as.Bool(windowOptions.undockable),
@@ -759,24 +734,23 @@ export class RoomItem extends Entity
                 titleText: this.getIframeWindowTitle(),
             };
 
-            this.frameWindow.show(options);
+            win.show(options);
+            this.frameWindow = win;
         }
     }
 
     private getIframeWindowTitle(): string
     {
-        return as.String(this.properties[Pid.Description], as.String(this.properties[Pid.Label], 'Item'))
+        return as.String(this.properties[Pid.Description] ?? this.properties[Pid.Label] ?? 'Item')
     }
 
     public positionFrame(width: number, height: number, left: number, bottom: number, options: any = null): void
     {
-        this.framePopup?.position(width, height, left, 'left', bottom, options);
-        this.frameWindow?.position(width, height, left, bottom);
+        this.frameWindow?.positionFrame(width, height, left, bottom, options);
     }
 
     public toFrontFrame(guiLayer?: number|string): void
     {
-        this.framePopup?.toFrontFrame(guiLayer);
         this.frameWindow?.toFrontFrame(guiLayer);
     }
 

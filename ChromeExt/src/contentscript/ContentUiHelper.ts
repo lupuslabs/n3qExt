@@ -1,6 +1,7 @@
 import { is } from '../lib/is'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher, PointerEventDispatcherOptions } from '../lib/PointerEventDispatcher'
+import { WindowStyle } from './WindowBase'
 import { ContentApp } from './ContentApp'
 
 import * as windowCloseIconDataUrl from '../assets/icons/carbon_close-outline.svg'
@@ -10,7 +11,6 @@ import * as windowPinOpenPinnedIconDataUrl from '../assets/icons/pin-open-pinned
 import * as popupPinOpenIconDataUrl from '../assets/icons/pin-open-small.svg'
 import * as popupPinOpenPinnedIconDataUrl from '../assets/icons/pin-open-pinned-small.svg'
 
-export type WindowStyle = 'window' | 'popup' | 'overlay'
 export type ButtonStyle = 'default' | 'undecorated' | 'merged' | 'big' | WindowStyle
 export type ButtonStyles = ButtonStyle|ButtonStyles[]
 

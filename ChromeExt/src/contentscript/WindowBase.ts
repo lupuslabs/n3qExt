@@ -1,6 +1,7 @@
 import { is } from '../lib/is'
+import { iter } from '../lib/Iter'
 import { BoxEdgeMovements, dummyLeftBottomRect, LeftBottomRect, Utils } from '../lib/Utils'
-import { ContentApp, WindowStyle } from './ContentApp'
+import { ContentApp } from './ContentApp'
 import { Memory } from '../lib/Memory'
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
@@ -11,18 +12,21 @@ import { Environment } from '../lib/Environment'
 import * as windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg'
 import { BackgroundMessage, PopupDefinition } from '../lib/BackgroundMessage'
 
+export type LeftPositionAnchorMode = 'containerLeft'|'containerCenter'|'anchorLeft'|'anchorCenter'
+
 export type WindowBaseOptions = {
     onClose?:      () => void,
-    closeIsHide?:  string|boolean,
+    closeIsHide?:  boolean,
     hidden?:       boolean,
-    above?:        DOMRect|HTMLElement, // Used when left and center and/or bottom unset.
-    aboveYOffset?: string|number, // Added to above's top when bottom unset.
-    width?:        'content'|string|number,
-    height?:       'content'|string|number,
-    top?:          string|number,
-    bottom?:       string|number,
-    left?:         string|number,
-    center?:       string|number, // Used when left unset.
+    anchor?:       DOMRect|HTMLElement, // Used when left and center and/or bottom unset.
+    anchorYOffset?: number, // Added to anchor's top when bottom unset.
+    width?:        'content'|number,
+    height?:       'content'|number,
+    top?:          number,
+    bottom?:       number,
+    left?:         number,
+    leftMode?:     LeftPositionAnchorMode,
+    transparent?:  boolean, // Makes decoration and content background transparent.
     undockable?:   boolean, // Makes window non-undockable when set to false.
     undocked?:     boolean, // Undocks instead of showing when show is called and window is undockable.
     ignoreRootElems?: Element[], // Pointer down on these elements aren't considered outside the window.
@@ -30,10 +34,14 @@ export type WindowBaseOptions = {
 
 export type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none'
 
+export type WindowStyle = 'window' | 'popup' | 'overlay';
+
 export type WindowSizingMode = 'normal' | 'maximized';
 
 export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 {
+    protected readonly positioningOptions: ReadonlySet<string> = new Set(['anchor', 'anchorYOffset', 'top', 'bottom', 'left', 'leftMode'])
+
     protected readonly app: ContentApp
     protected onClose: null|(() => void) = null
     protected readonly viewportVisibleListener: () => void
@@ -69,10 +77,8 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected titleTextId: null|string = null
     protected titleTextReplacements: Map<string, () => string> = new Map()
 
-    protected containerMarginTop: number = 0
-    protected containerMarginRight: number = 0
-    protected containerMarginBottom: number = 0
-    protected containerMarginLeft: number = 0
+    protected containerMargins: [number,number,number,number] = [0, 0, 0, 0] // Left, right, top, bottom.
+    protected containerMarginsEnebled: boolean = true
     protected minWidth: number = 180
     protected minHeight: number = 100
     protected defaultWidth: 'content'|number = 180
@@ -81,7 +87,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected contentAdditionalHeight: number = 0;
     protected defaultBottom: number = 10
     protected defaultAboveBottomOffset: number = 10 // Only used when bottom derived from givenOptions.above and givenOptions.bottomOffset not given.
-    protected defaultLeft: number = 10
+    protected defaultLeft: number = 10 // Only used when left and anchor not given and leftMode is containerLeft or not given.
 
     protected givenOptions: null|OptionsType = null
 
@@ -94,6 +100,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected actionbarElem: null|HTMLElement = null
     protected contentElem: null|HTMLElement = null
 
+    protected desiredGeometry: LeftBottomRect|Partial<OptionsType> = dummyLeftBottomRect
     protected geometry: LeftBottomRect = dummyLeftBottomRect
     protected geometryAtActionStart: LeftBottomRect = dummyLeftBottomRect // For move and resize.
     protected isShowing: boolean = false
@@ -200,10 +207,15 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             throw new Error('Window.show: Display not ready!')
         }
         this.closeIsHide = as.Bool(this.givenOptions.closeIsHide, this.closeIsHide)
-        this.containerMarginTop    = as.Int(Config.get('system.windowContainerMarginTop'), 0)
-        this.containerMarginRight  = as.Int(Config.get('system.windowContainerMarginRight'), 0)
-        this.containerMarginBottom = as.Int(Config.get('system.windowContainerMarginBottom'), 0)
-        this.containerMarginLeft   = as.Int(Config.get('system.windowContainerMarginLeft'), 0)
+        this.containerMargins = [
+            as.Int(Config.get('system.windowContainerMarginLeft'), 0),
+            as.Int(Config.get('system.windowContainerMarginRight'), 0),
+            as.Int(Config.get('system.windowContainerMarginTop'), 0),
+            as.Int(Config.get('system.windowContainerMarginBottom'), 0),
+        ]
+        if (this.givenOptions.transparent) {
+            this.windowCssClasses.push('transparent');
+        }
     }
 
     protected makeWindowFrameAndDecorations(): void
@@ -252,7 +264,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         this.titlebarElem.append(titleTextElem)
     }
 
-    protected setTitleText(titleText: string): void {
+    public setTitleText(titleText: string): void {
         this.titleTextId = null
         this.titleText = titleText
         this.updateTitleText()
@@ -342,7 +354,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
                 const newGeometry = Utils.moveLeftBottomRectEdges(
                     this.geometryAtActionStart, edgeMovements,
                     containerWidth, containerHeight, this.minWidth, this.minHeight,
-                    this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+                    ...this.getContainerMargins(),
                 )
                 return newGeometry
             }
@@ -429,6 +441,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected setGeometry(geometry: LeftBottomRect|Partial<OptionsType>): void
     {
+        this.desiredGeometry = geometry
         const mangledGeometry = this.mangleGeometry(geometry)
         this.geometry = mangledGeometry
         if (this.windowElem) {
@@ -441,8 +454,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected async initGeometry(): Promise<void>
     {
-        const persitedOptions = this.persistGeometry ? await this.getSavedOptions() : {}
-        const mergedGeometry = {...this.givenOptions, ...persitedOptions}
+        const mergedGeometry = this.persistGeometry ? await this.getSavedOptions(this.givenOptions) : this.givenOptions
         this.setGeometry(mergedGeometry)
     }
 
@@ -453,7 +465,8 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected mangleGeometry(optionsOrGeometry: LeftBottomRect|Partial<OptionsType>): LeftBottomRect
     {
-        const options = <Partial<OptionsType>>optionsOrGeometry // Partial<OptionsType> is a superset of LeftBottomRect.
+        // Partial<OptionsType> is a superset of LeftBottomRect.
+        const options = <Partial<OptionsType>> optionsOrGeometry
         const containerRect = this.containerElem.getBoundingClientRect()
         const containerWidth = containerRect.width
         const containerHeight = containerRect.height
@@ -464,53 +477,80 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             return geometry
         }
 
+        const containerMargins = this.getContainerMargins()
+
         // Get final dimensions first:
         const {preferredWidth, preferredHeight} = this.getPreferredDimensions(options)
         const {width, height} = Utils.fitLeftBottomRect(
             {left: 0, bottom: 0, width: preferredWidth, height: preferredHeight},
             containerWidth, containerHeight, this.minWidth, this.minHeight,
-            this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+            ...containerMargins,
         )
 
-        const anchorElemRectRaw = options.above
-        let anchorElemRect: null|DOMRect = null
-        if (anchorElemRectRaw instanceof DOMRect) {
-            anchorElemRect = anchorElemRectRaw
-        } else if (anchorElemRectRaw instanceof HTMLElement) {
-            anchorElemRect = anchorElemRectRaw.getBoundingClientRect()
-        }
+        const anchorElemRect = this.getAnchorRect(options)
 
         // Find desired left:
-        let leftRaw: null|string|number = options.left
-        if (is.nil(leftRaw)) {
-            let center: null|string|number = options.center ?? null
-            if (is.nil(center) && anchorElemRect) {
-                center = anchorElemRect.left + anchorElemRect.width / 2
-            }
-            if (!is.nil(center)) {
-                leftRaw = as.Float(center) - width / 2
-            }
-        }
-        const left = as.Int(leftRaw, this.defaultLeft)
+        const left = this.calcDesiredLeft(containerRect, anchorElemRect, width, options)
 
         // Find desired bottom:
-        let bottomRaw: null|string|number = options.bottom
-        let bottomOffsetRaw: null|string|number = null
+        let bottomRaw: null|number = options.bottom
+        let bottomOffsetRaw: null|number = null
         if (is.nil(bottomRaw) && !is.nil(options.top)) {
             bottomRaw = containerHeight - as.Int(options.top) - height
         }
         if (is.nil(bottomRaw) && anchorElemRect) {
             bottomRaw = containerHeight - anchorElemRect.top
-            bottomOffsetRaw = options.aboveYOffset ?? this.defaultAboveBottomOffset
+            bottomOffsetRaw = options.anchorYOffset ?? this.defaultAboveBottomOffset
         }
         const bottom = as.Int(bottomRaw, this.defaultBottom) + as.Int(bottomOffsetRaw)
 
         const geometry = Utils.fitLeftBottomRect(
             { left, bottom, width, height },
             containerWidth, containerHeight, this.minWidth, this.minHeight,
-            this.containerMarginLeft, this.containerMarginRight, this.containerMarginTop, this.containerMarginBottom,
+            ...containerMargins,
         )
         return geometry
+    }
+
+    protected getContainerMargins(): [number,number,number,number]
+    {
+        return this.containerMarginsEnebled ? this.containerMargins : [0, 0, 0, 0]
+    }
+
+    protected calcDesiredLeft(containerRect: DOMRect, anchorRect: null|DOMRect, windowWidth: number, options: Partial<OptionsType>): number
+    {
+        let windowLeft: null|number = options.left ?? null
+        const windowLeftMode: null|LeftPositionAnchorMode = options.leftMode ?? (anchorRect ? 'anchorCenter' : 'containerLeft')
+        options.left ??= windowLeftMode === 'containerLeft' ? this.defaultLeft : 0
+        switch (windowLeftMode) {
+            default:
+            case 'containerLeft': return this.calcLeftRelativeToAnchorLeft(containerRect, windowLeft)
+            case 'containerCenter': return this.calcLeftRelativeToAnchorCentered(containerRect, windowWidth, windowLeft)
+            case 'anchorLeft': return this.calcLeftRelativeToAnchorLeft(anchorRect ?? containerRect, windowLeft)
+            case 'anchorCenter': return this.calcLeftRelativeToAnchorCentered(anchorRect ?? containerRect, windowWidth, windowLeft)
+        }
+    }
+
+    protected calcLeftRelativeToAnchorLeft(anchorRect: DOMRect, windowLeft: number): number
+    {
+        return anchorRect.left + windowLeft
+    }
+
+    protected calcLeftRelativeToAnchorCentered(anchorRect: DOMRect, windowWidth: number, windowLeft: number): number
+    {
+        const anchorCenterLeft = anchorRect.left + anchorRect.width / 2
+        return anchorCenterLeft - windowWidth / 2 + windowLeft
+    }
+
+    protected getAnchorRect(options: Partial<OptionsType>): null|DOMRect
+    {
+        const anchor = options.anchor ?? null
+        if (anchor instanceof DOMRect) {
+            return anchor
+        } else if (anchor instanceof HTMLElement) {
+            return anchor.getBoundingClientRect()
+        }
+        return null
     }
 
     protected getPreferredDimensions(options: Partial<OptionsType>): {preferredWidth: number, preferredHeight: number}
@@ -536,17 +576,18 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         return {preferredWidth, preferredHeight}
     }
 
-    protected async getSavedOptions(presetOptions?: OptionsType): Promise<OptionsType>
+    protected async getSavedOptions(presetOptions?: OptionsType): Promise<Partial<OptionsType>>
     {
         const savedOptions = await Memory.getLocal(`window.${this.windowSettingsId}`)
-        const options = presetOptions ?? {}
-        for (const [key, value] of Object.entries(savedOptions ?? {})) {
-            options[key] = value
+        if (!savedOptions) {
+            return presetOptions ?? {}
         }
+        const castSavedOptions = <Partial<OptionsType>> savedOptions
+        const options = {...this.removePositioningFromOptions(presetOptions), ...castSavedOptions}
         return <OptionsType>options
     }
 
-    protected async saveOptions(options: OptionsType): Promise<void>
+    protected async saveOptions(options: Partial<OptionsType>): Promise<void>
     {
         await Memory.setLocal(`window.${this.windowSettingsId}`, options)
     }
@@ -558,9 +599,14 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         }
         (async () => {
             const oldOptions = await this.getSavedOptions()
-            const newOptions = {...oldOptions, ...this.geometry}
+            const newOptions = {...this.removePositioningFromOptions(oldOptions), ...this.geometry}
             await this.saveOptions(newOptions)
         })().catch(error => this.app.onError(error))
+    }
+
+    protected removePositioningFromOptions(options: null|Partial<OptionsType>): Partial<OptionsType>
+    {
+        return {...iter(Object.entries(options ?? {})).filter(([key,value]) => !this.positioningOptions.has(key))}
     }
 
     public getWindowElem(): null|HTMLElement
@@ -665,7 +711,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
     protected onViewportResize(): void
     {
         if (this.isOpen()) {
-            this.setGeometry(this.readGeometryFromDom())
+            this.setGeometry(this.desiredGeometry)
         }
     }
 

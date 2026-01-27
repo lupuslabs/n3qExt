@@ -79,8 +79,6 @@ export class ContentAppNotification
 interface ContentAppNotificationCallback { (msg: any): void }
 interface StanzaResponseHandler { (stanza: ltx.Element): void }
 
-export type WindowStyle = 'window' | 'popup' | 'overlay';
-
 export type ContentAppParams = {
     nickname?: string,
     avatar?: string,
@@ -525,7 +523,7 @@ export class ContentApp extends AppWithDom
             this.setBackpackIsOpen(true);
             this.backpackWindow = new BackpackWindow(this);
             this.backpackWindow.show({
-                'above': aboveElem,
+                'anchor': aboveElem,
                 onClose: () => { this.backpackWindow = null; this.setBackpackIsOpen(false); }
             });
         }
@@ -542,7 +540,7 @@ export class ContentApp extends AppWithDom
                 this.setPersonsIsOpen(true);
                 this.personsWindow = new PersonsWindow(this);
                 this.personsWindow.show({
-                    'above': this.getMyParticipantELem(),
+                    'anchor': this.getMyParticipantELem(),
                     onClose: () => { this.personsWindow = null; this.setPersonsIsOpen(false); }
                 });
             }
@@ -607,7 +605,7 @@ export class ContentApp extends AppWithDom
         if (!this.settingsWindow) {
             aboveElem = aboveElem ?? this.getMyParticipantELem();
             this.settingsWindow = new SettingsWindow(this);
-            this.settingsWindow.show({ 'above': aboveElem, onClose: () => { this.settingsWindow = null; } });
+            this.settingsWindow.show({ 'anchor': aboveElem, onClose: () => { this.settingsWindow = null; } });
         }
     }
 

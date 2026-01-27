@@ -3,36 +3,27 @@ import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
 import { FullWindow, FullWindowOptions } from './FullWindow';
-import { Pid } from '../lib/ItemProperties';
 import { Config } from '../lib/Config';
 import { DomUtils } from '../lib/DomUtils'
-import { RoomItem } from './RoomItem'
 import { PopupDefinition } from '../lib/BackgroundMessage'
+import { IItemFrameWindow } from './IItemFrameWindow'
 
 export type ItemFrameWindowOptions = FullWindowOptions & {
-    above: HTMLElement,
     url: string,
     resizable?: boolean,
-    transparent?: boolean, // Not implemented on ItemFrameWindow.
     titleText: string,
 }
 
-export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
+export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions> implements IItemFrameWindow
 {
-    protected readonly item: RoomItem;
+    protected readonly itemId: string;
     protected iframeElem: null|HTMLIFrameElement = null;
     private url: string;
-    private width = 400;
-    private height = 400;
 
-    public constructor(app: ContentApp, item: RoomItem)
+    public constructor(app: ContentApp, itemId: string)
     {
         super(app);
-        this.item = item;
-    }
-
-    public setTitleText(titleText: string): void {
-        super.setTitleText(titleText)
+        this.itemId = itemId;
     }
 
     public getIframeElem(): null|HTMLIFrameElement {
@@ -53,12 +44,6 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
             throw new Error('ItemFrameWindow.show: No url given!');
         }
         this.url = url; // member for undock
-        this.width = as.Int(this.givenOptions.width, this.width); // member for undock
-        this.height = as.Int(this.givenOptions.height, this.height); // member for undock
-
-        const json = as.String(this.item.getProperties()[Pid.IframeOptions], '{}');
-        const iframeOptions = JSON.parse(json);
-        this.closeIsHide = as.Bool(iframeOptions.closeIsHide, false);
     }
 
     protected async makeContent(): Promise<void>
@@ -75,11 +60,8 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
         this.contentElem.append(this.iframeElem);
     }
 
-    public position(width: number, height: number, left: number, bottom: number): void
+    public positionFrame(width: number, height: number, left: number, bottom: number): void
     {
-
-        const offset = this.givenOptions.above.getBoundingClientRect();
-        left += offset.left;
         this.setGeometry({ left, bottom, width, height });
     }
 
@@ -89,15 +71,25 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions>
         this.app.windows.onIframePointerDown(this.iframeElem);
     }
 
+    public moveToAnchor(): void
+    {
+        // No-op: windows are not anchored to the avatar.
+    }
+
+    public setWindowStyle(style: string): void
+    {
+        // No-op: windows don't support style setting.
+    }
+
     protected makeUndockPopupDefinition(): PopupDefinition
     {
         const popupDefinition: PopupDefinition = {
-            id: `roomItem.frameUndocked:${this.item.getItemId()}`,
+            id: `roomItem.frameUndocked:${this.itemId}`,
             url: this.url,
             top: Config.get('roomItem.frameUndockedTop', 100),
             left: Config.get('roomItem.frameUndockedLeft', 100),
-            height: this.height,
-            width: this.width,
+            height: this.geometry.height,
+            width: this.geometry.width,
             allowContentApp: true,
         }
         return popupDefinition

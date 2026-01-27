@@ -1924,32 +1924,6 @@
     text-overflow: ellipsis;
 }
 
-#n3qD .roomitemframepopup {
-    position: absolute;
-    pointer-events: auto;
-    touch-action: none;
-
-    --roomitemframepopup-background: var(--pane-background);
-    --roomitemframepopup-backdrop-filter: var(--pane-backdrop-filter);
-    --roomitemframepopup-border-radius: var(--pane-border-radius);
-    --roomitemframepopup-transform: none;
-    --roomitemframepopup-filter: var(--soft-shadow-filter);
-}
-#n3qD .roomitemframepopup.transparent-background.transparent-background {
-    --roomitemframepopup-background: none transparent;
-    --roomitemframepopup-backdrop-filter: none;
-    --roomitemframepopup-border-radius: 0;
-    --roomitemframepopup-transform: none;
-    --roomitemframepopup-filter: none;
-}
-#n3qD .roomitemframepopup iframe {
-    border-radius: var(--roomitemframepopup-border-radius);
-    background: var(--roomitemframepopup-background);
-    backdrop-filter: var(--roomitemframepopup-backdrop-filter);
-    transform: var(--roomitemframepopup-transform);
-    filter: var(--roomitemframepopup-filter);
-}
-
 /*============================================================================*/
 /* Windows, popups, overlays */
 
@@ -2174,6 +2148,16 @@
     --window-filter: var(--hard-shadow-filter);
 }
 
+#n3qD .window.transparent.transparent.transparent {
+    --window-background: none transparent;
+    --window-backdrop-filter: none;
+    --window-border: none;
+    --window-border-radius: 0;
+    --window-filter: none;
+    --window-content-background: none transparent;
+    --window-content-backdrop-filter: none;
+}
+
 #n3qD .window.window-style-noninteractive,
 #n3qD .window.window-style-noninteractive .window-content {
     pointer-events: none;
@@ -2181,6 +2165,21 @@
 
 #n3qD .window.window-sizing-maximized {
     --window-border-radius: 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Room item frame popups */
+
+#n3qD .window.window-style-popup.roomitemframepopup {
+    --window-filter: var(--soft-shadow-filter);
+    --window-content-padding: 0;
+}
+#n3qD .window.window-style-popup.roomitemframepopup .window-rows,
+#n3qD .window.window-style-popup.roomitemframepopup .window-content-wrapper,
+#n3qD .window.window-style-popup.roomitemframepopup .window-content {
+    height: 100%;
+    overflow: visible;
+    pointer-events: inherit;
 }
 
 /*----------------------------------------------------------------------------*/

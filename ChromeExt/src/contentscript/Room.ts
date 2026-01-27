@@ -501,7 +501,7 @@ export class Room
         if (!this.chatWindow.isOpen()) {
             this.app.setChatIsOpen(true);
             this.chatWindow.show({
-                'above': aboveElem,
+                'anchor': aboveElem,
                 onClose: () => this.app.setChatIsOpen(false),
             });
         }
@@ -559,7 +559,7 @@ export class Room
 
             this.vidconfWindow = new VidconfWindow(this.app, url);
             this.vidconfWindow.show({
-                'above': aboveElem,
+                'anchor': aboveElem,
                 'undocked': true,
                 onClose: () =>
                 {

@@ -1,4 +1,5 @@
 import { is } from '../lib/is'
+import { as } from '../lib/as'
 import { BadgeIframeData, ItemProperties } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher';
@@ -53,10 +54,9 @@ export class BadgeInfoWindow extends PopupWindow<PopupWindowOptions>
         super.prepareMakeDom();
         const aboveRect = this.badge.getBoundingClientRect();
         this.givenOptions = {
-            left: this.givenOptions.left ?? aboveRect.left,
-            bottom: this.givenOptions.bottom,
-            above: aboveRect,
-            aboveYOffset: Config.get('badges.infoWindowBadgeDistanceY', 0),
+            anchor: aboveRect,
+            leftMode: 'anchorLeft',
+            anchorYOffset: as.Int(Config.get('badges.infoWindowBadgeDistanceY', 0)),
         };
     }
 
