@@ -82,6 +82,17 @@ function makeBaseConfig() {
                     blocking: true,
                 },
             }),
+            {apply: (compiler) => {
+                compiler.hooks.done.tap('TimestampPlugin', (stats) => {
+                    const time = new Date().toISOString().replace('T', ' ')
+                    const entries = Array.from(stats.compilation.entries.keys()).join(', ')
+                    if (stats.hasErrors()) {
+                        console.log(`${time} Build \x1b[31mfailed\x1b[0m: ${entries}`)
+                    } else {
+                        console.log(`[${time}] Build \x1b[32msucceeded\x1b[0m: ${entries}`)
+                    }
+                })
+            }},
         ],
         resolve: {
             extensions: ['.ts', '.js', '.scss'],
