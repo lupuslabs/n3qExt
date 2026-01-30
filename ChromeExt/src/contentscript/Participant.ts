@@ -884,12 +884,7 @@ export class Participant extends Entity
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
-
-        const itemIds = this.room.getItemIds();
-        const message = new WeblinClientIframeApi.ParticipantMovedNotification(participantData)
-        for (const itemId of itemIds) {
-            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
-        }
+        this.app.itemFrames.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ParticipantMovedNotification(participantData));
     }
 
     sendParticipantChatToAllScriptFrames(text: string): void
@@ -900,12 +895,7 @@ export class Participant extends Entity
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
-
-        const itemIds = this.room.getItemIds();
-        const message = new WeblinClientIframeApi.ParticipantChatNotification(participantData, text)
-        for (const itemId of itemIds) {
-            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
-        }
+        this.app.itemFrames.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ParticipantChatNotification(participantData, text));
     }
 
     sendParticipantEventToAllScriptFrames(data: any): void
@@ -916,12 +906,7 @@ export class Participant extends Entity
             x: this.getPosition(),
             isSelf: this.getIsSelf(),
         };
-
-        const itemIds = this.room.getItemIds();
-        const message = new WeblinClientIframeApi.ParticipantEventNotification(participantData, data)
-        for (const itemId of itemIds) {
-            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
-        }
+        this.app.itemFrames.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ParticipantEventNotification(participantData, data));
     }
 
     do(what: string, countsAsActivity: boolean = true): void

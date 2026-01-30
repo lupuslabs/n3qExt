@@ -16,7 +16,6 @@ import { Entity } from './Entity';
 import { Room } from './Room';
 import { Avatar } from './Avatar';
 import { RoomItemStats } from './RoomItemStats';
-import { IItemFrameWindow } from './IItemFrameWindow';
 import { ItemFrameUnderlay } from './ItemFrameUnderlay';
 import { ItemFrameWindow } from './ItemFrameWindow';
 import { ItemFramePopup } from './ItemFramePopup';
@@ -29,7 +28,6 @@ import { PointerEventData } from '../lib/PointerEventData';
 export class RoomItem extends Entity
 {
     private properties: { [pid: string]: string } = {};
-    private frameWindow: null|IItemFrameWindow = null;
     private isFirstPresence: boolean = true;
     protected statsDisplay: RoomItemStats;
     protected screenUnderlay: ItemFrameUnderlay;
@@ -67,18 +65,10 @@ export class RoomItem extends Entity
         const changed = !ItemProperties.areEqual(this.properties, props);
         if (changed) {
             this.properties = props;
-            this.frameWindow?.setTitleText(ItemProperties.getIframeWindowTitle(this.properties))
-
-            // if (as.Bool(this.properties[Pid.IframeLive])) {
-            //     this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemGetPropertiesResponse(this.properties));
-            // }
-            this.sendItemPropertiesToAllScriptFrames();
+            if (!this.myItem) {
+                this.app.itemFrames.handleOtherItemChanged(props)
+            }
         }
-    }
-
-    protected getScriptWindow(): undefined | Window
-    {
-        return this.frameWindow?.getIframeElem()?.contentWindow;
     }
 
     public remove(): void
@@ -363,26 +353,24 @@ export class RoomItem extends Entity
         if (!as.Bool(this.properties[Pid.IframeAspect])) {
             return;
         }
-        if (!this.frameWindow) {
+        const itemFrameWindow = this.app.itemFrames.getItemFrameWindow(this.getItemId());
+        if (!itemFrameWindow) {
             this.openFrame();
             return;
         }
-        if (this.frameWindow instanceof ItemFrameWindow) {
-            if (this.frameWindow.isOpen()) {
-                this.frameWindow.setVisibility(true);
+        if (itemFrameWindow instanceof ItemFrameWindow) {
+            if (itemFrameWindow.isOpen()) {
+                itemFrameWindow.setVisibility(true);
             }
             return;
         }
         // Item frame window is a popup.
         const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
         if (frameOpts.closeIsHide) {
-            this.frameWindow.setVisibility(!this.frameWindow.getVisibility());
+            itemFrameWindow.setVisibility(!itemFrameWindow.getVisibility());
             return;
         }
-        const magicKey = as.String(Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive'));
-        const msg = { [magicKey]: true, type: 'Window.Close' };
-        this.getScriptWindow()?.postMessage(msg, '*');
-        window.setTimeout((): void => { this.frameWindow?.close() }, 100);
+        this.app.itemFrames.closeItemFrameWithNotification(this.getItemId());
     }
 
     public onUnmodifiedLeftDoubleclickAvatar(ev: PointerEventData): void
@@ -391,11 +379,12 @@ export class RoomItem extends Entity
         if (!as.Bool(this.properties[Pid.IframeAspect])) {
             return;
         }
-        if (!this.frameWindow) {
+        const itemFrameWindow = this.app.itemFrames.getItemFrameWindow(this.getItemId());
+        if (!itemFrameWindow) {
             this.openFrame();
             return;
         }
-        this.frameWindow?.setVisibility(!this.frameWindow.getVisibility());
+        itemFrameWindow.setVisibility(!itemFrameWindow.getVisibility());
     }
 
     public onDragAvatarStart(ev: PointerEventData): void
@@ -403,12 +392,13 @@ export class RoomItem extends Entity
         super.onDragAvatarStart(ev);
         this.hideStatsDisplay(0);
 
-        if (this.frameWindow instanceof ItemFramePopup) {
+        const itemFrameWindow = this.app.itemFrames.getItemFrameWindow(this.getItemId());
+        if (itemFrameWindow instanceof ItemFramePopup) {
             const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
             if (frameOpts.closeIsHide) {
                 // Intentionally keep open and visible.
             } else {
-                this.frameWindow.close();
+                itemFrameWindow.close();
             }
         }
     }
@@ -491,7 +481,7 @@ export class RoomItem extends Entity
                 isOwn: this.myItem,
                 properties: this.properties,
             };
-            this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemMovedNotification(itemData, newX));
+            this.app.itemFrames.sendMessageToScriptFrame(itemId, new WeblinClientIframeApi.ItemMovedNotification(itemData, newX));
         }
 
         this.onMoved(newX);
@@ -509,7 +499,7 @@ export class RoomItem extends Entity
         if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
             this.checkIframeAutoRange();
         }
-        this.frameWindow?.moveToAnchor();
+        this.app.itemFrames.getItemFrameWindow(this.getItemId())?.moveToAnchor();
     }
 
     public async applyItem(passiveItem: RoomItem): Promise<ItemProperties>
@@ -517,10 +507,7 @@ export class RoomItem extends Entity
         const itemId = this.getItemId();
         const passiveItemId = passiveItem.getItemId();
 
-        if (this.frameWindow) {
-            this.getScriptWindow()?.postMessage({ [Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')]: true, type: 'Window.Close' }, '*');
-            window.setTimeout(() => { this.frameWindow?.close(); }, 100);
-        }
+        this.app.itemFrames.closeItemFrameWithNotification(this.getItemId());
 
         if (!await BackgroundMessage.isBackpackItem(passiveItemId)) {
             const fact = ItemException.fact2String(ItemException.Fact.NotApplied);
@@ -582,9 +569,7 @@ export class RoomItem extends Entity
             this.closeFrame();
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
-            this.frameWindow = this.app.itemFrames.openItemFrame(
-                this.properties, aboveElem, () => { this.frameWindow = null }, documentUrlTpl, documentOptions,
-            );
+            this.app.itemFrames.openItemFrame(this.properties, aboveElem, null, documentUrlTpl, documentOptions);
         } catch (error) {
             if (!(error instanceof NotAnOpenableItemFrameError)) {
                 this.app.onError(error);
@@ -620,11 +605,10 @@ export class RoomItem extends Entity
     private openFrame(): void
     {
         try {
-            if (!this.elem || this.frameWindow) {
+            if (!this.elem || this.app.itemFrames.getItemFrameWindow(this.getItemId())) {
                 return;
             }
-            const onClose = () => { this.frameWindow = null };
-            this.frameWindow = this.app.itemFrames.openItemFrame(this.properties, this.elem, onClose);
+            this.app.itemFrames.openItemFrame(this.properties, this.elem);
         } catch (error) {
             if (!(error instanceof NotAnOpenableItemFrameError)) {
                 this.app.onError(error);
@@ -632,44 +616,9 @@ export class RoomItem extends Entity
         }
     }
 
-    closeFrame(): void
+    private closeFrame(): void
     {
-        this.frameWindow?.close();
-        this.frameWindow = null;
-    }
-
-    setFrameVisibility(visible: boolean): void
-    {
-        this.frameWindow?.setVisibility(visible);
-    }
-
-    setWindowStyle(style: string): void
-    {
-        this.frameWindow?.setWindowStyle(style);
-    }
-
-    public positionFrame(width: number, height: number, left: number, bottom: number, options: any = null): void
-    {
-        this.frameWindow?.positionFrame(width, height, left, bottom, options);
-    }
-
-    public toFrontFrame(guiLayer?: number|string): void
-    {
-        this.frameWindow?.toFrontFrame(guiLayer);
-    }
-
-    public async setItemProperty(pid: string, value: any): Promise<void>
-    {
-        if (await BackgroundMessage.isBackpackItem(this.getItemId())) {
-            await BackgroundMessage.modifyBackpackItemProperties(this.getItemId(), { [pid]: value }, [], {});
-        }
-    }
-
-    public async setItemState(state: string): Promise<void>
-    {
-        if (await BackgroundMessage.isBackpackItem(this.getItemId())) {
-            await BackgroundMessage.modifyBackpackItemProperties(this.getItemId(), { [Pid.State]: state }, [], {});
-        }
+        this.app.itemFrames.getItemFrameWindow(this.getItemId())?.close();
     }
 
     public setItemCondition(condition: string): void
@@ -694,28 +643,9 @@ export class RoomItem extends Entity
             isOwn: this.isMyItem(),
             properties: this.getProperties([Pid.Template, Pid.OwnerId]),
         };
-
-        const itemIds = this.room.getItemIds();
-        const message = new WeblinClientIframeApi.ItemEventNotification(itemData, data);
-        for (const itemId of itemIds) {
-            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
-        }
+        this.app.itemFrames.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ItemEventNotification(itemData, data));
     }
 
-    protected sendItemPropertiesToAllScriptFrames(): void
-    {
-        const itemIds = this.room.getItemIds();
-        const message = new WeblinClientIframeApi.ItemPropertiesChangedNotification(this.getItemId(), this.properties)
-        for (const itemId of itemIds) {
-            this.room.getItemByItemId(itemId)?.sendMessageToScriptFrame(message);
-        }
-    }
-
-    public sendMessageToScriptFrame(message: any): void
-    {
-        message[Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')] = true;
-        this.getScriptWindow()?.postMessage(message, '*');
-    }
 
     private showStatsDisplay(delaySecs: number, openByLongclick: boolean): void
     {

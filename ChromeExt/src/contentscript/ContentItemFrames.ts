@@ -3,36 +3,47 @@ import { as } from '../lib/as'
 import { ErrorWithData } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ItemProperties } from '../lib/ItemProperties'
+import { BackpackUpdateEventData } from './OwnItemRepository'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentApp } from './ContentApp'
 import { IItemFrameWindow } from './IItemFrameWindow'
 import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow'
 import { ItemFramePopup, ItemFramePopupOptions } from './ItemFramePopup'
+import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 export class NotAnOpenableItemFrameError extends ErrorWithData {}
 
 export class ContentItemFrames {
+    // Todo: Move most inventory item frame handling here.
 
     private readonly app: ContentApp
-    private readonly openFrames: Set<IItemFrameWindow> = new Set()
+    private readonly itemFrameWindows: Map<string,IItemFrameWindow> = new Map()
+    private readonly onOwnItemsChanged: (eventData: BackpackUpdateEventData) => void
     private readonly onThemesChanged: () => void
 
     constructor(app: ContentApp) {
         this.app = app
+        this.onOwnItemsChanged = eventData => this.handleOwnItemsChanged(eventData)
+        this.app.ownItems.backpackUpdateListeners.addListener(this.onOwnItemsChanged)
         this.onThemesChanged = () => this.sendThemeCssToAllFrames()
         this.app.themeManager.themesChangedListeners.addListener(this.onThemesChanged)
     }
 
     public stop(): void {
         this.app.themeManager.themesChangedListeners.removeListener(this.onThemesChanged)
-        for (const frame of this.openFrames) {
+        this.app.ownItems.backpackUpdateListeners.removeListener(this.onOwnItemsChanged)
+        for (const frame of [...this.itemFrameWindows.values()]) {
             frame.close()
         }
-        this.openFrames.clear()
+        this.itemFrameWindows.clear()
+    }
+
+    public getItemFrameWindow(itemId: string): null|IItemFrameWindow {
+        return this.itemFrameWindows.get(itemId) ?? null
     }
 
     public openItemFrame(
-        properties: ItemProperties, anchor: null|DOMRect|HTMLElement, onClose?: null|(() => void),
+        properties: Readonly<ItemProperties>, anchor: null|DOMRect|HTMLElement, onClose?: null|(() => void),
         iframeUrlTpl?: null|string, iframeOptions?: null|{[p: string]: any},
     ): IItemFrameWindow {
         const itemId = ItemProperties.getId(properties)
@@ -54,11 +65,9 @@ export class ContentItemFrames {
             anchor = null
         }
 
+        this.itemFrameWindows.get(itemId)?.close()
         const onCloseTracked = () => {
-            this.openFrames.delete(frame)
-            if (this.openFrames.size === 0) {
-                this.app.themeManager.themesChangedListeners.removeListener(this.onThemesChanged)
-            }
+            this.itemFrameWindows.delete(itemId)
             onClose?.()
         }
 
@@ -99,17 +108,70 @@ export class ContentItemFrames {
                 break
             }
         }
-        this.openFrames.add(frame)
+        this.itemFrameWindows.set(itemId, frame)
         return frame
     }
 
-    private sendThemeCssToAllFrames(): void {
-        const themeCss = this.app.themeManager.getEnabledThemesCss()
-        const magicKey = Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')
-        const message = new WeblinClientIframeApi.ClientThemeCssNotification(themeCss)
-        message[magicKey] = true
-        for (const frame of this.openFrames) {
-            frame.getIframeElem()?.contentWindow?.postMessage(message, '*')
+    public closeItemFrameWithNotification(itemId: string): void {
+        const itemFrameWindow = this.itemFrameWindows.get(itemId)
+        if (itemFrameWindow) {
+            const messagePrepared = this.prepareMessageForItemFrame(new WeblinClientApi.Message('Window.Close'))
+            itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+            window.setTimeout(() => itemFrameWindow.close(), 100)
         }
+    }
+
+    public handleOtherItemChanged(item: Readonly<ItemProperties>): void {
+        this.handleItemChange(item)
+    }
+
+    private handleOwnItemsChanged(eventData: BackpackUpdateEventData): void {
+        for (const item of eventData.itemsDeleted) {
+            this.handleItemDeletion(item)
+        }
+        for (const item of eventData.itemsNewOrChanged) {
+            this.handleItemChange(item)
+        }
+    }
+
+    private handleItemDeletion(item: Readonly<ItemProperties>): void {
+        this.itemFrameWindows.get(ItemProperties.getId(item))?.close()
+    }
+
+    private handleItemChange(item: Readonly<ItemProperties>): void {
+        const itemId = ItemProperties.getId(item)
+        const itemFrameWindow = this.itemFrameWindows.get(itemId)
+        if (!itemFrameWindow) {
+            return
+        }
+        itemFrameWindow.setTitleText(ItemProperties.getIframeWindowTitle(item))
+        this.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ItemPropertiesChangedNotification(itemId, item))
+    }
+
+    private sendThemeCssToAllFrames(): void {
+        const css = this.app.themeManager.getEnabledThemesCss()
+        this.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ClientThemeCssNotification(css))
+    }
+
+    public sendMessageToScriptFrame(itemId: string, message: WeblinClientApi.Message): void {
+        const itemFrameWindow = this.itemFrameWindows.get(itemId)
+        if (itemFrameWindow) {
+            const messagePrepared = this.prepareMessageForItemFrame(message)
+            itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+        }
+    }
+
+    public sendMessageToAllScriptFrames(message: WeblinClientApi.Message): void {
+        if (this.itemFrameWindows.size !== 0) {
+            const messagePrepared = this.prepareMessageForItemFrame(message)
+            for (const itemFrameWindow of this.itemFrameWindows.values()) {
+                itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+            }
+        }
+    }
+
+    private prepareMessageForItemFrame(message: WeblinClientApi.Message): WeblinClientApi.Message {
+        const magic = Config.get('iframeApi.messageMagicRezactive', 'tr67rftghg_Rezactive')
+        return {...message, [magic]: true}
     }
 }

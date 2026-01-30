@@ -479,25 +479,18 @@ export class IframeApi
         if (!isRequest && (response?.ok ?? true)) {
             return;
         }
-        const roomItem = this.app.getRoom()?.getItemByItemId(itemId);
-        if (!roomItem) {
-            return;
-        }
         response ??= new WeblinClientApi.SuccessResponse()
         if (isRequest) {
             response.id = request.id;
         }
         if (Utils.logChannel('iframeApi', false)) { log.debug('IframeApi.handle_IframeApi response', response); }
-        roomItem.sendMessageToScriptFrame(response);
+        this.app.itemFrames.sendMessageToScriptFrame(itemId, response);
     }
 
     handle_CloseWindowRequest(request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response
     {
-        let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
         try {
-            if (roomItem) {
-                roomItem.closeFrame();
-            }
+            this.app.itemFrames.getItemFrameWindow(request.item)?.close();
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_CloseWindowRequest', ex);
@@ -508,10 +501,7 @@ export class IframeApi
     handle_WindowSetVisibilityRequest(request: WeblinClientIframeApi.WindowSetVisibilityRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom()?.getItemByItemId(request.item);
-            if (item) {
-                item.setFrameVisibility(request.visible);
-            }
+            this.app.itemFrames.getItemFrameWindow(request.item)?.setVisibility(request.visible);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowSetVisibilityRequest', ex);
@@ -522,10 +512,7 @@ export class IframeApi
     handle_WindowSetStyleRequest(request: WeblinClientIframeApi.WindowSetStyleRequest): WeblinClientApi.Response
     {
         try {
-            let item = this.app.getRoom()?.getItemByItemId(request.item);
-            if (item) {
-                item.setWindowStyle(request.style);
-            }
+            this.app.itemFrames.getItemFrameWindow(request.item)?.setWindowStyle(request.style);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowSetStyleRequest', ex);
@@ -549,30 +536,22 @@ export class IframeApi
 
     handle_ItemSetPropertyRequest(request: WeblinClientIframeApi.ItemSetPropertyRequest): WeblinClientApi.Response
     {
-        try {
-            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
-            if (roomItem) {
-                roomItem.setItemProperty(request.pid, request.value);
-            }
-            return new WeblinClientApi.SuccessResponse();
-        } catch (ex) {
-            log.info('IframeApi.handle_ItemSetPropertyRequest', ex);
-            return new WeblinClientApi.ErrorResponse(ex);
+        const itemId = as.String(request.item);
+        if (this.app.ownItems.getItemById(itemId) && this.app.getRoom()?.getItemByItemId(itemId)) {
+            BackgroundMessage.modifyBackpackItemProperties(itemId, { [request.pid]: request.value }, [], {})
+                .catch(error => this.app.onError(error));
         }
+        return new WeblinClientApi.SuccessResponse();
     }
 
     handle_ItemSetStateRequest(request: WeblinClientIframeApi.ItemSetStateRequest): WeblinClientApi.Response
     {
-        try {
-            let roomItem = this.app.getRoom()?.getItemByItemId(request.item);
-            if (roomItem) {
-                roomItem.setItemState(request.state);
-            }
-            return new WeblinClientApi.SuccessResponse();
-        } catch (ex) {
-            log.info('IframeApi.handle_ItemSetStateRequest', ex);
-            return new WeblinClientApi.ErrorResponse(ex);
+        const itemId = as.String(request.item);
+        if (this.app.ownItems.getItemById(itemId) && this.app.getRoom()?.getItemByItemId(itemId)) {
+            BackgroundMessage.modifyBackpackItemProperties(itemId, { [Pid.State]: request.state }, [], {})
+                .catch(error => this.app.onError(error));
         }
+        return new WeblinClientApi.SuccessResponse();
     }
 
     handle_ItemSetConditionRequest(request: WeblinClientIframeApi.ItemSetConditionRequest): WeblinClientApi.Response
@@ -831,10 +810,7 @@ export class IframeApi
     handle_WindowPositionRequest(request: WeblinClientIframeApi.WindowPositionRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
-            if (roomItem) {
-                roomItem.positionFrame(request.width, request.height, request.left, request.bottom, request.options);
-            }
+            this.app.itemFrames.getItemFrameWindow(request.item)?.positionFrame(request.width, request.height, request.left, request.bottom, request.options);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_PositionWindowRequest', ex);
@@ -845,14 +821,11 @@ export class IframeApi
     handle_WindowToFrontRequest(request: WeblinClientIframeApi.WindowToFrontRequest): WeblinClientApi.Response
     {
         try {
-            let roomItem = this.app.getRoom().getItemByItemId(request.item);
-            if (roomItem) {
-                let layer = request.layer;
-                if (!is.string(layer)) {
-                    layer = undefined;
-                }
-                roomItem.toFrontFrame(layer);
+            let layer = request.layer;
+            if (!is.string(layer)) {
+                layer = undefined;
             }
+            this.app.itemFrames.getItemFrameWindow(request.item)?.toFrontFrame(layer);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowToFrontRequest', ex);
@@ -863,14 +836,9 @@ export class IframeApi
     handle_ClientBaseCssRequest(request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
     {
         try {
-            const roomItem = this.app.getRoom().getItemByItemId(request.item);
-            if (roomItem) {
-                const themeCss = this.app.themeManager.getEnabledThemesCss();
-                roomItem.sendMessageToScriptFrame(new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
-                return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss());
-            } else {
-                return new WeblinClientApi.ErrorResponse('No such item');
-            }
+            const themeCss = this.app.themeManager.getEnabledThemesCss();
+            this.app.itemFrames.sendMessageToScriptFrame(request.item, new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
+            return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss());
         } catch (ex) {
             log.info('IframeApi.handle_ClientBaseCssRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
