@@ -64,6 +64,7 @@ import { TabContentData } from './TabContentData'
 import { ContentInstantMessageManager } from './ContentInstantMessageManager'
 import { ContentThemeManager } from './ContentThemeManager'
 import { ContentUiHelper } from './ContentUiHelper'
+import { ContentItemFrames } from './ContentItemFrames'
 import { ContentAppDisplay } from './ContentAppDisplay'
 import { ContentAppWindows } from './ContentAppWindows'
 import { BackpackItemInfo } from './BackpackItemInfo'
@@ -103,6 +104,7 @@ export class ContentApp extends AppWithDom
     public readonly windows: ContentAppWindows;
     public readonly themeManager: ContentThemeManager;
     public readonly itemFrameContexts: ItemFrameContextFactory;
+    public readonly itemFrames: ContentItemFrames;
     private dropzoneELem: null|HTMLElement = null;
     private isGuiEnabled: boolean = false;
     private isExclusiveWindowPopup: boolean = false;
@@ -207,6 +209,7 @@ export class ContentApp extends AppWithDom
         this.instantMessageManager.privateVidchatWindowCloseListeners.addListener(() => this.evaluateStayOnTabChange())
         this.iframeApi = new IframeApi(this);
         this.itemFrameContexts = new ItemFrameContextFactory();
+        this.itemFrames = new ContentItemFrames(this);
     }
 
     async start(params: ContentAppParams)
@@ -428,6 +431,7 @@ export class ContentApp extends AppWithDom
         this.iframeApi?.stop();
         this.stopCheckPageUrl();
         this.leaveRoom();
+        this.itemFrames.stop();
         this.themeManager.stop();
         this.windows.stop();
         this.display.stop();

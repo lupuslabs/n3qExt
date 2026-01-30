@@ -8,7 +8,6 @@ import { ErrorWithData, Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
-import { Memory } from '../lib/Memory';
 import { ItemException } from '../lib/ItemException';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
 import { SimpleErrorToast, SimpleToast } from './Toast';
@@ -19,8 +18,9 @@ import { Avatar } from './Avatar';
 import { RoomItemStats } from './RoomItemStats';
 import { IItemFrameWindow } from './IItemFrameWindow';
 import { ItemFrameUnderlay } from './ItemFrameUnderlay';
-import { ItemFrameWindow, ItemFrameWindowOptions } from './ItemFrameWindow';
-import { ItemFramePopup, ItemFramePopupOptions } from './ItemFramePopup';
+import { ItemFrameWindow } from './ItemFrameWindow';
+import { ItemFramePopup } from './ItemFramePopup';
+import { NotAnOpenableItemFrameError } from './ContentItemFrames'
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
 import { Element as XmlElement } from 'ltx';
@@ -39,15 +39,9 @@ export class RoomItem extends Entity
     private statsDisplayOpenByLongclick: boolean = false;
     private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;
-    protected readonly themesChangeHandler: (themesCss: string) => void;
-
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
         super(app, room, roomNick, isSelf);
-        this.themesChangeHandler = themesCss => {
-            const themeCss = this.app.themeManager.getEnabledThemesCss();
-            this.sendMessageToScriptFrame(new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
-        };
 
         $(this.getElem()).addClass('roomitem');
         $(this.getElem()).attr('data-nick', roomNick);
@@ -73,7 +67,7 @@ export class RoomItem extends Entity
         const changed = !ItemProperties.areEqual(this.properties, props);
         if (changed) {
             this.properties = props;
-            this.frameWindow?.setTitleText(this.getIframeWindowTitle())
+            this.frameWindow?.setTitleText(ItemProperties.getIframeWindowTitle(this.properties))
 
             // if (as.Bool(this.properties[Pid.IframeLive])) {
             //     this.sendMessageToScriptFrame(new WeblinClientIframeApi.ItemGetPropertiesResponse(this.properties));
@@ -515,13 +509,7 @@ export class RoomItem extends Entity
         if (as.String(this.getProperties()[Pid.IframeAutoRange]) !== '') {
             this.checkIframeAutoRange();
         }
-
-        if (this.frameWindow) {
-            const frameOpts = ItemProperties.getParsedIframeOptions(this.properties);
-            if (frameOpts.anchor !== 'Base') {
-                this.frameWindow.moveToAnchor();
-            }
-        }
+        this.frameWindow?.moveToAnchor();
     }
 
     public async applyItem(passiveItem: RoomItem): Promise<ItemProperties>
@@ -584,21 +572,23 @@ export class RoomItem extends Entity
         this.screenUnderlay?.sendMessage(message);
     }
 
-    public async openDocumentUrl(aboveElem: null|HTMLElement): Promise<void>
+    public openDocumentUrl(aboveElem: null|HTMLElement): void
     {
-        let url = as.String(this.properties[Pid.DocumentUrl]);
-        const room = this.app.getRoom();
-        const userId = as.String(await Memory.getLocal(Utils.localStorageKey_Id()));
-
-        if (url !== '' && room && userId !== '') {
-            const roomJid = room.getJid()
-            const itemId = this.getItemId()
-            const itemProps = this.myItem ? await BackgroundMessage.getBackpackItemProperties(itemId) : this.properties;
-            const contextToken = this.app.itemFrameContexts.getContextToken(roomJid, itemProps);
-            url = url.replace('{context}', encodeURIComponent(contextToken));
+        try {
+            const documentUrlTpl = as.String(this.properties[Pid.DocumentUrl]);
+            if (!is.nonEmptyString(documentUrlTpl)) {
+                return;
+            }
+            this.closeFrame();
 
             const documentOptions = JSON.parse(as.String(this.properties[Pid.DocumentOptions], '{}'));
-            this.openIframeAsWindow(aboveElem, url, documentOptions);
+            this.frameWindow = this.app.itemFrames.openItemFrame(
+                this.properties, aboveElem, () => { this.frameWindow = null }, documentUrlTpl, documentOptions,
+            );
+        } catch (error) {
+            if (!(error instanceof NotAnOpenableItemFrameError)) {
+                this.app.onError(error);
+            }
         }
     }
 
@@ -630,49 +620,20 @@ export class RoomItem extends Entity
     private openFrame(): void
     {
         try {
-            const iframeUrlTpl = as.String(this.properties[Pid.IframeUrl]);
-            if (!is.nonEmptyString(iframeUrlTpl)) {
+            if (!this.elem || this.frameWindow) {
                 return;
             }
-
-            const room = this.getRoom();
-            const roomJid = room.getJid();
-            const iframeUrl = this.app.itemFrameContexts.makeItemIframeUrl(roomJid, this.properties, iframeUrlTpl);
-
-            const iframeOptions = ItemProperties.getParsedIframeOptions(this.properties);
-            if ((iframeOptions.ownerOnly ?? false) && !this.myItem) {
-                return;
-            }
-
-            let anchorElem: HTMLElement;
-            switch (as.String(iframeOptions.anchor, 'Entity')) {
-                default:
-                case 'Entity':
-                    anchorElem = this.elem;
-                    break;
-                case 'Base':
-                    anchorElem = null;
-                    break;
-            }
-            switch (as.String(iframeOptions.frame, 'Window')) {
-                case 'Popup':
-                    this.openIframeAsPopup(anchorElem, iframeUrl, iframeOptions);
-                    break;
-                default:
-                case 'Window':
-                    this.openIframeAsWindow(anchorElem, iframeUrl, iframeOptions);
-                    break;
-            }
-            this.app.themeManager.themesChangedListeners.addListener(this.themesChangeHandler)
-
+            const onClose = () => { this.frameWindow = null };
+            this.frameWindow = this.app.itemFrames.openItemFrame(this.properties, this.elem, onClose);
         } catch (error) {
-            this.app.onError(ErrorWithData.ofError(error));
+            if (!(error instanceof NotAnOpenableItemFrameError)) {
+                this.app.onError(error);
+            }
         }
     }
 
     closeFrame(): void
     {
-        this.app.themeManager.themesChangedListeners.removeListener(this.themesChangeHandler)
         this.frameWindow?.close();
         this.frameWindow = null;
     }
@@ -685,63 +646,6 @@ export class RoomItem extends Entity
     setWindowStyle(style: string): void
     {
         this.frameWindow?.setWindowStyle(style);
-    }
-
-    protected openIframeAsPopup(anchorElem: null|HTMLElement, iframeUrl: string, popupOptions: any): void
-    {
-        if (this.elem && this.frameWindow == null) {
-            const popup = new ItemFramePopup(this.app);
-
-            const width = as.Int(popupOptions.width, 100);
-            const options: ItemFramePopupOptions = {
-                anchor: anchorElem,
-                url: iframeUrl,
-                closeButton: as.Bool(popupOptions.closeButton, true),
-                onClose: () => { this.frameWindow = null },
-                closeIsHide: as.Bool(popupOptions.closeIsHide, false),
-                hidden: as.Bool(popupOptions.hidden),
-                width: width,
-                height: as.Int(popupOptions.height, 100),
-                left: as.IntOrNull(popupOptions.left),
-                bottom: as.Int(popupOptions.bottom, 50),
-                transparent: as.Bool(popupOptions.transparent, false),
-            };
-
-            popup.show(options);
-            this.frameWindow = popup;
-        }
-    }
-
-    protected openIframeAsWindow(anchorElem: null|HTMLElement, iframeUrl: string, windowOptions: any): void
-    {
-        if (this.elem && this.frameWindow == null) {
-            const win = new ItemFrameWindow(this.app, this.getItemId());
-
-            const options: ItemFrameWindowOptions = {
-                anchor: anchorElem,
-                url: iframeUrl,
-                onClose: () => { this.frameWindow = null },
-                closeIsHide: as.Bool(windowOptions.closeIsHide, false),
-                width: as.Int(windowOptions.width, 100),
-                height: as.Int(windowOptions.height, 100),
-                left: as.IntOrNull(windowOptions.left),
-                bottom: as.Int(windowOptions.bottom, 50),
-                resizable: as.Bool(windowOptions.rezizable, true),
-                undockable: as.Bool(windowOptions.undockable),
-                undocked: as.Bool(windowOptions.undocked),
-                transparent: as.Bool(windowOptions.transparent),
-                hidden: as.Bool(windowOptions.hidden),
-                titleText: this.getIframeWindowTitle(),
-            };
-
-            win.show(options);
-            this.frameWindow = win;
-        }
-    }
-
-    private getIframeWindowTitle(): string
-    {
-        return as.String(this.properties[Pid.Description] ?? this.properties[Pid.Label] ?? 'Item')
     }
 
     public positionFrame(width: number, height: number, left: number, bottom: number, options: any = null): void

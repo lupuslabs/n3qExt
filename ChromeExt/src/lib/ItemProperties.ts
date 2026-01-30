@@ -418,6 +418,16 @@ export class ItemProperties
         return frameOpts;
     }
 
+    static getIframeUrl(itemProps: ItemProperties): null|string
+    {
+        return as.StringOrNull(itemProps[Pid.IframeUrl], 1);
+    }
+
+    static getIframeWindowTitle(itemProps: ItemProperties): string
+    {
+        return as.String(itemProps[Pid.Description] ?? itemProps[Pid.Label] ?? 'Item');
+    }
+
     static getInventoryIframeUrl(item: ItemProperties): string
     {
         return as.String(item[Pid.InventoryIframeUrl]);
