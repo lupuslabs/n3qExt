@@ -377,6 +377,9 @@ export class Config
                 maintenanceIntervalSec: 1,
             },
         },
+        itemShop: {
+            systemShopEnabled: true,
+        },
         itemAutorezzer: {
             enabled: true,
             minItemRezIntervalSec: 0.5,
@@ -610,6 +613,7 @@ export class Config
                     'Menu.Settings': 'Settings',
                     'Menu.Stay Here': 'Stay on tab change',
                     'Menu.Backpack': 'Backpack',
+                    'Menu.Item Shop': 'Shop',
                     'Menu.BadgesEditMode': 'Badges',
                     'Menu.Chat Window': 'Chat History',
                     'Menu.Video Conference': 'Video Conference',
@@ -1023,6 +1027,7 @@ export class Config
                     'Menu.Settings': 'Einstellungen',
                     'Menu.Stay Here': 'Bleiben bei Tabwechsel',
                     'Menu.Backpack': 'Rucksack',
+                    'Menu.Item Shop': 'Shop',
                     'Menu.BadgesEditMode': 'Sticker',
                     'Menu.Chat Window': 'Chatverlauf',
                     'Menu.Video Conference': 'Videokonferenz',

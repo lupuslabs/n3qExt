@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.5.2', 'ContactVidconfButton', [
             ['Add', 'Videoconference button to Person item popup'],
+            ['Add', 'Item shop support and item shop in own avatar menu'],
             ['Fix', 'Display error message when /map command fails'],
             ['Change', 'Show URLs as plain text in /map output'],
             ['Change', 'Settings dialog: More space between headline and text left of the icon'],

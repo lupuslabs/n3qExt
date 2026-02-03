@@ -1,4 +1,5 @@
-﻿import { Utils } from '../lib/Utils';
+﻿import { iter } from '../lib/Iter'
+import { Utils } from '../lib/Utils';
 import { Environment } from '../lib/Environment';
 import { Config } from '../lib/Config';
 import { is } from '../lib/is';
@@ -10,11 +11,13 @@ import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { TutorialWindow } from './TutorialWindow';
 import { AboutWindow } from './AboutWindow';
 import { SimpleToast } from './Toast';
+import { ItemProperties } from '../lib/ItemProperties'
 import { ItemException } from '../lib/ItemException'
 import * as checkboxUncheckedIconUrl from '../assets/icons/checkbox-unchecked.svg';
 import * as checkboxCheckedIconUrl from '../assets/icons/checkbox-checked.svg';
 import * as getWeblinIconUrl from '../assets/icons/weblin.png';
 import * as backpackIconUrl from '../assets/icons/bi_grid-3x2-gap-fill.svg';
+import * as itemShopIconUrl from '../assets/icons/ItemShop.svg';
 import * as badgesEditModeIconUrl from '../assets/icons/ic_badgesEditMode.svg';
 import * as settingsIconUrl from '../assets/icons/ic_baseline-settings.svg';
 import * as videoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
@@ -50,6 +53,16 @@ export class OwnParticipantMenu extends ParticipantMenu
                 }
             };
             this.addActionItem('badgesEditMode', 'BadgesEditMode', badgesEditModeIconUrl, true, onClick);
+        }
+
+        if (Utils.isSystemItemShopEnabled()) {
+            const systemShopItem = iter(this.app.ownItems.getAllItems().values())
+                .filter(ItemProperties.isSystemItemShop)
+                .getNext();
+            if (systemShopItem) {
+                const openShopFun = () => this.app.itemFrames.openItemFrame(systemShopItem, this.participant.getElem())
+                this.addActionItem('systemItemShop', 'Item Shop', itemShopIconUrl, true, openShopFun);
+            }
         }
 
         this.addSeparatorItem('separator');

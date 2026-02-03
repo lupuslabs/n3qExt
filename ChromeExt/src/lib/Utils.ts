@@ -82,6 +82,11 @@ export class Utils
         return this.isBackpackEnabled() && Config.get('badges.enabled', false);
     }
 
+    static isSystemItemShopEnabled()
+    {
+        return this.isBackpackEnabled() && Config.get('itemShop.systemShopEnabled', false);
+    }
+
     static parseStringMap(s) {
         const o = {};
         const lines = s.split(' ');

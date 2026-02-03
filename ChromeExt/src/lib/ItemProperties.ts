@@ -135,6 +135,7 @@ export enum Pid
     PropertiesUrlRefreshInterval = 'PropertiesUrlRefreshInterval',
     ThemeAspect = 'ThemeAspect',
     ThemeCss = 'ThemeCss',
+    ItemShopAspect = 'ItemShopAspect',
 }
 
 export function isPid(value: unknown): value is Pid
@@ -619,6 +620,20 @@ export class ItemProperties
         }
     }
 
+    static isN3qSystemItem(itemProps: ItemProperties): boolean
+    {
+        return as.Bool(itemProps[Pid.N3qAspect]);
+    }
+
+    static isItemShop(itemProps: ItemProperties): boolean
+    {
+        return as.Bool(itemProps[Pid.ItemShopAspect]);
+    }
+
+    static isSystemItemShop(itemProps: ItemProperties): boolean
+    {
+        return ItemProperties.isN3qSystemItem(itemProps) && ItemProperties.isItemShop(itemProps);
+    }
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }
