@@ -315,6 +315,7 @@ export class IframeApi
                 WeblinClientIframeApi.WindowSetStyleRequest.type,
                 WeblinClientIframeApi.WindowPositionRequest.type,
                 WeblinClientIframeApi.WindowToFrontRequest.type,
+                WeblinClientIframeApi.WindowSetTitleRequest.type,
                 WeblinClientIframeApi.ClientBaseCssRequest.type,
                 WeblinClientIframeApi.BackpackSetVisibilityRequest.type,
                 WeblinClientIframeApi.PageDomQueryRequest.type,
@@ -461,6 +462,7 @@ export class IframeApi
                 case WeblinClientIframeApi.WindowSetStyleRequest.type: { response = this.handle_WindowSetStyleRequest(<WeblinClientIframeApi.WindowSetStyleRequest>request); } break;
                 case WeblinClientIframeApi.WindowPositionRequest.type: { response = this.handle_WindowPositionRequest(<WeblinClientIframeApi.WindowPositionRequest>request); } break;
                 case WeblinClientIframeApi.WindowToFrontRequest.type: { response = this.handle_WindowToFrontRequest(<WeblinClientIframeApi.WindowToFrontRequest>request); } break;
+                case WeblinClientIframeApi.WindowSetTitleRequest.type: { response = this.handle_WindowSetTitleRequest(<WeblinClientIframeApi.WindowSetTitleRequest>request); } break;
                 case WeblinClientIframeApi.ClientBaseCssRequest.type: { response = this.handle_ClientBaseCssRequest(<WeblinClientIframeApi.ClientBaseCssRequest>request); } break;
                 case WeblinClientIframeApi.BackpackSetVisibilityRequest.type: { response = this.handle_BackpackSetVisibilityRequest(<WeblinClientIframeApi.BackpackSetVisibilityRequest>request); } break;
                 case WeblinClientIframeApi.ClientNavigateRequest.type: { response = this.handle_ClientNavigateRequest(<WeblinClientIframeApi.ClientNavigateRequest>request); } break;
@@ -516,6 +518,17 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowSetStyleRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_WindowSetTitleRequest(request: WeblinClientIframeApi.WindowSetTitleRequest): WeblinClientApi.Response
+    {
+        try {
+            this.app.itemFrames.getItemFrameWindow(request.item)?.setTitleText(request.title);
+            return new WeblinClientApi.SuccessResponse();
+        } catch (ex) {
+            log.info('IframeApi.handle_WindowSetTitleRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }

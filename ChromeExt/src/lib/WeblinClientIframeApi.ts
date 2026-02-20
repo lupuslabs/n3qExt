@@ -76,6 +76,13 @@ export namespace WeblinClientIframeApi
         layer?: number;
     }
 
+    export class WindowSetTitleRequest extends Request
+    {
+        static type = 'Window.SetTitle';
+        item: string;
+        title: string;
+    }
+
     export class BackpackSetVisibilityRequest extends Request
     {
         static type = 'Backpack.SetVisibility';
