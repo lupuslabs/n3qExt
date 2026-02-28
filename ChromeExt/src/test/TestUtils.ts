@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Utils } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import * as ltx from 'ltx';
 
 export class TestUtils
@@ -97,4 +97,11 @@ export class TestUtils
         // console.log(Utils.hash('a'));
     }
 
+    prepareValForMessage()
+    {
+        const testError = new ErrorWithData('Error message!', {debugString1: 'debug string 1'});
+        const result = Utils.prepareValForMessage(testError);
+        expect(result.message).to.equal('Error message!');
+        expect(result.debugString1).to.equal('debug string 1');
+    }
 }

@@ -250,7 +250,7 @@ export class Utils
         }
         if (is.object(val)) {
             const mangled = {};
-            for (const prop in val) {
+            for (const prop of Object.getOwnPropertyNames(val)) {
                 const pVal = val[prop];
                 if (stack.includes(pVal)) {
                     // Ignore because can't serialize circular references.
