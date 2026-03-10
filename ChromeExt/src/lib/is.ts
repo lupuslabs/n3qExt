@@ -18,7 +18,7 @@ export class is {
 
     static nonEmptyString(val: unknown): val is string
     {
-        return this.string(val) && val.length !== 0
+        return is.string(val) && val.length !== 0
     }
 
     static boolean(val: unknown): val is boolean
@@ -45,13 +45,13 @@ export class is {
 
     static object(val: unknown): val is {[p: string|symbol]: unknown}
     {
-        return !this.nil(val) && typeof val === is.typeObject
+        return !is.nil(val) && typeof val === is.typeObject
     }
 
     static stringsObject(val: unknown): val is {[p: string]: string}
     {
-        return this.object(val)
-            && !Object.entries(val).some(([k, v]) => !this.string(k) || !this.string(v))
+        return is.object(val)
+            && !Object.entries(val).some(([k, v]) => !is.string(k) || !is.string(v))
     }
 
     static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is Array<T>

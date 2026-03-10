@@ -76,6 +76,9 @@ export class RoomItem extends Entity
         this.avatarDisplay?.stop();
         this.hideStatsDisplay(0);
         this.closeFrame();
+        if (!this.isMyItem()) {
+            this.app.itemFrames.handleOtherItemGone(this.getItemId())
+        }
         super.remove();
     }
 

@@ -2,7 +2,8 @@ import { is } from '../lib/is'
 import { as } from '../lib/as'
 import { ErrorWithData } from '../lib/Utils'
 import { Config } from '../lib/Config'
-import { ItemProperties } from '../lib/ItemProperties'
+import { ItemProperties, Pid } from '../lib/ItemProperties'
+import { ItemUpdateSubscription } from '../lib/ItemUpdateSubscription'
 import { BackpackUpdateEventData } from './OwnItemRepository'
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi'
 import { ContentApp } from './ContentApp'
@@ -13,11 +14,19 @@ import { WeblinClientApi } from '../lib/WeblinClientApi'
 
 export class NotAnOpenableItemFrameError extends ErrorWithData {}
 
+type ItemFrameInfo = {
+    readonly itemId: string,
+    readonly window: IItemFrameWindow,
+    titleOverridden: boolean,
+    readonly itemUpdateSubscriptions: ItemUpdateSubscription[],
+    readonly sentItemIds: Set<string>,
+}
+
 export class ContentItemFrames {
     // Todo: Move most inventory item frame handling here.
 
     private readonly app: ContentApp
-    private readonly itemFrameWindows: Map<string,IItemFrameWindow> = new Map()
+    private readonly itemFrameWindows: Map<string,ItemFrameInfo> = new Map()
     private readonly onOwnItemsChanged: (eventData: BackpackUpdateEventData) => void
     private readonly onThemesChanged: () => void
 
@@ -32,14 +41,14 @@ export class ContentItemFrames {
     public stop(): void {
         this.app.themeManager.themesChangedListeners.removeListener(this.onThemesChanged)
         this.app.ownItems.backpackUpdateListeners.removeListener(this.onOwnItemsChanged)
-        for (const frame of [...this.itemFrameWindows.values()]) {
-            frame.close()
+        for (const frameInfo of [...this.itemFrameWindows.values()]) {
+            frameInfo.window.close()
         }
         this.itemFrameWindows.clear()
     }
 
     public getItemFrameWindow(itemId: string): null|IItemFrameWindow {
-        return this.itemFrameWindows.get(itemId) ?? null
+        return this.itemFrameWindows.get(itemId)?.window ?? null
     }
 
     public openItemFrame(
@@ -48,7 +57,8 @@ export class ContentItemFrames {
     ): IItemFrameWindow {
         const itemId = ItemProperties.getId(properties)
         iframeOptions ??= ItemProperties.getParsedIframeOptions(properties)
-        if ((iframeOptions.ownerOnly ?? false) && !this.app.ownItems.getItemById(itemId)) {
+        const isOwnItem = !!this.app.ownItems.getItemById(itemId)
+        if ((iframeOptions.ownerOnly ?? false) && !isOwnItem) {
             throw new NotAnOpenableItemFrameError('Can\tt open item frame: Owner only!', {properties})
         }
 
@@ -65,7 +75,7 @@ export class ContentItemFrames {
             anchor = null
         }
 
-        this.itemFrameWindows.get(itemId)?.close()
+        this.itemFrameWindows.get(itemId)?.window.close()
         const onCloseTracked = () => {
             this.itemFrameWindows.delete(itemId)
             onClose?.()
@@ -108,44 +118,107 @@ export class ContentItemFrames {
                 break
             }
         }
-        this.itemFrameWindows.set(itemId, frame)
+        const frameInfo: ItemFrameInfo = {
+            itemId,
+            window: frame,
+            titleOverridden: false,
+            itemUpdateSubscriptions: [],
+            sentItemIds: new Set(),
+        }
+        const itemSubscription: ItemUpdateSubscription = new ItemUpdateSubscription(isOwnItem, !isOwnItem, [[Pid.Id, itemId]], [])
+        frameInfo.itemUpdateSubscriptions.push(itemSubscription)
+        this.itemFrameWindows.set(itemId, frameInfo)
         return frame
     }
 
     public closeItemFrameWithNotification(itemId: string): void {
-        const itemFrameWindow = this.itemFrameWindows.get(itemId)
-        if (itemFrameWindow) {
+        const frameInfo = this.itemFrameWindows.get(itemId)
+        if (frameInfo) {
             const messagePrepared = this.prepareMessageForItemFrame(new WeblinClientApi.Message('Window.Close'))
-            itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
-            window.setTimeout(() => itemFrameWindow.close(), 100)
+            frameInfo.window.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+            window.setTimeout(() => frameInfo.window.close(), 100)
+        }
+    }
+
+    public handleSetTitleRequest(itemId: string, title: string): void {
+        const frameInfo = this.itemFrameWindows.get(itemId)
+        if (!frameInfo) {
+            return
+        }
+        frameInfo.window.setTitleText(title)
+        frameInfo.titleOverridden = true
+    }
+
+    public handleSubscribeToUpdatesRequest(itemId: string, subscriptions: ReadonlyArray<ItemUpdateSubscription>): void {
+        const frameInfo = this.itemFrameWindows.get(itemId)
+        frameInfo?.itemUpdateSubscriptions.push(...subscriptions)
+
+        // Send all matching items:
+        for (const item of this.app.ownItems.getAllItems().values()) {
+            this.handleItemChangeForFrame(item, true, frameInfo)
+        }
+        const room = this.app.getRoom()
+        for (const item of room?.getItemIds().map(itemId => room.getItemByItemId(itemId).getProperties()) ?? []) {
+            this.handleItemChangeForFrame(item, false, frameInfo)
         }
     }
 
     public handleOtherItemChanged(item: Readonly<ItemProperties>): void {
-        this.handleItemChange(item)
+        this.handleItemChange(item, false)
+    }
+
+    public handleOtherItemGone(itemId: string): void {
+        for (const frameInfo of this.itemFrameWindows.values()) {
+            this.handleItemGoneForFrame(itemId, frameInfo)
+        }
     }
 
     private handleOwnItemsChanged(eventData: BackpackUpdateEventData): void {
         for (const item of eventData.itemsDeleted) {
-            this.handleItemDeletion(item)
+            this.handleItemDeletion(ItemProperties.getId(item))
         }
         for (const item of eventData.itemsNewOrChanged) {
-            this.handleItemChange(item)
+            this.handleItemChange(item, true)
         }
     }
 
-    private handleItemDeletion(item: Readonly<ItemProperties>): void {
-        this.itemFrameWindows.get(ItemProperties.getId(item))?.close()
+    private handleItemDeletion(itemId: string): void {
+        this.itemFrameWindows.get(itemId)?.window.close()
+        for (const frameInfo of this.itemFrameWindows.values()) {
+            this.handleItemGoneForFrame(itemId, frameInfo)
+        }
     }
 
-    private handleItemChange(item: Readonly<ItemProperties>): void {
-        const itemId = ItemProperties.getId(item)
-        const itemFrameWindow = this.itemFrameWindows.get(itemId)
-        if (!itemFrameWindow) {
+    private handleItemGoneForFrame(itemId: string, frameInfo: ItemFrameInfo): void {
+        if (!frameInfo.sentItemIds.has(itemId)) {
             return
         }
-        itemFrameWindow.setTitleText(ItemProperties.getIframeWindowTitle(item))
-        this.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ItemPropertiesChangedNotification(itemId, item))
+        const message = new WeblinClientIframeApi.ItemGoneNotification(itemId)
+        const messagePrepared = this.prepareMessageForItemFrame(message)
+        frameInfo.window.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+    }
+
+    private handleItemChange(item: Readonly<ItemProperties>, isOwnItem: boolean): void {
+        const itemId = ItemProperties.getId(item)
+        const frameInfo = this.itemFrameWindows.get(itemId)
+        if (frameInfo && !frameInfo.titleOverridden) {
+            frameInfo.window.setTitleText(ItemProperties.getIframeWindowTitle(item))
+        }
+        for (const frameInfo of this.itemFrameWindows.values()) {
+            this.handleItemChangeForFrame(item, isOwnItem, frameInfo)
+        }
+    }
+
+    private handleItemChangeForFrame(item: Readonly<ItemProperties>, isOwnItem: boolean, frameInfo: ItemFrameInfo): void {
+        const propertiesToSend = ItemUpdateSubscription.getPropertiesToSendBySubscriptions(frameInfo.itemUpdateSubscriptions, item, isOwnItem)
+        if (!propertiesToSend) {
+            return
+        }
+        const itemId = ItemProperties.getId(item)
+        frameInfo.sentItemIds.add(itemId)
+        const message = new WeblinClientIframeApi.ItemPropertiesChangedNotification(itemId, propertiesToSend)
+        const messagePrepared = this.prepareMessageForItemFrame(message)
+        frameInfo.window.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
     }
 
     private sendThemeCssToAllFrames(): void {
@@ -154,18 +227,18 @@ export class ContentItemFrames {
     }
 
     public sendMessageToScriptFrame(itemId: string, message: WeblinClientApi.Message): void {
-        const itemFrameWindow = this.itemFrameWindows.get(itemId)
-        if (itemFrameWindow) {
+        const frameInfo = this.itemFrameWindows.get(itemId)
+        if (frameInfo) {
             const messagePrepared = this.prepareMessageForItemFrame(message)
-            itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+            frameInfo.window.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
         }
     }
 
     public sendMessageToAllScriptFrames(message: WeblinClientApi.Message): void {
         if (this.itemFrameWindows.size !== 0) {
             const messagePrepared = this.prepareMessageForItemFrame(message)
-            for (const itemFrameWindow of this.itemFrameWindows.values()) {
-                itemFrameWindow.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
+            for (const frameInfo of this.itemFrameWindows.values()) {
+                frameInfo.window.getIframeElem()?.contentWindow?.postMessage(messagePrepared, '*')
             }
         }
     }

@@ -17,6 +17,7 @@ import { TestPointsGenerator } from './TestPointsGenerator'; s.addTestClass(Test
 import { TestItemProperties } from './TestItemProperties'; s.addTestClass(TestItemProperties);
 import { TestOrderedSet } from './TestOrderedSet'; s.addTestClass(TestOrderedSet);
 import { TestUrlRe } from './TestUrlRe'; s.addTestClass(TestUrlRe);
+import { TestItemUpdateSubscription } from './TestItemUpdateSubscription'; s.addTestClass(TestItemUpdateSubscription);
 
 s.run().then(() =>
 {

@@ -1,4 +1,5 @@
 import { ItemProperties } from './ItemProperties';
+import { ItemUpdateSubscription } from './ItemUpdateSubscription'
 import { WeblinClientApi } from './WeblinClientApi';
 
 export namespace WeblinClientIframeApi
@@ -195,6 +196,13 @@ export namespace WeblinClientIframeApi
     }
     export class RoomGetInfoResponse extends WeblinClientApi.ContentResponse { constructor(public info: RoomInfo) { super('Room.Info'); } }
 
+    export class ItemSubscribeToUpdatesRequest extends Request
+    {
+        static type = 'Item.SubscribeToUpdates';
+        item: string;
+        subscriptions: Partial<ItemUpdateSubscription>[];
+    }
+
     export class ItemGetPropertiesRequest extends Request
     {
         static type = 'Item.GetProperties';
@@ -221,6 +229,8 @@ export namespace WeblinClientIframeApi
     export class ItemEventNotification extends WeblinClientApi.Message { constructor(public item: ItemData, public data: any) { super('Item.Event'); } }
 
     export class ItemPropertiesChangedNotification extends WeblinClientApi.Message { constructor(public itemId: string, public properties: ItemProperties) { super('Item.Properties'); } }
+
+    export class ItemGoneNotification extends WeblinClientApi.Message { constructor(public itemId: string) { super('Item.Gone'); } }
 
     export class ClientNavigateRequest extends Request
     {

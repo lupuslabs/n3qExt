@@ -5,6 +5,7 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Config } from '../lib/Config';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
+import { ItemUpdateSubscription } from '../lib/ItemUpdateSubscription'
 import { Utils } from '../lib/Utils';
 import { WeblinClientApi } from '../lib/WeblinClientApi';
 import { WeblinClientIframeApi } from '../lib/WeblinClientIframeApi';
@@ -444,6 +445,7 @@ export class IframeApi
                 case WeblinClientApi.ClientCreateItemRequest.type: { response = await this.handle_ClientCreateItemRequest(<WeblinClientApi.ClientCreateItemRequest>request); } break;
                 case WeblinClientApi.ClientCreateAvatarRequest.type: { response = await this.handle_ClientCreateAvatarRequest(<WeblinClientApi.ClientCreateAvatarRequest>request); } break;
                 case WeblinClientApi.ClientGetApiRequest.type: { response = await this.handle_ClientGetApiRequest(<WeblinClientApi.ClientGetApiRequest>request); } break;
+                case WeblinClientIframeApi.ItemSubscribeToUpdatesRequest.type: { response = this.handle_ItemSubscribeToUpdatesRequest(itemId, <WeblinClientIframeApi.ItemSubscribeToUpdatesRequest>request); } break;
                 case WeblinClientIframeApi.ItemGetPropertiesRequest.type: { response = this.handle_ItemGetPropertiesRequest(<WeblinClientIframeApi.ItemGetPropertiesRequest>request); } break;
                 case WeblinClientIframeApi.ItemSetPropertyRequest.type: { response = this.handle_ItemSetPropertyRequest(<WeblinClientIframeApi.ItemSetPropertyRequest>request); } break;
                 case WeblinClientIframeApi.ItemSetStateRequest.type: { response = this.handle_ItemSetStateRequest(<WeblinClientIframeApi.ItemSetStateRequest>request); } break;
@@ -525,7 +527,7 @@ export class IframeApi
     handle_WindowSetTitleRequest(request: WeblinClientIframeApi.WindowSetTitleRequest): WeblinClientApi.Response
     {
         try {
-            this.app.itemFrames.getItemFrameWindow(request.item)?.setTitleText(request.title);
+            this.app.itemFrames.handleSetTitleRequest(request.item, request.title);
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_WindowSetTitleRequest', ex);
@@ -637,6 +639,18 @@ export class IframeApi
             return new WeblinClientApi.SuccessResponse();
         } catch (ex) {
             log.info('IframeApi.handle_ItemRangeRequest', ex);
+            return new WeblinClientApi.ErrorResponse(ex);
+        }
+    }
+
+    handle_ItemSubscribeToUpdatesRequest(itemId: string, request: WeblinClientIframeApi.ItemSubscribeToUpdatesRequest): WeblinClientApi.Response
+    {
+        try {
+            const subscriptions = as.FlatArray(ItemUpdateSubscription.fromObject, request.subscriptions);
+            this.app.itemFrames.handleSubscribeToUpdatesRequest(itemId, subscriptions);
+            return new WeblinClientApi.SuccessResponse();
+        } catch (ex) {
+            log.info('IframeApi.handle_ItemSubscribeToUpdatesRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);
         }
     }
