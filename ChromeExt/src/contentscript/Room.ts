@@ -276,13 +276,13 @@ export class Room
 
         if (entity) {
             entity.onPresenceAvailable(stanza);
+        }
 
-            if (isSelf && !this.isEntered) {
-                this.myNick = resource;
-                this.isEntered = true;
-                this.keepAlive();
-                this.app.reshowVidconfWindow();
-            }
+        if (!isItem && isSelf && !this.isEntered) {
+            this.myNick = resource;
+            this.isEntered = true;
+            this.keepAlive();
+            this.app.onRoomEntered();
         }
 
         {

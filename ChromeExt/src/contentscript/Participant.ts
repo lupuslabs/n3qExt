@@ -66,8 +66,10 @@ export class Participant extends Entity
             this.canReceiveItems = Utils.isBackpackEnabled();
             this.supportsPersonApi = Utils.isBackpackEnabled();
             this.elem.classList.add('participant-self');
-            this.showIntroYouOnce().catch(error => this.app.onError(error));
-            this.showTutorialOnce().catch(error => this.app.onError(error));
+            if (!this.app.getIsExclusiveWindowPopup()) {
+                this.showIntroYouOnce().catch(error => this.app.onError(error));
+                this.showTutorialOnce().catch(error => this.app.onError(error));
+            }
         } else {
             this.elem.classList.add('participant-other');
         }

@@ -21,6 +21,7 @@ export namespace ContentMessage
     export const type_friendshipProposalsState = 'friendshipProposalsState';
     export const type_themes = 'themes';
     export const type_setGuiMode = 'setGuiMode';
+    export const type_enterRoom = 'enterRoom';
     export const type_openInstantMessagesWindow = 'openInstantMessagesWindow';
     export const type_openPersonsWindow = 'openPersonsWindow';
     export const type_openBackpackItemInfo = 'openBackpackItemInfo';
@@ -48,6 +49,12 @@ export type ContentAppGuiMode = 'full' | 'popupWindow'
 export type ContentSetGuiModeMessage = {
     type: typeof ContentMessage.type_setGuiMode
     mode: ContentAppGuiMode
+}
+
+export type ContentEnterRoomMessage = {
+    type: typeof ContentMessage.type_enterRoom
+    pageUrl: string
+    showChatWindow?: boolean
 }
 
 export type ContentOpenInstantMessagesWindowMessage = {

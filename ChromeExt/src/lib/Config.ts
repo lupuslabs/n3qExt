@@ -442,6 +442,12 @@ export class Config
             undockedLeft: 100,
             undockedTop: 100,
         },
+        roomChat: {
+            undockedWidth: 630,
+            undockedHeight: 530,
+            undockedLeft: 100,
+            undockedTop: 100,
+        },
         friendshipProposals: {
             enabled: true,
         },
@@ -675,6 +681,10 @@ export class Config
                     '/do deny': '*denies*',
                     '/do agree': '*agrees*',
                     '/do yawn': '*yawns*',
+
+                    'RoomChat.RoomChatTitle': 'Chat',
+                    'RoomChat.RoomChatTitleWhenUndocked': 'Chat - {room}',
+                    'RoomChat.GoToPage': 'Go to page',
 
                     'PrivateChat.Private Chat with': 'Private Chat with {other}',
                     'PrivateChat.newMessageToastTitle': 'Unread private chat from {otherUserName}',
@@ -1089,6 +1099,10 @@ export class Config
                     '/do deny': '*lehnt ab*',
                     '/do agree': '*stimmt zu*',
                     '/do yawn': '*gähnt*',
+
+                    'RoomChat.RoomChatTitle': 'Chat',
+                    'RoomChat.RoomChatTitleWhenUndocked': 'Chat - {room}',
+                    'RoomChat.GoToPage': 'Seite öffnen',
 
                     'PrivateChat.Private Chat with': 'Privater Chat mit {other}',
                     'PrivateChat.newMessageToastTitle': 'Privater Chat von {otherUserName}',

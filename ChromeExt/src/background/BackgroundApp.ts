@@ -516,6 +516,11 @@ export class BackgroundApp
                 return this.handle_isTabDisabled(tabId, request.pageUrl);
             } break;
 
+            case BackgroundMessage.focusOrOpenTab.name: {
+                await this.tabs.focusOrOpenTab(request.pageUrl, request.roomUrl);
+                return new BackgroundSuccessResponse();
+            } break;
+
             case BackgroundMessage.setThemeState.name: {
                 this.themeManager.onSetThemeStateFromContent(request);
                 return new BackgroundSuccessResponse();

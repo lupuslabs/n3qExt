@@ -26,8 +26,10 @@ export class Entity
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
         this.elem = DomUtils.elemOfHtml('<div class="entity hidden"></div>');
-        app.getDisplay()?.append(this.elem);
-        this.app.toFront(this.elem, ContentApp.LayerEntity);
+        if (!app.getIsExclusiveWindowPopup()) {
+            app.getDisplay()?.append(this.elem);
+            this.app.toFront(this.elem, ContentApp.LayerEntity);
+        }
     }
 
     getRoom(): Room { return this.room; }

@@ -27,7 +27,9 @@ export type SendInstantMessageBackgroundRequest = BackgroundRequest & {
 }
 
 export type TabStats = {
+    isExclusiveWindowPopup: boolean,
     isInRoom: boolean,
+    pageUrl: null|string,
     roomUrl: null|string,
     roomJid: null|string,
     participantCount:  number, // Other participants present in the same room.
@@ -39,7 +41,9 @@ export type TabStats = {
 export function makeZeroTabStats(): TabStats
 {
     return {
+        isExclusiveWindowPopup: false,
         isInRoom: false,
+        pageUrl: null,
         roomUrl: null,
         roomJid: null,
         toastCount: 0,
@@ -558,6 +562,12 @@ export class BackgroundMessage
         const request = { type: BackgroundMessage.isTabDisabled.name, 'pageUrl': pageUrl }
         const response = await BackgroundMessage.sendMessageCheckOk<IsTabDisabledResponse>(request)
         return response.isDisabled
+    }
+
+    static async focusOrOpenTab(pageUrl: string, roomUrl: null|string = null): Promise<void>
+    {
+        const request = { type: BackgroundMessage.focusOrOpenTab.name, pageUrl, roomUrl }
+        await BackgroundMessage.sendMessageCheckOk(request)
     }
 
     static async setThemeState(themeId: string, isEnabled: boolean): Promise<void>

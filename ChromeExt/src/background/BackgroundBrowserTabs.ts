@@ -205,6 +205,26 @@ export class BackgroundBrowserTabs
         return this.tabs.get(tabId)
     }
 
+    public async focusOrOpenTab(pageUrl: string, roomUrl: null|string = null): Promise<void> {
+        const connectedTabs = this.getAllTabs()
+            .filter(tab => !tab.getStats().isExclusiveWindowPopup)
+            .toArray()
+        const existing = connectedTabs.find(tab => tab.getStats().pageUrl === pageUrl)
+            ?? (roomUrl ? connectedTabs.find(tab => tab.getStats().roomUrl === roomUrl) : null)
+            ?? null
+        if (existing) {
+            if (this.browserTabsSupported) {
+                const tabId = existing.getTabId()
+                const windowId = existing.getWindowId()
+                await new Promise<boolean>(resolve => chrome.tabs.update(tabId, {active: true}, () => {
+                    chrome.windows.update(windowId, {focused: true}, () => resolve(!chrome.runtime.lastError))
+                }))
+            }
+        } else {
+            await this.openTab(pageUrl, true)
+        }
+    }
+
     public async openTab(url: string, active: boolean): Promise<null|BackgroundBrowserTab> {
         if (this.browserTabsSupported) {
             return await new Promise<BackgroundBrowserTab>(resolve => {
@@ -328,7 +348,6 @@ export class BackgroundBrowserTabs
         }
         tabData.isContentConnected = false
         tabData.isContentReady = false
-        this.clearTabStats(tabId)
         this.callableTabContentStopListeners.callListeners(this.tabs.get(tabId))
     }
 

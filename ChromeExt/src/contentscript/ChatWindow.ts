@@ -108,6 +108,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             lineElem.appendChild(vidconfButton);
         }
 
+        this.makeExtraHeaderButtons(lineElem);
+
         const checkboxId = DomUtils.makeUniqueElemId();
         const soundOptionWrapper = DomUtils.elemOfHtml('<div class="chat-sound-option" data-translate="children" />');
         const soundLabel = DomUtils.elemOfHtml(`<label class="label" for="${checkboxId}" title="Enable Sound" data-translate="attr:title:Chatwindow text:Chatwindow">Sound</label>`);
@@ -134,6 +136,10 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         //     retentionInfoElem.innerText = text;
         // }
         // lineElem.appendChild(retentionInfoElem);
+    }
+
+    protected makeExtraHeaderButtons(lineElem: HTMLElement): void
+    {
     }
 
     protected makeVidconfButton(): null|HTMLElement

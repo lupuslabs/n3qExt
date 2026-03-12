@@ -25,6 +25,7 @@ import {
     ContentMessage,
     ContentOpenInstantMessagesWindowMessage,
     ContentSetGuiModeMessage,
+    ContentEnterRoomMessage,
     ContentOpenBackpackItemInfo,
 } from '../lib/ContentMessage';
 import { Environment } from '../lib/Environment';
@@ -109,6 +110,7 @@ export class ContentApp extends AppWithDom
     private isGuiEnabled: boolean = false;
     private isExclusiveWindowPopup: boolean = false;
     private exclusiveWindowId: null|string = null;
+    private showRoomChatWindowOnEntry: boolean = false;
     private userId: string = '';
     private userName: string = '';
     private pageUrl: string;
@@ -467,7 +469,9 @@ export class ContentApp extends AppWithDom
         if (this.isStopped || !this.tabContentData.getIsInitialized()) {
             return; // Stopped or not fully started up yet.
         }
+        const isExclusiveWindowPopup = this.isExclusiveWindowPopup;
         const isInRoom = this.room?.iAmAlreadyHere() ?? false;
+        const pageUrl = this.presetPageUrl ?? Browser.getCurrentPageUrl();
         const roomUrl = this.room?.getDestination() ?? null;
         const roomJid = this.room?.getJid() ?? null;
         const participantIds = this.room?.getParticipantIds() ?? [];
@@ -476,7 +480,7 @@ export class ContentApp extends AppWithDom
         const hasNewGroupChat = (this.room?.getChatWindow().getUnreadUserMessageCount(maxChatAgeSecs) ?? 0) !== 0;
         const hasNewPrivateChat = this.instantMessageManager.getUnreadUserMessageCount(maxChatAgeSecs) !== 0;
         const toastCount = this.toasts.size;
-        const stats: TabStats = { isInRoom, roomUrl, roomJid, participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
+        const stats: TabStats = { isExclusiveWindowPopup, isInRoom, pageUrl, roomUrl, roomJid, participantCount, hasNewGroupChat, hasNewPrivateChat, toastCount };
         const tabContentData = this.tabContentData.getAll();
         BackgroundMessage.sendTabStatsToBackground(stats, tabContentData).catch(error => this.onError(error));
     }
@@ -516,7 +520,9 @@ export class ContentApp extends AppWithDom
 
     reshowBackpackWindow(): void
     {
-        if (this.backpackIsOpen) { this.showBackpackWindow(); }
+        if (!this.isExclusiveWindowPopup && this.backpackIsOpen) {
+            this.showBackpackWindow();
+        }
     }
     showBackpackWindow(aboveElem?: HTMLElement): void
     {
@@ -535,7 +541,9 @@ export class ContentApp extends AppWithDom
 
     private reshowPersonsWindow(): void
     {
-        if (this.personsIsOpen) { this.setPersonsWindowOpen(true); }
+        if (!this.isExclusiveWindowPopup && this.personsIsOpen) {
+            this.setPersonsWindowOpen(true);
+        }
     }
     public setPersonsWindowOpen(open: boolean): void
     {
@@ -553,11 +561,21 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    reshowVidconfWindow(): void
+    public onRoomEntered(): void
     {
-        if (this.vidconfIsOpen) { this.showVidconfWindow(); } // must be after enter
+        if (this.showRoomChatWindowOnEntry) {
+            this.room?.showChatWindow();
+        }
+        this.reshowVidconfWindow();
     }
-    showVidconfWindow(aboveElem?: HTMLElement): void
+
+    private reshowVidconfWindow(): void
+    {
+        if (!this.isExclusiveWindowPopup && this.vidconfIsOpen) {
+            this.showVidconfWindow(); // must be after enter
+        }
+    }
+    public showVidconfWindow(aboveElem?: HTMLElement): void
     {
         const aboveElemM = aboveElem ?? this.getMyParticipantELem();
         const participant: Participant = this.getMyParticipant();
@@ -567,11 +585,13 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    reshowChatWindow(): void
+    private reshowChatWindow(): void
     {
-        if (this.chatIsOpen) { this.room.showChatWindow(); }
+        if (!this.isExclusiveWindowPopup && this.chatIsOpen) {
+            this.room?.showChatWindow();
+        }
     }
-    toggleChatWindow(aboveElem?: HTMLElement): void
+    public toggleChatWindow(aboveElem?: HTMLElement): void
     {
         aboveElem = aboveElem ?? this.getMyParticipantELem();
         this.room.toggleChatWindow(aboveElem);
@@ -785,6 +805,12 @@ export class ContentApp extends AppWithDom
                 case ContentMessage.type_openInstantMessagesWindow: {
                     const otherPerson = (<ContentOpenInstantMessagesWindowMessage> message).otherPerson;
                     this.instantMessageManager.openInstantMessagesWindow(otherPerson);
+                } break;
+                case ContentMessage.type_enterRoom: {
+                    const enterRoomMsg = <ContentEnterRoomMessage> message;
+                    this.presetPageUrl = enterRoomMsg.pageUrl;
+                    this.roomEnabled = true;
+                    this.showRoomChatWindowOnEntry = enterRoomMsg.showChatWindow ?? false;
                 } break;
                 case ContentMessage.type_openPersonsWindow: {
                     this.setPersonsWindowOpen(true);
