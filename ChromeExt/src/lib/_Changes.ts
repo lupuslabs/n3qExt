@@ -10,6 +10,7 @@ export class _Changes
             ['Add', 'Videoconference button to Person item popup'],
             ['Fix', 'Display error message when /map command fails'],
             ['Change', 'Show URLs as plain text in /map output'],
+            ['Change', 'Settings dialog: More space between headline and text left of the icon'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],
