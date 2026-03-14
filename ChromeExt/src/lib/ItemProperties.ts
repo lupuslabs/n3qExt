@@ -1,12 +1,12 @@
 import log = require('loglevel');
-import { as } from './as';
-import { Utils } from './Utils';
 import { is } from './is';
+import { as } from './as';
+import { iterOfIters } from './Iter'
+import { Utils } from './Utils';
 import { Config } from './Config';
 const NodeRSA = require('node-rsa');
 
 import * as defaultItemImageUrl from '../assets/DefaultItem.png'
-import { iterOfIters } from './Iter'
 
 export enum Pid
 {
@@ -136,6 +136,10 @@ export enum Pid
     ThemeAspect = 'ThemeAspect',
     ThemeCss = 'ThemeCss',
     ItemShopAspect = 'ItemShopAspect',
+    StatBoostAspect = 'StatBoostAspect',
+    StatBoostStat = 'StatBoostStat',
+    StatBoostValue = 'StatBoostValue',
+    StatBoostMax = 'StatBoostMax',
 }
 
 export function isPid(value: unknown): value is Pid
@@ -197,6 +201,12 @@ export type BadgeIframeData = Readonly<{
 export type ItemPropertiesUrlData = Readonly<{
     propertiesUrl: string
     refreshInterval: number
+}>
+
+export type ItemStatBoost = Readonly<{
+    statBoostStat: string,
+    statBoostValue: number,
+    statBoostMax: null|number,
 }>
 
 export class ItemProperties
@@ -633,6 +643,20 @@ export class ItemProperties
     static isSystemItemShop(itemProps: ItemProperties): boolean
     {
         return ItemProperties.isN3qSystemItem(itemProps) && ItemProperties.isItemShop(itemProps);
+    }
+
+    static getStatBoosts(itemProps: ItemProperties): ReadonlyArray<ItemStatBoost>
+    {
+        if (!as.Bool(itemProps[Pid.StatBoostAspect])) {
+            return [];
+        }
+        const statBoostStat = itemProps[Pid.StatBoostStat]
+        const statBoostMax = as.FloatOrNull(itemProps[Pid.StatBoostMax])
+        const statBoostValue = as.FloatOrNull(itemProps[Pid.StatBoostValue])
+        if (!is.nonEmptyString(statBoostStat) || is.nil(statBoostValue)) {
+            return [];
+        }
+        return [{statBoostStat, statBoostMax, statBoostValue}]
     }
 }
 

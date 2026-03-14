@@ -426,6 +426,7 @@ export class Config
         badges: {
             enabled: true,
             badgesEnabledMax: 3,
+            publicBadgesLimitStatId: 'PublicBadgesLimit',
             sendPresenceDelaySec: 1,
             // Distances from avatar bottom center:
             displayAvatarYTop: 200,
@@ -987,6 +988,9 @@ export class Config
                     'ItemPid.BadgeLinkUrl': 'Link',
                     'ItemPid.BadgeLinkLabel': 'Link Text',
                     'ItemPid.BadgeIsActive': 'Attached',
+                    'ItemPid.StatBoostStat': 'Boost Stat',
+                    'ItemPid.StatBoostValue': 'Boost value',
+                    'ItemPid.StatBoostMax': 'Boost result limit',
 
                     'ItemValue.true': 'Yes',
                     'ItemValue.false': 'No',
@@ -1407,6 +1411,9 @@ export class Config
                     'ItemPid.BadgeLinkUrl': 'Link',
                     'ItemPid.BadgeLinkLabel': 'Linktext',
                     'ItemPid.BadgeIsActive': 'Angeheftet',
+                    'ItemPid.StatBoostStat': 'Boost-Stat',
+                    'ItemPid.StatBoostValue': 'Boost-Wert',
+                    'ItemPid.StatBoostMax': 'Boost-Ergebnis-Limit',
 
                     'ItemValue.true': 'Ja',
                     'ItemValue.false': 'Nein',

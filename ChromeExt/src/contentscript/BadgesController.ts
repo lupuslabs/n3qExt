@@ -1,6 +1,7 @@
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
+import { iter, Iter } from '../lib/Iter'
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentApp } from './ContentApp';
 import { BackpackUpdateEventData } from './OwnItemRepository'
@@ -11,6 +12,7 @@ import { Badge } from './Badge';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { PointerEventData } from '../lib/PointerEventData';
 import { SimpleToast } from './Toast';
+import { ItemStatBoostsRepository } from '../lib/ItemStatBoostsRepository'
 
 export class BadgesController
 {
@@ -31,18 +33,13 @@ export class BadgesController
     //
     // Local badges are initialized from backpack once and then kept up to date by onBackpack*Item methods.
     // Other's badges are initialized and updated by updateBadgesFromPresence.
-
     private readonly app: ContentApp;
     private readonly entity: Entity;
     private readonly parentDisplay: HTMLElement;
     private readonly isLocal: boolean;
-    private readonly backPackUpdateListener: (data: BackpackUpdateEventData) => void
 
     private debugLogEnabled: boolean;
-    private badgesEnabledMax: number;
     private badges: Map<string,Badge> = new Map();
-    private sendPresenceDelaySec: number;
-    private sendPresenceTimerHandle: number = null;
     private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
     private editModeBackgroundElem?: HTMLElement;
@@ -50,107 +47,44 @@ export class BadgesController
     private editModeExitElem?: HTMLElement = null;
     private isInEditMode: boolean = false;
 
+    private readonly confiogUpdateHandler: () => void;
+    private readonly itemHandling: BadgesControllerItemHandling;
+
     constructor(app: ContentApp, entity: Entity, parentDisplay: HTMLElement)
     {
         this.app = app;
         this.entity = entity;
         this.parentDisplay = parentDisplay;
         this.isLocal = entity.getIsSelf();
-        this.backPackUpdateListener = ({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged)
 
-        this.onUserSettingsChanged();
-        if (this.isLocal && Utils.isBackpackEnabled()) {
-            this.updateBadgesFromBackpack();
-            this.app.ownItems.backpackUpdateListeners.addListener(this.backPackUpdateListener)
-        }
-        if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.constructor: Construction complete.', {this: {...this}});
-        }
-    }
+        this.confiogUpdateHandler = () => this.onConfigUpdated();
 
-    //--------------------------------------------------------------------------
-    // API for ContentApp
-
-    public onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void
-    {
-        if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBackpackUpdate', { itemsShowOrSet, itemsHide });
-        }
         if (this.isLocal) {
-            itemsHide.forEach(item => this.removeBadge(this.makeBadgeKey(item)));
-            itemsShowOrSet.forEach(item => this.updateBadgeFromFullItem(this.makeBadgeKey(item), item));
+            this.itemHandling = new OwnParticipantBadgesControllerItemHandling(this.app, this);
+        } else {
+            this.itemHandling = new OtherParticipantBadgesControllerItemHandling(this.app, this);
+        }
+        this.app.configUpdateListeners.addListener(this.confiogUpdateHandler);
+        this.onConfigUpdated();
+        this.itemHandling.start();
+        if (this.debugLogEnabled) {
+            log.info('BadgesController.constructor: Construction complete.');
         }
     }
 
     //--------------------------------------------------------------------------
     // API for Entity and the avatar menu
 
-    public onUserSettingsChanged(): void
-    {
-        this.debugLogEnabled = Utils.logChannel('badges');
-        this.badgesEnabledMax = as.Int(Config.get('badges.badgesEnabledMax'), 3);
-        this.sendPresenceDelaySec = as.Int(Config.get('badges.sendPresenceDelaySec'), 1);
-        this.containerDimensions = {
-            avatarYTop: as.Int(Config.get('badges.displayAvatarYTop'), 200),
-            avatarXRight: as.Int(Config.get('badges.displayAvatarXRight'), 100),
-            avatarYBottom: as.Int(Config.get('badges.displayAvatarYBottom'), 0),
-            avatarXLeft: as.Int(Config.get('badges.displayAvatarXLeft'), -100),
-        };
-        this.exitEditMode();
-        this.updateDisplay();
-        if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onUserSettingsChanged: Update complete.', {this: {...this}});
-        }
-    }
-
     public updateBadgesFromPresence(badgesStr: string): void
     {
-        if (this.isLocal) {
-            return; // Own badges are updated by onBackpack*Item methods.
-        }
-        const sparseItems = this.parseBadgesStrFromPresence(badgesStr);
-        BackgroundMessage.getItemsByInventoryItemIds(sparseItems)
-            .then(items => {
-                this.updateBadgesFromFullItems(items);
-                if (this.debugLogEnabled) {
-                    log.info('BadgesDisplay.updateBadgesFromPresence: Done.', {badgesStr, sparseItems, items});
-                }
-            }).catch(error => {
-                const msg = 'BadgesDisplay.updateBadgesFromPresence: BackgroundMessage.getItemsByInventoryItemIds failed!';
-                this.app.onError(new ErrorWithData(msg, {error, badgesStr, sparseItems}));
-            });
+        this.itemHandling.updateBadgesFromPresence(badgesStr);
     }
 
     public getBadgesStrForPresence(): string
     {
-        if (!is.nil(this.sendPresenceTimerHandle)) {
-            window.clearTimeout(this.sendPresenceTimerHandle);
-            this.sendPresenceTimerHandle = null;
-        }
-        const badgeStrs: string[] = [];
-        let lastProviderId: string|null = null;
-        let lastInventoryId: string|null = null;
-        for (const badgeDisplay of this.badges.values()) {
-            const properties = badgeDisplay.getProperties();
-            const {Provider, InventoryId, Id, Version} = properties;
-            if (as.Bool(properties[Pid.BadgeIsPrivate])) {
-                // keep private
-            } else {
-                const ids: string[] = [];
-                if (Provider !== lastProviderId) {
-                    ids.push(Provider);
-                }
-                if (InventoryId !== lastInventoryId) {
-                    ids.push(InventoryId);
-                }
-                ids.push(Id);
-                ids.push(Version);
-                badgeStrs.push(ids.join(':'));
-                [lastProviderId, lastInventoryId] = [Provider, InventoryId];
-            }
-        }
-        const badgeStr = badgeStrs.join(' ');
-        return badgeStr;
+        const publicBadgeItems = this.getPublicBadges()
+            .map(([key, badge]) => badge.getProperties());
+        return this.itemHandling.getBadgesStrForPresence(publicBadgeItems);
     }
 
     public getIsInEditMode(): boolean
@@ -185,7 +119,7 @@ export class BadgesController
         this.containerElem.appendChild(this.editModeExitElem);
         this.updateDisplay();
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.enterEditMode: Entered edit mode.', {this: {...this}});
+            log.info('BadgesController.enterEditMode: Entered edit mode.');
         }
     }
 
@@ -204,13 +138,14 @@ export class BadgesController
         this.editModeExitElem = null;
         this.updateDisplay();
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.exitEditMode: Exited edit mode.', {this: {...this}});
+            log.info('BadgesController.exitEditMode: Exited edit mode.');
         }
     }
 
     public stop(): void
     {
-        this.app.ownItems.backpackUpdateListeners.removeListener(this.backPackUpdateListener)
+        this.app.configUpdateListeners.removeListener(this.confiogUpdateHandler);
+        this.itemHandling.stop()
         this.exitEditMode();
         for (const [badgeKey, badgeDisplay] of this.badges) {
             badgeDisplay.stop();
@@ -221,7 +156,7 @@ export class BadgesController
             this.containerElem = null;
         }
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.stop: Stopped.', {this: {...this}});
+            log.info('BadgesController.stop: Stopped.', {this: {...this}});
         }
     }
 
@@ -322,7 +257,7 @@ export class BadgesController
             );
             toast.show();
             if (this.debugLogEnabled) {
-                const msg = 'BadgesDisplay.onBadgeDropInside: Done with too much badges toast.';
+                const msg = 'BadgesController.onBadgeDropInside: Done with too much badges toast.';
                 log.info(msg, {eventData, item});
             }
             return;
@@ -341,9 +276,9 @@ export class BadgesController
         itemNew[Pid.BadgeIconX] = String(avatarXClipped);
         itemNew[Pid.BadgeIconY] = String(avatarYClipped);
         this.addOrUpdateBadge(badgeKey, itemNew);
-        this.updateBadgeOnServer(itemNew);
+        this.itemHandling.updateBadgeOnServer(itemNew);
         if (this.debugLogEnabled) {
-            const msg = 'BadgesDisplay.onBadgeDropInside: Done with update.';
+            const msg = 'BadgesController.onBadgeDropInside: Done with update.';
             log.info(msg, {eventData, item, itemNew});
         }
     }
@@ -353,9 +288,9 @@ export class BadgesController
         this.removeBadge(this.makeBadgeKey(item));
         const itemNew = {...item};
         itemNew[Pid.BadgeIsActive] = '0';
-        this.updateBadgeOnServer(itemNew);
+        this.itemHandling.updateBadgeOnServer(itemNew);
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.onBadgeDropOutside: Done.', {item, itemNew});
+            log.info('BadgesController.onBadgeDropOutside: Done.', {item, itemNew});
         }
     }
 
@@ -439,46 +374,71 @@ export class BadgesController
     //--------------------------------------------------------------------------
     // Badge state updates
 
-    private updateBadgeOnServer(item: ItemProperties): void
+    private onConfigUpdated(): void
     {
-        const itemId = item[Pid.Id];
-        const action = 'Badge.SetState';
-        const args = {
-            'IsActive': item[Pid.BadgeIsActive],
-            'IconX': item[Pid.BadgeIconX],
-            'IconY': item[Pid.BadgeIconY],
+        this.debugLogEnabled = Utils.logChannel('badges');
+        const containerDimensions = {
+            avatarYTop: as.Int(Config.get('badges.displayAvatarYTop'), 200),
+            avatarXRight: as.Int(Config.get('badges.displayAvatarXRight'), 100),
+            avatarYBottom: as.Int(Config.get('badges.displayAvatarYBottom'), 0),
+            avatarXLeft: as.Int(Config.get('badges.displayAvatarXLeft'), -100),
         };
-        BackgroundMessage.executeBackpackItemAction(itemId, action, args, [itemId]).catch(error => {
-            const msg = 'BadgesDisplay.updateBadgeOnServer: executeBackpackItemAction failed!';
-            this.app.onError(new ErrorWithData(msg, {item, action, error}));
-            this.updateBadgesFromBackpack();
-        });
+        if (is.nil(this.containerDimensions)
+            || containerDimensions.avatarYTop !== this.containerDimensions.avatarYTop
+            || containerDimensions.avatarXRight !== this.containerDimensions.avatarXRight
+            || containerDimensions.avatarYBottom !== this.containerDimensions.avatarYBottom
+            || containerDimensions.avatarXLeft !== this.containerDimensions.avatarXLeft
+        ) {
+            this.containerDimensions = containerDimensions;
+            const inEditMode = this.isInEditMode;
+            this.exitEditMode();
+            this.updateDisplay();
+            if (inEditMode) {
+                this.enterEditMode();
+            }
+        }
+        this.itemHandling.onConfigUpdated();
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.updateBadgeOnServer: executeBackpackItemAction message sent.', {itemId, action, args});
+            const msg = 'BadgesController.onUserSettingsChanged: Update complete.';
+            log.info(msg, {containerDimensions});
         }
     }
 
-    private updateBadgesFromBackpack(): void
+    public onPublicBadgesLimitChanged()
     {
-        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()]);
+        const publicBadges = this.getPublicBadges().toArray();
+        const publicBadgesLimit = this.itemHandling.getPublicBadgesLimit();
+        const badgesToRemove = publicBadges.length - publicBadgesLimit;
+        if (badgesToRemove <= 0) {
+            return;
+        }
+        this.exitEditMode();
+        const badgeKeys = publicBadges.map(([key,badge]) => key);
+        badgeKeys.sort(); // Makes behavior deterministic (always unattach lowest item IDs first.
+        const badgeKeysToRemove = badgeKeys.slice(0, badgesToRemove);
+        badgeKeysToRemove.forEach(badgeKey => this.removeBadge(badgeKey));
+        if (this.debugLogEnabled) {
+            const msg = `BadgesController.enforcePublicBadgesLimit: Removed ${badgesToRemove} badges.`;
+            log.info(msg, {publicBadgesLimit, badgeKeysToRemove});
+        }
     }
 
-    private removeBadge(badgeKey: string): void
+    public removeBadge(badgeKey: string): void
     {
         const badge = this.badges.get(badgeKey);
         if (is.nil(badge)) {
             return;
         }
-        this.triggerSendPresence();
+        this.itemHandling.triggerSendPresence();
         badge.stop();
         this.badges.delete(badgeKey);
         if (this.debugLogEnabled) {
             const item = badge.getProperties();
-            log.info('BadgesDisplay.removeBadge: Done.', {item, this: {...this}});
+            log.info('BadgesController.removeBadge: Done.', {item});
         }
     }
 
-    private addOrUpdateBadge(badgeKey: string, item: ItemProperties): void
+    public addOrUpdateBadge(badgeKey: string, item: ItemProperties): void
     {
         // Race-free update for already present badges with unchanged icon preventing display of old state for a frame:
         const badge = this.badges.get(badgeKey);
@@ -498,112 +458,34 @@ export class BadgesController
             }
         });
         if (this.debugLogEnabled) {
-            const msg = 'BadgesDisplay.addOrUpdateBadge: Triggered iconDataUrl fetch.';
+            const msg = 'BadgesController.addOrUpdateBadge: Triggered iconDataUrl fetch.';
             log.info(msg, {item});
         }
     }
 
     private addOrUpdateBadgeWithKnownIconDataUrl(badgeKey: string, item: ItemProperties, iconDataUrl: string): void
     {
-        this.triggerSendPresence();
+        this.itemHandling.triggerSendPresence();
         item.iconDataUrl = iconDataUrl;
         const badge = this.badges.get(badgeKey);
-        if (is.nil(badge)) {
-            if (!this.mayAddBadge(item)) {
-                if (this.isLocal) {
-                    if (this.debugLogEnabled) {
-                        const msg = 'BadgesDisplay.addOrUpdateBadge: Disabling own badge - limit reached.';
-                        log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
-                    }
-                    const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
-                    this.updateBadgeOnServer(itemNew);
-                } else {
-                    if (this.debugLogEnabled) {
-                        const msg = 'BadgesDisplay.addOrUpdateBadge: Ignored other\'s badge - limit reached.';
-                        log.info(msg, {item, badgesEnabledMax: this.badgesEnabledMax});
-                    }
-                }
-            } else {
-                const badgeDisplay = new Badge(this.app, this, item);
-                this.badges.set(badgeKey, badgeDisplay);
-            }
-        } else {
+        if (!is.nil(badge)) {
             badge.onPropertiesLoaded(item);
+            return;
         }
-    }
-
-    private updateBadgeFromFullItem(badgeKey: string, item: ItemProperties): void
-    {
-        if (as.Bool(item[Pid.BadgeIsActive])) {
-            this.addOrUpdateBadge(badgeKey, item);
-        } else {
-            this.removeBadge(badgeKey);
-        }
-    }
-
-    private updateBadgesFromFullItems(items: ItemProperties[]): void
-    {
-        // Remove before add or update to avoid limit check false positives:
-        const badgeKeysToRemove = new Set<string>(this.badges.keys());
-        const badgesToAddOrUpdate: {badgeKey: string, item: ItemProperties}[] = [];
-        items.forEach(item => {
-            const badgeKey = this.makeBadgeKey(item);
-            if (as.Bool(item[Pid.BadgeIsActive])) {
-                badgeKeysToRemove.delete(badgeKey);
-                badgesToAddOrUpdate.push({badgeKey, item});
-            } else {
-                badgeKeysToRemove.add(badgeKey);
-            }
-        });
-        badgeKeysToRemove.forEach(badgeKey => this.removeBadge(badgeKey));
-        badgesToAddOrUpdate.forEach(({badgeKey, item}) => this.addOrUpdateBadge(badgeKey, item));
-    }
-
-    private parseBadgesStrFromPresence(badgesStr: string): ItemProperties[]
-    {
-        const badges: ItemProperties[] = [];
-        if (badgesStr.length === 0) {
-            return badges;
-        }
-        let lastProviderId: string|null = null;
-        let lastInventoryId: string|null = null;
-        for (const badgeStr of badgesStr.split(' ')) {
-            const badgeParts = badgeStr.split(':');
-            if (badgeParts.length > 4) {
-                const msg = `BadgesDisplay.parseBadgesStrFromPresence: Badge identifier has more than four parts!`;
-                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
-                continue;
-            }
-            if (badgeParts.length < 2) {
-                const msg = `BadgesDisplay.parseBadgesStrFromPresence: Badge identifier has less than two parts!`;
-                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
-                continue;
-            }
-            let l = badgeParts.length;
-            const providerId: string|null = badgeParts[l - 4] ?? lastProviderId;
-            const inventoryId: string|null = badgeParts[l - 3] ?? lastInventoryId;
-            const itemId = badgeParts[l - 2];
-            const version = badgeParts[l - 1];
-            if (is.nil(inventoryId) || is.nil(providerId)) {
-                const msg = `BadgesDisplay.parseBadgesStrFromPresence: First badge identifier has less than four parts!`;
-                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
-                break;
-            }
-            badges.push({
-                [Pid.Provider]: providerId,
-                [Pid.InventoryId]: inventoryId,
-                [Pid.Id]: itemId,
-                [Pid.Version]: version,
-            });
-            [lastProviderId, lastInventoryId] = [providerId, inventoryId];
+        if (this.mayAddBadge(item)) {
+            const badgeDisplay = new Badge(this.app, this, item);
+            this.badges.set(badgeKey, badgeDisplay);
+            return;
         }
         if (this.debugLogEnabled) {
-            log.info('BadgesDisplay.parseBadgesStrFromPresence: Done.', {badgesStr, badges});
+            const msg = 'BadgesController.addOrUpdateBadge: Disabling badge - limit reached.';
+            log.info(msg, {item, badgesEnabledMax: this.itemHandling.getPublicBadgesLimit()});
         }
-        return badges;
+        const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
+        this.itemHandling.updateBadgeOnServer(itemNew);
     }
 
-    private makeBadgeKey(item: ItemProperties): string
+    public makeBadgeKey(item: ItemProperties): string
     {
         return `${item[Pid.Id]}:${item[Pid.InventoryId]}:${item[Pid.Provider]}`;
     }
@@ -613,35 +495,12 @@ export class BadgesController
         if (as.Bool(badgeProperties[Pid.BadgeIsPrivate])) {
             return true;
         }
-        return this.getPublicBadgeCount() < this.badgesEnabledMax;
+        return this.getPublicBadges().count() < this.itemHandling.getPublicBadgesLimit();
     }
 
-    private getPublicBadgeCount(): number
+    public getPublicBadges(): Iter<[string,Badge]>
     {
-        let publicBadgesCount = 0;
-        for (const badge of this.badges.values()) {
-            if (!as.Bool(badge.getProperties()[Pid.BadgeIsPrivate])) {
-                publicBadgesCount ++;
-            }
-        }
-        return publicBadgesCount;
-    }
-
-    //--------------------------------------------------------------------------
-    // Presence
-
-    private triggerSendPresence(): void
-    {
-        if (!this.isLocal || !is.nil(this.sendPresenceTimerHandle)) {
-            return;
-        }
-        this.sendPresenceTimerHandle = window.setTimeout(() => {
-            this.sendPresenceTimerHandle = null;
-            this.app.getRoom()?.sendPresence();
-            if (this.debugLogEnabled) {
-                log.info('BadgesDisplay.triggerSendPresence: Sending own presence.');
-            }
-        }, this.sendPresenceDelaySec * 1000);
+        return iter(this.badges.entries()).filter(([key,badge]) => !as.Bool(badge.getProperties()[Pid.BadgeIsPrivate]));
     }
 
     //--------------------------------------------------------------------------
@@ -671,5 +530,289 @@ export class BadgesController
             badge.updateDisplay();
         }
     }
+}
 
+abstract class BadgesControllerItemHandling {
+    protected readonly app: ContentApp;
+    protected readonly badgesController: BadgesController;
+
+    protected debugLogEnabled: boolean;
+    protected publicBadgesLimitStatId: string;
+    protected publicBadgesLimitBaseValue: number;
+    protected publicBadgesLimit: number;
+
+    public constructor(app: ContentApp, badgesController: BadgesController) {
+        this.app = app;
+        this.badgesController = badgesController;
+    }
+
+    public abstract start(): void;
+
+    public abstract stop(): void;
+
+    public getPublicBadgesLimit(): number {
+        return this.publicBadgesLimit;
+    }
+
+    public abstract updateBadgesFromPresence(badgesStr: string): void;
+
+    public abstract triggerSendPresence(): void;
+
+    public abstract updateBadgeOnServer(item: Readonly<ItemProperties>): void;
+
+    public abstract getBadgesStrForPresence(publicBadgeItems: Iter<Readonly<ItemProperties>>): string;
+
+    public onConfigUpdated(): void {
+        this.debugLogEnabled = Utils.logChannel('badges');
+        this.publicBadgesLimitStatId = as.String(Config.get('badges.publicBadgesLimitStatId'));
+        this.publicBadgesLimitBaseValue = as.Int(Config.get('badges.badgesEnabledMax'), 3);
+        this.updatePublicBadgesLimit();
+    }
+
+    protected updatePublicBadgesLimit(): void {
+        const publicBadgesLimit = this.calcPublicBadgesLimit();
+        if (publicBadgesLimit !== this.publicBadgesLimit) {
+            this.publicBadgesLimit = publicBadgesLimit;
+            this.badgesController.onPublicBadgesLimitChanged();
+        }
+        if (this.debugLogEnabled) {
+            const msg = 'BadgesControllerItemHandling.updatePublicBadgesLimit: Update complete.';
+            log.info(msg, {publicBadgesLimit});
+        }
+    }
+
+    protected abstract calcPublicBadgesLimit(): number;
+}
+
+class OwnParticipantBadgesControllerItemHandling extends BadgesControllerItemHandling {
+    private readonly backPackUpdateListener: (data: BackpackUpdateEventData) => void;
+    private readonly statBoostsUpdateListener: () => void;
+
+    private sendPresenceTimerHandle: number = null;
+
+    public constructor(app: ContentApp, badgesController: BadgesController) {
+        super(app, badgesController);
+        this.backPackUpdateListener = ({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged);
+        this.statBoostsUpdateListener = () => this.updatePublicBadgesLimit();
+    }
+
+    public start(): void {
+        if (Utils.isBackpackEnabled()) {
+            this.updateBadgesFromBackpack();
+            this.app.ownItems.backpackUpdateListeners.addListener(this.backPackUpdateListener);
+            this.app.ownItems.statBoostsUpdateListeners.addListener(this.statBoostsUpdateListener);
+        }
+    }
+
+    public stop(): void {
+        this.app.ownItems.statBoostsUpdateListeners.removeListener(this.statBoostsUpdateListener);
+        this.app.ownItems.backpackUpdateListeners.removeListener(this.backPackUpdateListener);
+        if (this.debugLogEnabled) {
+            log.info('OwnParticipantBadgesControllerItemHandling.stop: Stopped.', {this: {...this}});
+        }
+    }
+
+    public updateBadgesFromPresence(badgesStr: string): void {
+        // Nothing to do for own participant.
+    }
+
+    public triggerSendPresence(): void {
+        if (!is.nil(this.sendPresenceTimerHandle)) {
+            return;
+        }
+        const sendPresenceDelayMs = 1e3 * as.Int(Config.get('badges.sendPresenceDelaySec'), 1);
+        this.sendPresenceTimerHandle = window.setTimeout(() => {
+            this.sendPresenceTimerHandle = null;
+            this.app.getRoom()?.sendPresence();
+            if (this.debugLogEnabled) {
+                log.info('OwnParticipantBadgesControllerItemHandling.triggerSendPresence: Sending own presence.');
+            }
+        }, sendPresenceDelayMs);
+    }
+
+    public updateBadgeOnServer(item: Readonly<ItemProperties>): void {
+        const itemId = item[Pid.Id];
+        const action = 'Badge.SetState';
+        const args = {
+            'IsActive': item[Pid.BadgeIsActive],
+            'IconX': item[Pid.BadgeIconX],
+            'IconY': item[Pid.BadgeIconY],
+        };
+        BackgroundMessage.executeBackpackItemAction(itemId, action, args, [itemId]).catch(error => {
+            const msg = 'OwnParticipantBadgesControllerItemHandling.updateBadgeOnServer: executeBackpackItemAction failed!';
+            this.app.onError(new ErrorWithData(msg, {item, action, error}));
+            this.updateBadgesFromBackpack();
+        });
+        if (this.debugLogEnabled) {
+            const msg = 'OwnParticipantBadgesControllerItemHandling.updateBadgeOnServer: executeBackpackItemAction message sent.';
+            log.info(msg, {itemId, action, args});
+        }
+    }
+
+    public getBadgesStrForPresence(publicBadgeItems: Iter<Readonly<ItemProperties>>): string {
+        if (!is.nil(this.sendPresenceTimerHandle)) {
+            window.clearTimeout(this.sendPresenceTimerHandle);
+            this.sendPresenceTimerHandle = null;
+        }
+        const itemsToSend: Iter<Readonly<ItemProperties>> = publicBadgeItems
+            .concat(this.app.ownItems.getStatBoostItemsByStat(this.publicBadgesLimitStatId))
+        const itemStrs: string[] = [];
+        let lastProviderId: string|null = null;
+        let lastInventoryId: string|null = null;
+        for (const properties of itemsToSend) {
+            const provider = ItemProperties.getProviderId(properties);
+            const inventoryId = ItemProperties.getInventoryId(properties);
+            const itemId = ItemProperties.getId(properties);
+            const version = as.String(ItemProperties.getVersion(properties));
+            const ids: string[] = [];
+            if (provider !== lastProviderId) {
+                ids.push(provider, inventoryId);
+            } else if (inventoryId !== lastInventoryId) {
+                ids.push(inventoryId);
+            }
+            ids.push(itemId, version);
+            itemStrs.push(ids.join(':'));
+            [lastProviderId, lastInventoryId] = [provider, inventoryId];
+        }
+        const badgesStr = itemStrs.join(' ');
+        return badgesStr;
+    }
+
+    private updateBadgesFromBackpack(): void {
+        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()]);
+    }
+
+    private onBackpackUpdate(itemsHide: ReadonlyArray<ItemProperties>, itemsShowOrSet: ReadonlyArray<ItemProperties>): void {
+        if (this.debugLogEnabled) {
+            log.info('OwnParticipantBadgesControllerItemHandling.onBackpackUpdate', { itemsShowOrSet, itemsHide });
+        }
+        this.updatePublicBadgesLimit();
+        itemsHide.forEach(item => this.badgesController.removeBadge(this.badgesController.makeBadgeKey(item)));
+        for (const item of itemsShowOrSet) {
+            const badgeKey = this.badgesController.makeBadgeKey(item);
+            if (as.Bool(item[Pid.BadgeIsActive])) {
+                this.badgesController.addOrUpdateBadge(badgeKey, item);
+            } else {
+                this.badgesController.removeBadge(badgeKey);
+            }
+        }
+    }
+
+    protected calcPublicBadgesLimit(): number {
+        return this.app.ownItems.applyItemStatBoosts(this.publicBadgesLimitStatId, this.publicBadgesLimitBaseValue);
+    }
+}
+
+class OtherParticipantBadgesControllerItemHandling extends BadgesControllerItemHandling {
+
+    private readonly statBoosts: ItemStatBoostsRepository = new ItemStatBoostsRepository();
+
+    public constructor(app: ContentApp, badgesController: BadgesController) {
+        super(app, badgesController);
+    }
+
+    public start(): void {
+        // Nothing to do.
+    }
+
+    public stop(): void {
+        if (this.debugLogEnabled) {
+            log.info('OtherParticipantBadgesControllerItemHandling.stop: Stopped.', {this: {...this}});
+        }
+    }
+
+    public updateBadgesFromPresence(badgesStr: string): void {
+        const sparseItems = this.parseBadgesStrFromPresence(badgesStr);
+        BackgroundMessage.getItemsByInventoryItemIds(sparseItems)
+            .then(items => {
+                this.updateBadgesFromFullItems(items);
+                if (this.debugLogEnabled) {
+                    log.info('OtherParticipantBadgesControllerItemHandling.updateBadgesFromPresence: Done.', {badgesStr, sparseItems, items});
+                }
+            }).catch(error => {
+                const msg = 'OtherParticipantBadgesControllerItemHandling.updateBadgesFromPresence: BackgroundMessage.getItemsByInventoryItemIds failed!';
+                this.app.onError(new ErrorWithData(msg, {error, badgesStr, sparseItems}));
+            });
+    }
+
+    private updateBadgesFromFullItems(items: ReadonlyArray<Readonly<ItemProperties>>): void
+    {
+        this.statBoosts.removeAllStatBoosts();
+        this.statBoosts.ProcessItemsUpdate([], items);
+        this.updatePublicBadgesLimit();
+
+        // Remove before add or update to avoid limit check false positives:
+        const badgeKeysToRemove = new Set<string>(this.badgesController.getPublicBadges().map(([key, badge]) => key));
+        const badgesToAddOrUpdate: {badgeKey: string, item: ItemProperties}[] = [];
+        items.forEach(item => {
+            const badgeKey = this.badgesController.makeBadgeKey(item);
+            if (!as.Bool(item[Pid.BadgeIsPrivate]) && as.Bool(item[Pid.BadgeIsActive])) {
+                badgeKeysToRemove.delete(badgeKey);
+                badgesToAddOrUpdate.push({badgeKey, item});
+            } else {
+                badgeKeysToRemove.add(badgeKey);
+            }
+        });
+        badgeKeysToRemove.forEach(badgeKey => this.badgesController.removeBadge(badgeKey));
+        badgesToAddOrUpdate.forEach(({badgeKey, item}) => this.badgesController.addOrUpdateBadge(badgeKey, item));
+    }
+
+    private parseBadgesStrFromPresence(badgesStr: string): ItemProperties[] {
+        const badges: ItemProperties[] = [];
+        if (badgesStr.length === 0) {
+            return badges;
+        }
+        let lastProviderId: string|null = null;
+        let lastInventoryId: string|null = null;
+        for (const badgeStr of badgesStr.split(' ')) {
+            const badgeParts = badgeStr.split(':');
+            if (badgeParts.length > 4) {
+                const msg = `OtherParticipantBadgesControllerItemHandling.parseBadgesStrFromPresence: Badge identifier has more than four parts!`;
+                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
+                continue;
+            }
+            if (badgeParts.length < 2) {
+                const msg = `OtherParticipantBadgesControllerItemHandling.parseBadgesStrFromPresence: Badge identifier has less than two parts!`;
+                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
+                continue;
+            }
+            let l = badgeParts.length;
+            const providerId: string|null = badgeParts[l - 4] ?? lastProviderId;
+            const inventoryId: string|null = badgeParts[l - 3] ?? lastInventoryId;
+            const itemId = badgeParts[l - 2];
+            const version = badgeParts[l - 1];
+            if (is.nil(inventoryId) || is.nil(providerId)) {
+                const msg = `OtherParticipantBadgesControllerItemHandling.parseBadgesStrFromPresence: First badge identifier has less than four parts!`;
+                this.app.onError(new ErrorWithData(msg, {badgeStr, badgesStr}));
+                break;
+            }
+            badges.push({
+                [Pid.Provider]: providerId,
+                [Pid.InventoryId]: inventoryId,
+                [Pid.Id]: itemId,
+                [Pid.Version]: version,
+            });
+            [lastProviderId, lastInventoryId] = [providerId, inventoryId];
+        }
+        if (this.debugLogEnabled) {
+            log.info('OtherParticipantBadgesControllerItemHandling.parseBadgesStrFromPresence: Done.', {badgesStr, badges});
+        }
+        return badges;
+    }
+
+    public triggerSendPresence(): void {
+        // Presences not send for other participant.
+    }
+
+    public updateBadgeOnServer(item: Readonly<ItemProperties>): void {
+        // Nothing to do for other participant's badges.
+    }
+
+    public getBadgesStrForPresence(publicBadgeItems: Iter<Readonly<ItemProperties>>): string {
+        return '' // Presences not send for other participant.
+    }
+
+    protected calcPublicBadgesLimit(): number {
+        return this.statBoosts.applyStatBoosts(this.publicBadgesLimitStatId, this.publicBadgesLimitBaseValue);
+    }
 }

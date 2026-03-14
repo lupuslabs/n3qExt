@@ -7,6 +7,7 @@ export class _Changes
 {
     static data: IHistory = [
         ['1.5.2', 'ContactVidconfButton', [
+            ['Add', 'Support for items increasing the maximum count of public badges attachable to own avatar'],
             ['Add', 'Videoconference button to Person item popup'],
             ['Add', 'Item shop support and item shop in own avatar menu'],
             ['Fix', 'Display error message when /map command fails'],

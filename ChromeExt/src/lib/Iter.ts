@@ -148,6 +148,18 @@ export abstract class Iter<T> implements Iterator<T>, Iterable<T> {
         }(this))
     }
 
+    public concat(otherIterator: Iterable<T>): Iter<T>
+    {
+        return new IteratorIter(function*(firstIter, secondIter){
+            for (const element of firstIter) {
+                yield element
+            }
+            for (const element of secondIter) {
+                yield element
+            }
+        }(this, otherIterator))
+    }
+
     public fold<Out>(state: Out, foldFun: (state: Out, element: T) => Out): Out
     {
         for (const element of this) {

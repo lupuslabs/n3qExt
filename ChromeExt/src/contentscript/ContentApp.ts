@@ -4,6 +4,7 @@ import * as jid from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
+import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 import { AppWithDom } from '../lib/App'
 import { ErrorWithData, Utils } from '../lib/Utils';
 import {
@@ -138,6 +139,9 @@ export class ContentApp extends AppWithDom
     public readonly personManager: ContentPersonManager;
     public readonly instantMessageManager: ContentInstantMessageManager;
 
+    private readonly callableConfigUpdateListeners: CallableEventListeners<void> = new CallableEventListeners('configUpdate');
+    public readonly configUpdateListeners: EventListeners<void>;
+
     // private stayHereIsChecked: boolean = false;
     private backpackIsOpen: boolean = false;
     private personsIsOpen: boolean = false;
@@ -192,6 +196,7 @@ export class ContentApp extends AppWithDom
         contentCommunicatorFactory: (requestHandler: ContentRequestHandler) => ContentToBackgroundCommunicator,
     ) {
         super();
+        this.configUpdateListeners = this.callableConfigUpdateListeners;
         this.tabContentData = new TabContentData(this);
         this.debugUtils = new DebugUtils(this);
         this.statusToPageSender = new WeblinClientPageApi.ClientStatusToPageSender(this);
@@ -856,6 +861,7 @@ export class ContentApp extends AppWithDom
             .catch (error => log.debug(error.message));
         this.room?.onUserSettingsChanged();
         this.instantMessageManager.onUserSettingsChanged();
+        this.callableConfigUpdateListeners.callListeners();
     })() }
 
     handle_recvStanza(jsStanza: unknown): void
