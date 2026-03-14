@@ -1051,7 +1051,8 @@
 #n3qD input[type="radio"]:checked + label.button.style-default > .icon-wrap.mask {
     background: var(--button-radio-on-icon-color);
 }
-#n3qD .button.style-default:disabled:disabled:disabled {
+#n3qD .button.style-default:disabled:disabled:disabled,
+#n3qD .button.style-default[inert][inert][inert] {
     transform: var(--button-disabled-transform);
     filter: var(--button-disabled-filter);
     box-shadow: var(--button-disabled-box-shadow);
@@ -1062,10 +1063,12 @@
     text-decoration: var(--button-disabled-text-decoration);
     color: var(--button-disabled-text-color);
 }
-#n3qD .button.style-default:disabled:disabled:disabled > * {
+#n3qD .button.style-default:disabled:disabled:disabled > *,
+#n3qD .button.style-default[inert][inert][inert] > * {
     transform: var(--button-disabled-content-transform);
 }
-#n3qD .button.style-default:disabled:disabled:disabled > .icon-wrap.mask {
+#n3qD .button.style-default:disabled:disabled:disabled > .icon-wrap.mask,
+#n3qD .button.style-default[inert][inert][inert] > .icon-wrap.mask {
     background: var(--button-disabled-icon-color);
 }
 
