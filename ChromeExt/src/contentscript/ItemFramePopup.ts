@@ -19,7 +19,6 @@ export class ItemFramePopup extends PopupWindow<ItemFramePopupOptions> implement
     public constructor(app: ContentApp)
     {
         super(app);
-        this.guiLayer = ContentApp.LayerPopup;
         this.windowCssClasses.push('roomitemframepopup');
         this.isMovable = false;
         this.geometryInitstrategy = 'beforeContent';

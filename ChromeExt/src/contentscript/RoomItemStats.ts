@@ -20,7 +20,7 @@ export class RoomItemStats // Todo: Convert to Window.
         this.elem = DomUtils.elemOfHtml('<div class="roomitemstats" data-translate="children"></div>');
         this.update();
         this.app.getDisplay().append(this.elem);
-        this.app.toFront(this.elem, ContentApp.LayerEntityTooltip);
+        this.app.toFront(this.elem, ContentApp.LayerPopup);
         this.elem.style.opacity = '0';
         const transition = { property: 'opacity', duration: '200ms' };
         DomUtils.startElemTransition(this.elem, null, transition, '1');

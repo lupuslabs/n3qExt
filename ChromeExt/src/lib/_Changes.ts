@@ -11,6 +11,8 @@ export class _Changes
             ['Add', 'Support for items increasing the maximum count of public badges attachable to own avatar'],
             ['Add', 'Videoconference button to Person item popup'],
             ['Add', 'Item shop support and item shop in own avatar menu'],
+            ['Fix', 'Open room item info popups above other windows'],
+            ['Fix', 'Use same z-index range for full windows and popup-styled windows'],
             ['Fix', 'Display error message when /map command fails'],
             ['Change', 'Show URLs as plain text in /map output'],
             ['Change', 'Settings dialog: More space between headline and text left of the icon'],
