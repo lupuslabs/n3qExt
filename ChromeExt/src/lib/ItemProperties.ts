@@ -469,6 +469,11 @@ export class ItemProperties
         return as.Bool(itemProperties[Pid.BadgeAspect]);
     }
 
+    static getBadgeIsActive(itemProperties: ItemProperties): boolean
+    {
+        return as.Bool(itemProperties[Pid.BadgeIsActive]);
+    }
+
     static getIsToolBadge(itemProperties: ItemProperties): boolean
     {
         return as.Bool(itemProperties[Pid.BadgeIsTool]) && as.Bool(itemProperties[Pid.BadgeAspect]);

@@ -438,7 +438,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
             leftBtnElems.push(derezBtn)
 
             const destination = as.String(props[Pid.RezzedDestination])
-            if (destination) {
+            if (!isExclusiveWindowPopup && destination) {
                 const goBtn = this.app.uiHelper.makeDefaultTextButton('navigate-to-item-button', 'Backpack.Go to item', 'Go to item', () => {
                     window.location.assign(destination)
                 })
@@ -453,6 +453,18 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                 });
                 leftBtnElems.push(rezBtn);
             }
+        }
+
+        if (ItemProperties.getIsBadge(props) && ItemProperties.getBadgeIsActive(props)) {
+            const unattachBtn = this.app.uiHelper.makeDefaultTextButton('unattach-button', 'Backpack.UnattachBadge', 'Remove from avatar', () => {
+                const itemId = ItemProperties.getId(props)
+                BackgroundMessage.executeBackpackItemAction(itemId, 'Badge.SetState', {IsActive: '0'}, [itemId])
+                    .catch(error => this.app.onError(error))
+                if (!isExclusiveWindowPopup) {
+                    this.close()
+                }
+            })
+            leftBtnElems.push(unattachBtn)
         }
 
         if (as.Bool(props[Pid.DeletableAspect], true)) {
