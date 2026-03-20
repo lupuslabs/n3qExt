@@ -1260,11 +1260,6 @@ export class ContentApp extends AppWithDom
         DomUtils.setElemClassPresent(this.dropzoneELem, 'hilite', isHighlighted)
     }
 
-    public getIsDropTargetInDropzone(ev: PointerEventData): boolean
-    {
-        return ev.dropTarget?.classList.contains('dropzone') ?? false
-    }
-
     // i18n
 
     translateText(key: string, defaultTextOrOptions?: null|string|TranslationOpts): string

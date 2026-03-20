@@ -14,6 +14,8 @@ export class _Changes
             ['Fix', 'Open room item info popups above other windows'],
             ['Fix', 'Use same z-index range for full windows and popup-styled windows'],
             ['Fix', 'Display error message when /map command fails'],
+            ['Change', 'Allow item rez from backpack by dropping on page outside dropzone'],
+            ['Change', 'Ignore own avatar for item drop from backpack'],
             ['Change', 'Show URLs as plain text in /map output'],
             ['Change', 'Settings dialog: More space between headline and text left of the icon'],
         ]],

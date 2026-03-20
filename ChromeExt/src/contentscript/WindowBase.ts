@@ -29,7 +29,7 @@ export type WindowBaseOptions = {
     transparent?:  boolean, // Makes decoration and content background transparent.
     undockable?:   boolean, // Makes window non-undockable when set to false.
     undocked?:     boolean, // Undocks instead of showing when show is called and window is undockable.
-    ignoreRootElems?: Element[], // Pointer down on these elements aren't considered outside the window.
+    ignoreRootElemsForPointerDownOutside?: Element[],
 }
 
 export type WindowGeometryInitStrategy = 'beforeContent'|'afterContent'|'none'
@@ -778,7 +778,7 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
             this.onVisible()
             this.windowId = this.app.windows.registerWindow({
                 windowRootElems: [this.windowElem],
-                ignoredRootElems: this.givenOptions.ignoreRootElems ?? [],
+                ignoredRootElemsForPointerDownOutside: this.givenOptions.ignoreRootElemsForPointerDownOutside ?? [],
                 pointerDownOutsideHandler: () => this.onPointerDownOutside(),
             })
             if (viewportEvents.getVisibility()) {

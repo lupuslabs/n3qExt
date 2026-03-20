@@ -2,14 +2,14 @@ import { ContentApp } from './ContentApp'
 
 export type WindowRegistrationInfo = {
     readonly windowRootElems?: null|Iterable<Element>,
-    readonly ignoredRootElems?: null|Iterable<Element>,
+    readonly ignoredRootElemsForPointerDownOutside?: null|Iterable<Element>,
     readonly pointerDownOutsideHandler?: null|(() => void),
 };
 
 type WindowInfo = {
     readonly windowId: number,
     readonly windowRootElems: Set<Element>,
-    readonly ignoredRootElems: Set<Element>,
+    readonly ignoredRootElemsForPointerDownOutside: Set<Element>,
     readonly pointerDownOutsideHandler: null|(() => void),
 };
 
@@ -44,7 +44,7 @@ export class ContentAppWindows {
         this.windows.set(windowId, {
             windowId,
             windowRootElems: new Set(windowInfo.windowRootElems ?? null),
-            ignoredRootElems: new Set(windowInfo.ignoredRootElems ?? null),
+            ignoredRootElemsForPointerDownOutside: new Set(windowInfo.ignoredRootElemsForPointerDownOutside ?? null),
             pointerDownOutsideHandler: windowInfo.pointerDownOutsideHandler ?? null,
         });
         return windowId;
@@ -62,12 +62,25 @@ export class ContentAppWindows {
         this.windows.get(windowId)?.windowRootElems.delete(rootElem);
     }
 
-    public registerIgnoredRootElement(windowId: number, rootElem: Element): void {
-        this.windows.get(windowId)?.ignoredRootElems.add(rootElem);
+    public registerRootElementIgnoredForPointerDownOutside(windowId: number, rootElem: Element): void {
+        this.windows.get(windowId)?.ignoredRootElemsForPointerDownOutside.add(rootElem);
     }
 
-    public forgetIgnoredRootElement(windowId: number, rootElem: Element): void {
-        this.windows.get(windowId)?.ignoredRootElems.delete(rootElem);
+    public forgetRootElementIgnoredForPointerDownOutside(windowId: number, rootElem: Element): void {
+        this.windows.get(windowId)?.ignoredRootElemsForPointerDownOutside.delete(rootElem);
+    }
+
+    public getElemParentWindowId(elem: null|Element): null|number {
+        if (!elem) {
+            return null;
+        }
+        const elemChain = this.getElemParentChain(elem);
+        for (const {windowId, windowRootElems} of this.windows.values()) {
+            if (elemChain.some(elem => windowRootElems.has(elem))) {
+                return windowId;
+            }
+        }
+        return null;
     }
 
     public onIframePointerDown(iframeElem: null|HTMLElement): void {
@@ -85,8 +98,8 @@ export class ContentAppWindows {
     }
 
     private onPointerDownForElems(targetWindowElems: Element[]): void {
-        for (const {windowRootElems, ignoredRootElems, pointerDownOutsideHandler} of this.windows.values()) {
-            if (targetWindowElems.some(elem => ignoredRootElems.has(elem))) {
+        for (const {windowRootElems, ignoredRootElemsForPointerDownOutside, pointerDownOutsideHandler} of this.windows.values()) {
+            if (targetWindowElems.some(elem => ignoredRootElemsForPointerDownOutside.has(elem))) {
                 continue;
             }
             const isInsideWindow = targetWindowElems.some(elem => windowRootElems.has(elem))

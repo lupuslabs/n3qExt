@@ -93,7 +93,7 @@ export class Nickname implements IObserver
     {
         this.menuBtnElem.classList.add('open');
         this.isMenuOpen = true;
-        this.app.windows.registerIgnoredRootElement(menu.getWindowId(), this.menuBtnElem);
+        this.app.windows.registerRootElementIgnoredForPointerDownOutside(menu.getWindowId(), this.menuBtnElem);
     }
 
     public onMenuClose(): void
