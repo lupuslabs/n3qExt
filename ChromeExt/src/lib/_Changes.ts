@@ -6,7 +6,8 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.5.2', 'ContactVidconfButton', [
+        ['1.5.2', 'Shop', [
+            ['Add', 'Button on backpack item info popup for removing badge from own avatar'],
             ['Add', 'Support for items increasing the maximum count of public badges attachable to own avatar'],
             ['Add', 'Videoconference button to Person item popup'],
             ['Add', 'Item shop support and item shop in own avatar menu'],
