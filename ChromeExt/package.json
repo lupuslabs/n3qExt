@@ -62,12 +62,15 @@
     "css-loader": "7.x",
     "eslint": "10.x",
     "globals": "16.x",
-    "node-polyfill-webpack-plugin": "4.1.x",
     "npm-run-all2": "8.x",
     "typescript": "5.x"
   },
   "dependencies": {
     "@xmpp/client": "0.14.x",
+    "buffer": "6.x",
+    "crypto-browserify": "3.x",
+    "process": "0.x",
+    "stream-browserify": "3.x",
     "@xmpp/debug": "0.14.x",
     "chai": "6.x",
     "jquery": "3.6.3",

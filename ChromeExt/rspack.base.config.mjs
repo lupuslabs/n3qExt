@@ -1,6 +1,5 @@
 import rspack from '@rspack/core'
 import { join } from 'path'
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import fs from 'fs'
 
 const { NormalModuleReplacementPlugin, ProvidePlugin, CssExtractRspackPlugin, SwcJsMinimizerRspackPlugin } = rspack
@@ -64,7 +63,6 @@ export function makeBaseConfig(mode) {
             ],
         },
         plugins: [
-            new NodePolyfillPlugin(),
             new NormalModuleReplacementPlugin(/^node:/, (resource) => {
                 resource.request = resource.request.replace(/^node:/, '');
             }),
@@ -92,6 +90,14 @@ export function makeBaseConfig(mode) {
         ],
         resolve: {
             extensions: ['.ts', '.js', '.css'],
+            fallback: {
+                crypto: 'crypto-browserify',
+                buffer: 'buffer',
+                stream: 'stream-browserify',
+                net: false,
+                tls: false,
+                vm: false,
+            },
         },
         performance: {
             hints: false,
