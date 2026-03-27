@@ -5,7 +5,7 @@ import { Utils } from './Utils';
 export class ItemFrameContextFactory
 {
     private userId: string = ''
-    #userToken: Buffer = Buffer.from([0])
+    #userToken: Uint8Array = new Uint8Array([0])
     private languageId: string = ''
 
     public constructor() {}
@@ -15,7 +15,7 @@ export class ItemFrameContextFactory
     }
 
     public setUserToken(userToken: string): void {
-        this.#userToken = Buffer.from(userToken, 'utf8')
+        this.#userToken = new TextEncoder().encode(userToken)
     }
 
     public setLanguageId(languageId: string): void {
@@ -53,7 +53,7 @@ export class ItemFrameContextFactory
         const cmpFun = (a: [string, string], b: [string, string]): number => {
             return a[0].localeCompare(b[0], 'en-US-u-co-unicode', { sensitivity: 'variant', numeric: false })
         }
-        const separatorBuffer = Buffer.from([0])
+        const separatorBuffer = new Uint8Array([0])
         for (const [key, value] of [...Object.entries(values)].sort(cmpFun)) {
             hashMaker.update(key, 'utf8')
             hashMaker.update(separatorBuffer)
@@ -66,7 +66,7 @@ export class ItemFrameContextFactory
 
     private calcSignature(hash: string): string {
         const hmacMaker = createHmac('sha256', this.#userToken);
-        hmacMaker.update(Buffer.from(hash,'utf8'))
+        hmacMaker.update(new TextEncoder().encode(hash))
         const hmac = hmacMaker.digest('hex')
         return hmac
     }

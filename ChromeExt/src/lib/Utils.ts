@@ -4,7 +4,6 @@ import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
 import * as crypto from 'crypto';
-import { Buffer } from 'buffer';
 
 export interface NumberFormatOptions extends Intl.NumberFormatOptions {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options
@@ -183,12 +182,12 @@ export class Utils
 
     static base64Encode(s: string): string
     {
-        return Buffer.from(s, 'binary').toString('base64');
+        return new TextEncoder().encode(s).toBase64();
     }
 
     static base64Decode(s: string): string
     {
-        return Buffer.from(s, 'base64').toString('binary');
+        return new TextDecoder().decode(Uint8Array.fromBase64(s));
     }
 
     static hasChromeStorage(): boolean

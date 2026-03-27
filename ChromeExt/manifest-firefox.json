@@ -6,7 +6,8 @@
     "description": "Avatars and Things on Web Pages",
     "browser_specific_settings": {
         "gecko": {
-            "id": "weblin@weblin.io"
+            "id": "weblin@weblin.io",
+            "strict_min_version": "133.0"
         }
     },
     "permissions": [
