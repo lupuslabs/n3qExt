@@ -9,7 +9,7 @@ import { PointerEventData } from '../lib/PointerEventData'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
 import { Environment } from '../lib/Environment'
-import * as windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg'
+import windowUndockIconDataUrl from '../assets/icons/clarity_pop-out-line.svg'
 import { BackgroundMessage, PopupDefinition } from '../lib/BackgroundMessage'
 
 export type LeftPositionAnchorMode = 'containerLeft'|'containerCenter'|'anchorLeft'|'anchorCenter'

@@ -1,4 +1,4 @@
-import * as $ from 'jquery';
+import $ from 'jquery';
 import { as } from '../lib/as';
 import { IObserver, IObservable } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';

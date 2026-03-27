@@ -1,4 +1,4 @@
-import { uniqueNamesGenerator, Config as NamesGeneratorConfig, adjectives, colors, animals } from 'unique-names-generator';
+import { uniqueNamesGenerator, Config as NamesGeneratorConfig, colors, animals } from 'unique-names-generator';
 import { Config } from './Config';
 
 export class RandomNames

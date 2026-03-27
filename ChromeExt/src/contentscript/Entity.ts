@@ -1,4 +1,4 @@
-import * as imgDefaultAvatar from '../assets/DefaultAvatar.png';
+import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 
 import log = require('loglevel');
 import { as } from '../lib/as';

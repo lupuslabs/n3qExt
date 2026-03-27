@@ -1,4 +1,3 @@
-import log = require('loglevel');
 
 export class Browser
 {

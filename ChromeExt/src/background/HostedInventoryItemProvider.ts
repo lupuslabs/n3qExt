@@ -15,7 +15,7 @@ import { Config } from '../lib/Config';
 import { Client } from '../lib/Client';
 import { BackgroundApp } from './BackgroundApp';
 import { RetryStrategy, RetryStrategyMaker } from '../lib/RetryStrategy'
-const Web3Eth = require('web3-eth');
+import { ethers } from 'ethers';
 
 export namespace HostedInventoryItemProvider
 {
@@ -391,15 +391,15 @@ export namespace HostedInventoryItemProvider
         {
             let createdIds: Array<string> = [];
 
-            let web3eth = new Web3Eth(new Web3Eth.providers.HttpProvider(httpProvider));
-            let contract = new web3eth.Contract(contractABI, contractAddress);
+            const provider = new ethers.JsonRpcProvider(httpProvider);
+            const contract = new ethers.Contract(contractAddress, contractABI, provider);
             if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'balanceOf', walletAddress, contractAddress }); }
-            let numberOfItems = await contract.methods.balanceOf(walletAddress).call();
-            for (let i = 0; i < numberOfItems; i++) {
+            const numberOfItems: bigint = await contract.balanceOf(walletAddress);
+            for (let i = 0n; i < numberOfItems; i++) {
                 if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'tokenOfOwnerByIndex', i, walletAddress, contractAddress }); }
-                let tokenId = await contract.methods.tokenOfOwnerByIndex(walletAddress, i).call();
+                const tokenId: string = String(await contract.tokenOfOwnerByIndex(walletAddress, i));
                 if (Utils.logChannel('web3', true)) { log.info('HostedInventoryItemProvider.loadWeb3ItemsForWalletFromContract', { 'call': 'tokenURI', tokenId, walletAddress, contractAddress }); }
-                let tokenUri = await contract.methods.tokenURI(tokenId).call();
+                let tokenUri: string = await contract.tokenURI(tokenId);
 
                 if (Config.get('config.clusterName', 'prod') === 'dev') {
                     tokenUri = tokenUri.replace('https://webit.vulcan.weblin.com/', 'https://localhost:5100/');

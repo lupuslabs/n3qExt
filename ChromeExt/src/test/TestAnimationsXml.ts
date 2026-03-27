@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { AnimationsXml } from '../contentscript/AnimationsXml';
-import { sut } from '../lib/sut';
 
 export class TestAnimationsXml
 {

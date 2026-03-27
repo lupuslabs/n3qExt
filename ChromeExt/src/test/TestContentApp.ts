@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { ContentApp } from '../contentscript/ContentApp';
-import { Config } from '../lib/Config';
 
 export class TestContentApp
 {

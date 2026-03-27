@@ -5,8 +5,8 @@ import { Participant } from './Participant';
 import { Config } from '../lib/Config';
 import { PointerEventData } from '../lib/PointerEventData';
 import { DomUtils } from '../lib/DomUtils';
-import * as menuClosedIconUrl from '../assets/icons/menu.svg';
-import * as menuOpenIconUrl from '../assets/icons/close-circle-o.svg';
+import menuClosedIconUrl from '../assets/icons/menu.svg';
+import menuOpenIconUrl from '../assets/icons/close-circle-o.svg';
 import { Menu } from './Menu'
 
 export class Nickname implements IObserver

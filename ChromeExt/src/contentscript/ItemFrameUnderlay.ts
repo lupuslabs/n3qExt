@@ -1,4 +1,4 @@
-import * as $ from 'jquery';
+import $ from 'jquery';
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';

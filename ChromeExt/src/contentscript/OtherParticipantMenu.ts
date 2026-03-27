@@ -2,11 +2,11 @@
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ParticipantMenu } from './ParticipantMenu';
-import * as privateVideoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
-import * as privateChatIconUrl from '../assets/icons/ri_chat-private-line.svg';
-import * as greetIconUrl from '../assets/icons/mdi_human-greeting.svg';
-import * as byeIconUrl from '../assets/icons/bye-32.png';
-import * as personIconUrl from '../assets/icons/person.svg'
+import privateVideoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
+import privateChatIconUrl from '../assets/icons/ri_chat-private-line.svg';
+import greetIconUrl from '../assets/icons/mdi_human-greeting.svg';
+import byeIconUrl from '../assets/icons/bye-32.png';
+import personIconUrl from '../assets/icons/person.svg'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 

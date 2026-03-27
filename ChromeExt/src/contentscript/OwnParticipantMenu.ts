@@ -13,19 +13,19 @@ import { AboutWindow } from './AboutWindow';
 import { SimpleToast } from './Toast';
 import { ItemProperties } from '../lib/ItemProperties'
 import { ItemException } from '../lib/ItemException'
-import * as checkboxUncheckedIconUrl from '../assets/icons/checkbox-unchecked.svg';
-import * as checkboxCheckedIconUrl from '../assets/icons/checkbox-checked.svg';
-import * as getWeblinIconUrl from '../assets/icons/weblin.png';
-import * as backpackIconUrl from '../assets/icons/bi_grid-3x2-gap-fill.svg';
-import * as itemShopIconUrl from '../assets/icons/ItemShop.svg';
-import * as badgesEditModeIconUrl from '../assets/icons/ic_badgesEditMode.svg';
-import * as settingsIconUrl from '../assets/icons/ic_baseline-settings.svg';
-import * as videoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
-import * as chatHistoryIconUrl from '../assets/icons/ic_outline-chat.svg';
-import * as chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.svg';
-import * as emotesIconUrl from '../assets/icons/smiley.svg';
-import * as personsIconUrl from '../assets/icons/person.svg'
-import * as helpIconUrl from '../assets/icons/weblin.png';
+import checkboxUncheckedIconUrl from '../assets/icons/checkbox-unchecked.svg';
+import checkboxCheckedIconUrl from '../assets/icons/checkbox-checked.svg';
+import getWeblinIconUrl from '../assets/icons/weblin.png';
+import backpackIconUrl from '../assets/icons/bi_grid-3x2-gap-fill.svg';
+import itemShopIconUrl from '../assets/icons/ItemShop.svg';
+import badgesEditModeIconUrl from '../assets/icons/ic_badgesEditMode.svg';
+import settingsIconUrl from '../assets/icons/ic_baseline-settings.svg';
+import videoConferenceIconUrl from '../assets/icons/mdi_monitor-eye.svg';
+import chatHistoryIconUrl from '../assets/icons/ic_outline-chat.svg';
+import chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.svg';
+import emotesIconUrl from '../assets/icons/smiley.svg';
+import personsIconUrl from '../assets/icons/person.svg'
+import helpIconUrl from '../assets/icons/weblin.png';
 import { Memory } from '../lib/Memory'
 
 export class OwnParticipantMenu extends ParticipantMenu

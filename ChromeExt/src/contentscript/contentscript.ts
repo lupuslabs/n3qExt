@@ -1,6 +1,6 @@
 import log = require('loglevel')
-import './contentscript.scss'
-import * as $ from 'jquery'
+import './contentscript.css'
+import $ from 'jquery'
 import { is } from '../lib/is'
 import { Panic } from '../lib/Panic'
 import { Config } from '../lib/Config'

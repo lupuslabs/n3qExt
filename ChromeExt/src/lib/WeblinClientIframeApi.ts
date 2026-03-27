@@ -36,33 +36,33 @@ export namespace WeblinClientIframeApi
     export class WindowOpenDocumentUrlRequest extends Request
     {
         static type = 'Window.OpenDocumentUrl';
-        item: string;
+        declare item: string;
     }
 
     export class WindowCloseRequest extends Request
     {
         static type = 'Window.Close';
-        item: string;
+        declare item: string;
     }
 
     export class WindowSetVisibilityRequest extends Request
     {
         static type = 'Window.SetVisibility';
-        item: string;
+        declare item: string;
         visible: boolean;
     }
 
     export class WindowSetStyleRequest extends Request
     {
         static type = 'Window.SetStyle';
-        item: string;
+        declare item: string;
         style: any;
     }
 
     export class WindowPositionRequest extends Request
     {
         static type = 'Window.Position';
-        item: string;
+        declare item: string;
         width: number;
         height: number;
         left: number;
@@ -73,14 +73,14 @@ export namespace WeblinClientIframeApi
     export class WindowToFrontRequest extends Request
     {
         static type = 'Window.ToFront';
-        item: string;
+        declare item: string;
         layer?: number;
     }
 
     export class WindowSetTitleRequest extends Request
     {
         static type = 'Window.SetTitle';
-        item: string;
+        declare item: string;
         title: string;
     }
 
@@ -93,14 +93,14 @@ export namespace WeblinClientIframeApi
     export class ScreenContentMessageRequest extends Request
     {
         static type = 'Screen.ContentMessage';
-        item: string;
+        declare item: string;
         message: any;
     }
 
     export class ItemSetPropertyRequest extends Request
     {
         static type = 'Item.SetProperty';
-        item: string;
+        declare item: string;
         pid: string;
         value: any;
     }
@@ -108,28 +108,28 @@ export namespace WeblinClientIframeApi
     export class ItemSetStateRequest extends Request
     {
         static type = 'Item.SetState';
-        item: string;
+        declare item: string;
         state: string;
     }
 
     export class ItemSetConditionRequest extends Request
     {
         static type = 'Item.SetCondition';
-        item: string;
+        declare item: string;
         condition: string;
     }
 
     export class ItemEffectRequest extends Request
     {
         static type = 'Item.Effect';
-        item: string;
+        declare item: string;
         effect: any;
     }
 
     export class ItemRangeRequest extends Request
     {
         static type = 'Item.Range';
-        item: string;
+        declare item: string;
         visible: boolean;
         range: any;
     }
@@ -137,7 +137,7 @@ export namespace WeblinClientIframeApi
     {
         static type = 'Item.Action';
         static legacyType = 'ItemAction';
-        item: string;
+        declare item: string;
         room: string;
         action: string;
         args: any;
@@ -154,7 +154,7 @@ export namespace WeblinClientIframeApi
     export class RoomGetItemsRequest extends Request
     {
         static type = 'Room.GetItems';
-        item: string;
+        declare item: string;
         room: string;
         pids: string[];
     }
@@ -170,7 +170,7 @@ export namespace WeblinClientIframeApi
     export class RoomGetParticipantsRequest extends Request
     {
         static type = 'Room.GetParticipants';
-        item: string;
+        declare item: string;
         room: string;
     }
     export class ParticipantData
@@ -185,7 +185,7 @@ export namespace WeblinClientIframeApi
     export class RoomGetInfoRequest extends Request
     {
         static type = 'Room.GetInfo';
-        item: string;
+        declare item: string;
         room: string;
     }
     export class RoomInfo
@@ -199,7 +199,7 @@ export namespace WeblinClientIframeApi
     export class ItemSubscribeToUpdatesRequest extends Request
     {
         static type = 'Item.SubscribeToUpdates';
-        item: string;
+        declare item: string;
         subscriptions: Partial<ItemUpdateSubscription>[];
     }
 

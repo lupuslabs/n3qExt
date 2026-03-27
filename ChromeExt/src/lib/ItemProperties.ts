@@ -6,7 +6,7 @@ import { Utils } from './Utils';
 import { Config } from './Config';
 const NodeRSA = require('node-rsa');
 
-import * as defaultItemImageUrl from '../assets/DefaultItem.png'
+import defaultItemImageUrl from '../assets/DefaultItem.png'
 
 export enum Pid
 {

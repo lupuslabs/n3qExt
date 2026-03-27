@@ -13,7 +13,7 @@ import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { ContentApp } from './ContentApp';
 import { FullWindow, FullWindowOptions } from './FullWindow';
 
-import * as imgPopupIcon from '../assets/PopupIcon.png';
+import imgPopupIcon from '../assets/PopupIcon.png';
 
 export class SettingsWindow extends FullWindow<FullWindowOptions>
 {

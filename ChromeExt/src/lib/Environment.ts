@@ -1,15 +1,6 @@
 declare global
 {
-    namespace NodeJS
-    {
-        interface ProcessEnv
-        {
-            GITHUB_AUTH_TOKEN: string;
-            NODE_ENV: 'development' | 'production';
-            PORT?: string;
-            PWD: string;
-        }
-    }
+    const COMPILED_NODE_ENV: string
 }
 
 export class Environment
@@ -19,12 +10,12 @@ export class Environment
 
     static get_NODE_ENV(): string
     {
-        return process.env.NODE_ENV;
+        return COMPILED_NODE_ENV; // injected by rspack.DefinePlugin in rspack.base.config.mjs.
     }
 
     static isDevelopment(): boolean
     {
-        return (this.NODE_ENV ?? this.get_NODE_ENV()) == this.NODE_ENV_development;
+        return (this.NODE_ENV ?? this.get_NODE_ENV()) === this.NODE_ENV_development;
     }
 
     static isEmbedded(): boolean

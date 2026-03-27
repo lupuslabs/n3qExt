@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { HelloWorld } from '../contentscript/HelloWorld';
-import { sut } from '../lib/sut';
 
 // function sutMethod() {
 //     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {

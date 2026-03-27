@@ -1,6 +1,6 @@
 import log = require('loglevel');
 import * as ltx from 'ltx';
-import * as jid from '@xmpp/jid';
+import { jid, JID } from '@xmpp/jid';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
@@ -225,7 +225,7 @@ export class BackgroundApp
         return this.xmppManager.getXmppResource();
     }
 
-    public getXmppJid(): null|jid.JID
+    public getXmppJid(): null|JID
     {
         return this.xmppManager.getXmppJid();
     }
@@ -961,7 +961,7 @@ export class BackgroundApp
             log.info('BackgroundApp.recvStanza: Stanza is an error.', { xmlStanza });
         }
 
-        let fromJid: null|jid.JID;
+        let fromJid: null|JID;
         try {
             fromJid = jid(xmlStanza.attrs.from);
         } catch (error) {

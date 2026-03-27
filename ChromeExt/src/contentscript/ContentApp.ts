@@ -1,6 +1,6 @@
 import log = require('loglevel')
-import * as $ from 'jquery';
-import * as jid from '@xmpp/jid';
+import $ from 'jquery';
+import { jid } from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { is } from '../lib/is';

@@ -88,7 +88,7 @@ Content scripts and background worker communicate via Chrome port messaging with
 
 ## Code Style
 
-- **TypeScript** targeting ES2021
+- **TypeScript**
 - **4-space indentation**
 - **Single quotes** (backticks allowed)
 - **jQuery** is deprecated and will eventually be phased out

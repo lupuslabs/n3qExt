@@ -1,5 +1,5 @@
 import log = require('loglevel');
-import * as jid from '@xmpp/jid';
+import { jid } from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';

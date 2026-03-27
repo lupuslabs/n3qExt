@@ -1,4 +1,4 @@
-import './test.scss';
+import './test.css';
 import { sut } from '../lib/sut';
 import { sutGui } from '../lib/sutGui';
 var s = new sut();

@@ -1,5 +1,5 @@
-import * as $ from 'jquery';
-import * as jid from '@xmpp/jid';
+import $ from 'jquery';
+import { jid } from '@xmpp/jid';
 import * as ltx from 'ltx';
 import log = require('loglevel');
 import { is } from '../lib/is';
@@ -34,7 +34,7 @@ import { OwnParticipantMenu } from './OwnParticipantMenu';
 import { OtherParticipantMenu } from './OtherParticipantMenu';
 import { AnimationsDefinition } from './AnimationsXml';
 import { TutorialWindow } from './TutorialWindow';
-import * as introYouCloseIconDataUrl from '../assets/icons/inverse-close-circle-o.svg';
+import introYouCloseIconDataUrl from '../assets/icons/inverse-close-circle-o.svg';
 
 export class Participant extends Entity
 {

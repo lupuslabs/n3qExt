@@ -5,7 +5,7 @@ import { Pid } from '../lib/ItemProperties'
 import { Utils } from '../lib/Utils'
 import * as log from 'loglevel'
 import * as ltx from 'ltx'
-import * as jid from '@xmpp/jid'
+import { jid } from '@xmpp/jid'
 import { Config } from '../lib/Config'
 import { Memory } from '../lib/Memory'
 import { RandomNames } from '../lib/RandomNames'
@@ -589,7 +589,7 @@ export class RoomPresenceManager
 
     private makeToJid(roomJid: string, resource: string): string
     {
-        const toJid = jid.parse(roomJid).bare()
+        const toJid = jid(roomJid).bare()
         toJid.setResource(resource)
         return toJid.toString()
     }
@@ -628,14 +628,13 @@ export class RoomPresenceManager
 
     private getDesiredNick(): string
     {
-        let nick: string = ''
         const backpack = this.app.getBackpack()
         const filterProps = { [Pid.NicknameAspect]: 'true', [Pid.ActivatableIsActive]: 'true' }
-        nick = as.String(backpack.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
-        if (!nick.length) {
-            nick = this.settingsNick
+        const nick = as.String(backpack.getFirstFilteredItemsPropertyValue(filterProps, Pid.NicknameText))
+        if (nick.length) {
+            return nick
         }
-        return nick
+        return this.settingsNick
     }
 
     private replayAllRoomPresenceStanzasToTab(tabId: number, roomData: RoomData): void

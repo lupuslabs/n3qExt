@@ -110,7 +110,7 @@ import { ContentApp } from './ContentApp';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ItemException } from '../lib/ItemException';
-import * as jid from '@xmpp/jid';
+import { jid, JID } from '@xmpp/jid';
 import * as ltx from 'ltx';
 import { Config } from '../lib/Config';
 import { SimpleErrorToast, SimpleToast, Toast } from './Toast';
@@ -853,7 +853,7 @@ export class SimpleItemTransferController
     protected parseTransferNodeOfStanza(stanza: ltx.Element): undefined|SimpleItemTransferMsg
     {
         const fromStr: unknown = stanza.attrs.from;
-        let fromJid: undefined|jid.JID = undefined;
+        let fromJid: undefined|JID = undefined;
         let from: undefined|Participant = undefined;
         if (is.string(fromStr)) {
             fromJid = jid(fromStr);
