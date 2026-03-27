@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { jid } from '@xmpp/jid';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
@@ -166,7 +166,7 @@ export class Participant extends Entity
 
     // presence
 
-    async onPresenceAvailable(stanza: ltx.Element): Promise<void>
+    async onPresenceAvailable(stanza: XmlElement): Promise<void>
     {
         let hasPosition: boolean = false;
         let newX: number = 123;
@@ -463,7 +463,7 @@ export class Participant extends Entity
         // }
     }
 
-    onPresenceUnavailable(stanza: ltx.Element): void
+    onPresenceUnavailable(stanza: XmlElement): void
     {
         this.remove();
 
@@ -493,7 +493,7 @@ export class Participant extends Entity
     fetchVcardImage(avatarDisplay: IObserver)
     {
         const stanzaId = Utils.randomString(15);
-        const iq = new ltx.Element('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
+        const iq = new XmlElement('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
         iq.c('vCard', { 'xmlns': 'vcard-temp' });
         this.app.sendStanza(iq, stanzaId, (stanza) =>
         {
@@ -511,10 +511,10 @@ export class Participant extends Entity
         if (Environment.isDevelopment() && Config.get('xmpp.verboseVersionQuery', false)) {
             attr['auth'] = Config.get('xmpp.verboseVersionQueryWeakAuth', '');
         }
-        const iq = new ltx.Element('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
+        const iq = new XmlElement('iq', { 'type': 'get', 'id': stanzaId, 'to': this.room.getJid() + '/' + this.roomNick });
         iq.c('query', attr);
 
-        this.app.sendStanza(iq, stanzaId, (stanza: ltx.Element) =>
+        this.app.sendStanza(iq, stanzaId, (stanza: XmlElement) =>
         {
             const queryResult = stanza.getChildren('query', 'jabber:iq:version')[0]?.getChildElements() ?? [];
             if (!queryResult.length) {
@@ -527,7 +527,7 @@ export class Participant extends Entity
         });
     }
 
-    decodeVcardImage2DataUrl(stanza: ltx.Element): string
+    decodeVcardImage2DataUrl(stanza: XmlElement): string
     {
         let url: string = '';
 
@@ -556,7 +556,7 @@ export class Participant extends Entity
 
     // message
 
-    onMessagePrivateChat(stanza: ltx.Element): void
+    onMessagePrivateChat(stanza: XmlElement): void
     {
         let isChat = true;
 
@@ -593,7 +593,7 @@ export class Participant extends Entity
         this.room.getChatWindow().addLine(null, 'chat', this.userId, name, '', text);
     }
 
-    onReceivePoke(node: ltx.Element): void
+    onReceivePoke(node: XmlElement): void
     {
         try {
             const pokeType = node.attrs.type;
@@ -611,7 +611,7 @@ export class Participant extends Entity
         }
     }
 
-    onMessageGroupchat(stanza: ltx.Element): void
+    onMessageGroupchat(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();

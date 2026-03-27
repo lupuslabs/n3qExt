@@ -1,12 +1,12 @@
 import { expect } from 'chai';
 import { ErrorWithData, Utils } from '../lib/Utils';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 
 export class TestUtils
 {
     jsObject2xmlObject_simple_presence()
     {
-        const x = Utils.jsObject2xmlObject(new ltx.Element('presence'));
+        const x = Utils.jsObject2xmlObject(new XmlElement('presence'));
         expect(x.name).to.equal('presence');
     }
 

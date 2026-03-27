@@ -1,6 +1,6 @@
 import log = require('loglevel');
 import { jid } from '@xmpp/jid';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
@@ -221,7 +221,7 @@ export class Room
         });
     }
 
-    public onPresence(stanza: ltx.Element): void
+    public onPresence(stanza: XmlElement): void
     {
         const presenceType = as.String(stanza.attrs.type, 'available');
         switch (presenceType) {
@@ -231,7 +231,7 @@ export class Room
         }
     }
 
-    private onPresenceAvailable(stanza: ltx.Element): void
+    private onPresenceAvailable(stanza: XmlElement): void
     {
         const to = jid(stanza.attrs.to);
         const from = jid(stanza.attrs.from);
@@ -312,7 +312,7 @@ export class Room
                 for (let i = 0; i < previousDependents.length; i++) {
                     const value = previousDependents[i];
                     if (!currentDependents.includes(value)) {
-                        const dependentUnavailablePresence = new ltx.Element('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to.toString() });
+                        const dependentUnavailablePresence = new XmlElement('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to.toString() });
                         this.onPresence(dependentUnavailablePresence);
                     }
                 }
@@ -322,7 +322,7 @@ export class Room
         }
     }
 
-    private onPresenceUnavailable(stanza: ltx.Element): void
+    private onPresenceUnavailable(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
         const resource = from.getResource();
@@ -340,7 +340,7 @@ export class Room
             const to = stanza.attrs.to;
             for (let i = 0; i < currentDependents.length; i++) {
                 const value = currentDependents[i];
-                const dependentUnavailablePresence = new ltx.Element('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to });
+                const dependentUnavailablePresence = new XmlElement('presence', { 'from': this.jid + '/' + value, 'type': 'unavailable', 'to': to });
                 this.onPresence(dependentUnavailablePresence);
             }
             delete this.dependents[resource];
@@ -394,7 +394,7 @@ export class Room
 
     // message
 
-    onMessage(stanza: ltx.Element)
+    onMessage(stanza: XmlElement)
     {
         const from = jid(stanza.attrs.from);
         const nick = from.getResource();
@@ -443,7 +443,7 @@ export class Room
 
     protected makeAndSendGroupChatStanza(text: string): void
     {
-        const message = new ltx.Element('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick });
+        const message = new XmlElement('message', { type: 'groupchat', to: this.jid, from: this.jid + '/' + this.myNick });
         message.c('body', { id: Utils.randomString(10) }).t(text);
         this.app.sendStanza(message);
     }
@@ -486,7 +486,7 @@ export class Room
 
     sendPoke(nick: string, type: string, countsAsActivity: boolean = true)
     {
-        const message = new ltx.Element('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
+        const message = new XmlElement('message', { type: 'chat', to: this.jid + '/' + nick, from: this.jid + '/' + this.myNick });
         message.c('x', { 'xmlns': 'vp:poke', 'type': type });
         this.app.sendStanza(message);
 

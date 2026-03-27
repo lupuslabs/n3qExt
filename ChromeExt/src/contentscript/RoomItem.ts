@@ -22,7 +22,7 @@ import { ItemFramePopup } from './ItemFramePopup';
 import { NotAnOpenableItemFrameError } from './ContentItemFrames'
 import { Participant } from './Participant';
 import { BackpackItem } from './BackpackItem';
-import { Element as XmlElement } from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { PointerEventData } from '../lib/PointerEventData';
 
 export class RoomItem extends Entity

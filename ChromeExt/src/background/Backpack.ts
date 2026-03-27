@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { Config } from '../lib/Config';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ContentMessage, BackpackUpdateData } from '../lib/ContentMessage';
@@ -465,7 +465,7 @@ export class Backpack
         return { itemsLoaded, itemsToLoad };
     }
 
-    public stanzaOutFilter(stanza: ltx.Element): ltx.Element
+    public stanzaOutFilter(stanza: XmlElement): XmlElement
     {
         for (const [providerId, provider] of this.providers) {
             try {
@@ -478,7 +478,7 @@ export class Backpack
         return stanza;
     }
 
-    public stanzaInFilter(stanza: ltx.Element): ltx.Element
+    public stanzaInFilter(stanza: XmlElement): XmlElement
     {
         this.dependentPresenceHelper.modifyIncomingStanza(stanza);
         return stanza;

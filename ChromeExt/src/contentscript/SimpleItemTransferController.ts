@@ -111,7 +111,7 @@ import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
 import { ItemException } from '../lib/ItemException';
 import { jid, JID } from '@xmpp/jid';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { Config } from '../lib/Config';
 import { SimpleErrorToast, SimpleToast, Toast } from './Toast';
 import { is } from '../lib/is';
@@ -244,7 +244,7 @@ export class SimpleItemTransferController
      *
      * Returns, whether the stanza has been handled.
      */
-    public onStanza(stanza: ltx.Element): boolean
+    public onStanza(stanza: XmlElement): boolean
     {
         if (!as.Bool(Config.get('SimpleItemTransfer.enabled'))) {
             return false;
@@ -850,7 +850,7 @@ export class SimpleItemTransferController
     //--------------------------------------------------------------------------
     // Inter client communication
 
-    protected parseTransferNodeOfStanza(stanza: ltx.Element): undefined|SimpleItemTransferMsg
+    protected parseTransferNodeOfStanza(stanza: XmlElement): undefined|SimpleItemTransferMsg
     {
         const fromStr: unknown = stanza.attrs.from;
         let fromJid: undefined|JID = undefined;
@@ -909,7 +909,7 @@ export class SimpleItemTransferController
             stanza: stanza});
     }
 
-    protected makeMsgStanza(record: SimpleItemTransferRecord, transferNode: ltx.Element): ltx.Element
+    protected makeMsgStanza(record: SimpleItemTransferRecord, transferNode: XmlElement): XmlElement
     {
         const to = record.getMsgReceiver();
         const roomJidStr = this.room.getJid();
@@ -918,7 +918,7 @@ export class SimpleItemTransferController
         const fromJid = jid(roomJidStr);
         fromJid.setResource(this.myParticipant.getRoomNick());
 
-        const stanza = new ltx.Element('message', {
+        const stanza = new XmlElement('message', {
             type: 'chat',
             to:   toJid.toString(),
             from: fromJid.toString(),
@@ -929,10 +929,10 @@ export class SimpleItemTransferController
 
     protected makeMsgTransferNode(
         record:   SimpleItemTransferRecord,
-        itemNode: ltx.Element,
+        itemNode: XmlElement,
         type:     SimpleItemTransferMsgType,
         cause?:   SimpleItemTransferCancelCause,
-    ): ltx.Element {
+    ): XmlElement {
         const transferAttrs = {};
         transferAttrs['xmlns'] = 'vp:transfer';
         transferAttrs['type'] = type;
@@ -952,12 +952,12 @@ export class SimpleItemTransferController
             transferAttrs['transferToken'] = record.transferToken;
         }
 
-        const transferNode = new ltx.Element('x', transferAttrs);
+        const transferNode = new XmlElement('x', transferAttrs);
         transferNode.cnode(itemNode)
         return transferNode;
     }
 
-    protected makeMsgItemNode(record: SimpleItemTransferRecord, type: SimpleItemTransferMsgType): ltx.Element
+    protected makeMsgItemNode(record: SimpleItemTransferRecord, type: SimpleItemTransferMsgType): XmlElement
     {
         let itemFiltered: ItemWithId;
         if (type !== SimpleItemTransferMsgType.offer) {
@@ -969,7 +969,7 @@ export class SimpleItemTransferController
         } else {
             itemFiltered = record.item;
         }
-        const itemNode = new ltx.Element('item', itemFiltered);
+        const itemNode = new XmlElement('item', itemFiltered);
         return itemNode;
     }
 

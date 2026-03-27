@@ -2,7 +2,7 @@ import imgDefaultAvatar from '../assets/DefaultAvatar.png';
 
 import log = require('loglevel');
 import { as } from '../lib/as';
-import { Element as XmlElement } from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { Config } from '../lib/Config';
 import { Room } from './Room';
 import { Avatar } from './Avatar';

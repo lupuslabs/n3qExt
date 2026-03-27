@@ -1,7 +1,7 @@
 import { as } from '../lib/as'
 import { iter } from '../lib/Iter'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
-import * as ltx from 'ltx'
+import XmlElement from 'ltx/lib/Element.js'
 import { jid } from '@xmpp/jid'
 import { BackgroundApp } from './BackgroundApp'
 import { Logger } from '../lib/Logger'
@@ -37,7 +37,7 @@ export class DependentPresenceHelper
         this.deferredItemsRequestLogger = app.getLogger().getSubLogger('DependentPresenceItemRequests', 'DependentPresenceHelper')
     }
 
-    public modifyOutgoingStanza(stanza: ltx.Element): void
+    public modifyOutgoingStanza(stanza: XmlElement): void
     {
         if (stanza.name !== 'presence' || as.String(stanza.attrs['type'], 'available') !== 'available') {
             return
@@ -50,7 +50,7 @@ export class DependentPresenceHelper
         }
     }
 
-    public modifyIncomingStanza(stanza: ltx.Element): void
+    public modifyIncomingStanza(stanza: XmlElement): void
     {
         if (stanza.name !== 'presence' || as.String(stanza.attrs['type'], 'available') !== 'available') {
             return
@@ -62,7 +62,7 @@ export class DependentPresenceHelper
         dependentPresences.forEach(dependentPresence => this.onDependentPresence(roomJid, participantNick, dependentPresence))
     }
 
-    private getDependentPresence(roomJid: string): null|ltx.Element
+    private getDependentPresence(roomJid: string): null|XmlElement
     {
         const items = this.app.getBackpack().getRoomItems(roomJid)
         if (items.length === 0) {
@@ -97,12 +97,12 @@ export class DependentPresenceHelper
             }
         }
 
-        const dependentPresence = new ltx.Element('x', { 'xmlns': 'vp:dependent' })
+        const dependentPresence = new XmlElement('x', { 'xmlns': 'vp:dependent' })
         for (const item of items) {
             const itemId = ItemProperties.getId(item)
             const inventoryId = ItemProperties.getInventoryId(item)
             const from = `${roomJid}/${inventoryId}${itemId}`
-            const itemPresence = new ltx.Element('presence', { 'from': from })
+            const itemPresence = new XmlElement('presence', { 'from': from })
             itemPresence.c('x', {
                 'xmlns': 'vp:props',
                 'type': 'item',
@@ -116,7 +116,7 @@ export class DependentPresenceHelper
         return dependentPresence
     }
 
-    private onDependentPresence(roomJid: string, participantNick: string, dependentPresence: ltx.Element): void
+    private onDependentPresence(roomJid: string, participantNick: string, dependentPresence: XmlElement): void
     {
         const vpProps = dependentPresence.getChildren('x', 'vp:props')[0]
         if (!vpProps) {
@@ -142,7 +142,7 @@ export class DependentPresenceHelper
         this.requestItemForDependentPresence(roomJid, participantNick, itemDefinition)
     }
 
-    private completeDependentPresence(props: ItemProperties, dependentPresence: ltx.Element, vpProps: ltx.Element): void
+    private completeDependentPresence(props: ItemProperties, dependentPresence: XmlElement, vpProps: XmlElement): void
     {
         delete dependentPresence.attrs._incomplete
         for (const [pid, value] of Object.entries(props)) {

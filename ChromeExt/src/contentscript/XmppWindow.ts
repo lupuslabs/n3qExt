@@ -1,4 +1,4 @@
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
@@ -113,7 +113,7 @@ export class XmppWindow extends FullWindow<FullWindowOptions>
         return as.String(await Memory.getLocal('dev.scratchPad'));
     }
 
-    private text2Stanza(text: string): ltx.Element
+    private text2Stanza(text: string): XmlElement
     {
         const json = JSON.parse(text);
         const stanza = Utils.jsObject2xmlObject(json);

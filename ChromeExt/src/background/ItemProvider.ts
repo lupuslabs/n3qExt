@@ -1,4 +1,4 @@
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemProperties } from '../lib/ItemProperties';
 
@@ -32,5 +32,5 @@ export interface IItemProvider
     transferAuthorize(itemId: string, duration: number): Promise<string>;
     transferUnauthorize(itemId: string): Promise<void>;
     transferComplete(senderInventoryId: string, senderItemId: string, transferToken: string): Promise<string>;
-    stanzaOutFilter(stanza: ltx.Element): ltx.Element
+    stanzaOutFilter(stanza: XmlElement): XmlElement
 }

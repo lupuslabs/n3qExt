@@ -1,7 +1,7 @@
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { is } from '../lib/is';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { ItemException } from '../lib/ItemException';
 import { ItemProperties, Pid } from '../lib/ItemProperties';
@@ -742,7 +742,7 @@ export namespace HostedInventoryItemProvider
 
         nicknameKnownByServer = '';
         avatarKnownByServer = '';
-        stanzaOutFilter(stanza: ltx.Element): ltx.Element
+        stanzaOutFilter(stanza: XmlElement): XmlElement
         {
             if (!this.running || !this.userItemsLoaded || stanza.name !== 'presence') {
                 return stanza;

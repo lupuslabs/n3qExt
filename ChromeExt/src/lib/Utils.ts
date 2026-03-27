@@ -1,4 +1,4 @@
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { is } from './is';
 import { Config } from './Config';
 import { Environment } from './Environment';
@@ -107,7 +107,7 @@ export class Utils
             || Config.get(`log.${channel}`, defaultValue);
     }
 
-    static jsObject2xmlObject(stanza: any, parent?: ltx.Element): ltx.Element
+    static jsObject2xmlObject(stanza: any, parent?: XmlElement): XmlElement
     {
         let elem;
         if (parent) {
@@ -117,7 +117,7 @@ export class Utils
                 elem = parent.c(stanza.name, stanza.attrs);
             }
         } else {
-            elem = new ltx.Element(stanza.name, stanza.attrs);
+            elem = new XmlElement(stanza.name, stanza.attrs);
         }
         (stanza.children ?? []).forEach(child => this.jsObject2xmlObject(child, elem));
         return elem;

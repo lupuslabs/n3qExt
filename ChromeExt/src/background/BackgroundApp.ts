@@ -1,5 +1,5 @@
 import log = require('loglevel');
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { jid, JID } from '@xmpp/jid';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
@@ -905,7 +905,7 @@ export class BackgroundApp
     {
         // log.debug('BackgroundApp.handle_sendStanza', stanza, tabId);
 
-        let xmlStanza: ltx.Element = Utils.jsObject2xmlObject(stanza);
+        let xmlStanza: XmlElement = Utils.jsObject2xmlObject(stanza);
 
         if (Utils.isBackpackEnabled()) {
             xmlStanza = this.backpack.stanzaOutFilter(xmlStanza);
@@ -949,12 +949,12 @@ export class BackgroundApp
         this.roomPresenceManager.replayReceivedRoomPresenceStanza(roomJid, participantResource);
     }
 
-    public sendStanza(stanza: ltx.Element): void
+    public sendStanza(stanza: XmlElement): void
     {
         this.xmppManager.sendStanza(stanza);
     }
 
-    public recvStanza(xmlStanza: ltx.Element)
+    public recvStanza(xmlStanza: XmlElement)
     {
         const isError = xmlStanza.attrs.type === 'error';
         if (isError) {
@@ -998,7 +998,7 @@ export class BackgroundApp
         }
     }
 
-    public async onIqGet(stanza: ltx.Element): Promise<void>
+    public async onIqGet(stanza: XmlElement): Promise<void>
     {
         const versionQuery = stanza.getChild('query', 'jabber:iq:version');
         if (versionQuery) {
@@ -1006,14 +1006,14 @@ export class BackgroundApp
         }
     }
 
-    private async onIqGetVersion(stanza: ltx.Element): Promise<void>
+    private async onIqGetVersion(stanza: XmlElement): Promise<void>
     {
         if (stanza.attrs) {
             const id = stanza.attrs.id;
             if (id) {
                 const versionQuery = stanza.getChild('query', 'jabber:iq:version');
                 if (versionQuery) {
-                    const response = new ltx.Element('iq', { type: 'result', 'id': id, 'to': stanza.attrs.from });
+                    const response = new XmlElement('iq', { type: 'result', 'id': id, 'to': stanza.attrs.from });
                     const queryResponse = response.c('query', { xmlns: 'jabber:iq:version', });
 
                     queryResponse.c('name', {}).t(Config.get('client.name', '_noname'));

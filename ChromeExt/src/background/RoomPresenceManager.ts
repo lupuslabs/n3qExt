@@ -4,7 +4,7 @@ import { iter } from '../lib/Iter'
 import { Pid } from '../lib/ItemProperties'
 import { Utils } from '../lib/Utils'
 import * as log from 'loglevel'
-import * as ltx from 'ltx'
+import XmlElement from 'ltx/lib/Element.js'
 import { jid } from '@xmpp/jid'
 import { Config } from '../lib/Config'
 import { Memory } from '../lib/Memory'
@@ -30,7 +30,7 @@ class RoomData
     public enterRetryCount: number = 0
 
     public readonly tabIds: Set<number> = new Set()
-    public readonly receivedPresences: Map<string,ltx.Element> = new Map()
+    public readonly receivedPresences: Map<string,XmlElement> = new Map()
 
     public lastSentPresenceData: null|TabRoomPresenceData = null
     public sentPresenceCounts: Map<string,number> = new Map()
@@ -175,7 +175,7 @@ export class RoomPresenceManager
         }
     }
 
-    public onReceivedRoomPresenceStanza(roomPresenceStanza: ltx.Element)
+    public onReceivedRoomPresenceStanza(roomPresenceStanza: XmlElement)
     {
         if (this.isStopped) {
             return
@@ -460,7 +460,7 @@ export class RoomPresenceManager
             const from = this.makeToJid(roomJid, ownResource)
             const to = this.app.getXmppJid()?.toString() ?? ''
             const attrs = { type: 'unavailable', 'from': from, 'to': to, _isSelf: true }
-            const stanza = new ltx.Element('presence', attrs)
+            const stanza = new XmlElement('presence', attrs)
             this.app.sendToTab(unavailableTabId, { type: ContentMessage.type_recvStanza, stanza })
         }
     }
@@ -495,7 +495,7 @@ export class RoomPresenceManager
         return roomPresence
     }
 
-    private makeRoomPresence(roomData: RoomData, ownResourceInRoom: string, presenceData: TabRoomPresenceData): ltx.Element
+    private makeRoomPresence(roomData: RoomData, ownResourceInRoom: string, presenceData: TabRoomPresenceData): XmlElement
     {
         const to = this.makeToJid(roomData.roomJid, ownResourceInRoom)
         if (!(presenceData?.isAvailable ?? false)) {
@@ -540,7 +540,7 @@ export class RoomPresenceManager
             vpProps['Badges'] = badges
         }
 
-        let presence = new ltx.Element('presence', { to })
+        let presence = new XmlElement('presence', { to })
         if (!isAvailable) {
             presence.attrs.type = 'unavailable'
         }
@@ -582,9 +582,9 @@ export class RoomPresenceManager
         return presence
     }
 
-    private makeRoomUnavailablePresence(to: string): ltx.Element
+    private makeRoomUnavailablePresence(to: string): XmlElement
     {
-        return new ltx.Element('presence', { type: 'unavailable', to })
+        return new XmlElement('presence', { type: 'unavailable', to })
     }
 
     private makeToJid(roomJid: string, resource: string): string
@@ -645,7 +645,7 @@ export class RoomPresenceManager
         }
     }
 
-    private sendRoomPresenceStanzaToRoomTabs(roomJid: string, roomPresenceStanza: ltx.Element): void
+    private sendRoomPresenceStanzaToRoomTabs(roomJid: string, roomPresenceStanza: XmlElement): void
     {
         const message = { 'type': ContentMessage.type_recvStanza, 'stanza': roomPresenceStanza }
         this.app.sendToTabsForRoom(roomJid, message)

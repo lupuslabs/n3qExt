@@ -3,7 +3,7 @@ import { as } from '../lib/as'
 import { Utils } from '../lib/Utils'
 import { Memory } from '../lib/Memory'
 import { Config } from '../lib/Config'
-import * as ltx from 'ltx'
+import XmlElement from 'ltx/lib/Element.js'
 import { jid, JID } from '@xmpp/jid'
 import { client as clientMaker, Client } from '@xmpp/client'
 import { ContentMessage } from '../lib/ContentMessage'
@@ -24,7 +24,7 @@ type XmppConnectionManagerStats = {
 }
 
 type QueuedStanza = {
-    readonly stanza: ltx.Element,
+    readonly stanza: XmlElement,
     readonly creationTimestamp: number,
 }
 
@@ -225,7 +225,7 @@ export class XmppConnectionManager
         })
     }
 
-    public sendStanza(stanza: ltx.Element): void
+    public sendStanza(stanza: XmlElement): void
     {
         this.stanzaQ.push({ stanza, creationTimestamp: Date.now() })
         this.maintainStanzaOutQueue()
@@ -249,7 +249,7 @@ export class XmppConnectionManager
         }
     }
 
-    private sendStanzaUnbuffered(stanza: ltx.Element): void
+    private sendStanzaUnbuffered(stanza: XmlElement): void
     {
         if (!this.isConnectionPresence(stanza)) {
             if (Utils.logChannel('backgroundTraffic', true)) {
@@ -265,11 +265,11 @@ export class XmppConnectionManager
     {
         if (this.clientStatus === 'online') {
             this.lastServerPresenceTimeMs = timeMs
-            this.sendStanzaUnbuffered(new ltx.Element('presence'))
+            this.sendStanzaUnbuffered(new XmlElement('presence'))
         }
     }
 
-    private logStanzaToRelevantTabs(direction: 'in'|'out', stanza: ltx.Element): void
+    private logStanzaToRelevantTabs(direction: 'in'|'out', stanza: XmlElement): void
     {
         let roomJid: string = ''
         try {
@@ -288,7 +288,7 @@ export class XmppConnectionManager
         }
     }
 
-    private isConnectionPresence(stanza: ltx.Element): boolean
+    private isConnectionPresence(stanza: XmlElement): boolean
     {
         const toJid = as.String(stanza.attrs.to)
         let isConnectionPresence = false
@@ -335,7 +335,7 @@ export class XmppConnectionManager
         this.maintain()
     }
 
-    private onXmppStanza(clientId: number, client: Client, stanza: ltx.Element)
+    private onXmppStanza(clientId: number, client: Client, stanza: XmlElement)
     {
         this.stats.stanzasInCount++
 

@@ -1,7 +1,7 @@
 import log = require('loglevel')
 import $ from 'jquery';
 import { jid } from '@xmpp/jid';
-import * as ltx from 'ltx';
+import XmlElement from 'ltx/lib/Element.js';
 import { as } from '../lib/as';
 import { is } from '../lib/is';
 import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
@@ -80,7 +80,7 @@ export class ContentAppNotification
 }
 
 interface ContentAppNotificationCallback { (msg: any): void }
-interface StanzaResponseHandler { (stanza: ltx.Element): void }
+interface StanzaResponseHandler { (stanza: XmlElement): void }
 
 export type ContentAppParams = {
     nickname?: string,
@@ -765,7 +765,7 @@ export class ContentApp extends AppWithDom
                 case ContentMessage.type_xmppIo: {
                     if (this.xmppWindow) {
                         const label = message.direction === 'in' ? '_IN_' : 'OUT';
-                        const stanza: ltx.Element = Utils.jsObject2xmlObject(message.stanza);
+                        const stanza: XmlElement = Utils.jsObject2xmlObject(message.stanza);
                         const stanzaText = stanza.toString();
                         this.xmppWindow.showLine(label, stanzaText);
                     }
@@ -866,7 +866,7 @@ export class ContentApp extends AppWithDom
 
     handle_recvStanza(jsStanza: unknown): void
     {
-        const stanza: ltx.Element = Utils.jsObject2xmlObject(jsStanza);
+        const stanza: XmlElement = Utils.jsObject2xmlObject(jsStanza);
         if (Utils.logChannel('contentTraffic', false)) {
             log.debug('ContentApp.recvStanza', stanza, as.String(stanza.attrs.type, stanza.name === 'presence' ? 'available' : 'normal'), 'to=', stanza.attrs.to, 'from=', stanza.attrs.from);
         }
@@ -1090,7 +1090,7 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    private onPresence(stanza: ltx.Element): void
+    private onPresence(stanza: XmlElement): void
     {
         let isHandled = false;
 
@@ -1107,7 +1107,7 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    onMessage(stanza: ltx.Element): void
+    onMessage(stanza: XmlElement): void
     {
         const from = jid(stanza.attrs.from);
         const roomOrUser = from.bare().toString();
@@ -1117,7 +1117,7 @@ export class ContentApp extends AppWithDom
         }
     }
 
-    onIq(stanza: ltx.Element): void
+    onIq(stanza: XmlElement): void
     {
         const id = stanza.attrs.id;
         if (id) {
@@ -1129,7 +1129,7 @@ export class ContentApp extends AppWithDom
     }
 
     sendStanza(
-        stanza: ltx.Element,
+        stanza: XmlElement,
         stanzaId: string = null,
         responseHandler: StanzaResponseHandler = null,
     ): void
