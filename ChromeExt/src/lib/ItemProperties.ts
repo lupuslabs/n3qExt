@@ -1,10 +1,8 @@
-import log = require('loglevel');
 import { is } from './is';
 import { as } from './as';
 import { iterOfIters } from './Iter'
 import { Utils } from './Utils';
 import { Config } from './Config';
-const NodeRSA = require('node-rsa');
 
 import defaultItemImageUrl from '../assets/DefaultItem.png'
 
@@ -89,8 +87,6 @@ export enum Pid
     ScreenOptions = 'ScreenOptions',
     ScreenUrl = 'ScreenUrl',
     ActivatableIsActive = 'ActivatableIsActive',
-    Signed = 'Signed',
-    SignatureRsa = 'SignatureRsa',
     Web3WalletAspect = 'Web3WalletAspect',
     Web3WalletAddress = 'Web3WalletAddress',
     Web3WalletNetwork = 'Web3WalletNetwork',
@@ -328,39 +324,6 @@ export class ItemProperties
         }
 
         return display;
-    }
-
-    static verifySignature(props: ItemProperties, publicKey: string): boolean
-    {
-        if (publicKey) {
-            const message = ItemProperties.getSignatureData(props);
-            const signature = as.String(props[Pid.SignatureRsa]);
-            try {
-                const verifier = new NodeRSA(publicKey);
-                if (verifier.verify(message, signature, 'utf8', 'base64')) {
-                    return true;
-                }
-            } catch (error) {
-                log.info('ItemProperties.verifySignature', error);
-            }
-        }
-        return false;
-    }
-
-    static getSignatureData(props: ItemProperties): string
-    {
-        const signed = as.String(props[Pid.Signed]);
-        if (signed !== '') {
-            const pids = signed.split(' ');
-            let message = '';
-            for (let i = 0; i < pids.length; i++) {
-                const pid = pids[i];
-                const value = as.String(props[pid]);
-                message += (message !== '' ? ' | ' : '') + pid + '=' + value;
-            }
-            return message;
-        }
-        return '';
     }
 
     static areEqual(left: ItemProperties, right: ItemProperties)
@@ -706,8 +669,6 @@ export class Property
         [Pid.ScreenOptions]: { inPresence: true },
         [Pid.ScreenUrl]: { inPresence: true },
         [Pid.Display]: { inPresence: true },
-        [Pid.Signed]: { inPresence: true },
-        [Pid.SignatureRsa]: { inPresence: true },
         [Pid.ActivatableIsActive]: { inPresence: true },
         [Pid.ShopImageUrl]: { inPresence: true },
         [Pid.PageEffectName]: { inPresence: true },

@@ -635,10 +635,6 @@ export class Room
 
         if (mappedRoomName === currentRoomName) {
             return true;
-            // const publicKey = as.String(Config.get('backpack.signaturePublicKey'), '');
-            // if (ItemProperties.verifySignature(props, publicKey)) {
-            //     return true;
-            // }
         }
 
         return false;

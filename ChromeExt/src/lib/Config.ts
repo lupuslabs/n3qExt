@@ -366,10 +366,6 @@ export class Config
             dependentPresenceItemsWarning: 20,
             dependentPresenceItemsWarningIntervalSec: 30,
             loadWeb3Items: true,
-            signaturePublicKey: '-----BEGIN PUBLIC KEY-----\n' +
-                'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL8cd14UE+Fy2QV6rtvbBA3UGo8TllmX\n' +
-                'hcFcpuzkK2SpAbbNgA7IilojcAXsFsDFdCTTTWfofAEZvbGqSAQ0VJ8CAwEAAQ==\n' +
-                '-----END PUBLIC KEY-----\n',
             showInvisibleItems: false,
             filters: [],
             PropertiesUrlProcessing: { // Loading/overriding of properties from an URL in item[Pid.PropertiesUrl].

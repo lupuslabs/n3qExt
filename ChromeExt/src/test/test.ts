@@ -14,7 +14,6 @@ import { TestVpiResolver } from './TestVpiResolver'; s.addTestClass(TestVpiResol
 import { TestAs } from './TestAs'; s.addTestClass(TestAs);
 // Used old local item provider: import { TestBackpack } from './TestBackpack'; s.addTestClass(TestBackpack);
 import { TestPointsGenerator } from './TestPointsGenerator'; s.addTestClass(TestPointsGenerator);
-import { TestItemProperties } from './TestItemProperties'; s.addTestClass(TestItemProperties);
 import { TestOrderedSet } from './TestOrderedSet'; s.addTestClass(TestOrderedSet);
 import { TestUrlRe } from './TestUrlRe'; s.addTestClass(TestUrlRe);
 import { TestItemUpdateSubscription } from './TestItemUpdateSubscription'; s.addTestClass(TestItemUpdateSubscription);

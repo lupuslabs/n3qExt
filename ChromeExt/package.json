@@ -72,7 +72,6 @@
     "chai": "6.x",
     "jquery": "3.6.3",
     "loglevel": "1.9.2",
-    "node-rsa": "1.1.1",
     "unique-names-generator": "4.7.x",
     "ethers": "6.x"
   }
