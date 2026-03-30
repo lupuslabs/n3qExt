@@ -1,9 +1,9 @@
 const $ = require('jquery');
 import log = require('loglevel');
-import * as crypto from 'crypto';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
+import { CryptoUtils } from '../lib/CryptoUtils'
 import { UrlAsTextFetcher } from '../lib/UrlFetcher'
 
 export class VpiMappingResult
@@ -203,9 +203,7 @@ export class VpiResolver
                                         logData['name'] = name;
 
                                         if (as.String(hash, '') !== '') {
-                                            let hasher = crypto.createHash(hash.toLowerCase());
-                                            hasher.update(name);
-                                            name = hasher.digest('hex');
+                                            name = CryptoUtils.hashStringByAlgo(hash, name);
                                             this.trace('hashed', name);
                                         }
                                         room = prefix + name;

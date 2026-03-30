@@ -1,6 +1,7 @@
 ﻿import { is } from './is'
 import { as } from './as'
 import { Utils } from './Utils'
+import { CryptoUtils } from './CryptoUtils'
 import { DomUtils } from './DomUtils';
 import { ParseUtils } from './ParseUtils'
 
@@ -85,7 +86,7 @@ export namespace ChatUtils {
 
     export function makeChatMessageId(time: Date, nick: string): string
     {
-        return `${time.getTime()}_${Utils.hashNumber(nick)}_${Utils.randomString(4)}`
+        return `${time.getTime()}_${CryptoUtils.hashNumber(nick)}_${Utils.randomString(4)}`
     }
 
     export function chatMessageCmpFun(msgA: ChatMessage, msgB: ChatMessage): number

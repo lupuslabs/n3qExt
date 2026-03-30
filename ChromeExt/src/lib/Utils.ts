@@ -3,7 +3,7 @@ import { is } from './is';
 import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
-import * as crypto from 'crypto';
+import { CryptoUtils } from './CryptoUtils';
 
 export interface NumberFormatOptions extends Intl.NumberFormatOptions {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#options
@@ -150,34 +150,10 @@ export class Utils
 
     static pseudoRandomInt(min: number, max: number, key: string, suffix: string, mod: number): number
     {
-        const hash = Utils.hashNumber(key + suffix) % mod;
+        const hash = CryptoUtils.hashNumber(key + suffix) % mod;
         const f = min + (max - min) / mod * hash;
         const i = Math.trunc(f);
         return i;
-    }
-
-    static hashString(s: string): string
-    {
-        let hasher = crypto.createHash('SHA1'.toLowerCase());
-        hasher.update(s);
-        const hash = hasher.digest('hex');
-        return hash;
-    }
-
-    static hashNumber(s: string): number
-    {
-        let hash = 0;
-        if (s.length === 0) { return 0; }
-
-        s += 'abcd';
-
-        for (let i = 0; i < s.length; i++) {
-            const char = s.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-
-        return Math.abs(hash);
     }
 
     static base64Encode(s: string): string

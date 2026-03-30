@@ -1,6 +1,6 @@
-import { createHash, createHmac } from 'crypto';
 import { ItemProperties } from './ItemProperties'
 import { Utils } from './Utils';
+import { CryptoUtils } from './CryptoUtils'
 
 export class ItemFrameContextFactory
 {
@@ -41,7 +41,7 @@ export class ItemFrameContextFactory
         const token = {protocolVersion, userId, languageId, roomId, providerId, inventoryId, itemId, entropy}
 
         const hash = this.calcHash(token)
-        token['signature'] = this.calcSignature(hash)
+        token['signature'] = CryptoUtils.signStringHmacSha256(this.#userToken, hash)
 
         const tokenString = JSON.stringify(token)
         const tokenBase64Encoded = Utils.base64Encode(tokenString)
@@ -49,25 +49,18 @@ export class ItemFrameContextFactory
     }
 
     private calcHash(values: {[p:string]:string}): string {
-        const hashMaker = createHash('sha256')
+        const hashMaker = CryptoUtils.getSha256Hasher()
         const cmpFun = (a: [string, string], b: [string, string]): number => {
             return a[0].localeCompare(b[0], 'en-US-u-co-unicode', { sensitivity: 'variant', numeric: false })
         }
         const separatorBuffer = new Uint8Array([0])
         for (const [key, value] of [...Object.entries(values)].sort(cmpFun)) {
-            hashMaker.update(key, 'utf8')
+            hashMaker.update(new TextEncoder().encode(key))
             hashMaker.update(separatorBuffer)
-            hashMaker.update(value, 'utf8')
+            hashMaker.update(new TextEncoder().encode(value))
             hashMaker.update(separatorBuffer)
         }
         const hash = hashMaker.digest('hex')
         return hash;
-    }
-
-    private calcSignature(hash: string): string {
-        const hmacMaker = createHmac('sha256', this.#userToken);
-        hmacMaker.update(new TextEncoder().encode(hash))
-        const hmac = hmacMaker.digest('hex')
-        return hmac
     }
 }

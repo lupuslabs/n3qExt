@@ -50,53 +50,6 @@ export class TestUtils
         expect(x.getXmlns).to.not.be.undefined;
     }
 
-    hashString()
-    {
-        expect(Utils.hashString('a')).not.to.equal(Utils.hashString('b'));
-        expect(Utils.hashString('https://www.galactic-developments.de/')).not.to.equal(Utils.hashString('https://www.galactic-developments.de/X'));
-        expect(Utils.hashString('https://www.galactic-developments.de/')).to.equal(Utils.hashString('https://www.galactic-developments.de/'));
-    }
-
-    hashNumber()
-    {
-        expect(Utils.hashNumber('')).to.equal(0);
-        expect(Utils.hashNumber('a')).not.to.be.null;
-        expect(Utils.hashNumber('a')).not.to.equal(0);
-        expect(Utils.hashNumber('a')).not.to.equal('');
-        expect(Utils.hashNumber('a')).to.equal(Utils.hashNumber('a'));
-        expect(Utils.hashNumber('a')).not.to.equal(Utils.hashNumber('b'));
-        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal(0);
-        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.be.null;
-        expect(Utils.hashNumber('nicknamehttps://avatar.weblin.sui.li/identity/?nickname=nickname&avatarUrl=avatarUrl')).not.to.equal('');
-
-        // console.log(Utils.hash('a'));
-        // console.log(Utils.hash('ab'));
-        // console.log(Utils.hash('abc'));
-        // console.log(Utils.hash('abcd'));
-        // console.log(Utils.hash('abcde'));
-        // console.log(Utils.hash('abcdef'));
-        // console.log(Utils.hash('abcdefg'));
-        // console.log(Utils.hash('abcdefgh'));
-        // console.log(Utils.hash('abcdefghi'));
-        // console.log(Utils.hash('abcdefghij'));
-        // console.log(Utils.hash('abcdefghijk'));
-        // console.log(Utils.hash('abcdefghijkl'));
-        // console.log(Utils.hash('abcdefghijklm'));
-        // console.log(Utils.hash('aaaaaaaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaaa'));
-        // console.log(Utils.hash('aaaaaaa'));
-        // console.log(Utils.hash('aaaaaa'));
-        // console.log(Utils.hash('aaaaa'));
-        // console.log(Utils.hash('aaaa'));
-        // console.log(Utils.hash('aaa'));
-        // console.log(Utils.hash('aa'));
-        // console.log(Utils.hash('a'));
-    }
-
     prepareValForMessage()
     {
         const testError = new ErrorWithData('Error message!', {debugString1: 'debug string 1'});

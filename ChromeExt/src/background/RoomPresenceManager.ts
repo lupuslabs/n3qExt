@@ -3,6 +3,7 @@ import { as } from '../lib/as'
 import { iter } from '../lib/Iter'
 import { Pid } from '../lib/ItemProperties'
 import { Utils } from '../lib/Utils'
+import { CryptoUtils } from '../lib/CryptoUtils'
 import * as log from 'loglevel'
 import XmlElement from 'ltx/lib/Element.js'
 import { jid } from '@xmpp/jid'
@@ -559,7 +560,7 @@ export class RoomPresenceManager
         let identityUrl = as.String(Config.get('identity.url'), '')
         let identityDigest = as.String(Config.get('identity.digest'), '1')
         if (identityUrl === '') {
-            identityDigest = as.String(Utils.hashNumber(`${this.app.getXmppResource()}${avatarUrl}`))
+            identityDigest = as.String(CryptoUtils.hashNumber(`${this.app.getXmppResource()}${avatarUrl}`))
             identityUrl = as.String(Config.get('identity.identificatorUrlTemplate', 'https://webex.vulcan.weblin.com/Identity/Generated?avatarUrl={avatarUrl}&nickname={nickname}&digest={digest}&imageUrl={imageUrl}&points={points}'))
                 .replace('{nickname}', encodeURIComponent(ownResourceInRoom))
                 .replace('{avatarUrl}', encodeURIComponent(avatarUrl))

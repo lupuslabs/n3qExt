@@ -6,7 +6,7 @@ import { DomUtils } from '../lib/DomUtils';
 import { BadgeInfoWindow } from './BadgeInfoWindow';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { as } from '../lib/as';
-import { Utils } from '../lib/Utils';
+import { CryptoUtils } from '../lib/CryptoUtils';
 
 export class Badge
 {
@@ -101,7 +101,7 @@ export class Badge
     private openOrFocusPopup()
     {
         const linkData = ItemProperties.getBadgeLinkData(this.item);
-        const popupId = String(Utils.hashString(linkData.linkUrl));
+        const popupId = String(CryptoUtils.hashStringSha1(linkData.linkUrl));
         const popupLink = linkData.linkUrl + '#n3qdisable'
         const popupOptions = ItemProperties.getBadgeToolOptions(this.item);
         BackgroundMessage.openOrFocusPopup({
@@ -117,7 +117,7 @@ export class Badge
     private closePopup()
     {
         const linkData = ItemProperties.getBadgeLinkData(this.item);
-        const popupId = String(Utils.hashString(linkData.linkUrl));
+        const popupId = String(CryptoUtils.hashStringSha1(linkData.linkUrl));
         BackgroundMessage.closePopup(popupId).catch(error => this.app.onError(error));
     }
 
