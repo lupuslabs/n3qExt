@@ -1,4 +1,3 @@
-const $ = require('jquery');
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { PropertyStorage } from './PropertyStorage';
 import { as } from '../lib/as';
@@ -37,19 +36,21 @@ export class LegacyIdentity
             // {
             //   log.log($(item).attr('id'), $(item).text());
             // });
-            let xml = $.parseXML(data);
-            $(xml).find('item').each((index, item) =>
-            {
-                this.setItem($(item).attr('id'),
-                    {
-                        'digest': $(item).attr('digest'),
-                        'contenttype': $(item).attr('contenttype'),
-                        'src': $(item).attr('src'),
-                        'mimetype': $(item).attr('mimetype'),
-                        'order': $(item).attr('order'),
-                        'text': $(item).text()
-                    });
-            });
+            const xml = new DOMParser().parseFromString(data, 'text/xml');
+            if (xml.querySelector('parsererror')) {
+                throw new Error('XML parse error');
+            }
+            for (const item of xml.getElementsByTagName('item')) {
+                const props = {
+                    'digest': item.getAttribute('digest'),
+                    'contenttype': item.getAttribute('contenttype'),
+                    'src': item.getAttribute('src'),
+                    'mimetype': item.getAttribute('mimetype'),
+                    'order': item.getAttribute('order'),
+                    'text': item.textContent,
+                };
+                this.setItem(item.getAttribute('id'), props);
+            }
         } catch (error) {
         }
     }

@@ -1,4 +1,3 @@
-const $ = require('jquery');
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
@@ -127,7 +126,10 @@ export class VpiResolver
             let delegate = '';
             let location = '';
             let destination = '';
-            let xml = $.parseXML(data);
+            const xml = new DOMParser().parseFromString(data, 'text/xml');
+            if (xml.querySelector('parsererror')) {
+                throw new Error('XML parse error');
+            }
             let logData = {};
             for (let vpiChildIndex = 0; vpiChildIndex < xml.documentElement.children.length; vpiChildIndex++) {
                 let vpiChild = xml.documentElement.children[vpiChildIndex];
@@ -188,10 +190,10 @@ export class VpiResolver
 
                                 case 'name': // The same: '<name hash="true">\5</name>' | '<name hash="SHA1">\5</name>' BUT: '<name>\5</name>' does not hash
                                     {
-                                        let hash = locationChild.attributes.hash ? as.String(locationChild.attributes.hash.value, 'SHA1') : '';
-                                        if (hash === 'true') { hash = 'SHA1'; }
+                                        const rawHash = locationChild.getAttribute('hash');
+                                        const hash = (rawHash === '' || rawHash === 'true') ? 'SHA1' : (rawHash ?? '');
 
-                                        let prefix = locationChild.attributes.prefix ? as.String(locationChild.attributes.prefix.value, '') : '';
+                                        const prefix = locationChild.getAttribute('prefix') ?? '';
                                         if (prefix !== '') { this.trace('prefix', prefix); }
 
                                         let nameExpr = locationChild.textContent;
@@ -218,7 +220,7 @@ export class VpiResolver
 
                                 case 'select': // see https://lms.virtual-presence.org/v7/name/f/a/facebook.xml
                                     {
-                                        let defaultTag = locationChild.attributes.tag ? as.String(locationChild.attributes.tag.value, '') : '';
+                                        const defaultTag = locationChild.getAttribute('tag') ?? '';
 
                                         let options: Array<{ tag: string, suffix: string }> = [];
                                         for (let selectChildIndex = 0; selectChildIndex < locationChild.children.length; selectChildIndex++) {
@@ -226,7 +228,7 @@ export class VpiResolver
                                             switch (selectChild.tagName) {
                                                 case 'option':
                                                     {
-                                                        let suffix = selectChild.attributes.suffix ? as.String(selectChild.attributes.suffix.value, '') : '';
+                                                        const suffix = selectChild.getAttribute('suffix') ?? '';
                                                         let tag = as.String(selectChild.firstElementChild?.textContent, '');
                                                         if (tag !== '' && suffix !== '') {
                                                             options.push({ 'tag': tag, 'suffix': suffix });
