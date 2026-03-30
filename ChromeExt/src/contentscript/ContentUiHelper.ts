@@ -64,7 +64,7 @@ export class ContentUiHelper {
             }
             iconElem.classList.add('icon')
             if (asCssMask) {
-                iconWrapElem.style.maskImage = 'url(' + iconUrl + ')'
+                iconWrapElem.style.maskImage = 'url(' + iconElem.src + ')'
                 iconElem.classList.add('hidden')
                 iconWrapElem.classList.add('mask')
             }
