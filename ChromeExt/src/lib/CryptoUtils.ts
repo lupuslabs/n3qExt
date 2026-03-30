@@ -1,5 +1,6 @@
-import * as crypto from 'crypto';
-import { Hash } from 'node:crypto'
+import { sha1 } from '@noble/hashes/legacy.js'
+import { sha256, sha512 } from '@noble/hashes/sha2.js'
+import { hmac } from '@noble/hashes/hmac.js'
 
 export namespace CryptoUtils {
 
@@ -19,31 +20,24 @@ export namespace CryptoUtils {
     }
 
     export function hashStringSha1(s: string): string {
-        const hasher = CryptoUtils.getSha1Hasher();
-        hasher.update(new TextEncoder().encode(s));
-        const hash = hasher.digest('hex');
-        return hash;
+        return sha1(new TextEncoder().encode(s)).toHex()
     }
 
     export function hashStringByAlgo(algorithm: string, data: string): string {
-        const hasher = crypto.createHash(algorithm.toLowerCase());
-        hasher.update(data);
-        const hash = hasher.digest('hex');
-        return hash;
+        const bytes = new TextEncoder().encode(data)
+        switch (algorithm.toLowerCase()) {
+            case 'sha1': return sha1(bytes).toHex()
+            case 'sha256': return sha256(bytes).toHex()
+            case 'sha512': return sha512(bytes).toHex()
+            default: throw new Error(`Unsupported hash algorithm: ${algorithm}`)
+        }
     }
 
-    export function getSha1Hasher(): Hash {
-        return crypto.createHash('sha1');
-    }
-
-    export function getSha256Hasher(): Hash {
-        return crypto.createHash('sha256');
+    export function getSha256Hasher() {
+        return sha256.create()
     }
 
     export function signStringHmacSha256(privateKey: Uint8Array, data: string): string {
-        const hmacMaker = crypto.createHmac('sha256', privateKey);
-        hmacMaker.update(new TextEncoder().encode(data))
-        const hmac = hmacMaker.digest('hex')
-        return hmac
+        return hmac(sha256, privateKey, new TextEncoder().encode(data)).toHex()
     }
 }

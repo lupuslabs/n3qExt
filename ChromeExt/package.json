@@ -67,10 +67,7 @@
   },
   "dependencies": {
     "@xmpp/client": "0.14.x",
-    "buffer": "6.x",
-    "crypto-browserify": "3.x",
-    "process": "0.x",
-    "stream-browserify": "3.x",
+    "@noble/hashes": "2.x",
     "@xmpp/debug": "0.14.x",
     "chai": "6.x",
     "jquery": "3.6.3",

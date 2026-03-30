@@ -76,7 +76,6 @@ export function makeBaseConfig(mode) {
                 jQuery: 'jquery',
                 'window.jQuery': 'jquery',
                 'window.$': 'jquery',
-                process: 'process/browser.js',
             }),
             {apply: (compiler) => {
                 compiler.hooks.done.tap('CopyToFirefoxPlugin', (stats) => {
@@ -90,14 +89,6 @@ export function makeBaseConfig(mode) {
         ],
         resolve: {
             extensions: ['.ts', '.js', '.css'],
-            fallback: {
-                crypto: 'crypto-browserify',
-                buffer: 'buffer',
-                stream: 'stream-browserify',
-                net: false,
-                tls: false,
-                vm: false,
-            },
         },
         performance: {
             hints: false,

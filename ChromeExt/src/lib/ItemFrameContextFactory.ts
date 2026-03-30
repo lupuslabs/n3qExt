@@ -60,7 +60,7 @@ export class ItemFrameContextFactory
             hashMaker.update(new TextEncoder().encode(value))
             hashMaker.update(separatorBuffer)
         }
-        const hash = hashMaker.digest('hex')
+        const hash = hashMaker.digest().toHex()
         return hash;
     }
 }

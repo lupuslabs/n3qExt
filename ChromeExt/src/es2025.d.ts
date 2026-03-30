@@ -2,9 +2,11 @@
 // Document with first fully implementing versions from https://caniuse.com/ .
 
 interface Uint8Array {
-    toBase64(): string; // Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2
+    toBase64(): string; // Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2, Opera 124
+    toHex(): string; // Output is lowercase. Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2, Opera 124
 }
 
 interface Uint8ArrayConstructor {
-    fromBase64(s: string): Uint8Array; // Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2
+    fromBase64(s: string): Uint8Array; // Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2, Opera 124
+    fromHex(s: string): Uint8Array; // Chrome 140, Edge 140, Firefox 133, Firefox (Android) 146, Safari 18.2, Opera 124
 }
