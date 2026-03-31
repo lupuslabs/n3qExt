@@ -10,24 +10,29 @@ import { DomUtils } from '../lib/DomUtils'
 
 export class ItemFrameUnderlay
 {
+    private app: ContentApp;
+    private roomItem: RoomItem;
     private elem: HTMLIFrameElement = null;
+    private lastUrlTemplate = 'about:blank';
     private url = 'about:blank';
     private iframeId: string;
 
-    public constructor(app: ContentApp, protected roomItem: RoomItem)
+    public constructor(app: ContentApp, roomItem: RoomItem)
     {
+        this.app = app;
+        this.roomItem = roomItem;
     }
 
     public show(): void
     {
         try {
-            this.url = as.String(this.roomItem.getProperties()[Pid.ScreenUrl], 'about:blank');
             let options = as.String(this.roomItem.getProperties()[Pid.ScreenOptions], '{}');
             let css = JSON.parse(options);
             this.iframeId = Utils.randomString(15);
 
             this.elem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe id="${this.iframeId}" class="popunder" src="${this.url}" allow="autoplay; encrypted-media"></iframe>`);
             $(this.elem).css(css);
+            this.update();
 
             let avatar = this.roomItem.getAvatar();
             if (avatar) {
@@ -40,11 +45,16 @@ export class ItemFrameUnderlay
 
     public update(): void
     {
-        let url = as.String(this.roomItem.getProperties()[Pid.ScreenUrl], 'about:blank');
-        if (url !== this.url) {
-            this.url = url;
-            this.elem.setAttribute('src', this.url);
+        const itemProps = this.roomItem.getProperties();
+        const urlTemplate = as.String(itemProps[Pid.ScreenUrl], 'about:blank');
+        if (urlTemplate === this.lastUrlTemplate) {
+            return;
         }
+        this.lastUrlTemplate = urlTemplate;
+        const roomId = this.app.getRoom()?.getJid() ?? '';
+        const frameUrl = this.app.itemFrameContexts.makeItemIframeUrl(roomId, itemProps, urlTemplate);
+        this.url = this.app.uiHelper.getWrappedIframeUrl(frameUrl);
+        this.elem.setAttribute('src', this.url);
     }
 
     public sendMessage(message: any): void
