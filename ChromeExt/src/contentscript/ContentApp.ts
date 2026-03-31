@@ -1,5 +1,4 @@
 import log = require('loglevel')
-import $ from 'jquery';
 import { jid } from '@xmpp/jid';
 import XmlElement from 'ltx/lib/Element.js';
 import { as } from '../lib/as';

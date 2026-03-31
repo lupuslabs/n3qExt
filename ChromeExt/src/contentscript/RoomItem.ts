@@ -1,6 +1,5 @@
 import imgDefaultItem from '../assets/DefaultItem.png';
 
-import $ from 'jquery';
 import log = require('loglevel');
 import { is } from '../lib/is';
 import { as } from '../lib/as';
@@ -41,8 +40,8 @@ export class RoomItem extends Entity
     {
         super(app, room, roomNick, isSelf);
 
-        $(this.getElem()).addClass('roomitem');
-        $(this.getElem()).attr('data-nick', roomNick);
+        this.getElem().classList.add('roomitem');
+        this.getElem().setAttribute('data-nick', roomNick);
     }
 
     public isMyItem(): boolean { return this.myItem; }
@@ -549,7 +548,8 @@ export class RoomItem extends Entity
     public beginDerez(): void
     {
         this.isDerezzing = true;
-        $(this.getElem()).hide().delay(1000).show(0);
+        this.getElem().style.display = 'none';
+        window.setTimeout(() => { this.getElem().style.display = '' }, 1000);
     }
 
     public endDerez(): void

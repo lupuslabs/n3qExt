@@ -1,73 +1,73 @@
-const $ = require('jquery');
+import { DomUtils } from './DomUtils';
 import { sut } from './sut';
 
 export class sutGui
 {
     render(s: sut, parent: any)
     {
-        let result = s.getResult();
+        const result = s.getResult();
 
-        let eTop = <HTMLDivElement>$('<div class="sut" />').get(0);
+        const eTop = DomUtils.elemOfHtml('<div class="sut" />');
         if (result.runSuccess) {
-            $(eTop).addClass('sut-success');
+            eTop.classList.add('sut-success');
         } else {
-            $(eTop).addClass('sut-failure');
+            eTop.classList.add('sut-failure');
         }
 
-        let eTotals = <HTMLDivElement>$('<div class="sut-totals" />').get(0);
+        const eTotals = DomUtils.elemOfHtml('<div class="sut-totals" />');
 
         {
-            let e = <HTMLDivElement>$('<div class="sut-total sut-total-runSuccess">Success</div>').get(0);
-            e.append($('<div class="sut-label" />').get(0));
-            e.append($('<div class="sut-value">' + (result.runSuccess ? 'true' : 'false') + '</div>').get(0));
+            const e = DomUtils.elemOfHtml('<div class="sut-total sut-total-runSuccess">Success</div>');
+            e.append(DomUtils.elemOfHtml('<div class="sut-label" />'));
+            e.append(DomUtils.elemOfHtml('<div class="sut-value">' + (result.runSuccess ? 'true' : 'false') + '</div>'));
             eTotals.append(e);
         }
 
         {
-            let e = <HTMLDivElement>$('<div class="sut-total sut-total-countSuccess">Successful</div>').get(0);
-            e.append($('<div class="sut-label" />').get(0));
-            e.append($('<div class="sut-value">' + result.countSuccess + '</div>').get(0));
+            const e = DomUtils.elemOfHtml('<div class="sut-total sut-total-countSuccess">Successful</div>');
+            e.append(DomUtils.elemOfHtml('<div class="sut-label" />'));
+            e.append(DomUtils.elemOfHtml('<div class="sut-value">' + result.countSuccess + '</div>'));
             eTotals.append(e);
         }
 
         {
-            let e = <HTMLDivElement>$('<div class="sut-total sut-total-countFailures">Failures</div>').get(0);
-            e.append($('<div class="sut-label" />').get(0));
-            e.append($('<div class="sut-value">' + result.countFailures + '</div>').get(0));
+            const e = DomUtils.elemOfHtml('<div class="sut-total sut-total-countFailures">Failures</div>');
+            e.append(DomUtils.elemOfHtml('<div class="sut-label" />'));
+            e.append(DomUtils.elemOfHtml('<div class="sut-value">' + result.countFailures + '</div>'));
             eTotals.append(e);
         }
 
         eTop.append(eTotals);
 
-        let eList = <HTMLDivElement>$('<div class="sut-testlist" />').get(0);
-        for (var name in result.tests) {
-            let eTest = <HTMLDivElement>$('<div class="sut-test" />').get(0);
+        const eList = DomUtils.elemOfHtml('<div class="sut-testlist" />');
+        for (const name in result.tests) {
+            const eTest = DomUtils.elemOfHtml('<div class="sut-test" />');
             if (result.tests[name].success) {
-                $(eTest).addClass('sut-test-success');
+                eTest.classList.add('sut-test-success');
             } else {
-                $(eTest).addClass('sut-test-failure');
+                eTest.classList.add('sut-test-failure');
             }
 
             {
-                let e = <HTMLDivElement>$('<div class="sut-class" />').get(0);
-                $(e).text(result.tests[name].className);
+                const e = DomUtils.elemOfHtml('<div class="sut-class" />');
+                e.textContent = result.tests[name].className;
                 eTest.append(e);
             }
 
             {
-                let e = <HTMLDivElement>$('<div class="sut-name" />').get(0);
-                $(e).text(result.tests[name].methodName);
+                const e = DomUtils.elemOfHtml('<div class="sut-name" />');
+                e.textContent = result.tests[name].methodName;
                 eTest.append(e);
             }
 
             {
-                let e = <HTMLDivElement>$('<div class="sut-result" />').get(0);
-                $(e).text(result.tests[name].result);
+                const e = DomUtils.elemOfHtml('<div class="sut-result" />');
+                e.textContent = result.tests[name].result;
                 eTest.append(e);
             }
 
             eList.append(eTest);
-        };
+        }
 
         eTop.append(eList);
 

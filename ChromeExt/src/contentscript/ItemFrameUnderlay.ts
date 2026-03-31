@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import log = require('loglevel');
+import { is } from '../lib/is'
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Pid } from '../lib/ItemProperties';
@@ -26,12 +26,19 @@ export class ItemFrameUnderlay
     public show(): void
     {
         try {
-            let options = as.String(this.roomItem.getProperties()[Pid.ScreenOptions], '{}');
-            let css = JSON.parse(options);
             this.iframeId = Utils.randomString(15);
-
             this.elem = <HTMLIFrameElement> DomUtils.elemOfHtml(`<iframe id="${this.iframeId}" class="popunder" src="${this.url}" allow="autoplay; encrypted-media"></iframe>`);
-            $(this.elem).css(css);
+
+            const optionsJson = as.String(this.roomItem.getProperties()[Pid.ScreenOptions], '{}');
+            const options = JSON.parse(optionsJson);
+            for (const [poropName, rawValue] of Object.entries(options)) {
+                // Only properties defined for ScreenOptions are: left, top, width, height.
+                if (is.string(rawValue) || is.number(rawValue)) {
+                    const value = DomUtils.prepareLengthValueForCss(rawValue);
+                    this.elem.style.setProperty(poropName, value);
+                }
+            }
+
             this.update();
 
             let avatar = this.roomItem.getAvatar();

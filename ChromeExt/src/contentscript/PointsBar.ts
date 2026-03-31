@@ -1,6 +1,5 @@
-import $ from 'jquery';
 import { as } from '../lib/as';
-import { IObserver, IObservable } from '../lib/ObservableProperty';
+import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
@@ -9,18 +8,19 @@ import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { ItemPropertiesSet, Pid } from '../lib/ItemProperties';
 import { PointerEventData } from '../lib/PointerEventData';
+import { DomUtils } from '../lib/DomUtils';
 
 export class PointsBar implements IObserver
 {
-    private elem: HTMLDivElement;
+    private readonly elem: HTMLElement;
     private points: number;
 
-    getElem(): HTMLDivElement { return this.elem; }
+    getElem(): HTMLElement { return this.elem; }
     getPoints(): number { return this.points; }
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="participant-points" data-translate="children" />').get(0);
+        this.elem = DomUtils.elemOfHtml('<div class="participant-points" data-translate="children"/>');
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
@@ -57,10 +57,10 @@ export class PointsBar implements IObserver
     setPoints(points: number): void
     {
         this.points = points;
-        $(this.elem).empty();
+        this.elem.innerHTML = '';
 
         let title = String(this.points);
-        $(this.elem).attr('title', '' + title);
+        this.elem.setAttribute('title', title);
 
         let pg = new PointsGenerator(4,
             Config.get('points.fullLevels', 2),
@@ -68,8 +68,10 @@ export class PointsBar implements IObserver
         );
         let digits = pg.getDigitList(this.points);
         let parts = pg.getPartsList(digits);
-        let stars = parts.map(part => <HTMLDivElement>$('<div class="user-points-icon user-points-icon-' + part + '" xtitle="' + part + '" data-translate="attr:title:Star" />').get(0));
-        $(this.elem).append(stars);
+        for (const part of parts) {
+            const star = DomUtils.elemOfHtml(`<div class="user-points-icon user-points-icon-${part}" xtitle="${part}" data-translate="attr:title:Star"/>`);
+            this.elem.append(star);
+        }
 
         this.app.translateElem(this.elem);
     }
@@ -111,7 +113,6 @@ export class PointsBar implements IObserver
             }
         }
 
-
-        $(this.elem).attr('title', '' + title);
+        this.elem.setAttribute('title', title);
     }
 }

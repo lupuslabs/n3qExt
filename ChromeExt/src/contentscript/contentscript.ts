@@ -1,7 +1,7 @@
 import log = require('loglevel')
 import './contentscript.css'
-import $ from 'jquery'
 import { is } from '../lib/is'
+import { DomUtils } from '../lib/DomUtils'
 import { Panic } from '../lib/Panic'
 import { Config } from '../lib/Config'
 import { Environment } from '../lib/Environment'
@@ -24,8 +24,7 @@ window.addEventListener('focusout', ev => preventAnyEventInterferenceIfEventIsFo
 window.addEventListener('focus', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true})
 window.addEventListener('blur', ev => preventAnyEventInterferenceIfEventIsForUs(ev), {capture: true})
 
-$(async function ()
-{
+DomUtils.onDomReady(async () => {
     Client.initLog()
     const isDevelopment = Environment.isDevelopment()
     const visibilityState = document.visibilityState
@@ -138,7 +137,7 @@ $(async function ()
         log.debug('Contentscript.onVisibilitychange', { visibilityState })
         if (visibilityState !== 'hidden') {
             if (visibilityState !== 'visible') {
-                $('body').append($('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"></div>'))
+                document.body.append(DomUtils.elemOfHtml('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"/>'))
             }
             activateContent()
         } else {

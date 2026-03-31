@@ -11,7 +11,7 @@ export class Sound
         this.sound.setAttribute('preload', 'auto');
         this.sound.setAttribute('controls', 'none');
         this.sound.style.display = 'none';
-        $(this.app.getDisplay()).append(this.sound);
+        this.app.getDisplay().append(this.sound);
     }
 
     play(): void

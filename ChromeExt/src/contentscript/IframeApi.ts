@@ -780,13 +780,13 @@ export class IframeApi
             }
 
             if (allowed) {
-                let elem = $(request.cssPath);
+                const elem = document.querySelector(request.cssPath);
                 // let value = 'https://lh3.googleusercontent.com/tg2iTTJfzse42K84tlpf1QiEqQW2gGifFReeiWb-c6xBAlAu4bkh_7X407ge1nkw2k_OO3v9SliYloEPmZ9Cd7eq_44eKe5OVVT7PA=w600';
                 let value = '';
                 if (request.nodeAttr) {
-                    value = elem.attr(request.nodeAttr);
+                    value = elem?.getAttribute(request.nodeAttr) ?? '';
                 } else if (request.nodeText) {
-                    value = elem.text();
+                    value = elem?.textContent ?? '';
                 }
                 return new WeblinClientIframeApi.PageDomQueryResponse(value);
             }

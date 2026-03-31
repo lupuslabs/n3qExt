@@ -4,10 +4,10 @@ import { Client } from '../lib/Client';
 import { BackgroundApp, ContentCommunicatorFactory } from '../background/BackgroundApp';
 import { ContentApp, ContentAppNotification, ContentAppParams } from '../contentscript/ContentApp';
 import '../contentscript/contentscript.css';
-import $ from 'jquery';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { is } from '../lib/is';
+import { DomUtils } from '../lib/DomUtils'
 import { BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
 import { ContentRequestHandler, ContentToBackgroundCommunicator } from '../lib/ContentToBackgroundCommunicator'
 import { SamethreadBackgroundMessagePipeProvider, SamethreadContentMessagePipeProvider } from '../lib/SamethreadMessagePipe'
@@ -15,8 +15,7 @@ import { BackgroundErrorResponse, BackgroundRequest, BackgroundResponse, } from 
 
 declare var n3q: any; // This tells the compiler to assume that the variable exists. It doesn't create it.
 
-$(async function ()
-{
+DomUtils.onDomReady(async () => {
     Client.initLog();
     const isDevelopment = Environment.isDevelopment();
     console.debug('weblin.io Embedded', { isDevelopment });

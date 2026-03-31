@@ -1,28 +1,27 @@
-import $ from 'jquery';
 import { as } from '../lib/as';
-import { IObserver, IObservable } from '../lib/ObservableProperty';
+import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 import { Config } from '../lib/Config';
-import { PointsGenerator } from './PointsGenerator';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
 import { Pid } from '../lib/ItemProperties';
 import { PointerEventData } from '../lib/PointerEventData';
+import { DomUtils } from '../lib/DomUtils';
 
 export class ActivitySet { [channel: string]: number }
 
 export class ActivityBar implements IObserver
 {
-    private elem: HTMLDivElement;
+    private readonly elem: HTMLElement;
     private activities: any;
 
-    getElem(): HTMLDivElement { return this.elem; }
+    getElem(): HTMLElement { return this.elem; }
     getPoints(): number { return this.activities; }
 
     constructor(protected app: ContentApp, private participant: Participant, private display: HTMLElement)
     {
-        this.elem = <HTMLDivElement>$('<div class="participant-activity" />').get(0);
+        this.elem = DomUtils.elemOfHtml('<div class="participant-activity"/>');
 
         this.elem.addEventListener('pointerdown', (ev: PointerEvent) => {
             this.participant?.select();
@@ -74,7 +73,7 @@ export class ActivityBar implements IObserver
         }
 
         this.activities = activities;
-        $(this.elem).empty();
+        this.elem.innerHTML = '';
 
         let channelContributions = new ActivitySet();
 
@@ -86,8 +85,6 @@ export class ActivityBar implements IObserver
             channelContributions[channel] = contribution;
         }
 
-        let availableWidth = $(this.elem).width();
-
         let left = 0;
         for (let channel in channelContributions) {
             let config = Config.get('points.activities.' + channel, null);
@@ -95,15 +92,14 @@ export class ActivityBar implements IObserver
                 let contribution = activities[channel];
                 if (contribution > 0) {
                     let width = contribution * 5;
-                    let title = this.app.translateText('Activity.' + channel) + ': ' + activities[channel];
+                    const title = `${this.app.translateText('Activity.' + channel)}: ${activities[channel]}`;
 
-                    let part = <HTMLDivElement>$('<div class="participant-activity-segment" />').get(0);
-                    $(part).css(Config.get('points.activities.' + channel + '.css', { backgroundColor: '#808080' }));
-                    $(part).css({ position: 'absolute', height: '100%', width: width + 'px', left: left + 'px' });
-                    $(part).css({ 'width': width + 'px' });
-                    $(part).attr('title', '' + title);
+                    const part = DomUtils.elemOfHtml('<div class="participant-activity-segment"/>');
+                    Object.assign(part.style, Config.get(`points.activities.${channel}.css`, { backgroundColor: '#808080' }));
+                    Object.assign(part.style, { position: 'absolute', height: '100%', width: `${width}px`, left: `${left}px` });
+                    part.setAttribute('title', title);
 
-                    $(this.elem).append(part);
+                    this.elem.append(part);
                     left += width;
                 }
             }

@@ -30,6 +30,24 @@ export namespace DomUtils {
         return as.Float(pxValue)
     }
 
+    export function prepareLengthValueForCss(length: null|number|string): string {
+        if (is.nil(length)) {
+            return '0'
+        }
+        if (is.number(length)) {
+            return `${length}px`
+        }
+        const trimmedLength = length.trim()
+        if (trimmedLength === '') {
+            return '0'
+        }
+        const lengthAsNumber = Number(trimmedLength)
+        if (Number.isNaN(lengthAsNumber)) {
+            return trimmedLength
+        }
+        return `${lengthAsNumber}px`
+    }
+
     //------------------------------------------------------------------------------
     // Element creation
 
@@ -479,6 +497,14 @@ export namespace DomUtils {
 
     //------------------------------------------------------------------------------
     // Event handling
+
+    export function onDomReady(fun: () => void): void {
+        if (document.readyState !== 'loading') {
+            fun()
+        } else {
+            document.addEventListener('DOMContentLoaded', fun)
+        }
+    }
 
     export enum ButtonId {
         none   = 0,
