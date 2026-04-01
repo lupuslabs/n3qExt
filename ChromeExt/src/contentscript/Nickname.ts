@@ -1,4 +1,3 @@
-import { is } from '../lib/is';
 import { IObserver } from '../lib/ObservableProperty';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
@@ -11,12 +10,10 @@ import { Menu } from './Menu'
 
 export class Nickname implements IObserver
 {
-    private elem: HTMLElement;
-    private textElem: HTMLElement;
-    private menuBtnElem: HTMLElement;
+    private readonly elem: HTMLElement;
+    private readonly textElem: HTMLElement;
+    private readonly menuBtnElem: HTMLElement;
     private nickname: string;
-    private isMenuOpen: boolean = false;
-    private lastLeaveEvent: PointerEventData;
 
     getElem() { return this.elem; }
 
@@ -34,10 +31,7 @@ export class Nickname implements IObserver
             this.participant.onMouseEnterAvatar(new PointerEventData('hovermove', ev, this.elem));
         });
         this.elem.addEventListener('pointerleave', (ev: PointerEvent) => {
-            this.lastLeaveEvent = new PointerEventData('hoverleave', ev, this.elem);
-            if (!this.isMenuOpen) {
-                this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
-            }
+            this.participant.onMouseLeaveAvatar(new PointerEventData('hoverleave', ev, this.elem));
         });
 
         const [menuElem, menuEventDispatcher] = this.app.uiHelper.makeButton({
@@ -92,18 +86,14 @@ export class Nickname implements IObserver
     public onMenuOpen(menu: Menu): void
     {
         this.menuBtnElem.classList.add('open');
-        this.isMenuOpen = true;
+
+        // To prevent the menu from closing on pointerdown on the button, so the button doesn't reopen the menu on click but closes it:
         this.app.windows.registerRootElementIgnoredForPointerDownOutside(menu.getWindowId(), this.menuBtnElem);
     }
 
     public onMenuClose(): void
     {
         this.menuBtnElem.classList.remove('open');
-        this.isMenuOpen = false;
-        if (!is.nil(this.lastLeaveEvent)) {
-            // Menu's pointercatcher destructed, so if pointer is hovering, a pointerenter follows after next dom update:
-            this.participant.onMouseLeaveAvatar(this.lastLeaveEvent);
-        }
     }
 
 }

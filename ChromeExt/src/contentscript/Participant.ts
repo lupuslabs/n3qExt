@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import { jid } from '@xmpp/jid';
 import XmlElement from 'ltx/lib/Element.js';
 import log = require('loglevel');
@@ -38,7 +37,7 @@ import introYouCloseIconDataUrl from '../assets/icons/inverse-close-circle-o.svg
 
 export class Participant extends Entity
 {
-    private menuDisplay: Menu;
+    private readonly menuDisplay: Menu;
     private nicknameDisplay: Nickname;
     private pointsDisplay: PointsBar;
     private activityDisplay: ActivityBar;
@@ -730,7 +729,7 @@ export class Participant extends Entity
     {
         super.onMouseLeaveAvatar(ev);
 
-        if (!this.isSelf && !this.decorationsVisibleByLongclick) {
+        if (!this.isSelf && !this.decorationsVisibleByLongclick && !this.menuDisplay.isOpen()) {
             this.hideDecorations();
         }
     }
@@ -865,11 +864,11 @@ export class Participant extends Entity
                 const itemId = droppedItem.getItemId();
                 if (await BackgroundMessage.isBackpackItem(itemId)) {
                     // Own RoomItem on any Participant.
-                    await this.room.applyItemToParticipant(this, droppedItem);
+                    this.room.applyItemToParticipant(this, droppedItem);
                 }
             } else if (droppedItem instanceof BackpackItem) {
                 // Own BackpackItem on any Participant.
-                await this.room.applyBackpackItemToParticipant(this, droppedItem);
+                this.room.applyBackpackItemToParticipant(this, droppedItem);
             }
         })().catch(error =>
         {
@@ -1044,6 +1043,9 @@ export class Participant extends Entity
     public onMenuClose(): void
     {
         this.nicknameDisplay?.onMenuClose();
+        if (!this.isSelf && !this.hasHover) {
+            this.hideDecorations();
+        }
     }
 
     private showDecorations(openByLongclick: boolean): void
@@ -1054,15 +1056,9 @@ export class Participant extends Entity
             return;
         }
         this.decorationsVisibleByLongclick = openByLongclick;
-        if (!is.nil(this.nicknameDisplay)) {
-            $(this.nicknameDisplay.getElem()).stop().fadeIn('fast');
-        }
-        if (!is.nil(this.pointsDisplay)) {
-            $(this.pointsDisplay.getElem()).stop().fadeIn('fast');
-        }
-        if (!is.nil(this.activityDisplay)) {
-            $(this.activityDisplay.getElem()).stop().fadeIn('fast');
-        }
+        this.showDecorationElem(this.nicknameDisplay?.getElem());
+        this.showDecorationElem(this.pointsDisplay?.getElem());
+        this.showDecorationElem(this.activityDisplay?.getElem());
     }
 
     private hideDecorations(): void
@@ -1073,18 +1069,39 @@ export class Participant extends Entity
         this.decorationsVisibleByLongclick = false;
         const fun = () => {
             this.hideDecorationsTimeoutHandle = null;
-            if (!is.nil(this.nicknameDisplay)) {
-                $(this.nicknameDisplay.getElem()).stop().fadeOut();
+            if (Config.get('room.nicknameOnHover', true)) {
+                this.hideDecorationElem(this.nicknameDisplay?.getElem());
             }
-            if (!is.nil(this.pointsDisplay)) {
-                $(this.pointsDisplay.getElem()).stop().fadeOut();
-            }
-            if (!is.nil(this.activityDisplay)) {
-                $(this.activityDisplay.getElem()).stop().fadeOut();
+            if (Config.get('room.pointsOnHover', true)) {
+                this.hideDecorationElem(this.pointsDisplay?.getElem());
+                this.hideDecorationElem(this.activityDisplay?.getElem());
             }
         };
         const delayMs = 1000 * as.Float(Config.get('avatars.inactiveDecorationsHideDelaySec'), 0.3);
         this.hideDecorationsTimeoutHandle = window.setTimeout(fun, delayMs);
     }
 
+    private showDecorationElem(elem: null|HTMLElement): void
+    {
+        if (!elem) {
+            return;
+        }
+        elem.style.display = '';
+        DomUtils.stopElemTransition(elem, 'opacity');
+        DomUtils.startElemTransition(elem, null, {property: 'opacity', duration: '200ms', timingFun: 'linear'}, '1');
+    }
+
+    private hideDecorationElem(elem: null|HTMLElement): void
+    {
+        if (!elem) {
+            return;
+        }
+        DomUtils.stopElemTransition(elem, 'opacity');
+        DomUtils.startElemTransition(elem, null, {property: 'opacity', duration: '400ms', timingFun: 'linear'}, '0');
+        window.setTimeout(() => {
+            if (!this.hasHover) {
+                elem.style.display = 'none';
+            }
+        }, 400);
+    }
 }
