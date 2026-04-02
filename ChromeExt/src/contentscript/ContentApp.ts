@@ -491,8 +491,6 @@ export class ContentApp extends AppWithDom
 
     test(): void
     {
-        // let frame = <HTMLIFrameElement>$('<iframe class="n3q-effect" style="position: fixed; width:100%; height: 100%; background-color: #ff0000; opacity: 20%;" src="https://localhost:5100/ItemFrame/Test" frameborder="0"></iframe>').get(0);
-        // this.display.append(frame);
         this.getMyParticipant()?.showEffect('pulse');
     }
 

@@ -48,7 +48,6 @@
   "devDependencies": {
     "@types/node": "24.x",
     "@types/chai": "5.x",
-    "@types/jquery": "3.5.x",
     "@types/chrome": "0.1.x",
     "@types/firefox-webext-browser": "143.0.x",
     "@types/xmpp__jid": "0.14.x",
@@ -70,7 +69,6 @@
     "@noble/hashes": "2.x",
     "@xmpp/debug": "0.14.x",
     "chai": "6.x",
-    "jquery": "3.6.3",
     "loglevel": "1.9.2",
     "unique-names-generator": "4.7.x",
     "ethers": "6.x"

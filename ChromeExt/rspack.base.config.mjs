@@ -2,7 +2,7 @@ import rspack from '@rspack/core'
 import { join } from 'path'
 import fs from 'fs'
 
-const { NormalModuleReplacementPlugin, ProvidePlugin, CssExtractRspackPlugin, SwcJsMinimizerRspackPlugin } = rspack
+const { NormalModuleReplacementPlugin, CssExtractRspackPlugin, SwcJsMinimizerRspackPlugin } = rspack
 
 export function makeBaseConfig(mode) {
     mode ??= 'development'
@@ -69,13 +69,6 @@ export function makeBaseConfig(mode) {
             new CssExtractRspackPlugin(),
             new rspack.DefinePlugin({
                 'COMPILED_NODE_ENV': JSON.stringify(mode),
-            }),
-            /* Use the ProvidePlugin constructor to inject jquery implicit globals */
-            new ProvidePlugin({
-                $: 'jquery',
-                jQuery: 'jquery',
-                'window.jQuery': 'jquery',
-                'window.$': 'jquery',
             }),
             {apply: (compiler) => {
                 compiler.hooks.done.tap('CopyToFirefoxPlugin', (stats) => {

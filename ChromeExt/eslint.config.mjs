@@ -13,7 +13,6 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.es2024,
-                ...globals.jquery,
                 ...globals.commonjs,
                 ...globals.webextensions,
                 DocumentOrShadowRoot: 'readonly',

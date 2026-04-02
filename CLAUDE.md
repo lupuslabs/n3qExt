@@ -91,7 +91,6 @@ Content scripts and background worker communicate via Chrome port messaging with
 - **TypeScript**
 - **4-space indentation**
 - **Single quotes** (backticks allowed)
-- **jQuery** is deprecated and will eventually be phased out
 - Components use `start()` / `stop()` lifecycle pattern with cleanup
 
 ## Multi-Platform
