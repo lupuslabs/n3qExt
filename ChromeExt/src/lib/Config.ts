@@ -153,6 +153,7 @@ export class Config
         vp: {
             deferPageEnterSec: 0.3,
             staticRoomMappings: [
+                {"match": "^https?://(?:localhost|\\[::1\\]|127.0.0.1)(?::[0-9]+)?/embedded.html$", "roomJid": "testroom@chat2.vulcan.weblin.com", "destination": null}, // For testing the embedded version
                 //{"match": "^https?://(?:localhost|\\[::1\\]|127.0.0.1)(?::[0-9]+)?(/.*)?$", "roomJid": "testroom@chat2.vulcan.weblin.com", "destination": null},
             ],
             vpiRoot: 'https://webex.vulcan.weblin.com/vpi/v7/root.xml',

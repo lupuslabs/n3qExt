@@ -5,6 +5,7 @@
   "homepage": "https://github.com/lupuslabs/n3qExt/blob/develop/ChromeExt/README.md",
   "scripts": {
     "audit-non-dev-deps": "npm audit --omit=dev",
+    "run-local-embedded": "http-server dist -a [::1] -p 3000 -o embedded.html",
     "clean:chrome": "node clean.mjs dist",
     "clean:firefox": "node clean.mjs dist-firefox",
     "clean": "npm-run-all clean:*",
@@ -62,6 +63,7 @@
     "eslint": "10.x",
     "globals": "16.x",
     "npm-run-all2": "8.x",
+    "http-server": "14.x",
     "typescript": "5.x"
   },
   "dependencies": {
