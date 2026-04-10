@@ -54,6 +54,13 @@ export class VpiResolver
 
     async map(documentUrl: string): Promise<VpiMappingResult>
     {
+        const staticMappings = this.config.get('vp.staticRoomMappings', []) as Array<{ match: string, roomJid: string, destination?: string }>;
+        for (const mapping of staticMappings) {
+            if (new RegExp(mapping.match).test(documentUrl)) {
+                return new VpiMappingResult(true, mapping.roomJid, mapping.destination ?? documentUrl);
+            }
+        }
+
         let locationUrl = '';
         let destinationUrl = '';
         let vpiUrl = this.config.get('vp.vpiRoot', 'https://lms.virtual-presence.org/v7/root.xml');
