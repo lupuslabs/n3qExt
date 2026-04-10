@@ -6,6 +6,8 @@ import { DomUtils } from '../lib/DomUtils'
 import { Logger } from '../lib/Logger'
 import { ContentApp, ContentAppParams } from './ContentApp'
 
+import styleText from './contentscript.css';
+
 export class ContentAppDisplay {
 
     private readonly app: ContentApp
@@ -18,7 +20,7 @@ export class ContentAppDisplay {
     private display: null|HTMLElement = null
 
     private isDisplayVisible: boolean = false
-    private baseCss: string = ''
+    private baseCss: string = styleText
 
     constructor(app: ContentApp, appendToMe: HTMLElement) {
         this.app = app
@@ -66,8 +68,8 @@ export class ContentAppDisplay {
 
         if (params.styleUrl) {
             this.baseCss = await this.app.urlFetcher.fetchAsText(params.styleUrl, '1')
-            this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style data-type="base">\n${this.baseCss}\n</style>`))
         }
+        this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style data-type="base">\n${this.baseCss}\n</style>`))
 
         this.display = DomUtils.elemOfHtml('<div id="n3qD" class="client" dir="ltr"></div>')
         this.setDisplayVisible(this.isDisplayVisible)

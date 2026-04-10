@@ -81,14 +81,6 @@ DomUtils.onDomReady(async () => {
         const startupRequests: ReadonlyArray<BackgroundRequest> = getStartupRequests(documentUrl)
         log.debug('Contentscript.activateContent', { documentUrl, startupRequests })
 
-        let styleUrl
-        try {
-            styleUrl = chrome.runtime.getURL('contentscript.css')
-        } catch(error) {
-            log.debug('Contentscript.activateContent: Extension gone.', { error })
-            return
-        }
-
         const domAppContainer = document.querySelector('body')
         const appMsgHandler = msg => {
             log.debug('Contentscript msg', msg.type)
@@ -109,7 +101,7 @@ DomUtils.onDomReady(async () => {
             }
         }
         contentApp = new ContentApp(domAppContainer, appMsgHandler, backgroundCommunicatorFactoryForApp)
-        contentApp.start({ styleUrl, startupRequests }).catch(error => log.error(error))
+        contentApp.start({ startupRequests }).catch(error => log.error(error))
     }
 
     function deactivateContent()

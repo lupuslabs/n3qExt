@@ -3,6 +3,10 @@ import rspack from '@rspack/core'
 import { makeBaseConfig } from './rspack.base.config.mjs'
 
 const config = makeBaseConfig()
+config.module.rules.push({
+    test: /test\.css$/,
+    use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+})
 
 config.mode = 'development'
 

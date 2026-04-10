@@ -21,7 +21,8 @@ export function makeBaseConfig(mode) {
     const outputDirChrome = join(import.meta.dirname, 'dist')
     const outputDirFirefox = join(import.meta.dirname, 'dist-firefox')
 
-    return {
+    /** @type {import('@rspack/core').Configuration} */
+    const config = {
         mode,
 
         // https://rspack.dev/config/devtool
@@ -50,9 +51,13 @@ export function makeBaseConfig(mode) {
                     },
                 },
                 {
-                    // Extracts CSS into individual files named after the TypeScript files importing it:
-                    test: /\.css$/,
-                    use: [CssExtractRspackPlugin.loader, 'css-loader'],
+                    // contentscript.css is injected into the shadow DOM as a string,
+                    // with url() references resolved and inlined via asset/inline:
+                    test: /contentscript\.css$/,
+                    use: [{
+                        loader: 'css-loader',
+                        options: { exportType: 'string' },
+                    }],
                 },
                 {
                     // Allows background: url(../assets/icons/ci-close-small.svg);
@@ -89,4 +94,5 @@ export function makeBaseConfig(mode) {
         stats: 'errors-warnings',
         optimization,
     }
+    return config
 }

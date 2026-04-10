@@ -7,6 +7,7 @@ import '../contentscript/contentscript.css';
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { is } from '../lib/is';
+import { as } from '../lib/as'
 import { DomUtils } from '../lib/DomUtils'
 import { BackgroundToContentCommunicator } from '../lib/BackgroundToContentCommunicator'
 import { ContentRequestHandler, ContentToBackgroundCommunicator } from '../lib/ContentToBackgroundCommunicator'
@@ -18,15 +19,14 @@ declare var n3q: any; // This tells the compiler to assume that the variable exi
 DomUtils.onDomReady(async () => {
     Client.initLog();
     const isDevelopment = Environment.isDevelopment();
-    console.debug('weblin.io Embedded', { isDevelopment });
+    const n3qParamsGiven: ContentAppParams & {preferredClient?: string} = (typeof n3q === 'undefined' ? null : n3q) ?? {};
+    console.debug('weblin.io Embedded', { isDevelopment, n3qParamsGiven });
 
     await Client.initDevConfig();
 
-    let preferredClient = 'extension';
-    if (is.string(n3q?.preferredClient ?? null)) {
-        preferredClient = n3q.preferredClient;
-    }
+    const preferredClient = as.StringOrNull(n3qParamsGiven.preferredClient) ?? 'extension';
     removeEmbeddedStyle(); // Always remove pre-shadow-DOM global style.
+    const n3qParams: ContentAppParams = n3qParamsGiven;
 
     let backgroundPipeProvider: null|SamethreadBackgroundMessagePipeProvider = null;
     let backgroundCommunicator: null|BackgroundToContentCommunicator = null;
@@ -66,18 +66,6 @@ DomUtils.onDomReady(async () => {
                 }
             }
         }
-    }
-
-    function getStyleUrl(): null|string
-    {
-        for (const elem of document.getElementsByTagName('script')[Symbol.iterator]()) {
-            const elemSrcUrl = (<HTMLScriptElement>elem).src ?? '';
-            const ownAssetFolderUrl = parseScriptOrStyleUrl(elemSrcUrl);
-            if (!is.nil(ownAssetFolderUrl)) {
-                return `${ownAssetFolderUrl.folderUrl}${ownAssetFolderUrl.baseName}.css${ownAssetFolderUrl.query}`;
-            }
-        }
-        return null;
     }
 
     function activateBackground(): void
@@ -149,9 +137,7 @@ DomUtils.onDomReady(async () => {
         };
 
         contentApp = new ContentApp(domAppContainer, appMsgHandler, backgroundCommunicatorFactoryForApp);
-        const params: ContentAppParams = typeof n3q === 'undefined' ? {} : n3q;
-        params.styleUrl = params.styleUrl ?? getStyleUrl();
-        contentApp.start(params).catch(error => log.error(error));
+        contentApp.start(n3qParams).catch(error => log.error(error));
     }
 
     function deactivateContent()
