@@ -606,7 +606,9 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
 
     protected removePositioningFromOptions(options: null|Partial<OptionsType>): Partial<OptionsType>
     {
-        return {...iter(Object.entries(options ?? {})).filter(([key,value]) => !this.positioningOptions.has(key))}
+        const filteredEntries = iter(Object.entries(options ?? {}))
+            .filter(([key,value]) => !this.positioningOptions.has(key))
+        return <Partial<OptionsType>> Object.fromEntries(filteredEntries)
     }
 
     public getWindowElem(): null|HTMLElement
