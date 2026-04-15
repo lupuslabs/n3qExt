@@ -68,8 +68,14 @@ export class OwnItemRepository
         this.callableBackpackUpdateListeners.callListeners({itemsDeleted, itemsNewOrChanged})
     }
 
-    public fixItemInventoryPositions(paneWidth: number, paneHeight: number, itemIds: ReadonlyArray<string>): void
+    public fixItemInventoryPositions(pane: null|{width: number, height: number}, itemIds: ReadonlyArray<string>): void
     {
+        const paneWidth = pane?.width ?? 0
+        const paneHeight = pane?.height ?? 0
+        if (paneWidth <= 0 || paneHeight <= 0) {
+            return
+        }
+
         const itemsToConsider: Readonly<ItemProperties>[] = []
         const itemsToFix: [string, Readonly<ItemProperties>][] = []
         for (const itemId of itemIds) {

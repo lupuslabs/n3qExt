@@ -126,8 +126,8 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         this.contentElem.append(this.paneElem)
 
         this.isReady = true
-        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()])
         this.app.ownItems.backpackUpdateListeners.addListener(this.backPackUpdateListener)
+        this.onBackpackUpdate([], [...this.app.ownItems.getAllItems().values()])
     }
 
     protected onBeforeClose(): void
@@ -333,12 +333,16 @@ export class BackpackWindow extends FullWindow<FullWindowOptions>
         this.filters.onBackpackUpdate(itemsHide, itemsShowOrSet)
         this.selectedItems.onAfterBackpackUpdate(itemsHide, itemsShowOrSet)
 
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && this.getVisibility()) {
             const paneRect = this.paneElem?.getBoundingClientRect() ?? null
-            if (paneRect) {
-                this.app.ownItems.fixItemInventoryPositions(paneRect.width, paneRect.height, [...this.getVisibleItemIds()])
-            }
+            this.app.ownItems.fixItemInventoryPositions(paneRect, [...this.getVisibleItemIds()])
         }
     }
 
+    protected onBeforeShowDone(): void
+    {
+        super.onBeforeShowDone()
+        const paneRect = this.paneElem?.getBoundingClientRect() ?? null
+        this.app.ownItems.fixItemInventoryPositions(paneRect, [...this.getVisibleItemIds()])
+    }
 }
