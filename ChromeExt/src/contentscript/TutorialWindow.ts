@@ -3,7 +3,9 @@ import { ContentApp } from './ContentApp';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
 import { Config } from '../lib/Config';
+import { is } from '../lib/is'
 import { as } from '../lib/as';
+import { iter } from '../lib/Iter'
 import { Memory } from '../lib/Memory';
 import { Utils } from '../lib/Utils';
 import { BackgroundMessage } from '../lib/BackgroundMessage';
@@ -110,7 +112,8 @@ export class TutorialWindow extends FullWindow<FullWindowOptions> {
         this.videoTitleElem.textContent = this.videos[this.currentVideoIndex].title;
 
         const videoUrl = this.videos[this.currentVideoIndex].url.replace('youtu.be', 'youtube.com/embed') + Config.get('tutorial.videoArgs', '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1')
-        const videoUrlWrapped = this.app.uiHelper.getWrappedIframeUrl(videoUrl);
+        const videoUrlProxied = this.wrapVideoUrlInProxyPage(videoUrl);
+        const videoUrlWrapped = this.app.uiHelper.getWrappedIframeUrl(videoUrlProxied);
         const videoHtmlAllow = Config.get('tutorial.videoHtmlAllow', 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen')
         this.videoContainer.innerHTML = `<iframe src="${videoUrlWrapped}" frameborder="0" ${videoHtmlAllow}></iframe>`;
 
@@ -126,6 +129,23 @@ export class TutorialWindow extends FullWindow<FullWindowOptions> {
 
         await TutorialWindow.saveLastVideoIndex(this.currentVideoIndex);
     }
+
+    private wrapVideoUrlInProxyPage(videoUrl: string): string
+    {
+        const proxyUrlTpl = Config.get('tutorial.videoProxyUrl');
+        if (!is.nonEmptyString(proxyUrlTpl)) {
+            return videoUrl;
+        }
+        const serviceUrl = as.String(Config.get('config.serviceUrl'));
+        const replacements = [
+            ['{serviceUrlRoot}', `${serviceUrl.substring(0, serviceUrl.indexOf('/', 8))}/`],
+            ['{videoUrl}', encodeURIComponent(videoUrl)],
+        ];
+        const proxyUrl = iter(replacements)
+            .fold(proxyUrlTpl, (text, [key, value]) => text.replace(key, value));
+        return proxyUrl;
+    }
+
     // private updateVideo(): void
     // {
     //     this.videoTitle.textContent = this.videos[this.currentVideoIndex].title;

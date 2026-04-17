@@ -544,6 +544,7 @@ export class Config
             defaultLeft: 50,
             videoArgs: '?autoplay=1&controls=1&fs=0&iv_load_policy=3&showinfo=0&rel=0&cc_load_policy=1',
             videoHtmlAllow: 'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen',
+            videoProxyUrl: '{serviceUrlRoot}TutorialVideo?videoUrl={videoUrl}',
             videos: [
                 { title: 'How weblin Works And What You Can Do With It', url: 'https://www.youtube.com/embed/bTX9KncEI9E', },
                 { title: 'Configure Your Own Avatar With weblin.io', url: 'https://www.youtube.com/embed/ft3IyKuKnZs', },
