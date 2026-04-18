@@ -42,6 +42,7 @@ export function makeBaseConfig(mode) {
                     test: /\.ts$/,
                     loader: 'builtin:swc-loader',
                     options: {
+                        sourceMap: mode === 'development',
                         jsc: {
                             parser: {
                                 syntax: 'typescript',
