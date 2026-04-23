@@ -69,6 +69,10 @@ export class ContentItemFrames {
             throw new NotAnOpenableItemFrameError('Can\tt open item frame: No iframe URL!', {properties})
         }
         const roomJid = this.app.getRoom()?.getJid() ?? ''
+        iframeUrlTpl = iframeUrlTpl
+            .replace('{item}', encodeURIComponent(itemId))
+            .replace('{name}', encodeURIComponent(this.app.getUserNickname()))
+            .replace('{room}', encodeURIComponent(roomJid))
         const url = this.app.itemFrameContexts.makeItemIframeUrl(roomJid, properties, iframeUrlTpl)
 
         if (iframeOptions.anchor === 'Base') {
