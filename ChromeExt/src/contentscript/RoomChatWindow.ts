@@ -57,10 +57,7 @@ export class RoomChatWindow extends ChatWindow
         const popupDefinition: PopupDefinition = {
             id: popupId,
             url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
-            top: Config.get('roomChat.undockedTop', 100),
-            left: Config.get('roomChat.undockedLeft', 100),
-            height: Config.get('roomChat.undockedHeight', 530),
-            width: Config.get('roomChat.undockedWidth', 630),
+            ...this.makeUndockPopupDefaultGeometry('roomChat.'),
             allowContentApp: true,
         }
         return popupDefinition

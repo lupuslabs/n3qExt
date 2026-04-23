@@ -41,10 +41,7 @@ export class VidconfWindow extends FullWindow<FullWindowOptions>
         const popupDefinition: PopupDefinition = {
             id: this.popupId,
             url: this.url,
-            top: Config.get('room.vidconfUndockedTop', 100),
-            left: Config.get('room.vidconfUndockedLeft', 100),
-            height: Config.get('room.vidconfHeight', 400),
-            width: Config.get('room.vidconfWidth', 600),
+            ...this.makeUndockPopupDefaultGeometry('room.vidconf'),
             allowContentApp: true,
         }
         return popupDefinition

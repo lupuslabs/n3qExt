@@ -31,10 +31,7 @@ export class PersonsWindow extends BackpackWindow
         const popupDefinition: PopupDefinition = {
             id: popupId,
             url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
-            top: Config.get('personsWindow.undockedTop', 100),
-            left: Config.get('personsWindow.undockedLeft', 100),
-            height: Config.get('personsWindow.undockedHeight', 400),
-            width: Config.get('personsWindow.undockedWidth', 600),
+            ...this.makeUndockPopupDefaultGeometry('personsWindow.'),
             allowContentApp: true,
         }
         return popupDefinition

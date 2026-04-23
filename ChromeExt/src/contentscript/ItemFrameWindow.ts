@@ -86,10 +86,7 @@ export class ItemFrameWindow extends FullWindow<ItemFrameWindowOptions> implemen
         const popupDefinition: PopupDefinition = {
             id: `roomItem.frameUndocked:${this.itemId}`,
             url: this.url,
-            top: Config.get('roomItem.frameUndockedTop', 100),
-            left: Config.get('roomItem.frameUndockedLeft', 100),
-            height: this.geometry.height,
-            width: this.geometry.width,
+            ...this.makeUndockPopupDefaultGeometry('roomItem.frame'),
             allowContentApp: true,
         }
         return popupDefinition

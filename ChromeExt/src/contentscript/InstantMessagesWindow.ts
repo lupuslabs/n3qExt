@@ -78,10 +78,7 @@ export class InstantMessagesWindow extends ChatWindow
         const popupDefinition: PopupDefinition = {
             id: popupId,
             url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
-            top: Config.get('instantMessages.undockedTop', 100),
-            left: Config.get('instantMessages.undockedLeft', 100),
-            height: Config.get('instantMessages.undockedHeight', 400),
-            width: Config.get('instantMessages.undockedWidth', 600),
+            ...this.makeUndockPopupDefaultGeometry('instantMessages.'),
             allowContentApp: true,
         }
         return popupDefinition

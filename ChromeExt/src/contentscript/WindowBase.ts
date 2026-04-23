@@ -632,6 +632,51 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         return null
     }
 
+    protected makeUndockPopupDefaultGeometry(configKeyPrefix?: null|string): {left: number, top: number, width: number, height: number}
+    {
+        let left = 100
+        let top = 100
+        let width = this.geometry.width
+        let height = this.geometry.height
+        if (is.nonEmptyString(configKeyPrefix)) {
+            left = Config.get(`${configKeyPrefix}Left`, left)
+            top = Config.get(`${configKeyPrefix}Top`, top)
+            if (width <= 1) {
+                width = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'undockedWidth')))
+            }
+            if (height <= 1) {
+                height = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'undockedHeight')))
+            }
+            if (width <= 1) {
+                width = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'width')))
+            }
+            if (height <= 1) {
+                height = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'height')))
+            }
+        }
+        if (width <= 1 && is.number(this.givenOptions.width)) {
+            width = this.givenOptions.width
+        }
+        if (height <= 1 && is.number(this.givenOptions.height)) {
+            height = this.givenOptions.height
+        }
+        if (width <= 1) {
+            width = 600
+        }
+        if (height <= 1) {
+            height = 400
+        }
+        return {left, top, width, height}
+    }
+
+    private makeConfigKey(keyPrefix: string, keySuffix: string): string
+    {
+        if (keyPrefix.endsWith('.')) {
+            return keyPrefix + keySuffix
+        }
+        return `${keyPrefix}${keySuffix.substring(0, 1).toUpperCase()}${keySuffix.substring(1)}`
+    }
+
     private makeCheckedUndockPopupDefinition(): null|PopupDefinition
     {
         if (this.givenOptions.undockable === false || (this.isOpen() && this.app.getIsExclusiveWindowPopup())) {

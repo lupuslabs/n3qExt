@@ -145,10 +145,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         const popupDefinition: PopupDefinition = {
             id: popupId,
             url: '/assets/popupApp.html?startupRequests=' + startupRequestsArg,
-            top: Config.get('backpackItemInfo.undockedTop', 100),
-            left: Config.get('backpackItemInfo.undockedLeft', 100),
-            height: Config.get('backpackItemInfo.undockedHeight', 400),
-            width: Config.get('backpackItemInfo.undockedWidth', 600),
+            ...this.makeUndockPopupDefaultGeometry('backpackItemInfo.'),
             allowContentApp: true,
         }
         return popupDefinition
