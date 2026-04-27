@@ -193,6 +193,7 @@ export namespace WeblinClientIframeApi
         jid: string;
         url: string;
         destination: string;
+        userAvatarPosX: number;
     }
     export class RoomGetInfoResponse extends WeblinClientApi.ContentResponse { constructor(public info: RoomInfo) { super('Room.Info'); } }
 

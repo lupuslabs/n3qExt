@@ -756,6 +756,7 @@ export class IframeApi
             info.destination = room.getDestination();
             info.jid = room.getJid();
             info.url = room.getPageUrl();
+            info.userAvatarPosX = room.getMyParticipant()?.getPosition() ?? 0;
 
             return new WeblinClientIframeApi.RoomGetInfoResponse(info);
         } catch (ex) {
