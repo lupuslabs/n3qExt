@@ -19,6 +19,7 @@ export class _Changes
             ['Change', 'Ignore own avatar for item drop from backpack'],
             ['Change', 'Show URLs as plain text in /map output'],
             ['Change', 'Settings dialog: More space between headline and text left of the icon'],
+            ['Change', 'Remove user name from vidconf URL'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],
