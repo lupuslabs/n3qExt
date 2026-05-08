@@ -183,8 +183,7 @@ export class ContentInstantMessageManager
             }
 
             const vidconfId = await this.getPrivateVidconfId(otherUserInfo)
-            const userIdsText = [this.app.getUserId(), otherUserInfo.userId].sort().join('-')
-            const vidconfRoomId = `-private-${userIdsText}-${vidconfId}`
+            const vidconfRoomId = `-private-${vidconfId}`
             const urlTemplate = as.String(Config.get('room.vidconfUrl'), 'https://video.weblin.io/Vidconf?room=weblin{room}&name={name}');
             const url = urlTemplate
                 .replace('{room}', encodeURIComponent(vidconfRoomId))
