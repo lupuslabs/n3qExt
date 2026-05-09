@@ -93,6 +93,15 @@ Content scripts and background worker communicate via Chrome port messaging with
 - **Single quotes** (backticks allowed)
 - Components use `start()` / `stop()` lifecycle pattern with cleanup
 
+## Changelog
+
+User-visible changes are recorded in **`ChromeExt/src/lib/_Changes.ts`** — the `_Changes.data` array, newest-first. Each entry is `[version, codename, [['Add' | 'Fix' | 'Change', text], ...]]`.
+
+- This file is the source of truth for the app version: `Client.getVersion()` returns `_Changes.data[0][0]`. There is no separate version constant or `package.json` version driving the build.
+- The in-app **Changes** window (`src/contentscript/ChangesWindow.ts`) renders the same data.
+- To record a change for the in-progress release: append a `['Add' | 'Fix' | 'Change', '<text>']` row to the topmost entry's changes array.
+- To cut a new release: prepend a new `[version, codename, [...]]` triple at index 0.
+
 ## Multi-Platform
 
 The codebase supports:
