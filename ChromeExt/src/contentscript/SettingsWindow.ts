@@ -125,14 +125,14 @@ export class SettingsWindow extends FullWindow<FullWindowOptions>
         avatarGallery.append(rightElem);
         this.scrollPaneElem.append(avatarGallery);
 
-        this.scrollPaneElem.append(DomUtils.elemOfHtml('<div class="label" data-translate="text:Popup"></div>'));
-        const avatarGenBlockElem = DomUtils.elemOfHtml('<div class="avatar-generator" data-translate="children">');
-        avatarGenBlockElem.append(DomUtils.elemOfHtml('<div data-translate="text:Popup">Create your own avatar</div>'))
-        const avatarGenUrl = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
-        const avatarGenLabel = this.app.translateText('Popup.Avatar Generator', 'Avatar Generator')
-        avatarGenBlockElem.append(DomUtils.makeExternalTextLinkElem(avatarGenUrl, avatarGenLabel))
-        PointerEventDispatcher.protectElementsWithDefaultActions(this.app, avatarGenBlockElem);
-        this.scrollPaneElem.append(avatarGenBlockElem);
+        // this.scrollPaneElem.append(DomUtils.elemOfHtml('<div class="label" data-translate="text:Popup"></div>'));
+        // const avatarGenBlockElem = DomUtils.elemOfHtml('<div class="avatar-generator" data-translate="children">');
+        // avatarGenBlockElem.append(DomUtils.elemOfHtml('<div data-translate="text:Popup">Create your own avatar</div>'))
+        // const avatarGenUrl = Config.get('settings.avatarGeneratorLink', 'https://www.weblin.io/Avatars');
+        // const avatarGenLabel = this.app.translateText('Popup.Avatar Generator', 'Avatar Generator')
+        // avatarGenBlockElem.append(DomUtils.makeExternalTextLinkElem(avatarGenUrl, avatarGenLabel))
+        // PointerEventDispatcher.protectElementsWithDefaultActions(this.app, avatarGenBlockElem);
+        // this.scrollPaneElem.append(avatarGenBlockElem);
     }
 
     private updateCurrentAvatar(currentAvatar): void {
