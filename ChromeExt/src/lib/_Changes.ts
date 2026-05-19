@@ -45,6 +45,8 @@ export class _Changes
             ['Change', 'Remove avatar generator link from settings'],
             ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
             ['Fix', 'Display broken on sites which restrict style elements and attributes by content security header'],
+            ['Add', 'Notifications: system notifications inbox in the own participant menu.'],
+            ['Add', 'Thoughts: open the room thoughts panel from the own participant menu.'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

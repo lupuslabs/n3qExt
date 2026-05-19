@@ -47,6 +47,7 @@ Output:
    - Manifest V3 service worker via `BackgroundApp`
    - Manages XMPP connections, WebSocket connections, and state
    - Communicates with content scripts via Chrome port messaging
+   - `setTimeout`/`setInterval` are forbidden in background code: modern browsers throttle or drop timers when suspending the service worker, so scheduled work silently stops. Periodic/deferred work instead hooks into the heartbeat-driven `maintain()` fan-out in `BackgroundApp.maintain()`, gating its own cadence on a last-run timestamp (see `ItemPropertiesUrlProcessor.maintain`)
 
 3. **Embedded Mode** (`src/embedded/embedded.ts`)
    - Standalone widget that can run without browser extension
@@ -86,6 +87,8 @@ Content scripts and background worker communicate via Chrome port messaging with
 - **WebSocket** - Server connections (WebsocketManager)
 - **iframe API** - For interactive items (see `Docs/Protocol/iframeApi.md`)
 
+**Server notification ordering**: Notifications the server delivers to the client (websocket, client message streams) have no global arrival-order guarantee. Order is guaranteed only among notifications about the same entity: notifications for an individual item arrive in order, and notifications for an individual user arrive in order — everything else (different items, different users, item vs. user) may interleave arbitrarily. Consequently, handlers must not treat a notification as an arrival barrier for an unrelated one (e.g. an items snapshot does not imply all presence notifications have arrived), and derived state must be keyed per entity so late-arriving unrelated notifications cannot corrupt it. In tests, prove absence behaviorally — trigger an action whose observable outcome differs depending on the state under test — or order-check only via a same-entity sentinel.
+
 ## General Code Style
 
 Language-neutral rules for all code. This section is mirrored verbatim between the server repo (`nine3q/CLAUDE.md`) and the extension repo (`n3qExt/CLAUDE.md`): **any change must be applied to both files**. The rules are case-agnostic: identifier examples appear in one language's casing but apply in each language's own member-casing convention (C# `GetFoo`/`IsRunning`, TS `getFoo`/`isRunning`).
@@ -106,6 +109,7 @@ Language-neutral rules for all code. This section is mirrored verbatim between t
 - Message naming across a process or service boundary (a socket, worker/tab messaging): the sending method is `SendXxx`/`SendXxxTo…`; a one-way payload is an `XxxNotification`, and an `XxxRequest` is always answered with an `XxxResponse`; the receiver processes each in a `HandleXxxNotification`/`HandleXxxRequest` method
 - In-process event naming: registered listeners are fired via the `Callable*` pairs' `callListeners`, and the reacting listener methods are `OnXxx`
 - Durations carry their unit: spelled-out `Seconds` and short `Sec` both work (`timeoutSeconds`, `cooldownSec`) — prefer matching nearby identifiers, e.g. the config key a value comes from; plural `Secs` is legacy; milliseconds stay `Ms`, instantly readable as the SI milli prefix plus seconds (nobody measures in megaseconds)
+- Idempotence/optimization guard fields (`_lastX` latches, "already done" flags) are read and updated in the same execution context: the method that checks the guard also sets it after the work, so the whole check-work-update protocol reads in one place and helpers don't mutate their caller's guard as a side effect. Not feasible in every case, but for simple optimization flags it almost always is.
 - Docs and prose: write plain "if", not the math shorthand "iff"
 
 ## TypeScript Code Style

@@ -9,7 +9,10 @@ export namespace WebsocketMessage {
     export function OfObject(messageData: {[p: string]: object}): Message {
         const type: string = String(messageData.Type);
         switch (type) {
-            // Only messages sent by server:
+            case OkResponse.name: return new OkResponse(
+                String(messageData.Id),
+                String(messageData.RequestId),
+            );
             case ErrorResponse.name: return new ErrorResponse(
                 String(messageData.Id),
                 String(messageData.RequestId),
@@ -17,80 +20,76 @@ export namespace WebsocketMessage {
                 String(messageData.Reason),
                 String(messageData.Detail),
             )
-
             case PingRequest.name: return new PingRequest(
                 String(messageData.Id),
             )
             case PingResponse.name: return new PingResponse(
                 String(messageData.Id),
                 String(messageData.RequestId),
-            )
-
+            );
             case UserAuthResponse.name: return new UserAuthResponse(
                 String(messageData.Id),
                 String(messageData.RequestId),
-            )
+            );
 
-            case RoomEnterResponse.name: return new RoomEnterResponse(
-                String(messageData.Id),
-                String(messageData.RequestId),
-            )
-            case RoomLeaveResponse.name: return new RoomLeaveResponse(
-                String(messageData.Id),
-                String(messageData.RequestId),
-            )
-            case RoomChatResponse.name: return new RoomChatResponse(
-                String(messageData.Id),
-                String(messageData.RequestId),
-            )
-            case RoomEnterNotification.name: return new RoomEnterNotification(
-                String(messageData.Id),
-                String(messageData.RoomId),
-                String(messageData.RoomChatMessageId),
-                String(messageData.Time),
-                String(messageData.UserId),
-                String(messageData.UserNick),
-            )
-            case RoomLeaveNotification.name: return new RoomLeaveNotification(
-                String(messageData.Id),
-                String(messageData.RoomId),
-                String(messageData.RoomChatMessageId),
-                String(messageData.Time),
-                String(messageData.UserId),
-                String(messageData.UserNick),
-            )
-            case RoomPresenceNotification.name: return new RoomPresenceNotification(
-                String(messageData.Id),
-                String(messageData.RoomId),
-                String(messageData.RoomChatMessageId),
-                String(messageData.Time),
-                String(messageData.UserId),
-                String(messageData.UserNick),
-            )
+            case RoomPresencesNotification.name: {
+                if (!is.object(messageData.PresencesUpdatedOrEntered)) {
+                    throw new Error(`Invalid data for type ${type}: PresencesUpdatedOrEntered is not an object!`);
+                }
+                const presences: { [userId: string]: RoomPresence } = {};
+                for (const [userId, presenceData] of Object.entries(messageData.PresencesUpdatedOrEntered)) {
+                    if (!is.stringsObject(presenceData)) {
+                        throw new Error(`Invalid data for type ${type}: PresencesUpdatedOrEntered contains a non-object or an object having a non-string key or value!`);
+                    }
+                    presences[userId] = { UserId: String(presenceData.UserId) };
+                }
+                if (!is.array(messageData.PresencesLeft, is.string)) {
+                    throw new Error(`Invalid data for type ${type}: PresencesLeft is not a string array!`);
+                }
+                return new RoomPresencesNotification(
+                    String(messageData.Id),
+                    String(messageData.RoomId),
+                    String(messageData.Time),
+                    presences,
+                    messageData.PresencesLeft,
+                    Boolean(messageData.IsSnapshot),
+                );
+            }
+            case RoomItemsNotification.name: {
+                if (!is.array<object>(messageData.ItemsUpdatedOrCreated, is.stringsObject)) {
+                    throw new Error(`Invalid data for type ${type}: ItemsUpdatedOrCreated is not an array of string objects!`)
+                }
+                if (!is.array<string>(messageData.ItemsDeleted, is.string)) {
+                    throw new Error(`Invalid data for type ${type}: ItemsDeleted is not a string array!`)
+                }
+                return new RoomItemsNotification(
+                    String(messageData.Id),
+                    String(messageData.RoomId),
+                    String(messageData.Time),
+                    <{[p: string]: string}[]>messageData.ItemsUpdatedOrCreated,
+                    messageData.ItemsDeleted,
+                    Boolean(messageData.IsSnapshot),
+                )
+            }
             case RoomChatNotification.name: return new RoomChatNotification(
                 String(messageData.Id),
                 String(messageData.RoomId),
-                String(messageData.RoomChatMessageId),
                 String(messageData.Time),
                 String(messageData.UserId),
-                String(messageData.UserNick),
                 String(messageData.ChatMessage),
             )
 
             case ItemsNotification.name: {
-                if (!is.array<object>(messageData.ItemsUpdatedOrCreated)) {
-                    throw new Error(`Invalid data for type ${type}: ItemsUpdatedOrCreated is not an object array!`)
+                if (!is.array(messageData.ItemsUpdatedOrCreated, is.stringsObject)) {
+                    throw new Error(`Invalid data for type ${type}: ItemsUpdatedOrCreated is not an array of objects having only string keys and values!`);
                 }
-                if (messageData.ItemsUpdatedOrCreated.some(props => !is.stringsObject(props))) {
-                    throw new Error(`Invalid data for type ${type}: ItemsUpdatedOrCreated contains a non-object or an object having a non-string key or value!`)
-                }
-                if (!is.array<string>(messageData.ItemsDeleted)) {
+                if (!is.array(messageData.ItemsDeleted, is.string)) {
                     throw new Error(`Invalid data for type ${type}: ItemsDeleted is not a string array!`)
                 }
                 return new ItemsNotification(
                     String(messageData.Id),
                     String(messageData.InventoryId),
-                    <{[p: string]: string}[]>messageData.ItemsUpdatedOrCreated,
+                    messageData.ItemsUpdatedOrCreated,
                     messageData.ItemsDeleted,
                 )
             }
@@ -137,10 +136,6 @@ export namespace WebsocketMessage {
                     String(messageData.InstantMessage),
                 )
             }
-            case InstantMessageHasBeenReceivedOkResponse.name: return new InstantMessageHasBeenReceivedOkResponse(
-                String(messageData.Id),
-                String(messageData.RequestId),
-            )
         }
         throw new Error(`Unknown type ${type}!`)
     }
@@ -165,8 +160,8 @@ export namespace WebsocketMessage {
         protected constructor(Id: string, public readonly RequestId: string) { super(Id) }
     }
 
-    export abstract class OkResponse extends Response {
-        protected constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+    export class OkResponse extends Response {
+        public constructor(Id: string, RequestId: string) { super(Id, RequestId); }
     }
 
     export class ErrorResponse extends Response {
@@ -188,7 +183,7 @@ export namespace WebsocketMessage {
     }
 
     export class PingResponse extends OkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+        public constructor(Id: string, RequestId: string) { super(Id, RequestId); }
     }
 
     export class UserAuthRequest extends Request {
@@ -200,22 +195,17 @@ export namespace WebsocketMessage {
     }
 
     export class UserAuthResponse extends OkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+        public constructor(Id: string, RequestId: string) { super(Id, RequestId); }
     }
 
     export class RoomRequest extends Request {
         public constructor(Id: string, public readonly RoomId: string) { super(Id) }
     }
 
-    export class RoomOkResponse extends OkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
-    }
-
     export abstract class RoomNotification extends Notification {
         protected constructor(
             Id: string,
             public readonly RoomId: string,
-            public readonly RoomChatMessageId: string,
             public readonly Time: string
         ) { super(Id) }
     }
@@ -224,23 +214,17 @@ export namespace WebsocketMessage {
         protected constructor(
             Id: string,
             RoomId: string,
-            RoomChatMessageId: string,
             Time: string,
             public readonly UserId: string,
-            public readonly UserNick: string,
-        ) { super(Id, RoomId, RoomChatMessageId, Time) }
+        ) { super(Id, RoomId, Time) }
     }
 
     export class RoomEnterRequest extends RoomRequest {
         public constructor(
             Id: string,
             RoomId: string,
-            readonly RoomUserNick: string,
+            public readonly Destination: null|string,
         ) { super(Id, RoomId) }
-    }
-
-    export class RoomEnterResponse extends RoomOkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
     }
 
     export class RoomLeaveRequest extends RoomRequest {
@@ -250,8 +234,11 @@ export namespace WebsocketMessage {
         ) { super(Id, RoomId) }
     }
 
-    export class RoomLeaveResponse extends RoomOkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+    export class RoomPingRequest extends RoomRequest {
+        public constructor(
+            Id: string,
+            RoomId: string,
+        ) { super(Id, RoomId) }
     }
 
     export class RoomChatRequest extends RoomRequest {
@@ -262,53 +249,45 @@ export namespace WebsocketMessage {
         ) { super(Id, RoomId) }
     }
 
-    export class RoomChatResponse extends RoomOkResponse {
-        public constructor(Id: string, RequestId: string) { super(Id, RequestId) }
+    /** A user present in a room: some client of that user is in the room. */
+    export interface RoomPresence {
+        readonly UserId: string;
     }
 
-    export class RoomEnterNotification extends RoomUserActionNotification {
+    /**
+     * Room presence changes: entered or updated presences keyed by userId, left userIds, or a
+     * complete snapshot (IsSnapshot: replace the room's presences instead of merging).
+     */
+    export class RoomPresencesNotification extends RoomNotification {
         public constructor(
             Id: string,
             RoomId: string,
-            RoomChatMessageId: string,
             Time: string,
-            UserId: string,
-            UserNick: string,
-        ) { super(Id, RoomId, RoomChatMessageId, Time, UserId, UserNick) }
+            public readonly PresencesUpdatedOrEntered: Readonly<{ [userId: string]: RoomPresence }>,
+            public readonly PresencesLeft: ReadonlyArray<string>,
+            public readonly IsSnapshot: boolean,
+        ) { super(Id, RoomId, Time); }
     }
 
-    export class RoomLeaveNotification extends RoomUserActionNotification {
+    export class RoomItemsNotification extends RoomNotification {
         public constructor(
             Id: string,
             RoomId: string,
-            RoomChatMessageId: string,
             Time: string,
-            UserId: string,
-            UserNick: string,
-        ) { super(Id, RoomId, RoomChatMessageId, Time, UserId, UserNick) }
-    }
-
-    export class RoomPresenceNotification extends RoomUserActionNotification {
-        public constructor(
-            Id: string,
-            RoomId: string,
-            RoomChatMessageId: string,
-            Time: string,
-            UserId: string,
-            UserNick: string,
-        ) { super(Id, RoomId, RoomChatMessageId, Time, UserId, UserNick) }
+            public readonly ItemsUpdatedOrCreated: Readonly<Readonly<{[p: string]: string}>[]>,
+            public readonly ItemsDeleted: Readonly<string[]>,
+            public readonly IsSnapshot: boolean,
+        ) { super(Id, RoomId, Time) }
     }
 
     export class RoomChatNotification extends RoomUserActionNotification {
         public constructor(
             Id: string,
             RoomId: string,
-            RoomChatMessageId: string,
             Time: string,
             UserId: string,
-            UserNick: string,
             public readonly ChatMessage: string,
-        ) { super(Id, RoomId, RoomChatMessageId, Time, UserId, UserNick) }
+        ) { super(Id, RoomId, Time, UserId) }
     }
 
     export class ItemsNotification extends Notification {
@@ -346,19 +325,11 @@ export namespace WebsocketMessage {
         ) { super(Id, ActorId, OtherId) }
     }
 
-    export abstract class ImRequest extends Request {
+    export abstract class InstantMessageRequest extends Request {
         protected constructor(Id: string) { super(Id) }
     }
 
-    export abstract class ImOkResponse extends OkResponse {
-        protected constructor(Id: string, RequestId: string) { super(Id, RequestId) }
-    }
-
-    export abstract class ImNotification extends Notification {
-        protected constructor(Id: string) { super(Id) }
-    }
-
-    export class SendInstantMessageRequest extends ImRequest {
+    export class SendInstantMessageRequest extends InstantMessageRequest {
         public constructor(
             Id: string,
             public RecipientUserId: string,
@@ -367,7 +338,7 @@ export namespace WebsocketMessage {
         ) { super(Id) }
     }
 
-    export class SendInstantMessageOkResponse extends ImOkResponse {
+    export class SendInstantMessageOkResponse extends OkResponse {
         public constructor(
             Id: string,
             RequestId: string,
@@ -376,7 +347,7 @@ export namespace WebsocketMessage {
         ) { super(Id, RequestId) }
     }
 
-    export class InstantMessageNotification extends ImNotification {
+    export class InstantMessageNotification extends Notification {
         public constructor(
             Id: string,
             public AuthorUserId: string,
@@ -390,18 +361,11 @@ export namespace WebsocketMessage {
         ) { super(Id) }
     }
 
-    export class InstantMessageHasBeenReceivedRequest extends ImRequest {
+    export class InstantMessageHasBeenReceivedRequest extends InstantMessageRequest {
         public constructor(
             Id: string,
             public InstantMessageId: string,
         ) { super(Id) }
-    }
-
-    export class InstantMessageHasBeenReceivedOkResponse extends ImOkResponse {
-        public constructor(
-            Id: string,
-            RequestId: string,
-        ) { super(Id, RequestId) }
     }
 
 }

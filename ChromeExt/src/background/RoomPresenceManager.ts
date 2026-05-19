@@ -328,6 +328,7 @@ export class RoomPresenceManager
         const { tabIsNew, roomData } = this.setTabPresence(tabId, tabPresenceData)
         if (tabIsNew) {
             this.replayAllRoomPresenceStanzasToTab(tabId, roomData)
+            this.app.getWebsocketRoomManager().replayRoomItemsToTab(tabId, roomData.roomJid);
         }
         this.scheduleSendRoomPresence(roomData)
         if (!tabPresenceData.isAvailable) {
@@ -429,6 +430,7 @@ export class RoomPresenceManager
         roomData.presenceDataToSend = null
         if (!roomData.tabIds.size) {
             this.rooms.delete(roomJid)
+            this.app.getWebsocketRoomManager().onRoomInactive(roomJid);
         }
     }
 
@@ -486,6 +488,7 @@ export class RoomPresenceManager
 
         const roomPresence: TabRoomPresenceData = {
             roomJid: roomData.roomJid,
+            destination: newestPresence?.destination ?? '',
             badges: newestPresence?.badges ?? '',
             timestamp: newestPresence?.timestamp ?? Utils.utcStringOfDate(new Date()),
             isAvailable: tabPresences.some(tabPresence => tabPresence.isAvailable),
@@ -607,6 +610,7 @@ export class RoomPresenceManager
         if (!roomData) {
             roomData = new RoomData(roomJid, this.settingsPosX)
             this.rooms.set(roomJid, roomData)
+            this.app.getWebsocketRoomManager().onRoomActive(roomJid, tabPresenceData.destination);
         }
         this.tabPresences.set(tabId, tabPresenceData)
         const oldSize = roomData.tabIds.size
@@ -628,7 +632,9 @@ export class RoomPresenceManager
             log.info('RoomPresenceManager.deleteTab: Removed room2tab mapping.', { roomJid, tabId })
         }
         if (!roomData?.tabIds.size && !roomData?.sendPresenceTimeoutHandle) {
-            this.rooms.delete(roomJid)
+            if (this.rooms.delete(roomJid)) {
+                this.app.getWebsocketRoomManager().onRoomInactive(roomJid);
+            }
         }
     }
 

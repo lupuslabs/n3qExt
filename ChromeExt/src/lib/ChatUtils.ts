@@ -16,7 +16,7 @@ export namespace ChatUtils {
         roomNick:  string
     }
 
-    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug', 'vidconfInvite', 'vidconfDecline'] as const
+    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug', 'vidconfInvite', 'vidconfDecline', 'notes'] as const;
     export type ChatMessageType = typeof chatMessageTypes[number]
 
     export const userChatMessageTypes = ['chat', 'emote'] as const
@@ -31,6 +31,10 @@ export namespace ChatUtils {
     export type VidconfMessageType = typeof vidconfMessageTypes[number]
     void((a: VidconfMessageType) : ChatMessageType => a) // Makes transpiler detect non-ChatMessageType in InstantMessageType.
 
+    export const systemNotificationMessageTypes = ['notes'] as const;
+    export type SystemNotificationMessageType = typeof systemNotificationMessageTypes[number];
+    void((a: SystemNotificationMessageType): ChatMessageType => a); // Makes transpiler detect non-ChatMessageType in SystemNotificationMessageType.
+
     export type ChatMessage = {
         timestamp: string
         isUnread: boolean
@@ -44,6 +48,10 @@ export namespace ChatUtils {
 
     export type VidconfInviteData = {
         vidconfId: string
+    }
+
+    export function isSystemNotificationMessageType(val: unknown): val is SystemNotificationMessageType {
+        return systemNotificationMessageTypes.some(elem => elem === val);
     }
 
     export function isUserChatMessageType(val: unknown): val is UserChatMessageType
@@ -69,6 +77,10 @@ export namespace ChatUtils {
             throw new Error('Missing vidconfId!')
         }
         return {vidconfId}
+    }
+
+    export function getThoughtsClientRoomIdOfNotesBoardId(boardId: string): null|string {
+        return boardId.startsWith('r-') ? boardId.substring(2) : null;
     }
 
     export function areChatMessagesOfSameUser(msgA: ChatMessage, msgB: ChatMessage): boolean

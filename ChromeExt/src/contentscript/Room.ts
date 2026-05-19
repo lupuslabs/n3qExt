@@ -212,6 +212,7 @@ export class Room
 
             const presenceData = {
                 timestamp, roomJid,
+                destination: this.destination,
                 isAvailable, showAvailability, statusMessage,
                 badges,
             };

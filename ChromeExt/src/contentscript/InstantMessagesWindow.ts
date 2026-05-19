@@ -44,6 +44,10 @@ export class InstantMessagesWindow extends ChatWindow
         return this.app.uiHelper.makeDefaultTextButton('open-vidconf-button', 'Menu.Private Videoconf', null, action);
     }
 
+    protected isToastableMessageType(type: ChatUtils.ChatMessageType): boolean {
+        return ChatUtils.isUserChatMessageType(type);
+    }
+
     protected onVisible(): void
     {
         super.onVisible()
@@ -170,7 +174,8 @@ export class InstantMessagesWindow extends ChatWindow
                 userImageUrl: lastMessage.authorImageUrl,
                 ownPersonItem: null,
                 ownFriendStatus: 'No',
-            }
+                isSystemUser: false,
+            };
         }
         if (userId === this.otherUserId) {
             return this.otherUser
@@ -190,8 +195,8 @@ export class InstantMessagesWindow extends ChatWindow
             return
         }
         const relevantMessages = iter(this.unreadChatMessages)
-            .filter(msg => ChatUtils.isUserChatMessageType(msg.type))
-            .toArray()
+            .filter(msg => this.isToastableMessageType(msg.type))
+            .toArray();
         const lastMessage = relevantMessages[relevantMessages.length - 1] ?? null
         if (!lastMessage) {
             this.hideUnreadMessageToast()
@@ -211,8 +216,7 @@ export class InstantMessagesWindow extends ChatWindow
         this.unreadMessageToastMessageId = ''
     }
 
-    private showUnreadMessageToast(lastMessage: ChatUtils.ChatMessage, unreadMessageCount: number): void
-    {
+    protected showUnreadMessageToast(lastMessage: ChatUtils.ChatMessage, unreadMessageCount: number): void {
         const userId = this.chatChannel.roomJid
         const personData = this.getUserInfo(userId)
 
@@ -228,7 +232,7 @@ export class InstantMessagesWindow extends ChatWindow
         const title = this.app.translateText('PrivateChat.newMessageToastTitle', translateOpts)
         const text = this.app.translateText('PrivateChat.newMessageToastText', translateOpts)
         const toast = new SimpleToast(this.app, toastId, 0, type, title, text)
-        toast.setIcon(personData.userImageUrl, 10, 64, 64)
+        toast.setIcon(this.app.personManager.getAvatarImageUrlOrDefault(personData.userImageUrl), 10, 64, 64);
 
         const openChatButtonText = this.app.translateText('PrivateChat.newMessageToastOpenChatWindowButtonLabel', translateOpts)
         const openChatButtonAction = () => {

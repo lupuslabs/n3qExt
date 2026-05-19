@@ -1,10 +1,11 @@
+import type { Logger } from './Logger';
 import { RetryStrategy } from './RetryStrategy'
 import { WebsocketMessage as Message } from './WebsocketMessage'
 
 export namespace WebsocketConnection {
 
-    export type IncommingRequestHandler = (request: Message.Request) => Promise<Message.Response>
-    export type IncommingNotificationHandler = (notification: Message.Notification) => Promise<void>
+    export type IncomingRequestHandler = (request: Message.Request) => Promise<Message.Response>
+    export type IncomingNotificationHandler = (notification: Message.Notification) => Promise<void>
 
     export type Config = {
         readonly getWebsocketUrl: () => string,
@@ -12,14 +13,12 @@ export namespace WebsocketConnection {
         readonly getHeartbeatSendIntervalSecs: () => number,
         readonly getHeartbeatTimeoutSecs: () => number,
         readonly getWebsocketOpenRetryStrategy: () => RetryStrategy,
-        readonly logDebug: (msg: string, ...data: any[]) => void
-        readonly logInfo: (msg: string, ...data: any[]) => void
-        readonly logError: (msg: string, ...data: any[]) => void
+        readonly log: Logger,
         readonly getLogPingMessages: () => boolean
         readonly socketIsReadyHandler: () => void,
         readonly socketIsntReadyHandler: () => void,
-        readonly incommingRequestHandler: IncommingRequestHandler,
-        readonly incommingNotificationHandler: IncommingNotificationHandler,
+        readonly incomingRequestHandler: IncomingRequestHandler,
+        readonly incomingNotificationHandler: IncomingNotificationHandler,
     }
 
     type UnreceivedResponseData = {
@@ -125,7 +124,7 @@ export namespace WebsocketConnection {
             try {
                 this.websocket!.send(message.toJson())
             } catch (error) {
-                this.config.logInfo('WebsocketConnection.sendMessage: Sending message failed.', error)
+                this.config.log.logInfo('WebsocketConnection.sendMessage: Sending message failed.', {}, error)
                 return new Message.ErrorResponse(
                     Message.makeId(),
                     message.Id,
@@ -135,7 +134,7 @@ export namespace WebsocketConnection {
                 )
             }
             if (this.isMessageToBeLogged(message)) {
-                this.config.logDebug('WebsocketConnection.sendMessage: Sent message.', message)
+                this.config.log.logDebug('WebsocketConnection.sendMessage: Sent message.', { message })
             }
             this.scheduleNextHeartbeatSend()
             return null
@@ -154,7 +153,7 @@ export namespace WebsocketConnection {
         }
 
         private closeWebsocket(): void {
-            this.config.logDebug('WebsocketConnection.closeWebsocket: Closing websocket.')
+            this.config.log.logDebug('WebsocketConnection.closeWebsocket: Closing websocket.')
             this.websocketIsOpening = false
             this.websocketIsReady = false
             this.websocket?.removeEventListener('open', this.websocketOpenHandler)
@@ -166,7 +165,7 @@ export namespace WebsocketConnection {
                 try {
                     this.websocket?.close()
                 } catch (error) {
-                    this.config.logDebug('WebsocketConnection.closeWebsocket: Closing websocket failed.', error)
+                    this.config.log.logDebug('WebsocketConnection.closeWebsocket: Closing websocket failed.', {}, error)
                 }
             }
             this.websocket = null
@@ -184,11 +183,11 @@ export namespace WebsocketConnection {
                 return
             }
             const url = this.config.getWebsocketUrl()
-            this.config.logDebug('WebsocketConnection.openWebsocket: Opening websocket.', { url })
+            this.config.log.logDebug('WebsocketConnection.openWebsocket: Opening websocket.', { url })
             try {
                 this.websocket = new WebSocket(url)
             } catch (error) {
-                this.config.logError('WebsocketConnection.openWebsocket: Websocket creation failed.', error)
+                this.config.log.logError('WebsocketConnection.openWebsocket: Websocket creation failed.', {}, error)
                 return
             }
             this.websocket.addEventListener('open', this.websocketOpenHandler)
@@ -216,7 +215,7 @@ export namespace WebsocketConnection {
             if (this.isStopped) {
                 return
             }
-            this.config.logInfo('WebsocketConnection.onWebsocketOpen: Websocket open.', ev)
+            this.config.log.logInfo('WebsocketConnection.onWebsocketOpen: Websocket open.', { ev })
             this.scheduleNextHeartbeatSend()
             this.scheduleHeartbeatReceiveTimeout()
             this.websocketIsReady = true
@@ -227,7 +226,7 @@ export namespace WebsocketConnection {
             if (this.isStopped) {
                 return
             }
-            this.config.logInfo('WebsocketConnection.onWebsocketClose: Websocket closed.', ev)
+            this.config.log.logInfo('WebsocketConnection.onWebsocketClose: Websocket closed.', { ev })
             this.closeWebsocket()
             this.config.socketIsntReadyHandler()
         }
@@ -236,7 +235,7 @@ export namespace WebsocketConnection {
             if (this.isStopped) {
                 return
             }
-            this.config.logInfo('WebsocketConnection.onWebsocketError: Websocket error.', ev)
+            this.config.log.logInfo('WebsocketConnection.onWebsocketError: Websocket error.', { ev })
         }
 
         private onWebsocketMessage(ev: MessageEvent): void {
@@ -250,7 +249,7 @@ export namespace WebsocketConnection {
             try {
                 messageData = JSON.parse(messageJson)
             } catch (error) {
-                this.config.logError('WebsocketConnection.onWebsocketMessage: Received invalid JSON from websocket!', error, { messageJson })
+                this.config.log.logError('WebsocketConnection.onWebsocketMessage: Received invalid JSON from websocket!', { messageJson }, error)
                 return
             }
 
@@ -258,12 +257,12 @@ export namespace WebsocketConnection {
             try {
                 message = Message.OfObject(messageData)
             } catch (error) {
-                this.config.logError('WebsocketConnection.onWebsocketMessage: Received invalid message from websocket!', error, { messageData })
+                this.config.log.logError('WebsocketConnection.onWebsocketMessage: Received invalid message from websocket!', { messageData }, error)
                 return
             }
 
             if (this.isMessageToBeLogged(message)) {
-                this.config.logDebug('WebsocketConnection.onWebsocketMessage: Received message from websocket.', message)
+                this.config.log.logDebug('WebsocketConnection.onWebsocketMessage: Received message from websocket.', { message })
             }
 
             if (message instanceof Message.Response) {
@@ -271,7 +270,7 @@ export namespace WebsocketConnection {
                 this.unreceivedResponses.delete(message.RequestId)
                 record?.responseHandler(message)
             } else if (message instanceof Message.Request) {
-                this.config.incommingRequestHandler(message)
+                this.config.incomingRequestHandler(message)
                     .catch((error: Error) => new Message.ErrorResponse(
                         Message.makeId(),
                         message.Id,
@@ -282,8 +281,8 @@ export namespace WebsocketConnection {
                         this.sendMessage(response)
                     })
             } else if (message instanceof Message.Notification) {
-                this.config.incommingNotificationHandler(message)
-                    .catch((error: Error) => this.config.logError('WebsocketConnection.onWebsocketMessage: Notification processing failed!', error, message))
+                this.config.incomingNotificationHandler(message)
+                    .catch((error: Error) => this.config.log.logError('WebsocketConnection.onWebsocketMessage: Notification processing failed!', { message }, error))
             }
         }
 

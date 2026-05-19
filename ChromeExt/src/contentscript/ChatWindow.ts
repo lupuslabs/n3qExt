@@ -67,6 +67,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
     public isSoundEnabled(): boolean { return this.soundEnabled; }
 
+    protected isReadOnly(): boolean { return false; }
+
     public getUnreadUserMessageCount(maxAgeSecs: number): number
     {
         const maxAgeTimestamp = Utils.utcStringOfDate(new Date(Date.now() - 1000 * maxAgeSecs));
@@ -157,6 +159,10 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         this.chatlogElem = chatlogElem;
         this.contentElem.appendChild(chatlogElem);
 
+        if (this.isReadOnly()) {
+            return;
+        }
+
         // splitter elem:
         const splitterElem = document.createElement('div');
         this.contentElem.appendChild(splitterElem);
@@ -177,7 +183,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
     protected onVisible() {
         super.onVisible();
-        this.chatInputFieldElem.focus();
+        this.chatInputFieldElem?.focus();
     }
 
     protected onViewportVisible(): void
@@ -280,6 +286,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         if (!message) {
             return;
         }
+        const systemUserData = this.app.personManager.getSystemUserData();
+        const isSystemMessage = message.authorUserId === systemUserData.userId;
         const isOwnMessage = message.authorUserId === this.app.getUserId();
         const previousMessage: null|ChatUtils.ChatMessage = this.chatMessages.at(index - 1);
         const previousMessageDate = Utils.dateOrNullOfUtcString(previousMessage?.timestamp);
@@ -292,7 +300,14 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         const isNew = message.timestamp >= this.sessionStartTs;
         const ageClass = isNew ? 'new' : 'old';
         const dateClass = isFirstMessage || isSameDay ? 'sameDay' : 'newDay';
-        const sourceClass = isOwnMessage ? 'own' : 'other';
+        let sourceClass: string;
+        if (isSystemMessage) {
+            sourceClass = 'system';
+        } else if (isOwnMessage) {
+            sourceClass = 'own';
+        } else {
+            sourceClass = 'other';
+        }
         let continuationClass: string;
         if (isContinuation) {
             continuationClass = 'continued';
@@ -306,7 +321,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
 
         const contentElem = DomUtils.elemOfHtml(`<div class="content"></div>`)
         messageElem.appendChild(contentElem);
-        let authorName: string = message.authorName;
+        const authorName: string = isSystemMessage ? systemUserData.userName : message.authorName;
         if (authorName.length !== 0) {
             const authorHtml = as.Html(authorName)
             contentElem.appendChild(DomUtils.elemOfHtml(`<span class="nick">${authorHtml}</span>`));

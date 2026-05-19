@@ -37,6 +37,7 @@ export class Config
             unreceivedResponseTimeoutSecs: 30,
             heartbeatSendIntervalSecs: 17, // Send a ping request if not sent anything for this amount of seconds.
             heartbeatTimeoutSecs: 30, // Reconnect if not receiving anything for this amount of seconds.
+            roomHeartbeatIntervalSec: 17, // Send a room ping request if not sent anything to the room for this amount of seconds.
             connectRetryStrategyFirstRetryDelaySecs: 1,
             connectRetryStrategyDelayGrowthFactor: 2,
             connectRetryStrategyRetryDelayMaxSecs: 120,
@@ -78,6 +79,7 @@ export class Config
             backgroundTraffic: false,
             websocketConnection: false,
             websocketConnectionPings: false,
+            websocketRoomManagement: false,
             backgroundPresenceManagement: false,
             DependentPresenceItemRequests: false,
             clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.
@@ -435,6 +437,11 @@ export class Config
             displayAvatarXLeft: -80,
             infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
+        systemUser: {
+            userId: '<system>',
+            userName: 'weblin',
+            userImageUrl: '',
+        },
         instantMessages: {
             enabled: true,
             unreadChatChannelsToSendToNewTabs: 100,
@@ -442,6 +449,13 @@ export class Config
             undockedHeight: 530,
             undockedLeft: 100,
             undockedTop: 100,
+        },
+        notifications: {
+            enabled: true,
+        },
+        thoughts: {
+            enabled: false,
+            itemFrameProperties: {},
         },
         roomChat: {
             undockedWidth: 630,
@@ -648,6 +662,8 @@ export class Config
                     'Menu.Get weblin everywhere': 'Weblin für überall',
                     'Menu.Person': 'Contact',
                     'Menu.Persons': 'Contacts',
+                    'Menu.Thoughts': 'Thoughts',
+                    'Menu.Notifications': 'Notifications',
                     'Menu.Forget': 'Delete',
                     'Menu.Remember': 'Save',
                     'Menu.ProposeFriendship': 'Add friend',
@@ -696,6 +712,19 @@ export class Config
                     'PrivateChat.PrivateVidconfInviteMessage': '*invites to private videoconference*',
                     'PrivateChat.PrivateVidconfInviteMessageLinkTooltip': 'Private videoconference',
                     'PrivateChat.PrivateVidconfDeclineMessage': '*refuses to join videoconference*',
+
+                    'Notifications.windowTitle': 'Notifications',
+                    'notifications.openNotificationsButton': 'All notifications',
+                    'thoughts.notification.openThoughtButton': 'View thought',
+                    'thoughts.notification.replyMessage': '{otherUserName} replied to your thought',
+                    'thoughts.notification.reactionMessage': '{otherUserName} reacted to your thought',
+                    'thoughts.notification.moderatorEditMessage': 'A moderator edited your thought',
+                    'thoughts.notification.moderatorDeleteMessage': 'A moderator deleted your thought',
+                    'thoughts.notification.parentAuthorEditMessage': '{otherUserName} edited a thought you commented on',
+                    'thoughts.notification.parentAuthorDeleteMessage': '{otherUserName} deleted a thought you commented on',
+                    'thoughts.notification.parentModeratorEditMessage': 'A moderator edited a thought you commented on',
+                    'thoughts.notification.parentModeratorDeleteMessage': 'A moderator deleted a thought you commented on',
+                    'thoughts.notification.cullingDeleteMessage': 'Your thought was automatically removed',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videoconference with {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private videoconference',
@@ -1070,6 +1099,8 @@ export class Config
                     'Menu.Get weblin everywhere': 'Get weblin everywhere',
                     'Menu.Person': 'Kontakt',
                     'Menu.Persons': 'Kontakte',
+                    'Menu.Thoughts': 'Gedanken',
+                    'Menu.Notifications': 'Benachrichtigungen',
                     'Menu.Forget': 'Löschen',
                     'Menu.Remember': 'Speichern',
                     'Menu.ProposeFriendship': 'Freundschaft anfragen',
@@ -1118,6 +1149,19 @@ export class Config
                     'PrivateChat.PrivateVidconfInviteMessage': '*lädt zu privater Videokonferenz ein*',
                     'PrivateChat.PrivateVidconfInviteMessageLinkTooltip': 'Private Videokonferenz',
                     'PrivateChat.PrivateVidconfDeclineMessage': '*lehnt Videokonferenz ab*',
+
+                    'Notifications.windowTitle': 'Benachrichtigungen',
+                    'notifications.openNotificationsButton': 'Alle Benachrichtigungen',
+                    'thoughts.notification.openThoughtButton': 'Gedanke anzeigen',
+                    'thoughts.notification.replyMessage': '{otherUserName} hat auf deinen Gedanken geantwortet',
+                    'thoughts.notification.reactionMessage': '{otherUserName} hat auf deinen Gedanken reagiert',
+                    'thoughts.notification.moderatorEditMessage': 'Ein Moderator hat deinen Gedanken bearbeitet',
+                    'thoughts.notification.moderatorDeleteMessage': 'Ein Moderator hat deinen Gedanken gelöscht',
+                    'thoughts.notification.parentAuthorEditMessage': '{otherUserName} hat einen Gedanken bearbeitet, den du kommentiert hast',
+                    'thoughts.notification.parentAuthorDeleteMessage': '{otherUserName} hat einen Gedanken gelöscht, den du kommentiert hast',
+                    'thoughts.notification.parentModeratorEditMessage': 'Ein Moderator hat einen Gedanken bearbeitet, den du kommentiert hast',
+                    'thoughts.notification.parentModeratorDeleteMessage': 'Ein Moderator hat einen Gedanken gelöscht, den du kommentiert hast',
+                    'thoughts.notification.cullingDeleteMessage': 'Dein Gedanke wurde automatisch entfernt',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private Videokonferenz',

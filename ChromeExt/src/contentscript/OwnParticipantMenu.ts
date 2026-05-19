@@ -25,6 +25,8 @@ import chatHistoryIconUrl from '../assets/icons/ic_outline-chat.svg';
 import chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.svg';
 import emotesIconUrl from '../assets/icons/smiley.svg';
 import personsIconUrl from '../assets/icons/person.svg'
+import thoughtsIconUrl from '../assets/icons/mdi_lightbulb-outline.svg';
+import notificationsIconUrl from '../assets/icons/mdi_information-outline.svg';
 import helpIconUrl from '../assets/icons/weblin.png';
 import { Memory } from '../lib/Memory'
 
@@ -67,6 +69,11 @@ export class OwnParticipantMenu extends ParticipantMenu
 
         this.addSeparatorItem('separator');
 
+        if (Utils.isThoughtsEnabled() && !!this.app.getRoom()) {
+            this.addActionItem('thoughts', 'Thoughts', thoughtsIconUrl, true,
+                () => this.app.itemFrames.openThoughtsFrame(this.participant.getElem()));
+        }
+
         this.addActionItem('videoConference', 'Video Conference', videoConferenceIconUrl, true, () => this.app.showVidconfWindow());
 
         this.addActionItem('chat', 'Chat', chatIconUrl, true, () => this.participant.toggleChatin());
@@ -80,6 +87,11 @@ export class OwnParticipantMenu extends ParticipantMenu
         this.addSeparatorItem('separator');
 
         this.makeHelpMenuAndItem();
+
+        if (this.app.instantMessageManager.isNotificationsFeatureEnabled()) {
+            this.addActionItem('notifications', 'Notifications', notificationsIconUrl, true,
+                () => this.app.instantMessageManager.openNotificationsWindow());
+        }
 
         this.addActionItem('settings', 'Settings', settingsIconUrl, true, () => this.app.showSettings(this.participant.getElem()));
 

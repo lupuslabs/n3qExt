@@ -52,6 +52,10 @@ export class as
         return null;
     }
 
+    public static NonEmptyStringOrNull(val: unknown): null|string {
+        return as.StringOrNull(val, 1);
+    }
+
     static String(val: unknown, alt?: string): string
     {
         return as.StringOrNull(val, 0) ?? alt ?? '';
