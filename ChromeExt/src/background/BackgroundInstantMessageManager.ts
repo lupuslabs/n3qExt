@@ -11,6 +11,7 @@ import { ContentMessage } from '../lib/ContentMessage'
 
 import InstantMessageType = ChatUtils.InstantMessageType
 import isInstantMessageType = ChatUtils.isInstantMessageType
+import isSystemNotificationMessageType = ChatUtils.isSystemNotificationMessageType;
 
 export class BackgroundInstantMessageManager
 {
@@ -89,9 +90,21 @@ export class BackgroundInstantMessageManager
         if (messageType.length === 0) {
             messageType = 'chat'
         }
-        if (!isInstantMessageType(messageType)) {
-            this.logError('Instant message isn\'t of supported type.', notification)
-            return
+        const isFromSystemUser = notification.AuthorUserId === Utils.getSystemUserId();
+        if (isFromSystemUser) {
+            if (!isSystemNotificationMessageType(messageType)) {
+                this.logError('System instant message has unsupported type.', notification);
+                return;
+            }
+            if (messageType === 'notes' && !this.isNotesMessageForKnownBoardScope(notification.InstantMessage)) {
+                this.logDebug('Ignoring notes message of a board scope this client doesn\'t handle.', notification);
+                return;
+            }
+        } else {
+            if (!isInstantMessageType(messageType)) {
+                this.logError('Instant message isn\'t of supported type.', notification);
+                return;
+            }
         }
 
         const messageId = notification.InstantMessageId
@@ -108,6 +121,24 @@ export class BackgroundInstantMessageManager
 
         this.app.handle_newChatMessage(chatChannel, chatMessage, false)
             .catch(error => this.logError('', error, {chatChannel, chatMessage}))
+    }
+
+    /**
+     * Only room ("r-") boards have a UI in this client (Thoughts), and only while the Thoughts
+     * feature is enabled. Notes messages for other board scopes are dropped here so future
+     * annotation features don't produce dead notifications.
+     */
+    private isNotesMessageForKnownBoardScope(instantMessage: string): boolean {
+        let boardId: string;
+        try {
+            boardId = as.String(JSON.parse(instantMessage)?.boardId);
+        } catch (error) {
+            return false;
+        }
+        if (Utils.isThoughtsEnabled() && ChatUtils.getThoughtsClientRoomIdOfNotesBoardId(boardId) !== null) {
+            return true;
+        }
+        return false;
     }
 
     private sendMessageReceivedConfirmation(notification: WsMessage.InstantMessageNotification): void {

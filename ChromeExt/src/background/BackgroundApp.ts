@@ -40,6 +40,7 @@ import { ItemChangeOptions } from '../lib/ItemChangeOptions';
 import { Memory } from '../lib/Memory';
 import { ConfigUpdater } from './ConfigUpdater';
 import { WebsocketManager } from './WebsocketManager';
+import { WebsocketRoomManager } from './WebsocketRoomManager';
 import { XmppConnectionManager } from './XmppConnectionManager'
 import { RoomPresenceManager } from './RoomPresenceManager';
 import { Backpack } from './Backpack';
@@ -85,6 +86,7 @@ export class BackgroundApp
     private urlFetcher: DirectUrlFetcher;
     private configUpdater: ConfigUpdater;
     private websocketManager: WebsocketManager;
+    private websocketRoomManager: WebsocketRoomManager;
     private xmppManager: XmppConnectionManager;
     private roomPresenceManager: RoomPresenceManager;
     private chatHistoryStorage: ChatHistoryStorage;
@@ -137,6 +139,7 @@ export class BackgroundApp
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);
         this.websocketManager = new WebsocketManager(this);
+        this.websocketRoomManager = new WebsocketRoomManager(this);
         this.xmppManager = new XmppConnectionManager(this);
         this.roomPresenceManager = new RoomPresenceManager(this);
         this.chatHistoryStorage = new ChatHistoryStorage(this);
@@ -236,6 +239,10 @@ export class BackgroundApp
         return this.websocketManager;
     }
 
+    public getWebsocketRoomManager(): WebsocketRoomManager {
+        return this.websocketRoomManager;
+    }
+
     public getChatHistoryStorage(): ChatHistoryStorage
     {
         return this.chatHistoryStorage;
@@ -329,6 +336,7 @@ export class BackgroundApp
         this.callableBackgroundStopListeners.callListeners();
         this.friendshipProposalManager.stop();
         this.itemAutorezzer.stop();
+        this.websocketRoomManager.stop();
         this.websocketManager.stop();
         this.xmppManager.stop();
         this.roomPresenceManager.stop();
@@ -1100,6 +1108,7 @@ export class BackgroundApp
         this.itemAutorezzer.maintain()
         this.friendshipProposalManager.maintain()
         this.websocketManager.maintain()
+        this.websocketRoomManager.maintain();
         this.xmppManager.maintain()
         this.instantMessageManager.maintain()
     }

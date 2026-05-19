@@ -69,7 +69,11 @@
         drop-shadow(1px 1px 2px lch(from var(--online-led-online-color) l c h / 0.5));
 
     --selected-color: lch(90 30 254);
+    --selected-background-alpha: 0.8;
+    --selected-shadow-alpha: 0.5;
     --selection-rect-color: lch(52 76 254);
+    --selection-rect-border-alpha: 0.5;
+    --selection-rect-background-alpha: 0.25;
 
     --danger-text-color: lch(24 65 40 / 1);
 
@@ -157,6 +161,7 @@
     --base-text-decoration: none;
     --base-text-color: lch(0 0 0 / 1);
     --base-text-max-line-length: 40em;
+    --system-user-text-color: #8f43cc;
 
     --small-text-font: var(--base-text-font);
     --small-text-weight: normal;
@@ -230,6 +235,7 @@
     --field-text-line-height: var(--base-text-line-height);
     --field-text-decoration: var(--base-text-decoration);
     --field-text-color: var(--base-text-color);
+    --field-placeholder-text-color: lch(from var(--field-text-color) l c h / 0.5);
     --field-focus-transform: var(--field-transform);
     --field-focus-filter: var(--field-filter);
     --field-focus-box-shadow: var(--field-box-shadow);
@@ -509,6 +515,8 @@
 #n3qD label,
 #n3qD input[type=text],
 #n3qD input[type=text]::placeholder,
+#n3qD input[type=password],
+#n3qD input[type=password]::placeholder,
 #n3qD input[type=checkbox],
 #n3qD textarea,
 #n3qD textarea::placeholder,
@@ -522,6 +530,7 @@
     padding: 0;
     width: unset;
     height: unset;
+    opacity: 1;
 
     font: inherit;
     letter-spacing: inherit;
@@ -533,7 +542,7 @@
 
 #n3qD label,
 #n3qD input[type=text],
-#n3qD input[type=text]::placeholder,
+#n3qD input::placeholder,
 #n3qD input[type=checkbox],
 #n3qD textarea,
 #n3qD textarea::placeholder,
@@ -653,6 +662,7 @@
     text-decoration: var(--base-link-decoration);
     transform: var(--base-link-transform);
     filter: var(--base-link-filter);
+    cursor: pointer; /* For JS-links without href */
 }
 #n3qD .link:visited {
     color: var(--base-link-visited-color);
@@ -834,7 +844,7 @@
 #n3qD input[type=text]::placeholder,
 #n3qD input[type=password]::placeholder,
 #n3qD textarea::placeholder {
-    opacity: var(--disabled-opacity);
+    color: var(--field-placeholder-text-color);
 }
 
 #n3qD input[type=radio],
@@ -1075,6 +1085,10 @@
 #n3qD .button.style-default.style-big {
     padding: 0 calc(1.5 * var(--button-side-padding));
     height: calc(1.5 * var(--button-height));
+}
+#n3qD .button.style-default.style-small {
+    padding: 0 calc(0.65 * var(--button-side-padding));
+    height: calc(0.75 * var(--button-height));
 }
 
 #n3qD .button.style-default.style-square {
@@ -2444,14 +2458,14 @@
 
 #n3qD .backpack-item.selected:not(.selection-rect-remove),
 #n3qD .backpack-item.selection-rect-add {
-    --box-shadow-color: lch(from var(--selected-color) calc(l - 30) c h / 0.5);
+    --box-shadow-color: lch(from var(--selected-color) calc(l - 30) c h / var(--selected-shadow-alpha));
     box-shadow: 1px 1px 3px var(--box-shadow-color);
-    background-color: lch(from var(--selected-color) l c h / 0.8);
+    background-color: lch(from var(--selected-color) l c h / var(--selected-background-alpha));
 }
 #n3qD .backpack-item.selected:not(.selection-rect-remove) .backpack-item-label,
 #n3qD .backpack-item.selection-rect-add .backpack-item-label {
     /* Slightly brighter to offset layering effect: */
-    --background-color: lch(from var(--selected-color) calc(l + 2) c h / 0.8);
+    --background-color: lch(from var(--selected-color) calc(l + 2) c h / var(--selected-background-alpha));
     background-color: var(--background-color);
 }
 
@@ -2531,8 +2545,8 @@
 #n3qD .user-selection-rect {
     position: absolute;
     box-sizing: border-box;
-    border: 1px solid lch(from var(--selection-rect-color) l c h / 0.5);
-    background-color: lch(from var(--selection-rect-color) l c h / 0.25);
+    border: 1px solid lch(from var(--selection-rect-color) l c h / var(--selection-rect-border-alpha));
+    background-color: lch(from var(--selection-rect-color) l c h / var(--selection-rect-background-alpha));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2658,6 +2672,9 @@
     line-height: 14px;
     font-weight: bold;
 }
+#n3qD .chatwindow .chat-message.system .content .nick {
+    color: var(--system-user-text-color);
+}
 #n3qD .chatwindow .chat-message .content .text {
     display: block;
     font-size: 14px;
@@ -2682,6 +2699,9 @@
 }
 #n3qD .chatwindow .chat-message.old .content {
     opacity: var(--fadeout-opacity);
+}
+#n3qD .chatwindow .chat-message.system {
+    justify-content: flex-start;
 }
 #n3qD .chatwindow .chat-message.own {
     justify-content: flex-end;

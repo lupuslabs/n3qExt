@@ -1,4 +1,5 @@
 import log = require('loglevel');
+import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { Config } from '../lib/Config';
 import { Utils } from '../lib/Utils';
@@ -57,7 +58,8 @@ export class VpiResolver
         const staticMappings = this.config.get('vp.staticRoomMappings', []) as Array<{ match: string, roomJid: string, destination?: string }>;
         for (const mapping of staticMappings) {
             if (new RegExp(mapping.match).test(documentUrl)) {
-                return new VpiMappingResult(true, mapping.roomJid, mapping.destination ?? documentUrl);
+                const destination = is.nonEmptyString(mapping.destination) ? mapping.destination : documentUrl;
+                return new VpiMappingResult(true, mapping.roomJid, destination);
             }
         }
 

@@ -1,5 +1,6 @@
 import XmlElement from 'ltx/lib/Element.js';
 import { is } from './is';
+import { as } from './as';
 import { Config } from './Config';
 import { Environment } from './Environment';
 import { ItemException } from './ItemException';
@@ -86,6 +87,21 @@ export class Utils
         return this.isBackpackEnabled() && Config.get('itemShop.systemShopEnabled', false);
     }
 
+    public static getSystemUserId(): string {
+        return as.NonEmptyStringOrNull(Config.get('systemUser.userId', null)) ?? '<system>';
+    }
+
+    public static isThoughtsEnabled(): boolean {
+        if (!Config.get('thoughts.enabled', false)) {
+            return false;
+        }
+        const itemFrameProperties: unknown = Config.get('thoughts.itemFrameProperties', {});
+        if (!is.object(itemFrameProperties) || !is.nonEmptyString(itemFrameProperties.IframeUrl)) {
+            return false;
+        }
+        return true;
+    }
+
     static parseStringMap(s) {
         const o = {};
         const lines = s.split(' ');
@@ -137,6 +153,16 @@ export class Utils
             result += Utils.randomStringChars[Math.round(Math.random() * maxIndex)];
         }
         return result;
+    }
+
+    private static readonly validUserIdRe = /^[_a-zA-Z0-9]+$/;
+
+    /**
+     * Mirrors the WebIt's IUser.ValidateUserId. Reserved IDs like "<system>" fall outside
+     * this set, so validating IDs from untrusted sources blocks impersonating them.
+     */
+    public static isValidUserId(userId: string): boolean {
+        return Utils.validUserIdRe.test(userId);
     }
 
     static randomInt(min: number, max: number): number

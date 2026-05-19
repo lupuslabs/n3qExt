@@ -113,6 +113,7 @@ export class WebsocketManager
                     this.isReady = true
                     this.websocketController?.confirmWebsocketIsGood()
                     this.logInfo('WebsocketManager.handleWebsocketIsReady: UserAuthRequest accepted. Connection authenticated and ready.')
+                    this.app.getWebsocketRoomManager().onWebsocketReady();
                     return
                 }
                 this.websocketController?.reconnectWebsocket()
@@ -143,6 +144,9 @@ export class WebsocketManager
     }
 
     private async handleNotification(notification: Message.Notification): Promise<void> {
+        if (notification instanceof Message.RoomItemsNotification) {
+            return this.app.getWebsocketRoomManager().handleRoomItemsNotification(notification);
+        }
         if (notification instanceof Message.ItemsNotification) {
             return this.handleItemsNotification(notification)
         }

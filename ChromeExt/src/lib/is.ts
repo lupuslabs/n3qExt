@@ -48,6 +48,10 @@ export class is {
         return !is.nil(val) && typeof val === is.typeObject
     }
 
+    public static nonEmptyObject(val: unknown): val is { [p: string|symbol]: unknown } {
+        return !is.nil(val) && typeof val === is.typeObject && Object.keys(val).length !== 0;
+    }
+
     static stringsObject(val: unknown): val is {[p: string]: string}
     {
         return is.object(val)
