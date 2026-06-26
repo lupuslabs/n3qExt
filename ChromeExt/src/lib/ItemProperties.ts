@@ -626,6 +626,18 @@ export class ItemProperties
         }
         return [{statBoostStat, statBoostMax, statBoostValue}]
     }
+
+    static getChangeAffectsOwnAvatarOrNickname(itemOld: null|ItemProperties, itemNew: null|ItemProperties): boolean
+    {
+        const activeOld = ItemProperties.getActivatableIsActive(itemOld ?? {});
+        const activeNew = ItemProperties.getActivatableIsActive(itemNew ?? {});
+        if (activeOld === activeNew) {
+            return false;
+        }
+        const aspectsItem = itemOld ?? itemNew ?? {};
+        const isAffecting = as.Bool(aspectsItem[Pid.AvatarAspect]) || as.Bool(aspectsItem[Pid.NicknameAspect])
+        return isAffecting;
+    }
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }
