@@ -41,6 +41,7 @@ export class BadgesController
     private debugLogEnabled: boolean;
     private readonly debugLogEntityInfo: {};
     private badges: Map<string,Badge> = new Map();
+    private badgesFetching: Set<string> = new Set();
     private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
     private editModeBackgroundElem?: HTMLElement;
@@ -149,6 +150,7 @@ export class BadgesController
         this.app.configUpdateListeners.removeListener(this.confiogUpdateHandler);
         this.itemHandling.stop()
         this.exitEditMode();
+        this.badgesFetching.clear();
         for (const [badgeKey, badgeDisplay] of this.badges) {
             badgeDisplay.stop();
             this.badges.delete(badgeKey);
@@ -427,6 +429,7 @@ export class BadgesController
 
     public removeBadge(badgeKey: string): void
     {
+        this.badgesFetching.delete(badgeKey);
         const badge = this.badges.get(badgeKey);
         if (is.nil(badge)) {
             return;
@@ -454,8 +457,9 @@ export class BadgesController
 
         // Regular asynchronous update delaying badge construction until icon data has been retrieved:
         const iconUrl = ItemProperties.getBadgeIconUrl(item);
+        this.badgesFetching.add(badgeKey);
         this.app.fetchUrlAsDataUrl(iconUrl).then(iconDataUrl => {
-            if (!is.nil(this.containerElem)) {
+            if (this.badgesFetching.delete(badgeKey) && !is.nil(this.containerElem)) {
                 this.addOrUpdateBadgeWithKnownIconDataUrl(badgeKey, item, iconDataUrl);
             }
         });

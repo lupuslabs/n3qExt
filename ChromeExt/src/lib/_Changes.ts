@@ -8,6 +8,7 @@ export class _Changes
     static data: IHistory = [
         ['1.6.0', 'x', [
             ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
+            ['Fix', 'Race when removing a badge before it\'s image has been resolved'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],
