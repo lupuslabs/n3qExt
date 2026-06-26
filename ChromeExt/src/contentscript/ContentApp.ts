@@ -836,7 +836,12 @@ export class ContentApp extends AppWithDom
 
     private onBackpackUpdate(itemsHide: ReadonlyArray<Readonly<ItemProperties>>, itemsShowOrSet: ReadonlyArray<Readonly<ItemProperties>>): void
     {
+        const triggerPresence = itemsHide.some(item => ItemProperties.getChangeAffectsOwnAvatarOrNickname(item, null))
+            || itemsShowOrSet.some(item => ItemProperties.getChangeAffectsOwnAvatarOrNickname(this.ownItems.getItemById(ItemProperties.getId(item)), item));
         this.ownItems.onBackpackUpdate(itemsHide, itemsShowOrSet)
+        if (triggerPresence) {
+            this.getRoom()?.sendPresence();
+        }
     }
 
     handle_sendStateToBackground(): void
@@ -1597,9 +1602,6 @@ export class ContentApp extends AppWithDom
         (async () =>
         {
             await BackgroundMessage.deleteBackpackItem(itemId, {});
-            if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
-                this.getRoom()?.sendPresence();
-            }
             onDeleted?.(itemId);
         })().catch(error =>
         {

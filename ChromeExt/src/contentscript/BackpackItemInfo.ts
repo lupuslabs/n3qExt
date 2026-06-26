@@ -375,10 +375,6 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
                 {
                     const isChecked = activateCheckbox.checked
                     await BackgroundMessage.executeBackpackItemAction(this.itemId, 'Activatable.SetState', { 'Value': isChecked }, [this.itemId])
-
-                    if (as.Bool(props[Pid.AvatarAspect]) || as.Bool(props[Pid.NicknameAspect])) {
-                        this.app.getRoom()?.sendPresence()
-                    }
                 })().catch(error => this.app.onError(error))
             })
 
