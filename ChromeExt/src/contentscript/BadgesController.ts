@@ -39,6 +39,7 @@ export class BadgesController
     private readonly isLocal: boolean;
 
     private debugLogEnabled: boolean;
+    private readonly debugLogEntityInfo: {};
     private badges: Map<string,Badge> = new Map();
     private containerDimensions: {avatarYTop: number, avatarXRight: number, avatarYBottom: number, avatarXLeft: number};
     private containerElem: HTMLElement;
@@ -56,6 +57,7 @@ export class BadgesController
         this.entity = entity;
         this.parentDisplay = parentDisplay;
         this.isLocal = entity.getIsSelf();
+        this.debugLogEntityInfo = {isOwn: this.isLocal, userRoomNick: this.entity.getRoomNick()};
 
         this.confiogUpdateHandler = () => this.onConfigUpdated();
 
@@ -68,7 +70,7 @@ export class BadgesController
         this.onConfigUpdated();
         this.itemHandling.start();
         if (this.debugLogEnabled) {
-            log.info('BadgesController.constructor: Construction complete.');
+            log.info('BadgesController.constructor: Construction complete.', this.debugLogEntityInfo);
         }
     }
 
@@ -156,7 +158,7 @@ export class BadgesController
             this.containerElem = null;
         }
         if (this.debugLogEnabled) {
-            log.info('BadgesController.stop: Stopped.', {this: {...this}});
+            log.info('BadgesController.stop: Stopped.', this.debugLogEntityInfo);
         }
     }
 
@@ -400,7 +402,7 @@ export class BadgesController
         this.itemHandling.onConfigUpdated();
         if (this.debugLogEnabled) {
             const msg = 'BadgesController.onUserSettingsChanged: Update complete.';
-            log.info(msg, {containerDimensions});
+            log.info(msg, {...this.debugLogEntityInfo, containerDimensions});
         }
     }
 
@@ -419,7 +421,7 @@ export class BadgesController
         badgeKeysToRemove.forEach(badgeKey => this.removeBadge(badgeKey));
         if (this.debugLogEnabled) {
             const msg = `BadgesController.enforcePublicBadgesLimit: Removed ${badgesToRemove} badges.`;
-            log.info(msg, {publicBadgesLimit, badgeKeysToRemove});
+            log.info(msg, {...this.debugLogEntityInfo, publicBadgesLimit, badgeKeysToRemove});
         }
     }
 
@@ -434,7 +436,7 @@ export class BadgesController
         this.badges.delete(badgeKey);
         if (this.debugLogEnabled) {
             const item = badge.getProperties();
-            log.info('BadgesController.removeBadge: Done.', {item});
+            log.info('BadgesController.removeBadge: Done.', {...this.debugLogEntityInfo, item});
         }
     }
 
@@ -459,7 +461,7 @@ export class BadgesController
         });
         if (this.debugLogEnabled) {
             const msg = 'BadgesController.addOrUpdateBadge: Triggered iconDataUrl fetch.';
-            log.info(msg, {item});
+            log.info(msg, {...this.debugLogEntityInfo, item});
         }
     }
 
@@ -479,7 +481,7 @@ export class BadgesController
         }
         if (this.debugLogEnabled) {
             const msg = 'BadgesController.addOrUpdateBadge: Disabling badge - limit reached.';
-            log.info(msg, {item, badgesEnabledMax: this.itemHandling.getPublicBadgesLimit()});
+            log.info(msg, {...this.debugLogEntityInfo, item, badgesEnabledMax: this.itemHandling.getPublicBadgesLimit()});
         }
         const itemNew = {...item, [Pid.BadgeIsActive]: 'false'};
         this.itemHandling.updateBadgeOnServer(itemNew);
