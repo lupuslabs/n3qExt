@@ -19,6 +19,7 @@ export class _Changes
             ['Add', 'Authenticated item context for item frames (incl. underlay frames)'],
             ['Add', 'Placeholders for item ID, user nickname and room JID in room item frame URLs'],
             ['Add', 'Configurable VPI mapping overrides'],
+            ['Fix', 'Some SVG backpack item images cropped too small in Firefox'],
             ['Fix', 'Open room item info popups above other windows'],
             ['Fix', 'Use same z-index range for full windows and popup-styled windows'],
             ['Fix', 'Display error message when /map command fails'],
