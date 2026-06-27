@@ -716,7 +716,7 @@ export namespace DomUtils {
         return { top, right, bottom, left }
     }
 
-    export function getImageData(imageSrc: CanvasImageSource, imageSrcWidth: number, imageSrcHeight: number, width: number, height: number): null|ImageData
+    export function getImageData(imageSrc: CanvasImageSource, width: number, height: number): null|ImageData
     {
         const canvas = document.createElement('canvas')
         canvas.width = width
@@ -725,8 +725,25 @@ export namespace DomUtils {
         if (!context2d) {
             return null
         }
-        context2d.drawImage(imageSrc, 0, 0, imageSrcWidth, imageSrcHeight, 0, 0, width, height)
+        context2d.drawImage(imageSrc, 0, 0, width, height)
         return context2d.getImageData(0, 0, width, height)
+    }
+
+    export function getImageElemOpacityMeasureDimensions(imgElem: HTMLImageElement, availableWidth: number, availableHeight: number): null|[number, number]
+    {
+        const measureOversampling = 2
+        const maxWidth = Math.max(1, Math.round(measureOversampling * availableWidth))
+        const maxHeight = Math.max(1, Math.round(measureOversampling * availableHeight))
+        const src = imgElem.currentSrc || imgElem.src
+        if (/^data:image\/svg\+xml/i.test(src)) {
+            return [maxWidth, maxHeight] // SVG intrinsic size is unreliable in Firefox. So just return oversampled available dimensions.
+        }
+        const [naturalWidth, naturalHeight] = [imgElem.naturalWidth, imgElem.naturalHeight]
+        if (naturalWidth === 0 || naturalHeight === 0) {
+            return null
+        }
+        const scale = Math.min(1, maxWidth / naturalWidth, maxHeight / naturalHeight)
+        return [Math.max(1, Math.round(naturalWidth * scale)), Math.max(1, Math.round(naturalHeight * scale))]
     }
 
     export function getNonTransparentRectOfImageData(imgData: ImageData, opacityMin: number): null|DOMRectReadOnly
@@ -749,19 +766,6 @@ export namespace DomUtils {
         return new DOMRectReadOnly(left, top, right - left, bottom - top)
     }
 
-    export function getNativeNonTransparentRectOfImageElem(imageSrc: HTMLImageElement, opacityMin: number): null|DOMRectReadOnly
-    {
-        const [imgWidth, imgHeight] = [imageSrc.naturalWidth, imageSrc.naturalHeight]
-        if (imgWidth === 0 || imgHeight === 0) {
-            return null;
-        }
-        const imgData = getImageData(imageSrc, imgWidth, imgHeight, imgWidth, imgHeight)
-        if (!imgData) {
-            return null
-        }
-        return getNonTransparentRectOfImageData(imgData, opacityMin)
-    }
-
     export function clipImageElemByBoxDistances(imgElem: null|HTMLElement, offsets: BoxEdges): void
     {
         if (!imgElem || !(imgElem instanceof HTMLImageElement)) {
@@ -778,18 +782,26 @@ export namespace DomUtils {
         return Math.min(scaleWidthF, scaleHeightF)
     }
 
-    export function clipImageElemByOpacityAndLimitDimensions(imgElem: null|Element, opacityMin: number = 10, availableWidth: number, availableHeight: number): boolean
+    export function clipImageElemByOpacityAndFitDimensions(imgElem: null|Element, opacityMin: number = 10, availableWidth: number, availableHeight: number): boolean
     {
         if (!imgElem || !(imgElem instanceof HTMLImageElement)) {
             return false
         }
-        const nativeContentArea = getNativeNonTransparentRectOfImageElem(imgElem, opacityMin)
-        if (!nativeContentArea) {
+        const measureDimensions = getImageElemOpacityMeasureDimensions(imgElem, availableWidth, availableHeight)
+        if (!measureDimensions) {
+            return false
+        }
+        const [nativeImgWidth, nativeImgHeight] = measureDimensions
+        const imgData = getImageData(imgElem, nativeImgWidth, nativeImgHeight)
+        if (!imgData) {
+            return false
+        }
+        const nativeContentArea = getNonTransparentRectOfImageData(imgData, opacityMin)
+        if (!nativeContentArea || nativeContentArea.width <= 0 || nativeContentArea.height <= 0) {
             return false
         }
 
         // Fit content area:
-        const [nativeImgWidth, nativeImgHeight] = [imgElem.naturalWidth, imgElem.naturalHeight]
         const [nativeAreaWidth, nativeAreaHeight] = [nativeContentArea.width, nativeContentArea.height]
         const scaleF = calcScaleToFitBox(nativeAreaWidth, nativeAreaHeight, availableWidth, availableHeight)
         const scaledImgWidth = scaleF * nativeImgWidth

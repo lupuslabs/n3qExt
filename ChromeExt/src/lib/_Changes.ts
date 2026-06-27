@@ -10,6 +10,7 @@ export class _Changes
             ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
             ['Fix', 'Race when removing a badge before it\'s image has been resolved'],
             ['Fix', 'Potentially long own avater update delay when transferring an active avatar or nickname item to another user'],
+            ['Fix', 'Some SVG backpack item images cropped too small in Firefox'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],

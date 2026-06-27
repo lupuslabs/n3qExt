@@ -78,7 +78,7 @@ export class ContentUiHelper {
         const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl)
         const readyPromise = isLoadedPromise.then(ok => {
             if (ok) {
-                ok = DomUtils.clipImageElemByOpacityAndLimitDimensions(iconElem, opacityMin, availableWidth, availableHeight)
+                ok = DomUtils.clipImageElemByOpacityAndFitDimensions(iconElem, opacityMin, availableWidth, availableHeight)
             }
             if (ok) {
                 iconElem.classList.add('icon')
