@@ -1,4 +1,4 @@
-﻿import { is } from './is'
+import { is } from './is'
 import { as } from './as'
 
 type MaybeSequence<T> = undefined|null|Iterable<T>|Iterator<T>|Iter<T>

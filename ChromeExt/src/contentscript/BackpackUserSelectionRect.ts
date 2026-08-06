@@ -1,4 +1,4 @@
-﻿import { iter } from '../lib/Iter'
+import { iter } from '../lib/Iter'
 import { Utils } from '../lib/Utils'
 import { DomUtils } from '../lib/DomUtils'
 import ButtonId = DomUtils.ButtonId

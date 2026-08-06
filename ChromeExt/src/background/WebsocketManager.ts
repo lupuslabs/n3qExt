@@ -1,4 +1,4 @@
-﻿import log = require('loglevel');
+import log = require('loglevel');
 import { as } from '../lib/as'
 import { RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
 import { Config } from '../lib/Config'

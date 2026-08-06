@@ -1,4 +1,4 @@
-﻿import { as } from '../lib/as'
+import { as } from '../lib/as'
 import { iter } from '../lib/Iter'
 import { ContentApp } from './ContentApp'
 import { BoxEdges, dummyBoxEdges, Utils } from '../lib/Utils'

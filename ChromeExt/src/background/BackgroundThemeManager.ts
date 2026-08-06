@@ -1,4 +1,4 @@
-﻿import log = require('loglevel')
+import log = require('loglevel')
 import { is } from '../lib/is'
 import { as } from '../lib/as'
 import { iter } from '../lib/Iter'

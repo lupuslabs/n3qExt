@@ -1,4 +1,4 @@
-﻿import { BackgroundApp } from './BackgroundApp';
+import { BackgroundApp } from './BackgroundApp';
 import log = require('loglevel');
 import { as } from '../lib/as';
 import { makeZeroTabStats, TabStats } from '../lib/BackgroundMessage';

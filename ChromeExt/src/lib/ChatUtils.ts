@@ -1,4 +1,4 @@
-﻿import { is } from './is'
+import { is } from './is'
 import { as } from './as'
 import { Utils } from './Utils'
 import { CryptoUtils } from './CryptoUtils'

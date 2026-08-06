@@ -1,4 +1,4 @@
-﻿import { iter } from '../lib/Iter'
+import { iter } from '../lib/Iter'
 import { Utils } from '../lib/Utils';
 import { Environment } from '../lib/Environment';
 import { Config } from '../lib/Config';

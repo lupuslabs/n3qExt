@@ -1,4 +1,4 @@
-﻿import { Menu } from './Menu';
+import { Menu } from './Menu';
 import { ContentApp } from './ContentApp';
 import { Participant } from './Participant';
 
