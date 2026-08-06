@@ -10,6 +10,8 @@
     "clean:firefox": "node clean.mjs dist-firefox",
     "clean": "npm-run-all clean:*",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "extension-data:chrome": "node extension-data.mjs chrome",
     "extension-data:firefox": "node extension-data.mjs firefox",
     "extension-data": "npm-run-all extension-data:*",
@@ -47,32 +49,33 @@
     "node": "24.x"
   },
   "devDependencies": {
-    "@types/node": "24.x",
+    "@rspack/cli": "1.x",
+    "@rspack/core": "1.x",
+    "@stylistic/eslint-plugin": "5.x",
     "@types/chai": "5.x",
     "@types/chrome": "0.1.x",
     "@types/firefox-webext-browser": "143.0.x",
+    "@types/node": "24.x",
+    "@types/xmpp__client": "0.14.x",
     "@types/xmpp__jid": "0.14.x",
     "@types/xmpp__xml": "0.14.x",
-    "@types/xmpp__client": "0.14.x",
-    "@rspack/cli": "1.x",
-    "@rspack/core": "1.x",
     "@typescript-eslint/eslint-plugin": "8.x",
     "@typescript-eslint/parser": "8.x",
     "bestzip": "2.x",
     "css-loader": "7.x",
     "eslint": "10.x",
     "globals": "16.x",
-    "npm-run-all2": "8.x",
     "http-server": "14.x",
+    "npm-run-all2": "8.x",
     "typescript": "5.x"
   },
   "dependencies": {
-    "@xmpp/client": "0.14.x",
     "@noble/hashes": "2.x",
+    "@xmpp/client": "0.14.x",
     "@xmpp/debug": "0.14.x",
     "chai": "6.x",
+    "ethers": "6.x",
     "loglevel": "1.9.2",
-    "unique-names-generator": "4.7.x",
-    "ethers": "6.x"
+    "unique-names-generator": "4.7.x"
   }
 }
