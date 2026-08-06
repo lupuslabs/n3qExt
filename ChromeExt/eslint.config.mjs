@@ -1,6 +1,7 @@
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import stylistic from '@stylistic/eslint-plugin';
 
 export default [
     {
@@ -15,12 +16,11 @@ export default [
                 ...globals.es2024,
                 ...globals.commonjs,
                 ...globals.webextensions,
-                DocumentOrShadowRoot: 'readonly',
-                CanvasImageSource: 'readonly',
             },
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
+            '@stylistic': stylistic,
         },
         rules: {
             // https://eslint.org/docs/latest/rules/
@@ -49,7 +49,7 @@ export default [
             'no-empty-pattern': 'warn',
             'no-ex-assign': 'warn',
             'no-extra-boolean-cast': 'warn',
-            'no-extra-semi': 'warn',
+            '@stylistic/no-extra-semi': 'warn',
             'no-fallthrough': 'warn',
             'no-func-assign': 'warn',
             'no-global-assign': 'warn',
@@ -59,7 +59,7 @@ export default [
             'no-irregular-whitespace': 'warn',
             'no-loss-of-precision': 'warn',
             'no-misleading-character-class': 'warn',
-            'no-mixed-spaces-and-tabs': 'warn',
+            '@stylistic/no-mixed-spaces-and-tabs': 'warn',
             'no-new-symbol': 'warn',
             'no-nonoctal-decimal-escape': 'warn',
             'no-obj-calls': 'warn',
@@ -111,13 +111,56 @@ export default [
             'prefer-promise-reject-errors': 'warn',
 
             // Style ('single' also allows backticks):
-            'quotes': ['warn', 'single', {
+            '@stylistic/quotes': ['warn', 'single', {
                 avoidEscape: true,
-                allowTemplateLiterals: true,
+                allowTemplateLiterals: 'always',
             }],
-            'indent': ['warn', 4, {
+            '@stylistic/indent': ['warn', 4, {
                 SwitchCase: 1,
             }],
+            '@stylistic/semi': ['warn', 'always'],
+            '@stylistic/brace-style': ['warn', '1tbs', {
+                allowSingleLine: true,
+            }],
+            '@stylistic/object-curly-spacing': ['warn', 'always'],
+            '@stylistic/comma-dangle': ['warn', 'always-multiline'],
+            'no-var': 'warn',
+            '@typescript-eslint/explicit-function-return-type': ['warn', {
+                allowExpressions: true,
+            }],
+            '@typescript-eslint/explicit-member-accessibility': ['warn', {
+                accessibility: 'explicit',
+            }],
+            '@typescript-eslint/consistent-type-imports': ['warn', {
+                prefer: 'type-imports',
+            }],
+            '@typescript-eslint/array-type': ['warn', {
+                default: 'array',
+            }],
+            '@typescript-eslint/naming-convention': ['warn',
+                // House acronym casing (Url, Io, Id) means I + capital is always an I-prefix.
+                { selector: 'interface', format: ['PascalCase'], custom: { regex: '^I[A-Z]', match: false } },
+                { selector: 'enumMember', format: ['PascalCase'] },
+            ],
+        },
+    },
+    {
+        // The .mjs files are Node scripts (build tooling and this config), so they get the Node globals.
+        files: ['**/*.mjs'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+            },
+        },
+    },
+    {
+        // no-undef is off for TypeScript files: the rule doesn't see the TS type system or ambient
+        // declarations (globals.d.ts), so it false-positives on types like Nil; tsc already errors
+        // on genuinely undefined identifiers; and turning it off on TS is standard practice,
+        // recommended by typescript-eslint. It stays on for .js/.mjs, which tsc doesn't check.
+        files: ['**/*.ts'],
+        rules: {
+            'no-undef': 'off',
         },
     },
     {
