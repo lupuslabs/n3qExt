@@ -282,12 +282,16 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         }
         const isOwnMessage = message.authorUserId === this.app.getUserId();
         const previousMessage: null|ChatUtils.ChatMessage = this.chatMessages.at(index - 1);
+        const previousMessageDate = Utils.dateOrNullOfUtcString(previousMessage?.timestamp);
+        const messageDate = Utils.dateOfUtcString(message.timestamp);
+        const isSameDay = this.app.uiHelper.isDateSameDayForHuman(messageDate, previousMessageDate);
         const isFirstMessage = !previousMessage;
         const isContinuation = !isFirstMessage && ChatUtils.areChatMessagesOfSameUser(message, previousMessage);
 
         const typeClass = `type-${message.type}`;
         const isNew = message.timestamp >= this.sessionStartTs;
         const ageClass = isNew ? 'new' : 'old';
+        const dateClass = isFirstMessage || isSameDay ? 'sameDay' : 'newDay';
         const sourceClass = isOwnMessage ? 'own' : 'other';
         let continuationClass: string;
         if (isContinuation) {
@@ -298,7 +302,7 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
             continuationClass = 'differentOwner';
         }
         const messageElem = DomUtils.elemOfHtml(`<div class="chat-message"></div>`)
-        messageElem.classList.add(sourceClass, continuationClass, typeClass, ageClass);
+        messageElem.classList.add(sourceClass, continuationClass, typeClass, ageClass, dateClass);
 
         const contentElem = DomUtils.elemOfHtml(`<div class="content"></div>`)
         messageElem.appendChild(contentElem);
@@ -310,7 +314,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         const [extraMsgCssClasses, textElem] = this.makeMessageTextHtmlElement(message)
         messageElem.classList.add(...extraMsgCssClasses);
         contentElem.appendChild(textElem);
-        const timeHtml = as.Html(Utils.dateOfUtcString(message.timestamp).toLocaleTimeString());
+        const timeText = this.app.uiHelper.formatTimeOrDatetimeForHuman(messageDate, isSameDay);
+        const timeHtml = as.Html(timeText);
         contentElem.appendChild(DomUtils.elemOfHtml(`<span class="time">${timeHtml}</span>`));
 
         PointerEventDispatcher.protectElementsWithDefaultActions(this.app, messageElem);

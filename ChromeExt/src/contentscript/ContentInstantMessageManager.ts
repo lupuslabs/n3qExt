@@ -115,7 +115,7 @@ export class ContentInstantMessageManager
             const toastDuration = as.Float(Config.get('room.privateVidconfToastDurationSec'), 60)
             const translateOpts: TranslationOpts = {replacements: [
                 ['{otherUserName}', otherUserInfo.userName],
-                ['{messageTime}', Utils.dateOfUtcString(message.timestamp).toLocaleTimeString()],
+                ['{messageTime}', this.app.uiHelper.formatTimeOrDatetimeForHuman(message.timestamp)],
             ]}
             const toastId = `privatevidconf.invite.${otherUserId}`
             const toastType = `privatevidconf.invite`
@@ -150,7 +150,7 @@ export class ContentInstantMessageManager
             const toastDuration = as.Float(Config.get('room.privateVidconfToastDurationSec'), 60)
             const translateOpts: TranslationOpts = {replacements: [
                 ['{otherUserName}', otherUserInfo.userName],
-                ['{messageTime}', Utils.dateOfUtcString(message.timestamp).toLocaleTimeString()],
+                ['{messageTime}', this.app.uiHelper.formatTimeOrDatetimeForHuman(message.timestamp)],
             ]}
             const toastId = `privatevidconf.decline`
             const toastType = `privatevidconf.decline`
