@@ -1,4 +1,5 @@
 import { is } from '../lib/is'
+import { Utils } from '../lib/Utils';
 import { DomUtils } from '../lib/DomUtils'
 import { PointerEventDispatcher, PointerEventDispatcherOptions } from '../lib/PointerEventDispatcher'
 import { WindowStyle } from './WindowBase'
@@ -215,5 +216,25 @@ export class ContentUiHelper {
             paneInfo ??= DomUtils.getVerticalSplitPaneMoveInfo(topElem, bottomElem)
             DomUtils.updateVerticalSplitPaneElemHeights(null, bottomElem, paneInfo, ev.distanceY)
         })
+    }
+
+    public formatDatetimeForHuman(date: Nil|Date|string, options?: null|Intl.DateTimeFormatOptions): string {
+        return Utils.formatDatetimeForHuman(date, this.app.getLanguage(), options);
+    }
+
+    public formatDateForHuman(date: Nil|Date|string, options?: null|Intl.DateTimeFormatOptions): string {
+        return Utils.formatDateForHuman(date, this.app.getLanguage(), options);
+    }
+
+    public formatTimeForHuman(date: Nil|Date|string, options?: null|Intl.DateTimeFormatOptions): string {
+        return Utils.formatTimeForHuman(date, this.app.getLanguage(), options);
+    }
+
+    public formatTimeOrDatetimeForHuman(date: Nil|Date|string, maybeSameDayDate?: Nil|Date|string|boolean, options?: null|Intl.DateTimeFormatOptions): string {
+        return Utils.formatTimeOrDatetimeForHuman(date, maybeSameDayDate, this.app.getLanguage(), options);
+    }
+
+    public isDateSameDayForHuman(date: Nil|Date|string, maybeSameDayDate: Nil|Date|string|boolean, options?: null|Intl.DateTimeFormatOptions): boolean {
+        return Utils.isDateSameDayForHuman(date, maybeSameDayDate, this.app.getLanguage(), options);
     }
 }

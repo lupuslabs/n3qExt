@@ -211,6 +211,13 @@ export class Utils
         return utcStr.replace('T', ' ').substring(0, utcStr.length - 1);
     }
 
+    public static dateOrNullOfUtcString(date: Nil|Date|string): null|Date {
+        if (is.string(date)) {
+            return Utils.dateOfUtcString(date);
+        }
+        return date ?? null;
+    }
+
     static dateOfUtcString(date: string): Date
     {
         // Add UTC timezone identifier if not present:
@@ -273,6 +280,45 @@ export class Utils
         options = {...options, style: 'unit', unit: unit};
         const durationText = unitCount.toLocaleString(locale, options);
         return [durationText, unitCount, unit];
+    }
+
+    public static formatDatetimeForHuman(
+        date: Nil|Date|string, locale?: null|Intl.LocalesArgument, options?: null|Intl.DateTimeFormatOptions,
+    ): string {
+        return Utils.dateOrNullOfUtcString(date)?.toLocaleString(locale, options) ?? '';
+    }
+
+    public static formatDateForHuman(
+        date: Nil|Date|string, locale?: null|Intl.LocalesArgument, options?: null|Intl.DateTimeFormatOptions,
+    ): string {
+        return Utils.dateOrNullOfUtcString(date)?.toLocaleDateString(locale, options) ?? '';
+    }
+
+    public static formatTimeForHuman(
+        date: Nil|Date|string, locale?: null|Intl.LocalesArgument, options?: null|Intl.DateTimeFormatOptions,
+    ): string {
+        return Utils.dateOrNullOfUtcString(date)?.toLocaleTimeString(locale, options) ?? '';
+    }
+
+    public static formatTimeOrDatetimeForHuman(
+        date: Nil|Date|string, maybeSameDayDate?: Nil|Date|string|boolean,
+        locale?: null|Intl.LocalesArgument, options?: null|Intl.DateTimeFormatOptions,
+    ): string {
+        if (Utils.isDateSameDayForHuman(date, maybeSameDayDate, locale, options)) {
+            return Utils.formatTimeForHuman(date, locale, options);
+        }
+        return Utils.formatDatetimeForHuman(date, locale, options);
+    }
+
+    public static isDateSameDayForHuman(
+        date: Nil|Date|string, maybeSameDayDate: Nil|Date|string|boolean,
+        locale?: null|Intl.LocalesArgument, options?: null|Intl.DateTimeFormatOptions,
+    ): boolean {
+        if (is.boolean(maybeSameDayDate)) {
+            return maybeSameDayDate;
+        }
+        const otherDate = maybeSameDayDate ?? new Date();
+        return Utils.formatDateForHuman(date, locale, options) === Utils.formatDateForHuman(otherDate, locale, options);
     }
 
     /**

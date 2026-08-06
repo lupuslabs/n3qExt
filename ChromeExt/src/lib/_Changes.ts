@@ -35,6 +35,7 @@ export class _Changes
             ['Fix', 'Iframe API property messages missing for unchanged own room items on tab change'],
             ['Fix', 'Off-by-one in automatic icon cropping'],
             ['Fix', 'Undock-only room item frame popup sizing'],
+            ['Fix', 'Date/time formatting in de locale'],
             ['Change', 'Update libs and tooling, and reduce dependencies'],
             ['Change', 'Allow item rez from backpack by dropping on page outside dropzone'],
             ['Change', 'Ignore own avatar for item drop from backpack'],
