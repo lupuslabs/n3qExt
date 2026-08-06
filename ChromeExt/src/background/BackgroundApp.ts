@@ -4,7 +4,7 @@ import { jid, JID } from '@xmpp/jid';
 import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { Config } from '../lib/Config';
-import { Logger, LoglevelLogger } from '../lib/Logger'
+import { ConsoleLogger, Logger } from '../lib/Logger';
 import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 import {
     BackgroundRequest,
@@ -131,7 +131,7 @@ export class BackgroundApp
         this.callableBackgroundStopListeners = new CallableEventListeners('backgroundStop');
         this.callableBackgroundReadyListeners = new CallableEventListeners('backgroundReady');
 
-        this.logger = new LoglevelLogger('', '');
+        this.logger = new ConsoleLogger('', '');
         this.tabs = new BackgroundBrowserTabs(this);
         this.urlFetcher = new DirectUrlFetcher();
         this.configUpdater = new ConfigUpdater(this);

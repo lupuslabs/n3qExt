@@ -16,7 +16,7 @@ import {
 import { Panic } from '../lib/Panic';
 import { Config } from '../lib/Config';
 import { Memory } from '../lib/Memory';
-import { Logger, LoglevelLogger } from '../lib/Logger'
+import { ConsoleLogger, Logger } from '../lib/Logger';
 import { AvatarGallery } from '../lib/AvatarGallery';
 import { Translator, TranslationOpts } from '../lib/Translator';
 import { Browser } from '../lib/Browser';
@@ -98,7 +98,7 @@ export class ContentApp extends AppWithDom
     private inCriticalErrorHandler: boolean = false;
     private isStopped: boolean = false;
     public readonly debugUtils: DebugUtils;
-    public readonly logger: Logger = new LoglevelLogger('', '');
+    public readonly logger: Logger = new ConsoleLogger('', '');
     public readonly uiHelper: ContentUiHelper;
     public readonly viewportEventDispatcher: ViewportEventDispatcher;
     public readonly display: ContentAppDisplay;

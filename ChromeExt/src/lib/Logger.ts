@@ -1,68 +1,64 @@
-﻿import Loglevel = require('loglevel')
-import { Utils } from './Utils'
+﻿import { Environment } from './Environment';
+import { Utils } from './Utils';
+
+export type LogFun = (message: string, data?: { [p: string]: unknown }, error?: Error) => void;
 
 export interface Logger {
-    getSubLogger(nonErrorEnabledFlagName: string, messagePrefix: string): Logger
-
-    logDebug(  message: string, data?: { [p:string]: unknown }, error?: Error): void
-    logInfo(   message: string, data?: { [p:string]: unknown }, error?: Error): void
-    logWarning(message: string, data?: { [p:string]: unknown }, error?: Error): void
-    logError(  message: string, data?: { [p:string]: unknown }, error?: Error): void
+    getSubLogger(nonErrorEnabledFlagName: string, messagePrefix: string): Logger;
+    logDebug(message: string, data?: { [p: string]: unknown }, error?: Error): void;
+    logInfo(message: string, data?: { [p: string]: unknown }, error?: Error): void;
+    logWarning(message: string, data?: { [p: string]: unknown }, error?: Error): void;
+    logError(message: string, data?: { [p: string]: unknown }, error?: Error): void;
 }
 
-export class LoglevelLogger implements Logger {
-    private messagePrefix: string
-    private nonErrorEnabledFlagName: string
+const noopLogFun: LogFun = () => {};
 
-    constructor(nonErrorEnabledFlagName: string, messagePrefix: string)
-    {
-        this.nonErrorEnabledFlagName = nonErrorEnabledFlagName
+export class ConsoleLogger implements Logger {
 
-        messagePrefix = messagePrefix.trim()
-        if (messagePrefix.length !== 0) {
-            messagePrefix = messagePrefix + ' '
-        }
-        this.messagePrefix = messagePrefix
+    private readonly nonErrorEnabledFlagName: string;
+    private readonly messagePrefix: string;
+    private readonly boundDebug: LogFun;
+    private readonly boundInfo: LogFun;
+    private readonly boundWarning: LogFun;
+    private readonly boundError: LogFun;
+
+    public constructor(nonErrorEnabledFlagName: string, messagePrefix: string) {
+        this.nonErrorEnabledFlagName = nonErrorEnabledFlagName;
+        this.messagePrefix = messagePrefix.trim();
+        // Bound console methods make DevTools attribute each line to the caller's file:line.
+        const prefixArgs: string[] = this.messagePrefix.length === 0 ? [] : [this.messagePrefix];
+        this.boundDebug = console.debug.bind(console, ...prefixArgs);
+        this.boundInfo = console.info.bind(console, ...prefixArgs);
+        this.boundWarning = console.warn.bind(console, ...prefixArgs);
+        // console.warn: prominent in DevTools but not collected into the browser's extensions page.
+        this.boundError = console.warn.bind(console, ...prefixArgs);
     }
 
-    public getSubLogger(enabledFlagName: string, messagePrefix: string): Logger
-    {
-        return new LoglevelLogger(enabledFlagName, `${this.messagePrefix} ${messagePrefix}`)
+    public getSubLogger(nonErrorEnabledFlagName: string, messagePrefix: string): Logger {
+        return new ConsoleLogger(nonErrorEnabledFlagName, `${this.messagePrefix} ${messagePrefix}`);
     }
 
-    public logDebug(message: string, data?: { [p:string]: unknown }, error?: Error): void
-    {
-        if (Utils.logChannel(this.nonErrorEnabledFlagName, true)) {
-            Loglevel.debug(...this.prepareMessageParts(message, data, error))
-        }
+    // The getters gate per call yet return bound functions, so the console call itself still
+    // happens at the caller's line.
+
+    public get logDebug(): LogFun {
+        return this.isNonErrorEnabled() && Environment.isDevelopment() ? this.boundDebug : noopLogFun;
     }
 
-    public logInfo(message: string, data?: { [p:string]: unknown }, error?: Error): void
-    {
-        if (Utils.logChannel(this.nonErrorEnabledFlagName, true)) {
-            Loglevel.info(...this.prepareMessageParts(message, data, error))
-        }
+    public get logInfo(): LogFun {
+        return this.isNonErrorEnabled() ? this.boundInfo : noopLogFun;
     }
 
-    public logWarning(message: string, data?: { [p:string]: unknown }, error?: Error): void
-    {
-        Loglevel.warn(...this.prepareMessageParts(message, data, error))
+    public get logWarning(): LogFun {
+        return this.boundWarning;
     }
 
-    public logError(message: string, data?: { [p:string]: unknown }, error?: Error): void
-    {
-        Loglevel.error(...this.prepareMessageParts(message, data, error))
+    public get logError(): LogFun {
+        return this.boundError;
     }
 
-    private prepareMessageParts(message: string, data?: { [p:string]: unknown }, error?: Error): unknown[]
-    {
-        const parts: unknown[] = [this.messagePrefix + message]
-        if (error) {
-            parts.push(error)
-        }
-        if (data && Object.keys(data).length !== 0) {
-            parts.push(data)
-        }
-        return parts
+    private isNonErrorEnabled(): boolean {
+        return Utils.logChannel(this.nonErrorEnabledFlagName, true);
     }
+
 }
