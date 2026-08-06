@@ -2671,6 +2671,9 @@
     line-height: 10px;
     text-align: right;
 }
+#n3qD .chatwindow .chat-message.newDay .content .time {
+    font-weight: bold;
+}
 #n3qD .chatwindow .chat-message.own-name-mention .content {
     background: lch(50 0 0 / 0.2);
 }

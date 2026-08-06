@@ -1,12 +1,10 @@
 import { iter } from '../lib/Iter'
-import { Config } from '../lib/Config'
 import { ContentApp } from './ContentApp'
 import { ChatUtils } from '../lib/ChatUtils'
 import { ChatWindow } from './ChatWindow'
 import { SimpleToast, Toast } from './Toast'
 import { PersonData } from '../lib/ItemProperties'
 import { BackgroundMessage, BackgroundRequest, PopupDefinition } from '../lib/BackgroundMessage'
-import { Utils } from '../lib/Utils'
 import { DomUtils } from '../lib/DomUtils'
 import { TranslationOpts } from '../lib/Translator'
 import { ContentMessage, ContentOpenInstantMessagesWindowMessage, ContentSetGuiModeMessage } from '../lib/ContentMessage'
@@ -221,7 +219,7 @@ export class InstantMessagesWindow extends ChatWindow
         const translateOpts: TranslationOpts = {replacements: [
             ['{otherUserName}', personData.userName],
             ['{unreadMessageCount}', String(unreadMessageCount)],
-            ['{lastUnreadMessageTime}', Utils.dateOfUtcString(lastMessage.timestamp).toLocaleTimeString()],
+            ['{lastUnreadMessageTime}', this.app.uiHelper.formatTimeOrDatetimeForHuman(lastMessage.timestamp)],
             ['{lastUnreadMessageText}', this.prepareMessageTextForToast(lastMessage.text)],
         ]}
 
