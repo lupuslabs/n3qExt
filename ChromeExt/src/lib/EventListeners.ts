@@ -1,4 +1,4 @@
-﻿export type EventListeners<EventDataType> = Readonly<{
+export type EventListeners<EventDataType> = Readonly<{
     readonly addListener: (listener: (eventData: EventDataType) => void) => void
     readonly removeListener: (listener: (eventData: EventDataType) => void) => void
 }>

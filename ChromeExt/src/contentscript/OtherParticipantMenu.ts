@@ -1,4 +1,4 @@
-﻿import { as } from '../lib/as'
+import { as } from '../lib/as'
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ParticipantMenu } from './ParticipantMenu';

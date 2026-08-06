@@ -1,4 +1,4 @@
-﻿import log = require('loglevel')
+import log = require('loglevel')
 import { ErrorWithData, Utils } from './Utils'
 import { BackgroundMessage } from './BackgroundMessage'
 

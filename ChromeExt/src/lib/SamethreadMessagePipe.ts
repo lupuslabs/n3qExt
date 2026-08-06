@@ -1,4 +1,4 @@
-﻿import log = require('loglevel');
+import log = require('loglevel');
 import { BackgroundMessagePipe, BackgroundRequestEnvelope, BackgroundResponseEnvelope } from './BackgroundMessage'
 import { BackgroundMessagePipeProvider } from './BackgroundToContentCommunicator'
 import { ContentMessagePipeProvider } from './ContentToBackgroundCommunicator'

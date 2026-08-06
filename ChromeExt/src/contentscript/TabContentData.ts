@@ -1,4 +1,4 @@
-﻿import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
+import { CallableEventListeners, EventListeners } from '../lib/EventListeners'
 import { ErrorWithData } from '../lib/Utils'
 import { ContentApp } from './ContentApp'
 

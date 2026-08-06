@@ -1,4 +1,4 @@
-﻿import * as log from 'loglevel'
+import * as log from 'loglevel'
 import { BackgroundApp } from './BackgroundApp'
 import { PopupDefinition } from '../lib/BackgroundMessage'
 import { is } from '../lib/is'

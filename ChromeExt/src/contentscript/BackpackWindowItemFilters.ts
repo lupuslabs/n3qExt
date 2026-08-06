@@ -1,4 +1,4 @@
-﻿import { is } from '../lib/is'
+import { is } from '../lib/is'
 import { as } from '../lib/as'
 import { iter } from '../lib/Iter'
 import { Config } from '../lib/Config'
