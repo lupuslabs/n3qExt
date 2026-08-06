@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Implementation of an ordered set.
  * New elements are ordered after equal elements.
  * Identiacal elements are assumed to be equal.

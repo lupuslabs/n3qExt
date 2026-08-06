@@ -1,4 +1,4 @@
-﻿import { ContentApp } from './ContentApp';
+import { ContentApp } from './ContentApp';
 
 export class DebugUtils
 {

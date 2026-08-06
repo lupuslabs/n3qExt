@@ -1,4 +1,4 @@
-﻿import log = require('loglevel')
+import log = require('loglevel')
 import { is } from '../lib/is'
 import { iter, Iter } from '../lib/Iter'
 import { BackgroundApp } from './BackgroundApp'

@@ -1,4 +1,4 @@
-﻿import { BackgroundMessagePipe, BackgroundRequestEnvelope, BackgroundResponseEnvelope } from './BackgroundMessage'
+import { BackgroundMessagePipe, BackgroundRequestEnvelope, BackgroundResponseEnvelope } from './BackgroundMessage'
 import { BackgroundMessagePipeProvider } from './BackgroundToContentCommunicator'
 import { ContentMessagePipeProvider } from './ContentToBackgroundCommunicator'
 

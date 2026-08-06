@@ -1,4 +1,4 @@
-﻿import log = require('loglevel');
+import log = require('loglevel');
 import { as } from '../lib/as'
 import { Utils } from '../lib/Utils'
 import { Config } from '../lib/Config'

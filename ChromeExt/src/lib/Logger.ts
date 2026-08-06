@@ -1,4 +1,4 @@
-﻿import { Environment } from './Environment';
+import { Environment } from './Environment';
 import { Utils } from './Utils';
 
 export type LogFun = (message: string, data?: { [p: string]: unknown }, error?: Error) => void;

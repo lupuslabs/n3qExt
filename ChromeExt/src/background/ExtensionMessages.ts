@@ -1,4 +1,4 @@
-﻿import { is } from '../lib/is'
+import { is } from '../lib/is'
 
 export namespace ExtensionMessage {
 

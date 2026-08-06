@@ -1,4 +1,4 @@
-﻿import { is } from '../lib/is'
+import { is } from '../lib/is'
 import { iter } from '../lib/Iter'
 import { ItemProperties, ItemOverlayDefinition } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp'

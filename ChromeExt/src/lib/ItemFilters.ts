@@ -1,4 +1,4 @@
-﻿import { is } from './is'
+import { is } from './is'
 import { as } from './as'
 import { iter } from './Iter'
 import { ErrorWithData } from './Utils'

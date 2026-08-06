@@ -1,4 +1,4 @@
-﻿// Generalized PointerEventData type and utilities
+// Generalized PointerEventData type and utilities
 
 import { DomUtils } from './DomUtils'
 import { is } from './is'
