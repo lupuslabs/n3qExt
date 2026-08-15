@@ -11,6 +11,7 @@ import { Config } from '../lib/Config'
 import { Memory } from '../lib/Memory'
 import { RandomNames } from '../lib/RandomNames'
 import { BackgroundApp } from './BackgroundApp'
+import { BackgroundBrowserTab } from './BackgroundBrowserTabs';
 import { ContentMessage } from '../lib/ContentMessage'
 import { TabRoomPresenceData } from '../lib/BackgroundMessage'
 import { AvatarGallery } from '../lib/AvatarGallery'
@@ -58,16 +59,19 @@ export class RoomPresenceManager
     private isStopped: boolean = true
 
     private readonly app: BackgroundApp
+    private readonly tabContentStopListener: (tab: BackgroundBrowserTab) => void;
     private readonly tabPresences: Map<number,TabRoomPresenceData> = new Map()
     private readonly rooms: Map<string,RoomData> = new Map()
 
     public constructor(app: BackgroundApp) {
         this.app = app
+        this.tabContentStopListener = tab => this.onTabUnavailable(tab.getTabId());
     }
 
     public async start(): Promise<void>
     {
         await this.onUserSettingsChangedAsync()
+        this.app.getBrowserTabs().tabContentStopListeners.addListener(this.tabContentStopListener);
         this.isStopped = false
     }
 
@@ -76,6 +80,7 @@ export class RoomPresenceManager
         if (this.isStopped) {
             return
         }
+        this.app.getBrowserTabs().tabContentStopListeners.removeListener(this.tabContentStopListener);
         for (const roomData of this.rooms.values()) {
             for (const tabId of roomData.tabIds.values()) {
                 this.onTabUnavailable(tabId)

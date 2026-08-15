@@ -150,12 +150,16 @@ export class GetConfigTreeResponse extends BackgroundSuccessResponse
 
 export class BackgroundReadyResponse extends BackgroundSuccessResponse
 {
-    public tabContentData: [string,unknown][]
+    public tabContentData: [string,unknown][];
+    public isGuiEnabled: boolean;
+    public isTabDisabled: boolean;
 
-    constructor(tabContentData: [string,unknown][])
+    public constructor(tabContentData: [string,unknown][], isGuiEnabled: boolean, isTabDisabled: boolean)
     {
         super();
-        this.tabContentData = tabContentData
+        this.tabContentData = tabContentData;
+        this.isGuiEnabled = isGuiEnabled;
+        this.isTabDisabled = isTabDisabled;
     }
 }
 
@@ -232,11 +236,6 @@ export class NewChatMessageResponse extends BackgroundSuccessResponse
 export class GetChatHistoryResponse extends BackgroundSuccessResponse
 {
     constructor(public chatHistory: ChatUtils.ChatMessage[]) { super(); }
-}
-
-export class IsTabDisabledResponse extends BackgroundSuccessResponse
-{
-    constructor(public isDisabled: boolean) { super(); }
 }
 
 export class BackgroundMessage
@@ -555,13 +554,6 @@ export class BackgroundMessage
     {
         const request = { type: BackgroundMessage.closePopup.name, popupId }
         await BackgroundMessage.sendMessageCheckOk(request)
-    }
-
-    static async isTabDisabled(pageUrl: string): Promise<boolean>
-    {
-        const request = { type: BackgroundMessage.isTabDisabled.name, 'pageUrl': pageUrl }
-        const response = await BackgroundMessage.sendMessageCheckOk<IsTabDisabledResponse>(request)
-        return response.isDisabled
     }
 
     static async focusOrOpenTab(pageUrl: string, roomUrl: null|string = null): Promise<void>
