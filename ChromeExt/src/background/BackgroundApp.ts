@@ -25,7 +25,6 @@ import {
     BackpackIsItemStillInRepoResponse,
     SendInstantMessageBackgroundRequest,
     GetChatHistoryResponse,
-    IsTabDisabledResponse,
     NewChatMessageResponse,
     TabRoomPresenceData,
     PopupDefinition,
@@ -81,6 +80,7 @@ export class BackgroundApp
 {
     private logger: Logger;
     private tabs: BackgroundBrowserTabs;
+    private tabRemovedListener: (tab: BackgroundBrowserTab) => void;
     private contentCommunicator: BackgroundToContentCommunicator;
     private urlFetcher: DirectUrlFetcher;
     private configUpdater: ConfigUpdater;
@@ -118,6 +118,7 @@ export class BackgroundApp
         const tabHeartbeatHandler = (tabId: number) => this.tabs.onTabHeartbeat(tabId)
         const requestHandler = (tabId: number, request: BackgroundRequest) => this.onContentRequest(tabId, request)
         this.contentCommunicator = contentCommunicatorFactory(heartbeatHandler, tabHeartbeatHandler, requestHandler);
+        this.tabRemovedListener = tab => this.contentCommunicator.forgetTab(tab.getTabId());
         this.init();
     }
 
@@ -198,7 +199,7 @@ export class BackgroundApp
 
         this.configUpdater.start(() => this.onConfigUpdated());
 
-        this.tabs.tabContentStopListeners.addListener(tab => this.onBrowserTabContentAppStop(tab))
+        this.tabs.tabRemovedListeners.addListener(this.tabRemovedListener);
     }
 
     public getIsReady(): boolean
@@ -319,6 +320,7 @@ export class BackgroundApp
 
     public stop(): void
     {
+        this.tabs.tabRemovedListeners.removeListener(this.tabRemovedListener);
         this.configUpdater.stop();
         this.tabs.getAllConnectedTabIds().forEach(tabId => this.tabs.onTabContentStop(tabId))
 
@@ -340,12 +342,6 @@ export class BackgroundApp
     }
 
     // IPC
-
-    private onBrowserTabContentAppStop(tab: BackgroundBrowserTab): void
-    {
-        this.roomPresenceManager.onTabUnavailable(tab.getTabId());
-        this.contentCommunicator.forgetTab(tab.getTabId());
-    }
 
     private async onContentRequest(tabId: number, request: BackgroundRequest): Promise<BackgroundResponse> {
         this.tabs.onTabContentConnected(tabId);
@@ -512,10 +508,6 @@ export class BackgroundApp
                 return this.handle_closePopup(request.popupId);
             } break;
 
-            case BackgroundMessage.isTabDisabled.name: {
-                return this.handle_isTabDisabled(tabId, request.pageUrl);
-            } break;
-
             case BackgroundMessage.focusOrOpenTab.name: {
                 await this.tabs.focusOrOpenTab(request.pageUrl, request.roomUrl);
                 return new BackgroundSuccessResponse();
@@ -589,8 +581,11 @@ export class BackgroundApp
         if (this.isReady) {
             this.lastReadyAssertedTime = Date.now();
             this.readyAssertedCount++;
-            const tabContentData = [...this.tabs.getTab(tabId).getContentData().entries()];
-            return new BackgroundReadyResponse(tabContentData);
+            this.tabs.onTabContentStop(tabId);
+            const tab = this.tabs.getTab(tabId);
+            const tabContentData = [...tab.getContentData().entries()];
+            const isTabDisabled = this.popupManager.isTabDisabled(tabId);
+            return new BackgroundReadyResponse(tabContentData, tab.getIsGuiEnabled(), isTabDisabled);
         }
         return new BackgroundErrorResponse('uninitialized', 'Not ready yet.');
     }
@@ -864,12 +859,6 @@ export class BackgroundApp
     {
         this.popupManager.closePopup(popupId);
         return new BackgroundSuccessResponse();
-    }
-
-    private handle_isTabDisabled(tabId: number, pageUrl: string): IsTabDisabledResponse
-    {
-        const isDisabled = this.popupManager.isTabDisabled(tabId);
-        return new IsTabDisabledResponse(isDisabled);
     }
 
     private sendPersistedChatMessageToTabs(chatChannel: ChatUtils.ChatChannel, chatMessage: ChatUtils.ChatMessage): void
