@@ -43,6 +43,7 @@ export class _Changes
             ['Change', 'Settings dialog: More space between headline and text left of the icon'],
             ['Change', 'Remove user name from vidconf URL'],
             ['Change', 'Remove avatar generator link from settings'],
+            ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

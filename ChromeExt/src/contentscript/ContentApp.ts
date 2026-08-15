@@ -232,9 +232,12 @@ export class ContentApp extends AppWithDom
         BackgroundMessage.backgroundCommunicator = this.backgroundCommunicator;
 
         let tabContentData: [string,unknown][];
+        let isTabDisabled = false;
         try {
             const result = await BackgroundMessage.waitReady();
-            tabContentData = result.tabContentData
+            tabContentData = result.tabContentData;
+            this.isGuiEnabled = as.Bool(result.isGuiEnabled, true);
+            isTabDisabled = as.Bool(result.isTabDisabled);
         } catch (error) {
             this.onCriticalError(error);
             return;
@@ -284,7 +287,7 @@ export class ContentApp extends AppWithDom
             log.info('ContentApp.start', 'disabled by domain suffix');
             return;
         }
-        if (await this.isPageDisabledByBackgroundCheck(pageUrl)) {
+        if (isTabDisabled) {
             log.info('ContentApp.start', 'disabled by background check');
             return;
         }
@@ -405,15 +408,6 @@ export class ContentApp extends AppWithDom
             }
         }
         return false;
-    }
-
-    private async isPageDisabledByBackgroundCheck(pageUrl: string): Promise<boolean>
-    {
-        const isDisabled = await BackgroundMessage.isTabDisabled(pageUrl).catch(errorResponse => {
-            this.onError(errorResponse);
-            return true;
-        });
-        return isDisabled;
     }
 
     sleep(statusMessage: string)

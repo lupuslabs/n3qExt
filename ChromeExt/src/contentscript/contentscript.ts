@@ -152,7 +152,6 @@ DomUtils.onDomReady(async () => {
         }
     })
 
-    window.addEventListener('unload', deactivateContent)
     window.addEventListener('visibilitychange', () => onVisibilitychange())
     onVisibilitychange()
 })
