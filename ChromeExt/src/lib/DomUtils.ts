@@ -125,6 +125,30 @@ export namespace DomUtils {
     }
 
     //------------------------------------------------------------------------------
+    // Element placement
+
+    /**
+     * Appends elem to parent trying to not trigger iframe reloads when elem is already a child of parent.
+     *
+     * Uses Element.moveBefore if available and applicable to prevent iframes from reloading.
+     * Element.moveBefore where introduced in Chrome/Edge 133 and Firefox 144 in 2025.
+     *
+     * Element.append of a connected node is specified as remove + insert, and the iframe removing/insertion steps
+     * destroy and recreate its content navigable (a reload); moveBefore skips both hooks:
+     * https://dom.spec.whatwg.org/#dom-parentnode-movebefore
+     * https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-iframe-element
+     */
+    export function appendElemAndTryToPreventIframeReloads(parent: Element, elem: Element): void {
+        if (elem.parentNode === parent && 'moveBefore' in parent) {
+            try {
+                (<{ moveBefore: (node: Node, child: null|Node) => void }> parent).moveBefore(elem, null);
+                return;
+            } catch (_error) { /* Just fall back to Element.append. */ }
+        }
+        parent.append(elem);
+    }
+
+    //------------------------------------------------------------------------------
     // Text manipulation
 
     export const urlRe = new RegExp(''

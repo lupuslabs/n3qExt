@@ -12,6 +12,7 @@ export class _Changes
             ['Fix', 'Potentially long own avater update delay when transferring an active avatar or nickname item to another user'],
             ['Fix', 'Some SVG backpack item images cropped too small in Firefox'],
             ['Fix', 'Date/time formatting in de locale'],
+            ['Fix', 'Iframe reloads when ContentAppDisplay moves the shadow DOM root in reactin to the page appending elements to the body'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],
