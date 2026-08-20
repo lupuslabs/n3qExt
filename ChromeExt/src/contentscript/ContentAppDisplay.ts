@@ -1,3 +1,4 @@
+import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
 import { Environment } from '../lib/Environment'
 import { Client } from '../lib/Client'
@@ -98,9 +99,17 @@ export class ContentAppDisplay {
         this.appendToMeDomObserver?.disconnect()
         this.shadowDomAnchorDomObserver?.disconnect()
 
-        // Move to end of body (prevent max z-index elements from rendering on top):
-        if (Environment.isExtension() && this.appendToMe.lastElementChild !== this.shadowDomAnchor) {
-            this.appendToMe.append(this.shadowDomAnchor)
+        const usePopoverApi: boolean = as.Bool(Config.get('system.displayPopupShadowDomAnchor'))
+        if (Environment.isExtension()) {
+            // Moving the anchor around always reloads cross-origin iframes in Firefox (tested in 154.0.1 on Windows).
+            // So avoid moving only to become last sibling when the popover API is used:
+            if (
+                this.shadowDomAnchor.parentElement !== this.appendToMe
+                || (!usePopoverApi && this.appendToMe.lastElementChild !== this.shadowDomAnchor)
+            ) {
+                // Move to end of body (prevent max z-index elements from rendering on top):
+                DomUtils.appendElemAndTryToPreventIframeReloads(this.appendToMe, this.shadowDomAnchor)
+            }
         }
 
         // Reset anchor:
@@ -112,7 +121,7 @@ export class ContentAppDisplay {
         this.shadowDomAnchor.setAttribute('data-client-variant', Client.getVariant())
 
         // Use popover API to get on top of topmost page content:
-        if (Config.get('system.displayPopupShadowDomAnchor')) {
+        if (usePopoverApi) {
             this.shadowDomAnchor.setAttribute('popover', 'manual')
             try {
                 this.shadowDomAnchor['showPopover']?.()
