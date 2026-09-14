@@ -22,11 +22,15 @@ export class ContentAppDisplay {
 
     private isDisplayVisible: boolean = false
     private baseCss: string = styleText
+    private readonly baseStyleSheet: CSSStyleSheet
+    private readonly themeStyleSheet: CSSStyleSheet
 
     constructor(app: ContentApp, appendToMe: HTMLElement) {
         this.app = app
         this.logger = app.logger.getSubLogger('', 'ContentAppDisplay:')
         this.appendToMe = appendToMe
+        this.baseStyleSheet = new CSSStyleSheet()
+        this.themeStyleSheet = new CSSStyleSheet()
     }
 
     public getShadowDomRoot(): ShadowRoot {
@@ -39,6 +43,10 @@ export class ContentAppDisplay {
 
     public getBaseCss(): string {
         return this.baseCss
+    }
+
+    public setThemeCss(themeCss: string): void {
+        this.themeStyleSheet.replaceSync(themeCss)
     }
 
     public stop(): void {
@@ -64,13 +72,14 @@ export class ContentAppDisplay {
 
         this.appendToMeDomObserver = new MutationObserver(() => this.maintainDisplay())
         this.shadowDomAnchorDomObserver = new MutationObserver(() => this.maintainDisplay())
-        this.shadowDomAnchor = DomUtils.elemOfHtml(`<div></div>`)
+        this.shadowDomAnchor = document.createElement('div')
         this.shadowDomRoot = this.shadowDomAnchor.attachShadow({mode: 'closed'})
 
         if (params.styleUrl) {
             this.baseCss = await this.app.urlFetcher.fetchAsText(params.styleUrl, '1')
         }
-        this.shadowDomRoot.appendChild(DomUtils.elemOfHtml(`<style data-type="base">\n${this.baseCss}\n</style>`))
+        this.baseStyleSheet.replaceSync(`@layer base {\n${this.baseCss}\n}`)
+        this.shadowDomRoot.adoptedStyleSheets = [this.baseStyleSheet, this.themeStyleSheet]
 
         this.display = DomUtils.elemOfHtml('<div id="n3qD" class="client" dir="ltr"></div>')
         this.setDisplayVisible(this.isDisplayVisible)
