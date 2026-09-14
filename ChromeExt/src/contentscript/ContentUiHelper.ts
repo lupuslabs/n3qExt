@@ -24,7 +24,6 @@ type ButtonDef = {
     title?: null|string,
     iconUrl?: null|string,
     iconAsCssMask?: boolean,
-    iconDummy?: boolean,
     onClick?: () => void,
     onKeyboardClick?: () => void,
     pointerEventDispatcherOptions?: PointerEventDispatcherOptions,
@@ -66,6 +65,11 @@ export class ContentUiHelper {
             iconElem.classList.add('icon')
             if (asCssMask) {
                 iconWrapElem.style.maskImage = 'url(' + iconElem.src + ')'
+
+                // Trigger immediate evaluation of the image URL in the extension's security context in Chrome:
+                // This only has an effect in Chrome on pages prohibiting data URLs in a content security header.
+                getComputedStyle(iconWrapElem).maskImage
+
                 iconElem.classList.add('hidden')
                 iconWrapElem.classList.add('mask')
             }
@@ -105,10 +109,6 @@ export class ContentUiHelper {
 
         if (is.nonEmptyString(buttonDef.iconUrl)) {
             buttonElem.append(this.makeIcon(buttonDef.iconUrl, buttonDef.iconAsCssMask ?? false))
-        } else if (buttonDef.iconDummy) {
-            const wrapCssClass = buttonDef.iconAsCssMask ? ' mask' : ''
-            const iconCssClass = buttonDef.iconAsCssMask ? ' hidden' : ''
-            buttonElem.append(DomUtils.elemOfHtml(`<span class="icon-wrap${wrapCssClass}"><span class="icon${iconCssClass}"></span></span>`))
         }
 
         let text = buttonDef.text ?? ''

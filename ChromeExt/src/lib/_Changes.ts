@@ -13,6 +13,7 @@ export class _Changes
             ['Fix', 'Some SVG backpack item images cropped too small in Firefox'],
             ['Fix', 'Date/time formatting in de locale'],
             ['Fix', 'Iframe reloads when ContentAppDisplay moves the shadow DOM root in reactin to the page appending elements to the body'],
+            ['Fix', 'Display broken on sites which restrict style elements and attributes by content security header'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],

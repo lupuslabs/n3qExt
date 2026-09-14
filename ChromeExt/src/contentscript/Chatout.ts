@@ -117,7 +117,8 @@ export class Chatout
         }
 
         const typeClass = 'chat-type-' + chatMessage.type;
-        const bubbleElem = DomUtils.elemOfHtml(`<div class="participant-chat-from-server ${typeClass}" style="opacity: 1;"></div>`);
+        const bubbleElem = DomUtils.elemOfHtml(`<div class="participant-chat-from-server ${typeClass}"></div>`);
+        bubbleElem.style.opacity = '1';
         const bubble: BubbleInfo = {
             ...chatMessage,
             bubbleElem,

@@ -141,7 +141,7 @@ export class BackgroundThemeManager
         const idsToKeep = new Set()
         let orderIndex = 0
         for (const theme of themes) {
-            const id = `${sourceType}:${sourceId}:${theme.id}:${theme.name}`
+            const id = [sourceType, sourceId, theme.id, theme.name].filter(is.nonEmptyString).join('-')
             idsToKeep.add(id)
             orderIndex++
             if (this.onTheme(id, theme.name, orderIndex, sourceType, sourceId, theme.isEnabled, theme.css)) {
