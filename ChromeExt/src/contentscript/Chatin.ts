@@ -4,6 +4,8 @@ import { DomUtils } from '../lib/DomUtils';
 import { AnimationsDefinition } from './AnimationsXml';
 import { Config } from '../lib/Config';
 
+import sendButtonIconDataUrl from '../assets/icons/ic_baseline-send.svg'
+
 export class Chatin
 {
     private elem: HTMLElement;
@@ -28,7 +30,7 @@ export class Chatin
             title: 'Send',
             titleId: 'Chatin.Send',
             iconAsCssMask: true,
-            iconDummy: true,
+            iconUrl: sendButtonIconDataUrl,
             onClick: () => this.sendChat(),
         })[0];
         contentElem.appendChild(this.sendElem);

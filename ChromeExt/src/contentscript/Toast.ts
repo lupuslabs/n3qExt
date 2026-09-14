@@ -1,11 +1,18 @@
 import { is } from '../lib/is';
-import { as } from '../lib/as';
 import { Utils } from '../lib/Utils';
 import { ContentApp } from './ContentApp';
 import { ItemException } from '../lib/ItemException';
 import { DomUtils } from '../lib/DomUtils'
 import { WindowBase, WindowBaseOptions } from './WindowBase';
 import { PointerEventDispatcher } from '../lib/PointerEventDispatcher'
+
+import questionIconDataUrl from '../assets/icons/question.svg'
+import noticeIconDataUrl from '../assets/icons/fe_warning.svg'
+import warningIconDataUrl from '../assets/icons/ic_baseline-warning.svg'
+import greetingIconDataUrl from '../assets/icons/mdi_human-greeting.svg'
+import byeIconDataUrl from '../assets/icons/bye-32.png'
+import privatechatIconDataUrl from '../assets/icons/ri_chat-private-line.svg'
+import privatevidconfIconDataUrl from '../assets/icons/mdi_monitor-eye.svg'
 
 type ToastOptions = WindowBaseOptions;
 
@@ -259,7 +266,20 @@ export class Toast extends WindowBase<ToastOptions>
     protected async makeIconElem(): Promise<null|HTMLElement>
     {
         if (this.iconUrl.length === 0) {
-            return DomUtils.elemOfHtml(`<div class="toast-icon toast-icon-${this.toastType}"></div>`);
+            let iconUrl = '';
+            switch (this.toastType) {
+                case 'question': iconUrl = questionIconDataUrl; break;
+                case 'notice': iconUrl = noticeIconDataUrl; break;
+                case 'warning': iconUrl = warningIconDataUrl; break;
+                case 'greeting': iconUrl = greetingIconDataUrl; break;
+                case 'bye': iconUrl = byeIconDataUrl; break;
+                case 'privatechat': iconUrl = privatechatIconDataUrl; break;
+                case 'privatevidconf': iconUrl = privatevidconfIconDataUrl; break;
+                default: return null;
+            }
+            const iconElem = this.app.uiHelper.makeIcon(iconUrl, true);
+            iconElem.classList.add('toast-icon', `toast-icon-${this.toastType}`);
+            return iconElem;
         }
         const [iconElem, iconElemReadyPromise]
             = this.app.uiHelper.makeScaledAndClippedIcon(this.iconUrl, this.iconOpacityMin, this.iconWidthMax, this.iconHeightMax);

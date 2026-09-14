@@ -1,7 +1,6 @@
 import { is } from '../lib/is'
 import { as } from '../lib/as'
 import { Config } from '../lib/Config'
-import { DomUtils } from '../lib/DomUtils'
 import { ContentApp } from './ContentApp'
 
 import { ThemeUtils } from '../lib/ThemeUtils'
@@ -13,7 +12,6 @@ export class ContentThemeManager
     private readonly app: ContentApp
     private themes: Theme[] = []
     private enabledThemesCss: string = ''
-    private enabledThemesElem: null|HTMLElement = null
 
     private readonly callableThemesChangedListeners: CallableEventListeners<string> = new CallableEventListeners('themesChanged')
     public readonly themesChangedListeners: EventListeners<string>
@@ -57,7 +55,7 @@ export class ContentThemeManager
     private update(): void
     {
         if (this.updateEnabledThemesCss()) {
-            this.updateDisplay()
+            this.app.display.setThemeCss(this.enabledThemesCss)
             this.callableThemesChangedListeners.callListeners(this.enabledThemesCss)
         }
     }
@@ -66,7 +64,7 @@ export class ContentThemeManager
     {
         const newThemesCss = this.themes
             .filter(theme => theme.isEnabled)
-            .map(theme => `/* Theme ${theme.id} */\n\n${theme.css.trim()}`)
+            .map(theme => `@layer theme-${CSS.escape(theme.id)} {\n\n${theme.css.trim()}\n\n}`)
             .join('\n\n')
         if (newThemesCss === this.enabledThemesCss) {
             return false
@@ -74,16 +72,4 @@ export class ContentThemeManager
         this.enabledThemesCss = newThemesCss
         return true
     }
-
-    private updateDisplay(): void
-    {
-        this.enabledThemesElem?.remove()
-        this.enabledThemesElem = null
-        if (this.enabledThemesCss.length === 0) {
-            return
-        }
-        this.enabledThemesElem = DomUtils.elemOfHtml(`<style data-type="theme">\n${this.enabledThemesCss}\n</style>`)
-        this.app.getShadowDomRoot().append(this.enabledThemesElem)
-    }
-
 }
