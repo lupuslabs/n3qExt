@@ -49,6 +49,7 @@ export class _Changes
             ['Add', 'Notifications: open  the system notifications window from the own participant menu'],
             ['Add', 'Support for websocket-based rooms and room items'],
             ['Add', 'Support for positioning room items from the right edge of the display'],
+            ['Add', 'Thoughts: styles for item frame, entry in own participant menu, notifications'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

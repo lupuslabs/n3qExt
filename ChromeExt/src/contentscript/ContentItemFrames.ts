@@ -1,5 +1,6 @@
 import { is } from '../lib/is'
 import { as } from '../lib/as'
+import { iter } from '../lib/Iter';
 import { ErrorWithData } from '../lib/Utils'
 import { Config } from '../lib/Config'
 import { ItemProperties, Pid } from '../lib/ItemProperties'
@@ -21,6 +22,12 @@ type ItemFrameInfo = {
     readonly itemUpdateSubscriptions: ItemUpdateSubscription[],
     readonly sentItemIds: Set<string>,
 }
+
+export type ThoughtsFrameTarget = {
+    readonly clientRoomId: string,
+    readonly postId: string,
+    readonly noteId: string,
+};
 
 export class ContentItemFrames {
     // Todo: Move most inventory item frame handling here.
@@ -51,6 +58,24 @@ export class ContentItemFrames {
         return this.itemFrameWindows.get(itemId)?.window ?? null
     }
 
+    /** Opens the room's Thoughts panel; a given target opens it on that specific thought. */
+    public openThoughtsFrame(anchor: null|DOMRect|HTMLElement, target: null|ThoughtsFrameTarget = null): IItemFrameWindow {
+        const systemItem = iter(this.app.ownItems.getAllItems().values())
+            .filter(ItemProperties.isN3qSystemItem)
+            .getNext() ?? {};
+        const thoughtsProps = Config.get('thoughts.itemFrameProperties', {}) as ItemProperties;
+        const combinedProps = { ...systemItem, ...thoughtsProps };
+        let iframeUrlTpl: null|string = null;
+        if (target) {
+            iframeUrlTpl = ItemProperties.getIframeUrl(thoughtsProps);
+            const separator = iframeUrlTpl.includes('?') ? '&' : '?';
+            iframeUrlTpl = `${iframeUrlTpl}${separator}clientRoomId=${encodeURIComponent(target.clientRoomId)}`
+                + `&postId=${encodeURIComponent(target.postId)}`
+                + `&noteId=${encodeURIComponent(target.noteId)}`;
+        }
+        return this.openItemFrame(combinedProps, anchor, null, iframeUrlTpl);
+    }
+
     public openItemFrame(
         properties: Readonly<ItemProperties>, anchor: null|DOMRect|HTMLElement, onClose?: null|(() => void),
         iframeUrlTpl?: null|string, iframeOptions?: null|{[p: string]: any},
@@ -59,14 +84,14 @@ export class ContentItemFrames {
         iframeOptions ??= ItemProperties.getParsedIframeOptions(properties)
         const isOwnItem = !!this.app.ownItems.getItemById(itemId)
         if ((iframeOptions.ownerOnly ?? false) && !isOwnItem) {
-            throw new NotAnOpenableItemFrameError('Can\tt open item frame: Owner only!', {properties})
+            throw new NotAnOpenableItemFrameError('Can\'t open item frame: Owner only!', {properties})
         }
 
         if (!is.nonEmptyString(iframeUrlTpl)) {
             iframeUrlTpl = ItemProperties.getIframeUrl(properties)
         }
         if (!is.nonEmptyString(iframeUrlTpl)) {
-            throw new NotAnOpenableItemFrameError('Can\tt open item frame: No iframe URL!', {properties})
+            throw new NotAnOpenableItemFrameError('Can\'t open item frame: No iframe URL!', {properties})
         }
         const roomJid = this.app.getRoom()?.getJid() ?? ''
         iframeUrlTpl = iframeUrlTpl
