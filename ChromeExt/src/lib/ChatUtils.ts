@@ -79,6 +79,10 @@ export namespace ChatUtils {
         return {vidconfId}
     }
 
+    export function getThoughtsClientRoomIdOrNullOfNotesBoardId(boardId: string): null|string {
+        return boardId.startsWith('r-') ? boardId.substring(2) : null;
+    }
+
     export function areChatMessagesOfSameUser(msgA: ChatMessage, msgB: ChatMessage): boolean
     {
         if (msgA.authorUserId.length !== 0) {

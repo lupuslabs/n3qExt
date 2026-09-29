@@ -1,6 +1,6 @@
 import { is } from '../lib/is';
 import { as } from '../lib/as';
-import { ErrorWithData } from '../lib/Utils';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { DomUtils } from '../lib/DomUtils';
 import { ChatUtils } from '../lib/ChatUtils';
 import type { TranslationOpts } from '../lib/Translator';
@@ -8,6 +8,7 @@ import type { ContentApp } from './ContentApp';
 import { InstantMessagesWindow } from './InstantMessagesWindow';
 import systemNotificationMessageType = ChatUtils.systemNotificationMessageType;
 import { SimpleToast } from './Toast';
+import type { ThoughtsFrameTarget } from './ContentItemFrames';
 
 type NotificationData = {
     readonly feature: string
@@ -17,8 +18,19 @@ type NotificationData = {
     readonly actorImageUrl: string
 };
 
+type NotesNotificationData = NotificationData & {
+    readonly feature: 'notes'
+    readonly boardId: string
+    readonly postId: string
+    readonly noteId: string
+};
+
+function isNotesNotificationData(notificationData: null|NotificationData): notificationData is NotesNotificationData {
+    return notificationData?.feature === 'notes';
+}
+
 export class NotificationsWindow extends InstantMessagesWindow {
-    private readonly toastableNotificationFeatures: ReadonlyArray<string> = [];
+    private readonly toastableNotificationFeatures: ReadonlyArray<string> = ['notes'];
 
     public constructor(app: ContentApp) {
         super(app, app.personManager.getSystemUserData());
@@ -42,7 +54,7 @@ export class NotificationsWindow extends InstantMessagesWindow {
             return;
         }
         const notificationData = this.parseNotificationDataOrNull(chatMessage);
-        if (!notificationData) {
+        if (!notificationData || (notificationData.feature === 'notes' && !Utils.isThoughtsEnabled())) {
             return;
         }
         super.storeChatMessage(chatMessage);
@@ -72,7 +84,29 @@ export class NotificationsWindow extends InstantMessagesWindow {
         const text = this.app.translateText(textId, translateOpts);
         ChatUtils.prepareTextHtml(text).textNodes.forEach(node => textElem.appendChild(node));
 
+        if (isNotesNotificationData(notificationData)) {
+            this.makeShowNoteLink(notificationData, textElem);
+        }
+
         return [messageCssClasses, textElem];
+    }
+
+    protected makeShowNoteLink(notificationData: NotesNotificationData, textElem: HTMLElement): void {
+        const clientRoomId = ChatUtils.getThoughtsClientRoomIdOrNullOfNotesBoardId(notificationData.boardId);
+        if (clientRoomId === null) {
+            return;
+        }
+        const viewLinkText = this.app.translateText('Notifications.notes.openThoughtButton', 'View');
+        const linkElem = DomUtils.elemOfHtml(`<a class="link"></a>`);
+        linkElem.textContent = viewLinkText;
+        linkElem.addEventListener('click', () => {
+            const { postId, noteId } = notificationData;
+            const target: ThoughtsFrameTarget = { clientRoomId, postId, noteId };
+            this.app.itemFrames.openThoughtsFrame(null, target);
+        });
+        const pElem = document.createElement('p');
+        pElem.append(linkElem);
+        textElem.append(pElem);
     }
 
     protected showUnreadMessageToast(lastMessage: ChatUtils.ChatMessage, unreadMessageCount: number): void {
@@ -116,6 +150,10 @@ export class NotificationsWindow extends InstantMessagesWindow {
     private makeToastNotificationActionButtonDefs(notificationData: null|NotificationData, onCloseAction: () => void): [string, () => void][] {
         const buttonDefs: [string, () => void][] = [];
 
+        if (isNotesNotificationData(notificationData)) {
+            this.addNotesToastNotificationActionButtons(notificationData, onCloseAction, buttonDefs);
+        }
+
         const allButtonText = this.app.translateText('Notifications.openNotificationsButton', 'All notifications');
         const allButtonAction = (): void => {
             onCloseAction();
@@ -124,6 +162,21 @@ export class NotificationsWindow extends InstantMessagesWindow {
         };
         buttonDefs.push([allButtonText, allButtonAction]);
         return buttonDefs;
+    }
+
+    private addNotesToastNotificationActionButtons(notificationData: NotesNotificationData, onCloseAction: () => void, buttonDefs: [string, () => void][]): void {
+        const clientRoomId = ChatUtils.getThoughtsClientRoomIdOrNullOfNotesBoardId(notificationData.boardId);
+        if (clientRoomId === null) {
+            return;
+        }
+
+        const viewButtonText = this.app.translateText('Notifications.notes.openThoughtButton', 'View');
+        const action = (): void => {
+            onCloseAction();
+            const target: ThoughtsFrameTarget = { clientRoomId, postId: notificationData.postId, noteId: notificationData.noteId };
+            this.app.itemFrames.openThoughtsFrame(null, target);
+        };
+        buttonDefs.push([viewButtonText, action]);
     }
 
     private parseNotificationData(message: ChatUtils.ChatMessage): NotificationData {
@@ -145,6 +198,19 @@ export class NotificationsWindow extends InstantMessagesWindow {
             return null;
         }
         const feature = as.String(parsed.feature);
+        if (feature === 'notes') {
+            const notificationData: NotesNotificationData = {
+                feature: feature,
+                event: as.String(parsed.event),
+                boardId: as.String(parsed.boardId),
+                postId: as.String(parsed.postId),
+                noteId: as.String(parsed.noteId),
+                actorUserId: as.String(parsed.actorUserId),
+                actorName: as.String(parsed.actorName),
+                actorImageUrl: as.String(parsed.actorImageUrl),
+            };
+            return notificationData;
+        }
         return {
             feature: feature,
             event: as.String(parsed.event),

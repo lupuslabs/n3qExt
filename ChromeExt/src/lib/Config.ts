@@ -452,6 +452,10 @@ export class Config
         notifications: {
             enabled: false,
         },
+        thoughts: {
+            enabled: false,
+            itemFrameProperties: {},
+        },
         roomChat: {
             undockedWidth: 630,
             undockedHeight: 530,
@@ -658,6 +662,7 @@ export class Config
                     'Menu.Person': 'Contact',
                     'Menu.Persons': 'Contacts',
                     'Menu.Notifications': 'Notifications',
+                    'Menu.Thoughts': 'Thoughts',
                     'Menu.Forget': 'Delete',
                     'Menu.Remember': 'Save',
                     'Menu.ProposeFriendship': 'Add friend',
@@ -709,6 +714,16 @@ export class Config
 
                     'Notifications.windowTitle': 'Notifications',
                     'Notifications.openNotificationsButton': 'All notifications',
+                    'Notifications.notes.openThoughtButton': 'View thought',
+                    'Notifications.notes.replyMessage': '{otherUserName} replied to your thought',
+                    'Notifications.notes.reactionMessage': '{otherUserName} reacted to your thought',
+                    'Notifications.notes.moderatorEditMessage': 'A moderator edited your thought',
+                    'Notifications.notes.moderatorDeleteMessage': 'A moderator deleted your thought',
+                    'Notifications.notes.parentAuthorEditMessage': '{otherUserName} edited a thought you commented on',
+                    'Notifications.notes.parentAuthorDeleteMessage': '{otherUserName} deleted a thought you commented on',
+                    'Notifications.notes.parentModeratorEditMessage': 'A moderator edited a thought you commented on',
+                    'Notifications.notes.parentModeratorDeleteMessage': 'A moderator deleted a thought you commented on',
+                    'Notifications.notes.cullingDeleteMessage': 'Your thought was automatically removed',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videoconference with {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private videoconference',
@@ -1084,6 +1099,7 @@ export class Config
                     'Menu.Person': 'Kontakt',
                     'Menu.Persons': 'Kontakte',
                     'Menu.Notifications': 'Benachrichtigungen',
+                    'Menu.Thoughts': 'Gedanken',
                     'Menu.Forget': 'Löschen',
                     'Menu.Remember': 'Speichern',
                     'Menu.ProposeFriendship': 'Freundschaft anfragen',
@@ -1135,6 +1151,16 @@ export class Config
 
                     'Notifications.windowTitle': 'Benachrichtigungen',
                     'Notifications.openNotificationsButton': 'Alle Benachrichtigungen',
+                    'Notifications.notes.openThoughtButton': 'Gedanke anzeigen',
+                    'Notifications.notes.replyMessage': '{otherUserName} hat auf deinen Gedanken geantwortet',
+                    'Notifications.notes.reactionMessage': '{otherUserName} hat auf deinen Gedanken reagiert',
+                    'Notifications.notes.moderatorEditMessage': 'Ein Moderator hat deinen Gedanken bearbeitet',
+                    'Notifications.notes.moderatorDeleteMessage': 'Ein Moderator hat deinen Gedanken gelöscht',
+                    'Notifications.notes.parentAuthorEditMessage': '{otherUserName} hat einen Gedanken bearbeitet, den du kommentiert hast',
+                    'Notifications.notes.parentAuthorDeleteMessage': '{otherUserName} hat einen Gedanken gelöscht, den du kommentiert hast',
+                    'Notifications.notes.parentModeratorEditMessage': 'Ein Moderator hat einen Gedanken bearbeitet, den du kommentiert hast',
+                    'Notifications.notes.parentModeratorDeleteMessage': 'Ein Moderator hat einen Gedanken gelöscht, den du kommentiert hast',
+                    'Notifications.notes.cullingDeleteMessage': 'Dein Gedanke wurde automatisch entfernt',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private Videokonferenz',
