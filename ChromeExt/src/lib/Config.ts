@@ -435,6 +435,10 @@ export class Config
             displayAvatarXLeft: -80,
             infoWindowBadgeDistanceY: 10, // Distance between info bottom and badge top.
         },
+        systemUser: {
+            userName: 'weblin',
+            userImageUrl: '',
+        },
         instantMessages: {
             enabled: true,
             unreadChatChannelsToSendToNewTabs: 100,
@@ -442,6 +446,9 @@ export class Config
             undockedHeight: 530,
             undockedLeft: 100,
             undockedTop: 100,
+        },
+        notifications: {
+            enabled: false,
         },
         roomChat: {
             undockedWidth: 630,
@@ -648,6 +655,7 @@ export class Config
                     'Menu.Get weblin everywhere': 'Weblin für überall',
                     'Menu.Person': 'Contact',
                     'Menu.Persons': 'Contacts',
+                    'Menu.Notifications': 'Notifications',
                     'Menu.Forget': 'Delete',
                     'Menu.Remember': 'Save',
                     'Menu.ProposeFriendship': 'Add friend',
@@ -696,6 +704,9 @@ export class Config
                     'PrivateChat.PrivateVidconfInviteMessage': '*invites to private videoconference*',
                     'PrivateChat.PrivateVidconfInviteMessageLinkTooltip': 'Private videoconference',
                     'PrivateChat.PrivateVidconfDeclineMessage': '*refuses to join videoconference*',
+
+                    'Notifications.windowTitle': 'Notifications',
+                    'Notifications.openNotificationsButton': 'All notifications',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videoconference with {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private videoconference',
@@ -1070,6 +1081,7 @@ export class Config
                     'Menu.Get weblin everywhere': 'Get weblin everywhere',
                     'Menu.Person': 'Kontakt',
                     'Menu.Persons': 'Kontakte',
+                    'Menu.Notifications': 'Benachrichtigungen',
                     'Menu.Forget': 'Löschen',
                     'Menu.Remember': 'Speichern',
                     'Menu.ProposeFriendship': 'Freundschaft anfragen',
@@ -1118,6 +1130,9 @@ export class Config
                     'PrivateChat.PrivateVidconfInviteMessage': '*lädt zu privater Videokonferenz ein*',
                     'PrivateChat.PrivateVidconfInviteMessageLinkTooltip': 'Private Videokonferenz',
                     'PrivateChat.PrivateVidconfDeclineMessage': '*lehnt Videokonferenz ab*',
+
+                    'Notifications.windowTitle': 'Benachrichtigungen',
+                    'Notifications.openNotificationsButton': 'Alle Benachrichtigungen',
 
                     'PrivateVidconf.Private Videoconference with': 'Private Videokonferenz mit {other}',
                     'PrivateVidconf.inviteToastTitle': 'Private Videokonferenz',

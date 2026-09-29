@@ -16,7 +16,11 @@ export namespace ChatUtils {
         roomNick:  string
     }
 
-    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug', 'vidconfInvite', 'vidconfDecline'] as const
+    export const systemNotificationMessageType = 'notification';
+    export type SystemNotificationMessageType = typeof systemNotificationMessageType;
+    void((a: SystemNotificationMessageType): ChatMessageType => a); // Makes transpiler detect non-ChatMessageType in SystemNotificationMessageType.
+
+    export const chatMessageTypes = ['chat', 'emote', 'cmd', 'cmdResult', 'participantStatus', 'itemStatus', 'info', 'debug', 'vidconfInvite', 'vidconfDecline', systemNotificationMessageType] as const;
     export type ChatMessageType = typeof chatMessageTypes[number]
 
     export const userChatMessageTypes = ['chat', 'emote'] as const
@@ -44,6 +48,10 @@ export namespace ChatUtils {
 
     export type VidconfInviteData = {
         vidconfId: string
+    }
+
+    export function isSystemNotificationMessageType(val: unknown): val is SystemNotificationMessageType {
+        return val === systemNotificationMessageType;
     }
 
     export function isUserChatMessageType(val: unknown): val is UserChatMessageType
