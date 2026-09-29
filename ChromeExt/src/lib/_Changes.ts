@@ -46,6 +46,7 @@ export class _Changes
             ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
             ['Fix', 'Display broken on sites which restrict style elements and attributes by content security header'],
             ['Fix', 'Avatar shows idle animation while moving when a new move interrupts a running one'],
+            ['Add', 'Notifications: open  the system notifications window from the own participant menu'],
         ]],
         ['1.5.1', 'Fixes', [
             ['Add', 'Videoconference button to Person item popup'],

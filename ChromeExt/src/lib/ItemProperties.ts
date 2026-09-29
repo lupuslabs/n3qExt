@@ -172,6 +172,7 @@ export type PersonData = {
     userImageUrl: string,
     ownFriendStatus: UserFriendStatus,
     ownPersonItem: null|ItemProperties,
+    isSystemUser: boolean,
 }
 
 export type ItemOverlayDefinition = {
@@ -537,6 +538,7 @@ export class ItemProperties
             userImageUrl: ItemProperties.getImageUrl(itemProperties),
             ownFriendStatus: ItemProperties.getUserFriendStatus(itemProperties),
             ownPersonItem: itemProperties,
+            isSystemUser: false,
         }
     }
 
