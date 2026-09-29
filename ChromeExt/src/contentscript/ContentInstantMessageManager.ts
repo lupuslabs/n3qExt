@@ -11,6 +11,7 @@ import { ChatUtils } from '../lib/ChatUtils'
 import { SimpleToast, Toast } from './Toast'
 import { BackgroundMessage } from '../lib/BackgroundMessage'
 import { InstantMessagesWindow } from './InstantMessagesWindow'
+import { NotificationsWindow } from './NotificationsWindow';
 import { PrivateVidconfWindow } from './PrivateVidconfWindow'
 import { TranslationOpts } from '../lib/Translator'
 
@@ -41,6 +42,10 @@ export class ContentInstantMessageManager
     public isFeatureEnabled(): boolean
     {
         return as.Bool(Config.get('instantMessages.enabled'), true)
+    }
+
+    public isNotificationsFeatureEnabled(): boolean {
+        return this.isFeatureEnabled() && as.Bool(Config.get('notifications.enabled'), true);
     }
 
     public getUnreadUserMessageCount(maxAgeSecs: number): number
@@ -281,6 +286,19 @@ export class ContentInstantMessageManager
         window.show({ anchor: participantElem })
     }
 
+    public openNotificationsWindow(): void {
+        if (this.isStopped || !this.isNotificationsFeatureEnabled()) {
+            return;
+        }
+        const window = this.getOrCreateNotificationsWindow();
+        if (window.isOpen()) {
+            return;
+        }
+        const ownUserId = this.app.getUserId();
+        const participantElem = this.app.getRoom()?.getParticipantByUserId(ownUserId)?.getElem() ?? null;
+        window.show({ anchor: participantElem });
+    }
+
     public closeInstantMessagesWindow(otherUserId: string): void
     {
         const window = this.imWindows.get(otherUserId)
@@ -321,18 +339,31 @@ export class ContentInstantMessageManager
 
     private getOrCreateImWindow(otherUser: string|Readonly<PersonData>): InstantMessagesWindow
     {
+        const otherUserId = is.string(otherUser) ? otherUser : otherUser.userId;
+        const isSystemUser = otherUserId === Utils.getSystemUserId();
+        if (isSystemUser) {
+            return this.getOrCreateNotificationsWindow();
+        }
         if (is.string(otherUser)) {
             const personMgr = this.app.personManager
             otherUser = personMgr.getPersonDataOrNull(otherUser) ?? personMgr.getDummyPersonData(otherUser)
         }
-
-        const otherUserId = otherUser.userId
         let imWindow: null|InstantMessagesWindow = this.imWindows.get(otherUserId) ?? null
         if (!imWindow) {
             imWindow = new InstantMessagesWindow(this.app, otherUser)
             this.imWindows.set(otherUserId, imWindow)
         }
         return imWindow
+    }
+
+    private getOrCreateNotificationsWindow(): InstantMessagesWindow {
+        const systemUserId = Utils.getSystemUserId();
+        let imWindow: null|InstantMessagesWindow = this.imWindows.get(systemUserId) ?? null;
+        if (!imWindow) {
+            imWindow = new NotificationsWindow(this.app);
+            this.imWindows.set(systemUserId, imWindow);
+        }
+        return imWindow;
     }
 
     private getPrivateVidconfSecretMemoryKey(otherUserInfo: PersonData): string

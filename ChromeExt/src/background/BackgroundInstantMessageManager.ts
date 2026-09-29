@@ -11,6 +11,7 @@ import { ContentMessage } from '../lib/ContentMessage'
 
 import InstantMessageType = ChatUtils.InstantMessageType
 import isInstantMessageType = ChatUtils.isInstantMessageType
+import isSystemNotificationMessageType = ChatUtils.isSystemNotificationMessageType;
 
 export class BackgroundInstantMessageManager
 {
@@ -89,9 +90,17 @@ export class BackgroundInstantMessageManager
         if (messageType.length === 0) {
             messageType = 'chat'
         }
-        if (!isInstantMessageType(messageType)) {
-            this.logError('Instant message isn\'t of supported type.', notification)
-            return
+        const isFromSystemUser = notification.AuthorUserId === Utils.getSystemUserId();
+        if (isFromSystemUser) {
+            if (!isSystemNotificationMessageType(messageType)) {
+                this.logError('Instant message from system user isn\'t a notification.', notification);
+                return;
+            }
+        } else {
+            if (!isInstantMessageType(messageType)) {
+                this.logError('Instant message isn\'t of supported type.', notification);
+                return;
+            }
         }
 
         const messageId = notification.InstantMessageId

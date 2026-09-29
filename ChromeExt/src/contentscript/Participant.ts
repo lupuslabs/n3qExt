@@ -249,7 +249,8 @@ export class Participant extends Entity
                     vpImageUrl = as.String(attrs.ImageUrl);
                     vpPoints = as.String(attrs.Points);
                     vpBadges = as.String(attrs.Badges);
-                    this.userId = as.String(attrs.userId);
+                    const claimedUserId = as.String(attrs.userId);
+                    this.userId = Utils.isValidUserId(claimedUserId) ? claimedUserId : '';
                     const hasUserId = this.userId.length !== 0;
                     this.canReceiveItems = hasUserId && as.Bool(attrs.canReceiveItems);
                     this.supportsPersonApi = hasUserId && as.Bool(attrs.supportsPersonApi);

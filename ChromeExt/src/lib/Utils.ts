@@ -86,6 +86,10 @@ export class Utils
         return this.isBackpackEnabled() && Config.get('itemShop.systemShopEnabled', false);
     }
 
+    public static getSystemUserId(): string {
+        return '<system>';
+    }
+
     static parseStringMap(s) {
         const o = {};
         const lines = s.split(' ');
@@ -137,6 +141,10 @@ export class Utils
             result += Utils.randomStringChars[Math.round(Math.random() * maxIndex)];
         }
         return result;
+    }
+
+    public static isValidUserId(userId: string): boolean {
+        return /^[_a-zA-Z0-9]+$/.test(userId);
     }
 
     static randomInt(min: number, max: number): number
