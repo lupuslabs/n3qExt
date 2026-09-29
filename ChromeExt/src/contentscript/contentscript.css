@@ -157,6 +157,7 @@
     --base-text-decoration: none;
     --base-text-color: lch(0 0 0 / 1);
     --base-text-max-line-length: 40em;
+    --system-user-text-color: #8f43cc;
 
     --small-text-font: var(--base-text-font);
     --small-text-weight: normal;
@@ -2652,6 +2653,9 @@
     line-height: 14px;
     font-weight: bold;
 }
+#n3qD .chatwindow .chat-message.system .content .nick {
+    color: var(--system-user-text-color);
+}
 #n3qD .chatwindow .chat-message .content .text {
     display: block;
     font-size: 14px;
@@ -2676,6 +2680,9 @@
 }
 #n3qD .chatwindow .chat-message.old .content {
     opacity: var(--fadeout-opacity);
+}
+#n3qD .chatwindow .chat-message.system {
+    justify-content: flex-start;
 }
 #n3qD .chatwindow .chat-message.own {
     justify-content: flex-end;

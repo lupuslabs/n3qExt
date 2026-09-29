@@ -1,6 +1,10 @@
+import imgDefaultAvatar from '../assets/DefaultAvatar.png';
+import imgWeblinLogo from '../assets/PopupIcon.png';
+
 import { is } from '../lib/is'
 import { as } from '../lib/as'
-import { ErrorWithData } from '../lib/Utils'
+import { Config } from '../lib/Config';
+import { ErrorWithData, Utils } from '../lib/Utils';
 import { ItemProperties, PersonData, Pid } from '../lib/ItemProperties'
 import { ContentApp } from './ContentApp';
 import { FriendshipProposalsState, FriendshipProposalState } from '../lib/ContentMessage'
@@ -27,8 +31,18 @@ export class ContentPersonManager
         this.app.ownItems.backpackUpdateListeners.addListener(({itemsDeleted, itemsNewOrChanged}) => this.onBackpackUpdate(itemsDeleted, itemsNewOrChanged))
     }
 
-    public getPersonDataOrNull(otherUserId: string): null|PersonData
-    {
+    public getPersonDataOrNull(otherUserId: string): null|PersonData {
+        const personData = this.getPersonDataRawOrNull(otherUserId);
+        if (personData) {
+            personData.userImageUrl = this.getAvatarImageUrlOrDefault(personData.userImageUrl);
+        }
+        return personData;
+    }
+
+    private getPersonDataRawOrNull(otherUserId: string): null|PersonData {
+        if (otherUserId === Utils.getSystemUserId()) {
+            return this.getSystemUserData();
+        }
         if (otherUserId === this.app.getUserId()) {
             return this.getOwnPersonData()
         }
@@ -47,6 +61,17 @@ export class ContentPersonManager
         return this.getOtherPersonDataFromRoom(otherUserId)
     }
 
+    public getSystemUserData(): PersonData {
+        return {
+            userId: Utils.getSystemUserId(),
+            userName: as.String(Config.get('systemUser.userName', '')),
+            userImageUrl: as.NonEmptyStringOrNull(Config.get('systemUser.userImageUrl', '')) ?? imgWeblinLogo,
+            ownFriendStatus: 'No',
+            ownPersonItem: null,
+            isSystemUser: true,
+        };
+    }
+
     public getOwnPersonData(): PersonData
     {
         return {
@@ -55,6 +80,7 @@ export class ContentPersonManager
             userImageUrl: '',
             ownFriendStatus: 'No',
             ownPersonItem: null,
+            isSystemUser: false,
         }
     }
 
@@ -66,12 +92,17 @@ export class ContentPersonManager
             userImageUrl: '',
             ownFriendStatus: 'No',
             ownPersonItem: null,
+            isSystemUser: false,
         }
     }
 
     public getMemorizedPersons(): ReadonlyMap<string,Readonly<PersonData>>
     {
         return this.itemPersons
+    }
+
+    public getAvatarImageUrlOrDefault(imageUrl: string): string {
+        return imageUrl.length !== 0 ? imageUrl : imgDefaultAvatar;
     }
 
     public showProposeFriendshipToast(otherPersonData: Readonly<PersonData>): Toast
@@ -111,7 +142,7 @@ export class ContentPersonManager
         const title = this.translateText(otherPersonData, titleId)
         const text = this.translateText(otherPersonData, textId)
         const toast = new SimpleToast(this.app, toastId, 0, type, title, text)
-        toast.setIcon(otherPersonData.userImageUrl, 10, 64, 64);
+        toast.setIcon(this.getAvatarImageUrlOrDefault(otherPersonData.userImageUrl), 10, 64, 64);
 
         if (is.nonEmptyString(action1LabelId)) {
             toast.addClosingActionButton(this.translateText(otherPersonData, action1LabelId), action1)
@@ -266,6 +297,7 @@ export class ContentPersonManager
             userImageUrl: proposal.proposingUserImageUrl,
             ownFriendStatus: 'ProposedByOther',
             ownPersonItem: null,
+            isSystemUser: false,
         }
     }
 
@@ -284,6 +316,7 @@ export class ContentPersonManager
             userImageUrl,
             ownFriendStatus: 'No',
             ownPersonItem: null,
+            isSystemUser: false,
         }
     }
 }
