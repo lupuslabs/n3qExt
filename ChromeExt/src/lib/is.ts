@@ -36,6 +36,21 @@ export class is {
         return is.number(val) && !isNaN(val)
     }
 
+    static floatInRange(val: unknown, min: number, max: number): val is number
+    {
+        return is.float(val) && min <= val && val <= max
+    }
+
+    static int(val: unknown): val is number
+    {
+        return is.float(val) && Math.floor(val) === val
+    }
+
+    static intInRange(val: unknown, min: number, max: number): val is number
+    {
+        return is.int(val) && min <= val && val <= max
+    }
+
     static Date(val: unknown): val is Date
     {
         // instanceof doesn't work when date traversed a script context boundary and dates can be invalid:
@@ -48,15 +63,20 @@ export class is {
         return !is.nil(val) && typeof val === is.typeObject
     }
 
+    public static nonEmptyObject(val: unknown): val is { [p: string|symbol]: unknown } {
+        return !is.nil(val) && typeof val === is.typeObject && Object.keys(val).length !== 0;
+    }
+
     static stringsObject(val: unknown): val is {[p: string]: string}
     {
         return is.object(val)
             && !Object.entries(val).some(([k, v]) => !is.string(k) || !is.string(v))
     }
 
-    static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is Array<T>
-    {
-        return Array.isArray(val) && (is.nil(elemGuard) || !val.some(elem => !elemGuard(elem)))
+    static array(val: unknown): val is unknown[];
+    static array<T>(val: unknown, elemGuard: (elem: unknown) => elem is T): val is T[];
+    static array<T>(val: unknown, elemGuard?: (elem: unknown) => elem is T): val is T[] {
+        return val instanceof Array && (is.nil(elemGuard) || !val.some(elem => !elemGuard(elem)));
     }
 
     static fun(val: unknown): val is Function
