@@ -18,6 +18,7 @@ export class _Changes
             ['Fix', 'Prerendering page displaces currently visible page in same tab for background message handling in Chromium-based browsers'],
             ['Fix', 'Cached page (history navigation) restores with broken background message pipe in Chromium-based browsers'],
             ['Add', 'Notifications: open  the system notifications window from the own participant menu'],
+            ['Add', 'Support for websocket-based rooms and room items'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],

@@ -1,5 +1,5 @@
-import log = require('loglevel');
 import { as } from '../lib/as'
+import type { Logger } from '../lib/Logger';
 import { RetryStrategyFactorGrowthMaker } from '../lib/RetryStrategy'
 import { Config } from '../lib/Config'
 import { BackgroundApp } from './BackgroundApp';
@@ -10,26 +10,9 @@ import { Utils } from '../lib/Utils'
 export class WebsocketManager
 {
     private readonly app: BackgroundApp
+    private readonly log: Logger
 
-    private readonly websocketControllerConfig: WebsocketConnection.Config = {
-        getWebsocketUrl: () => as.String(Config.get('websocket.serviceUrl')),
-        getUnreceivedResponseTimeoutSecs: () => as.Float(Config.get('websocket.unreceivedResponseTimeoutSecs'), 30),
-        getHeartbeatSendIntervalSecs: () => as.Float(Config.get('websocket.heartbeatSendIntervalSecs'), 15),
-        getHeartbeatTimeoutSecs: () => as.Float(Config.get('websocket.heartbeatTimeoutSecs'), 30),
-        getWebsocketOpenRetryStrategy: () => new RetryStrategyFactorGrowthMaker(
-            as.Float(Config.get('websocket.connectRetryStrategyFirstRetryDelaySecs'), 30),
-            as.Float(Config.get('websocket.connectRetryStrategyDelayGrowthFactor'), 30),
-            as.Float(Config.get('websocket.connectRetryStrategyRetryDelayMaxSecs'), 30)
-        ).makeRetryStrategy(),
-        logDebug: (msg, ...data) => this.logDebug(msg, ...data),
-        logInfo:  (msg, ...data) => this.logInfo(msg, ...data),
-        logError: (msg, ...data) => this.logError(msg, ...data),
-        getLogPingMessages: () => Utils.logChannel('websocketConnectionPings', false),
-        socketIsReadyHandler: () => this.handleWebsocketIsReady(),
-        socketIsntReadyHandler: () => this.handleWebsocketIsntReady(),
-        incommingRequestHandler: (request) => this.handleRequest(request),
-        incommingNotificationHandler: (notification) => this.handleNotification(notification),
-    }
+    private readonly websocketControllerConfig: WebsocketConnection.Config
     private lastServiceUrl: string = ''
     private websocketController: null|WebsocketConnection.Connection
 
@@ -40,6 +23,24 @@ export class WebsocketManager
     public constructor(app: BackgroundApp)
     {
         this.app = app
+        this.log = app.getLogger().getSubLogger('websocketConnection', 'Websocket:')
+        this.websocketControllerConfig = {
+            getWebsocketUrl: () => as.String(Config.get('websocket.serviceUrl')),
+            getUnreceivedResponseTimeoutSecs: () => as.Float(Config.get('websocket.unreceivedResponseTimeoutSecs'), 30),
+            getHeartbeatSendIntervalSecs: () => as.Float(Config.get('websocket.heartbeatSendIntervalSecs'), 15),
+            getHeartbeatTimeoutSecs: () => as.Float(Config.get('websocket.heartbeatTimeoutSecs'), 30),
+            getWebsocketOpenRetryStrategy: () => new RetryStrategyFactorGrowthMaker(
+                as.Float(Config.get('websocket.connectRetryStrategyFirstRetryDelaySecs'), 30),
+                as.Float(Config.get('websocket.connectRetryStrategyDelayGrowthFactor'), 30),
+                as.Float(Config.get('websocket.connectRetryStrategyRetryDelayMaxSecs'), 30)
+            ).makeRetryStrategy(),
+            log: this.log,
+            getLogPingMessages: () => Utils.logChannel('websocketConnectionPings', false),
+            socketIsReadyHandler: () => this.handleWebsocketIsReady(),
+            socketIsntReadyHandler: () => this.handleWebsocketIsntReady(),
+            incomingRequestHandler: (request) => this.handleRequest(request),
+            incomingNotificationHandler: (notification) => this.handleNotification(notification),
+        }
     }
 
     public stop(): void
@@ -106,17 +107,18 @@ export class WebsocketManager
         this.websocketController?.sendRequest(new Message.UserAuthRequest(Message.makeId(), userId, token))
             .then(response => {
                 if (this.isReady || !this.wantsToBeConnected) {
-                    this.logDebug('WebsocketManager.handleWebsocketIsReady: Ignored UserAuthRequest response because not connecting.', { response, userId })
+                    this.log.logDebug('WebsocketManager.handleWebsocketIsReady: Ignored UserAuthRequest response because not connecting.', { response, userId })
                     return
                 }
                 if (response instanceof Message.UserAuthResponse) {
                     this.isReady = true
                     this.websocketController?.confirmWebsocketIsGood()
-                    this.logInfo('WebsocketManager.handleWebsocketIsReady: UserAuthRequest accepted. Connection authenticated and ready.')
+                    this.log.logInfo('WebsocketManager.handleWebsocketIsReady: UserAuthRequest accepted. Connection authenticated and ready.')
+                    this.app.getWebsocketRoomManager().onWebsocketReady();
                     return
                 }
                 this.websocketController?.reconnectWebsocket()
-                this.logInfo('WebsocketManager.handleWebsocketIsReady: UserAuthRequest denied.', { response, userId })
+                this.log.logInfo('WebsocketManager.handleWebsocketIsReady: UserAuthRequest denied.', { response, userId })
             })
             .then(() => this.maintain())
     }
@@ -143,6 +145,9 @@ export class WebsocketManager
     }
 
     private async handleNotification(notification: Message.Notification): Promise<void> {
+        if (notification instanceof Message.RoomItemsNotification) {
+            return this.app.getWebsocketRoomManager().handleRoomItemsNotification(notification);
+        }
         if (notification instanceof Message.ItemsNotification) {
             return this.handleItemsNotification(notification)
         }
@@ -155,36 +160,19 @@ export class WebsocketManager
         if (notification instanceof Message.FriendshipProposalCanceledNotification) {
             return this.app.getFriendshipProposalManager().handleFriendshipProposalCanceledNotification(notification)
         }
-        this.logDebug('WebsocketManager.handleNotification: Ignored unhandled notification.', notification)
+        this.log.logDebug('WebsocketManager.handleNotification: Ignored unhandled notification.', { notification })
     }
 
     private async handleItemsNotification(notification: Message.ItemsNotification): Promise<void> {
         if (notification.InventoryId !== this.app.getUserId()) {
-            this.logInfo('WebsocketManager.handleItemsNotification: ItemsNotification isn\'t for our backpack.', notification)
+            this.log.logInfo('WebsocketManager.handleItemsNotification: ItemsNotification isn\'t for our backpack.', { notification })
             return
         }
         if (!Utils.isBackpackEnabled()) {
-            this.logInfo('WebsocketManager.handleItemsNotification: Ignored ItemsNotification for our backpack because backpack is disabled.', notification)
+            this.log.logInfo('WebsocketManager.handleItemsNotification: Ignored ItemsNotification for our backpack because backpack is disabled.', { notification })
             return
         }
         await this.app.getBackpack().onItemUpdateFromProvider(notification.ItemsDeleted, notification.ItemsUpdatedOrCreated)
-        this.logDebug('WebsocketManager.handleItemsNotification: Updated backpack.', notification)
+        this.log.logDebug('WebsocketManager.handleItemsNotification: Updated backpack.', { notification })
     }
-
-    private logDebug(msg: string, ...data: any[]): void {
-        if (Utils.logChannel('websocketConnection', false)) {
-            log.debug(msg, ...data)
-        }
-    }
-
-    private logInfo(msg: string, ...data: any[]): void {
-        if (Utils.logChannel('websocketConnection', false)) {
-            log.info(msg, ...data)
-        }
-    }
-
-    private logError(msg: string, ...data: any[]): void {
-        log.info(msg, ...data)
-    }
-
 }
