@@ -37,6 +37,7 @@ export class Config
             unreceivedResponseTimeoutSecs: 30,
             heartbeatSendIntervalSecs: 17, // Send a ping request if not sent anything for this amount of seconds.
             heartbeatTimeoutSecs: 30, // Reconnect if not receiving anything for this amount of seconds.
+            roomHeartbeatIntervalSec: 17, // Send a room ping request if not sent anything to the room for this amount of seconds.
             connectRetryStrategyFirstRetryDelaySecs: 1,
             connectRetryStrategyDelayGrowthFactor: 2,
             connectRetryStrategyRetryDelayMaxSecs: 120,
@@ -78,6 +79,7 @@ export class Config
             backgroundTraffic: false,
             websocketConnection: false,
             websocketConnectionPings: false,
+            websocketRoomManagement: false,
             backgroundPresenceManagement: false,
             DependentPresenceItemRequests: false,
             clientBackgroundMessagePipeManagement: false, // Opening/closing of message pipes, ping messages and discarding of messages caused by closure or timeouts.

@@ -16,6 +16,7 @@ export class _Changes
             ['Fix', 'Display broken on sites which restrict style elements and attributes by content security header'],
             ['Fix', 'Avatar shows idle animation while moving when a new move interrupts a running one'],
             ['Add', 'Notifications: open  the system notifications window from the own participant menu'],
+            ['Add', 'Support for websocket-based rooms and room items'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],
