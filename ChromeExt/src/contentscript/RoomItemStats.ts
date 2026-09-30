@@ -54,15 +54,20 @@ export class RoomItemStats // Todo: Convert to Window.
         if (this.roomItem.isMyItem()) {
             displayProps[Pid.OwnerName] = 'You';
         } else {
-            displayProps[Pid.OwnerName] = this.roomItem.getOwnerName();
+            const ownerName = this.roomItem.getOwnerName();
+            if (ownerName.length !== 0) {
+                displayProps[Pid.OwnerName] = ownerName;
+            }
         }
 
-        const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>');
-        for (const [pid, value] of Object.entries(displayProps).filter(([_, value]) => is.nonEmptyString(value))) {
-            listElem.append(DomUtils.elemOfHtml(`<span class="label" data-translate="text:ItemPid">${as.Html(pid)}</span>`));
-            listElem.append(DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`));
+        if (is.nonEmptyObject(displayProps)) {
+            const listElem = DomUtils.elemOfHtml('<div class="itemprops" data-translate="children"></div>');
+            for (const [pid, value] of Object.entries(displayProps).filter(([_, value]) => is.nonEmptyString(value))) {
+                listElem.append(DomUtils.elemOfHtml(`<span class="label" data-translate="text:ItemPid">${as.Html(pid)}</span>`));
+                listElem.append(DomUtils.elemOfHtml(`<span class="value" data-translate="text:ItemValue" title="${as.Html(value)}">${as.Html(value)}</span>`));
+            }
+            this.elem.append(listElem);
         }
-        this.elem.append(listElem);
 
         this.app.translateElem(this.elem);
         this.updateGeometry();

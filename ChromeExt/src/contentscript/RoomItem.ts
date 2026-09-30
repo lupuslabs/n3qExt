@@ -32,7 +32,7 @@ export class RoomItem extends Entity
     protected screenUnderlay: ItemFrameUnderlay;
     protected myItem: boolean = false;
     protected state = '';
-    protected ownerName = 'unknown';
+    protected ownerName = '';
     private statsDisplayOpenByLongclick: boolean = false;
     private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;

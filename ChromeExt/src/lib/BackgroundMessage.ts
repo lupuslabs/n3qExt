@@ -56,6 +56,7 @@ export function makeZeroTabStats(): TabStats
 export type TabRoomPresenceData = {
     timestamp: string,
     roomJid: string,
+    destination: string, // VPI-mapped destination URL.
     badges: string, // Todo: Move tracking to RoomPresenceManager.
     isAvailable: boolean,
     showAvailability: string,
