@@ -179,7 +179,6 @@ export class Participant extends Entity
         let xmppNickname = '';
 
         let vpNickname = '';
-        let vpAvatarId = ''; // Todo: Remove after old clients updated.
         let vpAnimationsUrl = '';
         let vpImageUrl = '';
         let vpPoints = '';
@@ -242,8 +241,6 @@ export class Participant extends Entity
                 if (attrs) {
                     vpNickname = as.String(attrs.Nickname);
                     if (vpNickname === '') { vpNickname = as.String(attrs.nickname); }
-                    vpAvatarId = as.String(attrs.AvatarId);
-                    if (vpAvatarId === '') { vpAvatarId = as.String(attrs.avatar); }
                     vpAnimationsUrl = as.String(attrs.AnimationsUrl);
                     vpAnimationsUrl = as.String(attrs.AvatarUrl, vpAnimationsUrl);
                     vpImageUrl = as.String(attrs.ImageUrl);
@@ -334,12 +331,7 @@ export class Participant extends Entity
 
         let hasAvatar = false;
         if (this.avatarDisplay) {
-            if (vpAvatarId !== '') {
-                const animationsUrl = this.app.getAvatarGallery().getAvatarByIdOpt(vpAvatarId)?.getConfigUrl() ?? '';
-                const proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(animationsUrl));
-                this.avatarDisplay?.updateObservableProperty('AnimationsUrl', proxiedAnimationsUrl);
-                hasAvatar = true;
-            } else if (vpAnimationsUrl !== '') {
+            if (vpAnimationsUrl !== '') {
                 const proxiedAnimationsUrl = as.String(Config.get('avatars.animationsProxyUrlTemplate', 'https://webex.vulcan.weblin.com/Avatar/InlineData?url={url}')).replace('{url}', encodeURIComponent(vpAnimationsUrl));
                 this.avatarDisplay?.updateObservableProperty('AnimationsUrl', proxiedAnimationsUrl);
                 hasAvatar = true;

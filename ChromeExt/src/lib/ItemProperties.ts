@@ -45,7 +45,6 @@ export enum Pid
     AutorezIsActive = 'AutorezIsActive',
     IframeAuto = 'IframeAuto',
     IframeAutoRange = 'IframeAutoRange',
-    IframeLive = 'IframeLive', // Deprecated. Todo: Remove after all clients updated.
     ImageUrl = 'ImageUrl',
     ItemOverlayDefinitions = 'ItemOverlayDefinitions',
     ItemOverlayIds = 'ItemOverlayIds',
@@ -641,64 +640,3 @@ export class ItemProperties
 }
 
 export class ItemPropertiesSet { [id: string]: ItemProperties }
-
-interface PropertyDefinition
-{
-    inPresence: boolean;
-}
-
-export class Property
-{
-    private static config: { [pid: string]: PropertyDefinition } = {
-        [Pid.Id]: { inPresence: true },
-        [Pid.Label]: { inPresence: true },
-        [Pid.Description]: { inPresence: true },
-        [Pid.OwnerId]: { inPresence: true },
-        [Pid.OwnerName]: { inPresence: true },
-        [Pid.State]: { inPresence: true },
-        [Pid.Provider]: { inPresence: true },
-        [Pid.ImageUrl]: { inPresence: true },
-        [Pid.AnimationsUrl]: { inPresence: true },
-        [Pid.Width]: { inPresence: true },
-        [Pid.Height]: { inPresence: true },
-        [Pid.RezzedX]: { inPresence: true },
-        [Pid.IsInvisible]: { inPresence: true },
-        [Pid.ClaimAspect]: { inPresence: true },
-        [Pid.ClaimStrength]: { inPresence: true },
-        [Pid.ClaimUrl]: { inPresence: true },
-        [Pid.ClaimAccumulatedDuration]: { inPresence: true },
-        [Pid.IframeAspect]: { inPresence: true },
-        [Pid.IframeOptions]: { inPresence: true },
-        [Pid.IframeUrl]: { inPresence: true },
-        [Pid.IframeAuto]: { inPresence: true },
-        [Pid.IframeLive]: { inPresence: true },
-        [Pid.IframeAutoRange]: { inPresence: true },
-        [Pid.DocumentOptions]: { inPresence: true },
-        [Pid.DocumentUrl]: { inPresence: true },
-        [Pid.DocumentTitle]: { inPresence: true },
-        [Pid.DocumentText]: { inPresence: true },
-        [Pid.ScreenAspect]: { inPresence: true },
-        [Pid.ScreenOptions]: { inPresence: true },
-        [Pid.ScreenUrl]: { inPresence: true },
-        [Pid.Display]: { inPresence: true },
-        [Pid.ActivatableIsActive]: { inPresence: true },
-        [Pid.ShopImageUrl]: { inPresence: true },
-        [Pid.PageEffectName]: { inPresence: true },
-
-        // For unit test
-        ['Test1']: { inPresence: true },
-        ['Test2']: { inPresence: true },
-        ['Test3']: { inPresence: false },
-        // ['Test4']: { inPresence: true },
-    };
-
-    static inPresence(pid: string): boolean
-    {
-        if (this.config[pid]) {
-            if (this.config[pid].inPresence) {
-                return this.config[pid].inPresence;
-            }
-        }
-        return false;
-    }
-}
