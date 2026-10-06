@@ -25,6 +25,7 @@ export enum Pid
     IsRezzed = 'IsRezzed',
     IsInvisible = 'IsInvisible',
     RezzedX = 'RezzedX',
+    RezzedXOrigin = 'RezzedXOrigin',
     RezzedLocation = 'RezzedLocation',
     RezzedDestination = 'RezzedDestination',
     InventoryX = 'InventoryX',
@@ -140,6 +141,17 @@ export enum Pid
 export function isPid(value: unknown): value is Pid
 {
     return is.string(value) && value in Pid
+}
+
+export const positionXOrigins = ['Left', 'Right'] as const;
+export type PositionXOrigin = typeof positionXOrigins[number];
+
+export function isPositionXOrigin(value: unknown): value is PositionXOrigin {
+    return positionXOrigins.some(elem => elem === value);
+}
+
+export function asPositionXOrigin(value: unknown): PositionXOrigin {
+    return isPositionXOrigin(value) ? value : 'Left';
 }
 
 export const userFriendStatuses = ['No', 'ProposedByOwner', 'ProposedByOther', 'Yes'] as const;
@@ -425,6 +437,11 @@ export class ItemProperties
     static getRezzedX(item: ItemProperties): null|number
     {
         return as.IntOrNull(item[Pid.RezzedX]);
+    }
+
+    static getRezzedXOrigin(item: ItemProperties): PositionXOrigin
+    {
+        return asPositionXOrigin(item[Pid.RezzedXOrigin]);
     }
 
     static getIsBadge(itemProperties: ItemProperties): boolean

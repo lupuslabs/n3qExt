@@ -12,6 +12,7 @@ import { BackpackItem } from './BackpackItem';
 import { PointerEventData } from '../lib/PointerEventData';
 import { AnimationsDefinition } from './AnimationsXml';
 import { DomUtils } from '../lib/DomUtils'
+import { PositionXOrigin } from '../lib/ItemProperties';
 
 export class Entity
 {
@@ -87,32 +88,43 @@ export class Entity
         // Nothing to do if not having a Chatout.
     }
 
-    protected setPosition(x: number): void
+    protected setPosition(x: number, xOrigin: PositionXOrigin = 'Left'): void
     {
-        this.elem.style.left = `${x}px`;
+        switch (xOrigin) {
+            case 'Left': {
+                this.elem.style.left = `${x}px`;
+                this.elem.style.right = 'auto';
+            } break;
+            case 'Right': {
+                this.elem.style.left = 'auto';
+                this.elem.style.right = `${x}px`;
+            } break;
+        }
     }
 
-    protected move(newX: number): void
+    protected move(newX: number, xOrigin: PositionXOrigin = 'Left'): void
     {
         if (newX < 0) { newX = 0; }
 
-        const oldX = this.getPosition();
-        if (newX === oldX) {
-            this.setPosition(newX);
-            this.onMoveDestinationReached(newX);
+        const newXFromLeft = this.app.display.translatePositionXToNewOrigin(newX, xOrigin, 'Left');
+        const oldXFromLeft = this.getPosition();
+        if (newXFromLeft === oldXFromLeft) {
+            this.setPosition(newX, xOrigin);
+            this.onMoveDestinationReached(newXFromLeft);
+            return;
         }
-        const diffX = newX - oldX;
 
+        const diffX = newXFromLeft - oldXFromLeft;
         this.avatarDisplay?.setActivity(diffX < 0 ? 'moveleft' : 'moveright'); // Also sets speed.
         if (!this.avatarDisplay?.hasSpeed()) {
             // Happens when no avatarDisplay or animations not loaded yet or move animation has no speed defined.
             this.avatarDisplay?.setActivity(''); // Slide doesn't clear activity when done, so do it now.
-            this.quickSlide(newX);
+            this.quickSlide(newX, xOrigin);
             return;
         }
         const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
         const durationSecs = Math.abs(diffX) / speedPixelPerSec;
-        this.executeMoveDomTransition(newX, durationSecs, newXFromLeft => this.onMoveDestinationReached(newXFromLeft));
+        this.executeMoveDomTransition(newX, xOrigin, durationSecs, newXFromLeft => this.onMoveDestinationReached(newXFromLeft));
     }
 
     protected onMoveDestinationReached(newX: number): void
@@ -120,6 +132,9 @@ export class Entity
         this.avatarDisplay?.setActivity('');
     }
 
+    /**
+     * Returns the X position measured from the left.
+     */
     public getPosition(): number
     {
         return this.elem.offsetLeft;
@@ -134,21 +149,31 @@ export class Entity
         return {avatarOriginClientX: clientRect.left, avatarOriginClientY: clientRect.bottom};
     }
 
-    protected quickSlide(newX: number): void
+    protected quickSlide(newX: number, xOrigin: PositionXOrigin = 'Left'): void
     {
         if (newX < 0) { newX = 0; }
-
         const durationSecs = as.Float(Config.get('room.quickSlideSec'), 0.1);
-        this.executeMoveDomTransition(newX, durationSecs, newXFromLeft => this.onQuickSlideReached(newXFromLeft));
+        this.executeMoveDomTransition(newX, xOrigin, durationSecs, newXFromLeft => this.onQuickSlideReached(newXFromLeft));
     }
 
-    protected executeMoveDomTransition(newX: number, durationSecs: number, onMoveComplete: (newX: number) => void): void
+    protected executeMoveDomTransition(newX: number, xOrigin: PositionXOrigin, durationSecs: number, onMoveComplete: (newX: number) => void): void
     {
-        const transition: DomUtils.ElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
+        // Ensure positioning uses xOrigin:
+        const currentXFromLeft = this.getPosition();
+        if (xOrigin === 'Right') {
+            const currentXFromRight = this.app.display.translatePositionXToNewOrigin(currentXFromLeft, 'Left', 'Right');
+            this.setPosition(currentXFromRight, 'Right');
+        } else {
+            this.setPosition(currentXFromLeft, 'Left');
+        }
+
+        const transitionProperty: string = xOrigin === 'Right' ? 'right' : 'left';
+        const newXFromLeft = this.app.display.translatePositionXToNewOrigin(newX, xOrigin, 'Left');
+        const transition: DomUtils.ElemTransition = { property: transitionProperty, timingFun: 'linear', duration: `${durationSecs}s` };
         this.currentMoveDomTransitionId++;
         const moveDomTransitionId = this.currentMoveDomTransitionId;
         const guard = (): boolean => moveDomTransitionId === this.currentMoveDomTransitionId;
-        const onMoveEnd = (): void => onMoveComplete(newX);
+        const onMoveEnd = (): void => onMoveComplete(newXFromLeft);
         DomUtils.startElemTransition(this.elem, guard, transition, `${newX}px`, onMoveEnd, onMoveEnd);
     }
 
