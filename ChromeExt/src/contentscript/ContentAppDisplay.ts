@@ -5,6 +5,7 @@ import { Client } from '../lib/Client'
 import { Config } from '../lib/Config'
 import { DomUtils } from '../lib/DomUtils'
 import { Logger } from '../lib/Logger'
+import { PositionXOrigin } from '../lib/ItemProperties';
 import { ContentApp, ContentAppParams } from './ContentApp'
 
 import styleText from './contentscript.css';
@@ -39,6 +40,17 @@ export class ContentAppDisplay {
 
     public getDisplay(): HTMLElement {
         return this.display
+    }
+
+    public getDisplayWidth(): number {
+        return this.display.offsetWidth;
+    }
+
+    public translatePositionXToNewOrigin(x: number, xOrigin: PositionXOrigin, newXOrigin: PositionXOrigin): number {
+        if (xOrigin === newXOrigin) {
+            return x;
+        }
+        return this.getDisplayWidth() - x;
     }
 
     public getBaseCss(): string {
