@@ -642,20 +642,41 @@ export namespace DomUtils {
 
     export type ElemTransition = {property: string, delay?: string, duration?: string, timingFun?: string}
 
+    export function getElemCssTransition(elem: HTMLElement, property: string): null|CSSTransition
+    {
+        for (const animation of elem.getAnimations()) {
+            if (animation instanceof CSSTransition && animation.transitionProperty === property) {
+                return animation
+            }
+        }
+        return null
+    }
+
+    /**
+     * Starts a CSS transition of a property after the next render.
+     * guard tells whether the transition is still wanted: it gates the start and the handlers, so a caller
+     * replacing or stopping a transition can make the old one's guard return false to silence it.
+     * onComplete is called when the final value has been applied: after the transition ended, or immediately if no
+     * transition happens (zero duration, value unchanged, element not rendered).
+     * onCancel is called when the transition got canceled, e.g. by the element being moved in the DOM,
+     * by someone else styling the property, or by stopElemTransition.
+     */
     export function startElemTransition(
-        elem: HTMLElement, guard: () => null|boolean, transition: ElemTransition, finalVal: string, onComplete?: () => void,
+        elem: HTMLElement, guard: Nil|(() => null|boolean), transition: ElemTransition, finalVal: string,
+        onComplete?: Nil|(() => void), onCancel?: Nil|(() => void),
     ): void {
         guard = guard ?? (() => true)
         if (!guard()) {
             return
         }
+        const property = transition.property;
 
-        const completedurationSecs
+        const completeDurationSecs
             = transitionDurationToSeconds(transition.delay)
             + transitionDurationToSeconds(transition.duration)
 
-        if (completedurationSecs === 0) {
-            stopElemTransition(elem, transition.property, finalVal)
+        if (completeDurationSecs === 0) {
+            stopElemTransition(elem, property, finalVal)
             onComplete?.()
             return
         }
@@ -665,13 +686,26 @@ export namespace DomUtils {
                 return
             }
             const transitions = getElemTransitions(elem)
-            transitions.set(transition.property, transition)
+            transitions.set(property, transition)
             setElemTransitions(elem, transitions.values())
-            elem.style[transition.property] = finalVal
+            elem.style[property] = finalVal
 
-            if (onComplete) {
-                window.setTimeout(onComplete, 1000 * completedurationSecs)
+            const cssTransition = getElemCssTransition(elem, property)
+            if (is.nil(cssTransition)) {
+                onComplete?.()
+                return
             }
+            const onFinished = (): void => {
+                if (guard()) {
+                    onComplete?.()
+                }
+            };
+            const onCancelled = (): void => {
+                if (guard()) {
+                    onCancel?.()
+                }
+            };
+            cssTransition.finished.then(onFinished, onCancelled)
         })
     }
 
