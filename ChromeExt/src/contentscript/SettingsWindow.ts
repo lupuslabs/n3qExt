@@ -155,7 +155,7 @@ export class SettingsWindow extends FullWindow<FullWindowOptions>
         const saveButton = this.app.uiHelper.makeDefaultTextButton('save-button', 'Popup.Save', 'Save', () => {
             const transition = {property: 'opacity', duration: '0.2s'};
             const nickname2Save = this.nicknameInputElem.value;
-            DomUtils.startElemTransition(savingIndicator, null, transition, '1', () =>
+            const save = (): void => {
                 Memory.setLocal(Utils.localStorageKey_Nickname(), nickname2Save).catch(error => log.info(error))
                 .then(() => this.currentAvatar.setAvatarInLocalMemory()).catch(error => log.info(error))
                 .then(() => this.saveUserConfig()).catch(error => log.info(error))
@@ -163,9 +163,11 @@ export class SettingsWindow extends FullWindow<FullWindowOptions>
                 .then(() => BackgroundMessage.userSettingsChanged()).catch(error => log.info(error))
                 .then(() => {
                     const transition = {property: 'opacity', duration: '1s'};
-                    DomUtils.startElemTransition(savingIndicator, null, transition, '0', () => this.close());
-                }).catch(error => log.info(error))
-            );
+                    const close = (): void => this.close();
+                    DomUtils.startElemTransition(savingIndicator, null, transition, '0', close, close);
+                }).catch(error => log.info(error));
+            };
+            DomUtils.startElemTransition(savingIndicator, null, transition, '1', save, save);
         });
         sectionElem.append(saveButton);
         sectionElem.append(savingIndicator);

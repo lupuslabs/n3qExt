@@ -21,7 +21,7 @@ export class Entity
     protected hasHover: boolean = false;
     protected avatarDisplay: null|Avatar = null;
     protected defaultSpeedPixelPerSec: number = as.Float(Config.get('room.defaultAvatarSpeedPixelPerSec', 100));
-    protected onMoveTransitionEndHandler: null|((ev: TransitionEvent) => void) = null;
+    private currentMoveDomTransitionId: number = 0;
 
     constructor(protected app: ContentApp, protected room: Room, protected roomNick: string, protected isSelf: boolean)
     {
@@ -112,18 +112,7 @@ export class Entity
         }
         const speedPixelPerSec = as.Float(this.avatarDisplay?.getSpeedPixelPerSec(), this.defaultSpeedPixelPerSec);
         const durationSecs = Math.abs(diffX) / speedPixelPerSec;
-        const transition: DomUtils.ElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
-        const onMoveComplete = ev => {
-            if (ev.propertyName === 'left') {
-                this.onMoveDestinationReached(newX);
-            }
-        }
-        this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
-        this.elem.removeEventListener('transitioncancel', this.onMoveTransitionEndHandler);
-        this.onMoveTransitionEndHandler = onMoveComplete;
-        this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
-        this.elem.addEventListener('transitioncancel', this.onMoveTransitionEndHandler);
-        DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
+        this.executeMoveDomTransition(newX, durationSecs, newXFromLeft => this.onMoveDestinationReached(newXFromLeft));
     }
 
     protected onMoveDestinationReached(newX: number): void
@@ -150,18 +139,17 @@ export class Entity
         if (newX < 0) { newX = 0; }
 
         const durationSecs = as.Float(Config.get('room.quickSlideSec'), 0.1);
+        this.executeMoveDomTransition(newX, durationSecs, newXFromLeft => this.onQuickSlideReached(newXFromLeft));
+    }
+
+    protected executeMoveDomTransition(newX: number, durationSecs: number, onMoveComplete: (newX: number) => void): void
+    {
         const transition: DomUtils.ElemTransition = { property: 'left', timingFun: 'linear', duration: `${durationSecs}s` };
-        const onMoveComplete = ev => {
-            if (ev.propertyName === 'left') {
-                this.onQuickSlideReached(newX);
-            }
-        }
-        this.elem.removeEventListener('transitionend', this.onMoveTransitionEndHandler);
-        this.elem.removeEventListener('transitioncancel', this.onMoveTransitionEndHandler);
-        this.onMoveTransitionEndHandler = onMoveComplete;
-        this.elem.addEventListener('transitionend', this.onMoveTransitionEndHandler);
-        this.elem.addEventListener('transitioncancel', this.onMoveTransitionEndHandler);
-        DomUtils.startElemTransition(this.elem, null, transition, `${newX}px`);
+        this.currentMoveDomTransitionId++;
+        const moveDomTransitionId = this.currentMoveDomTransitionId;
+        const guard = (): boolean => moveDomTransitionId === this.currentMoveDomTransitionId;
+        const onMoveEnd = (): void => onMoveComplete(newX);
+        DomUtils.startElemTransition(this.elem, guard, transition, `${newX}px`, onMoveEnd, onMoveEnd);
     }
 
     protected onQuickSlideReached(newX: number): void
@@ -240,11 +228,6 @@ export class Entity
 
     /**
      * Reacts to an item that has been drag-and-dropped on this.
-     *
-     * @todo: Interface to be implemented by RoomItem and BackpackItem,
-     *        so the type can be properly defined in the signature.
-     *
-     * @param droppedItem RoomItem|BackpackItem
      */
     onGotItemDroppedOn(droppedItem: RoomItem|BackpackItem): void {}
 

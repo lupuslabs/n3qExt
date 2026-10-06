@@ -14,7 +14,6 @@ type BubbleInfo = ChatUtils.ChatMessage & {
     bubbleStatus: BubbleStatus,
     transitionStart: Date,
     transitionDurationSecs: number,
-    transitionCancelHandler: () => void,
 };
 
 export class Chatout
@@ -125,7 +124,6 @@ export class Chatout
             bubbleStatus: 'fadingSlow',
             transitionStart: new Date(startTs),
             transitionDurationSecs: durationSecs,
-            transitionCancelHandler: () => this.fadeoutBubble(bubble),
         };
         if (this.bubbles.has(bubble)) {
             return; // Duplicate detected - keep old version.
@@ -193,7 +191,6 @@ export class Chatout
     protected fadeoutBubble(bubble: BubbleInfo): void
     {
         const bubbleElem = bubble.bubbleElem;
-        bubbleElem.removeEventListener('transitioncancel', bubble.transitionCancelHandler);
         if (bubble.bubbleStatus !== 'fadingSlow' && bubble.bubbleStatus !== 'fadingFast') {
             return;
         }
@@ -216,11 +213,11 @@ export class Chatout
             duration: `${durationSecsRem}s`,
             timingFun: 'linear',
         };
-        const guard = () => bubble.bubbleStatus === currentStatus;
-        const onComplete = () => this.closeBubbleWithStatus(bubble, currentStatus);
+        const guard = (): boolean => bubble.bubbleStatus === currentStatus;
+        const onEnd = (): void => this.closeBubbleWithStatus(bubble, currentStatus);
+        const onCancel = (): void => this.fadeoutBubble(bubble); // Restart with the remaining time.
         DomUtils.stopElemTransition(bubbleElem, 'opacity', currentVal.toString());
-        DomUtils.startElemTransition(bubbleElem, guard, transition, finalVal.toString(), onComplete);
-        bubbleElem.addEventListener('transitioncancel', bubble.transitionCancelHandler);
+        DomUtils.startElemTransition(bubbleElem, guard, transition, finalVal.toString(), onEnd, onCancel);
     }
 
     protected getMessageTimestampRemoveIfOlder(): string

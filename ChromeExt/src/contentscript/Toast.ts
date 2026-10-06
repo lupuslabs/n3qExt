@@ -223,7 +223,7 @@ export class Toast extends WindowBase<ToastOptions>
                 property: 'opacity',
                 duration: '200ms',
                 timingFun: 'linear',
-            }, '1', onComplete);
+            }, '1', onComplete, onComplete);
             this.modalBackgroundElem = DomUtils.elemOfHtml('<div class="toast-modal-background"/>');
             this.app.getDisplay()?.append(this.modalBackgroundElem);
             this.toFront();
@@ -235,12 +235,12 @@ export class Toast extends WindowBase<ToastOptions>
                 property: 'opacity',
                 duration: '200ms',
                 timingFun: 'linear',
-            }, '1', onComplete);
+            }, '1', onComplete, onComplete);
             DomUtils.startElemTransition(this.windowElem, guard, {
                 property: 'bottom',
                 duration: '200ms',
                 timingFun: 'linear',
-            }, finalBottom, onComplete);
+            }, finalBottom, onComplete, onComplete);
         }
     }
 
@@ -381,18 +381,18 @@ export class Toast extends WindowBase<ToastOptions>
                     const playTransitionFun = () => DomUtils.startElemTransition(this.windowElem, guard, {
                         property: 'opacity',
                         duration: '600ms',
-                    }, '0', onComplete);
+                    }, '0', onComplete, onComplete);
                     this.delayedTransitionTimeoutHandle = setTimeout(playTransitionFun, 1e3 * this.durationSec);
                 } else {
                     const playTransitionFun = () => {
                         DomUtils.startElemTransition(this.windowElem, guard, {
                             property: 'opacity',
                             duration: '600ms',
-                        }, '0', onComplete);
+                        }, '0', onComplete, onComplete);
                         DomUtils.startElemTransition(this.windowElem, guard, {
                             property: 'bottom',
                             duration: '600ms',
-                        }, '-20px', onComplete);
+                        }, '-20px', onComplete, onComplete);
                     };
                     this.delayedTransitionTimeoutHandle = setTimeout(playTransitionFun, 1e3 * this.durationSec);
                 }
