@@ -17,6 +17,7 @@ export class _Changes
             ['Fix', 'Avatar shows idle animation while moving when a new move interrupts a running one'],
             ['Add', 'Notifications: open  the system notifications window from the own participant menu'],
             ['Add', 'Support for websocket-based rooms and room items'],
+            ['Add', 'Support for positioning room items from the right edge of the display'],
         ]],
         ['1.5.2', 'Shop', [
             ['Add', 'Button on backpack item info popup for removing badge from own avatar'],

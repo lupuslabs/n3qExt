@@ -150,6 +150,7 @@ export class RoomItem extends Entity
 
         const vpAnimationsUrl = as.String(this.getProperties()[Pid.AnimationsUrl]);
         const vpImageUrl = as.String(this.getProperties()[Pid.ImageUrl]);
+        const vpRezzedXOrigin = ItemProperties.getRezzedXOrigin(this.getProperties());
         const vpRezzedX = as.Int(this.getProperties()[Pid.RezzedX], -1);
 
         // Do something with the data
@@ -248,11 +249,12 @@ export class RoomItem extends Entity
                 newX = this.isSelf ? await this.app.getSavedPosition() : this.app.getDefaultPosition(this.getItemId());
             }
             if (newX < 0) { newX = 100; }
-            this.setPosition(newX);
+            this.setPosition(newX, vpRezzedXOrigin);
         } else {
             if (hasPosition || vpRezzedX >= 0) {
-                if (this.getPosition() !== newX) {
-                    this.move(newX);
+                const newXFromLeft = this.app.display.translatePositionXToNewOrigin(newX, vpRezzedXOrigin, 'Left');
+                if (this.getPosition() !== newXFromLeft) {
+                    this.move(newX, vpRezzedXOrigin);
                 }
             }
         }
