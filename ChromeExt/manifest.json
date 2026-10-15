@@ -3,7 +3,7 @@
     "minimum_chrome_version": "140",
     "name": "Weblin",
     "short_name": "Weblin",
-    "version": "1.5.2.0",
+    "version": "1.6.0.0",
     "description": "Avatars and Things on Web Pages",
     "permissions": [
         "storage"
