@@ -48,7 +48,6 @@ DomUtils.onDomReady(async () => {
     }
     const messagePipeProvider = new PortContentMessagePipeProvider()
     contentCommunicator = new ContentToBackgroundCommunicator(messagePipeProvider, onRequestFromBackground)
-    contentCommunicator.start() // This turns the heartbeat on so background is kept alive even when content is actually disabled.
     const backgroundCommunicatorFactoryForApp = (contentRequestHandler: ContentRequestHandler) => {
         contentRequestFromBackgroundHandler = contentRequestHandler
         return contentCommunicator
@@ -125,12 +124,17 @@ DomUtils.onDomReady(async () => {
 
     function onVisibilitychange()
     {
+        // Chromium browsers can have two pages in one tab at the same time; one page is prerendering while the old page is still visible.
+        // document.prerendering is defined in the WICG "Prerendering Revamped" draft which isn't an official standard yet (2026-10-19).
+        const isPrerendering: boolean = !!(document as { prerendering?: unknown }).prerendering
+        if (isPrerendering) {
+            return
+        }
+
         const visibilityState = document.visibilityState
         log.debug('Contentscript.onVisibilitychange', { visibilityState })
-        if (visibilityState !== 'hidden') {
-            if (visibilityState !== 'visible') {
-                document.body.append(DomUtils.elemOfHtml('<div style="position:fixed;right:0;bottom:0;width:100px;height:100px;background-color:red;"/>'))
-            }
+        if (visibilityState === 'visible') {
+            contentCommunicator.start()
             activateContent()
         } else {
             if (onTabChangeStay) {
@@ -151,6 +155,20 @@ DomUtils.onDomReady(async () => {
             }
         }
     })
+
+    window.addEventListener('pagehide', (event: PageTransitionEvent) => {
+        if (event.persisted) {
+            // Page is about to be frozen for the history cache.
+            // In Chrome the communication port will be closed without any indication leaving the
+            // communicator in a weird state of having a closed pipe without ever being told so.
+
+            // Shutdown the content app so it can cleanly start again after the communicator has been started again:
+            deactivateContent();
+
+            // Shutdown the communicator explicitly to avoid the weird state:
+            contentCommunicator.stop();
+        }
+    });
 
     window.addEventListener('visibilitychange', () => onVisibilitychange())
     onVisibilitychange()
