@@ -17,7 +17,11 @@ export class PortMessagePipe implements BackgroundMessagePipe
 
     public addOnDisconnectHandler(handler: () => void): void
     {
-        this.port.onDisconnect.addListener((port: Port) => handler())
+        this.port.onDisconnect.addListener((port: Port) => {
+            // Read lastError to prevent Chrome from logging "Unchecked runtime.lastError":
+            const _ = chrome.runtime.lastError?.message
+            handler()
+        })
     }
 
     public addOnMessageHandler(handler: (message: BackgroundRequestEnvelope|BackgroundResponseEnvelope) => void): void
