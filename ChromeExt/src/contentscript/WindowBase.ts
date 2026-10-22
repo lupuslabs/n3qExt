@@ -639,8 +639,8 @@ export abstract class WindowBase<OptionsType extends WindowBaseOptions>
         let width = this.geometry.width
         let height = this.geometry.height
         if (is.nonEmptyString(configKeyPrefix)) {
-            left = Config.get(`${configKeyPrefix}Left`, left)
-            top = Config.get(`${configKeyPrefix}Top`, top)
+            left = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'undockedLeft')), left)
+            top = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'undockedTop')), top)
             if (width <= 1) {
                 width = as.Float(Config.get(this.makeConfigKey(configKeyPrefix, 'undockedWidth')))
             }

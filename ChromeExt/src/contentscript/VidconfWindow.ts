@@ -1,3 +1,4 @@
+import { as } from '../lib/as';
 import { ContentApp } from './ContentApp';
 import { FullWindow, FullWindowOptions } from './FullWindow';
 import { Config } from '../lib/Config';
@@ -19,10 +20,10 @@ export class VidconfWindow extends FullWindow<FullWindowOptions>
         this.titleTextId = 'Vidconfwindow.Video Conference';
         this.minWidth = 180;
         this.minHeight = 180;
-        this.defaultWidth = 600;
-        this.defaultHeight = 400;
-        this.defaultBottom = 200;
-        this.defaultLeft = 50;
+        this.defaultWidth = as.FloatOrNull(Config.get('room.vidconfWidth')) ?? 600;
+        this.defaultHeight = as.FloatOrNull(Config.get('room.vidconfHeight')) ?? 400;
+        this.defaultBottom = as.FloatOrNull(Config.get('room.vidconfBottom')) ?? 200;
+        this.defaultLeft = as.FloatOrNull(Config.get('room.vidconfLeft')) ?? 50;
 
         this.url = url;
         this.popupId = 'room.vidconfUndocked:' + (app.getRoom()?.getJid() ?? '');

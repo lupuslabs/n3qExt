@@ -654,7 +654,7 @@ export class RoomItem extends Entity
 
     private showStatsDisplay(delaySecs: number, openByLongclick: boolean): void
     {
-        if (this.statsDisplayOpenByLongclick) {
+        if (!as.Bool(Config.get('room.itemStatsTooltip'), true) || this.statsDisplayOpenByLongclick) {
             return;
         }
         this.statsDisplayOpenByLongclick = openByLongclick;

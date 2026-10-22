@@ -5,6 +5,7 @@ import { is } from '../lib/is';
 import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
 import { Environment } from '../lib/Environment';
+import { Config } from '../lib/Config';
 import { ContentApp } from './ContentApp';
 import { FullWindow, FullWindowOptions } from './FullWindow';
 import { ChatUtils } from '../lib/ChatUtils';
@@ -48,8 +49,8 @@ export abstract class ChatWindow extends FullWindow<ChatWindowOptions>
         this.titleTextId = 'Chatwindow.Chat History';
         this.minWidth = 300;
         this.minHeight = 150;
-        this.defaultWidth = 400;
-        this.defaultHeight = 300;
+        this.defaultWidth = as.FloatOrNull(Config.get('room.chatWindowWidth')) ?? 400;
+        this.defaultHeight = as.FloatOrNull(Config.get('room.chatWindowHeight')) ?? 300;
         this.defaultBottom = 200;
         this.defaultLeft = 50;
 

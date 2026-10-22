@@ -769,7 +769,7 @@ export class BackgroundApp
         let lastTimeThisChannel = 0;
         if (this.pointsActivitiesTimes.has(channel)) {
             lastTimeThisChannel = this.pointsActivitiesTimes.get(channel);
-            const delayNeededSec = as.Float(Config.get('points.delays', 5.0), 5.0);
+            const delayNeededSec = as.FloatOrNull(Config.get(`points.delays.${channel}`)) ?? 5.0;
             const sinceLastTimeSec = (Date.now() - lastTimeThisChannel) / 1000;
             ignore = sinceLastTimeSec < delayNeededSec;
         }

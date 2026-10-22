@@ -561,7 +561,7 @@ export class Room
             this.vidconfWindow = new VidconfWindow(this.app, url);
             this.vidconfWindow.show({
                 'anchor': aboveElem,
-                'undocked': true,
+                'undocked': as.Bool(Config.get('room.vidconfPopout'), true),
                 onClose: () =>
                 {
                     this.vidconfWindow = null;

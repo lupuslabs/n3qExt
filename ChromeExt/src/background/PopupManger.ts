@@ -185,7 +185,7 @@ export class ExtensionPopupManagerWindowBackend implements PopupManagerWindowBac
         if (!this.pollWindowStates) {
             return
         }
-        const intervalSec = as.Int(Config.get('popups.windowStatePollIntervalSec', 60))
+        const intervalSec = as.Int(Config.get('popup.windowStatePollIntervalSec', 60))
         const secsSinceUpdate = (Date.now() - this.lastPollWindowStatesTimeMs) / 1000
         if (secsSinceUpdate > intervalSec) {
             try {
@@ -318,7 +318,7 @@ export class PagePopupManagerWindowBackend implements PopupManagerWindowBackend
 
     public maintain(): void
     {
-        const intervalSec = as.Int(Config.get('popups.windowStatePollIntervalSec', 60))
+        const intervalSec = as.Int(Config.get('popup.windowStatePollIntervalSec', 60))
         const secsSinceUpdate = (Date.now() - this.lastPollWindowStatesTimeMs) / 1000
         if (secsSinceUpdate <= intervalSec) {
             return
