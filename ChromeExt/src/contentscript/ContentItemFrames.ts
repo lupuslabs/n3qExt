@@ -63,17 +63,16 @@ export class ContentItemFrames {
         const systemItem = iter(this.app.ownItems.getAllItems().values())
             .filter(ItemProperties.isN3qSystemItem)
             .getNext() ?? {};
-        const thoughtsProps = Config.get('thoughts.itemFrameProperties', {}) as ItemProperties;
-        const combinedProps = { ...systemItem, ...thoughtsProps };
-        let iframeUrlTpl: null|string = null;
+        let iframeUrl = Config.get('thoughts.iframeUrl');
         if (target) {
-            iframeUrlTpl = ItemProperties.getIframeUrl(thoughtsProps);
-            const separator = iframeUrlTpl.includes('?') ? '&' : '?';
-            iframeUrlTpl = `${iframeUrlTpl}${separator}clientRoomId=${encodeURIComponent(target.clientRoomId)}`
+            const separator = iframeUrl.includes('?') ? '&' : '?';
+            iframeUrl = `${iframeUrl}${separator}clientRoomId=${encodeURIComponent(target.clientRoomId)}`
                 + `&postId=${encodeURIComponent(target.postId)}`
                 + `&noteId=${encodeURIComponent(target.noteId)}`;
         }
-        return this.openItemFrame(combinedProps, anchor, null, iframeUrlTpl);
+        const iframeOptions = Config.get('thoughts.iframeOptions');
+        const combinedProps = { ...systemItem, [Pid.IframeUrl]: iframeUrl, [Pid.IframeOptions]: iframeOptions };
+        return this.openItemFrame(combinedProps, anchor);
     }
 
     public openItemFrame(

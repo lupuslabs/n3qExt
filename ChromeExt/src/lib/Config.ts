@@ -443,7 +443,8 @@ export class Config
         },
         thoughts: {
             enabled: false,
-            itemFrameProperties: {},
+            iframeUrl: 'https://webit.vulcan.weblin.com/ItemFrame/Thoughts?context={{context}}',
+            iframeOptions: '{"width": 600, "height": 700, "bottom": 150, "frame": "Window", "hidden": true, "resizable": true}',
         },
         roomChat: {
             undockedWidth: 630,

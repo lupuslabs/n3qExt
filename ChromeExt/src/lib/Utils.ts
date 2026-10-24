@@ -91,14 +91,7 @@ export class Utils
     }
 
     public static isThoughtsEnabled(): boolean {
-        if (!Config.get('thoughts.enabled', false)) {
-            return false;
-        }
-        const itemFrameProperties: unknown = Config.get('thoughts.itemFrameProperties', {});
-        if (!is.object(itemFrameProperties) || !is.nonEmptyString(itemFrameProperties.IframeUrl)) {
-            return false;
-        }
-        return true;
+        return !!Config.get('thoughts.enabled', false);
     }
 
     static parseStringMap(s) {
