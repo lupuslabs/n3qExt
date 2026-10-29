@@ -863,9 +863,9 @@ export class IframeApi
     handle_ClientBaseCssRequest(request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
     {
         try {
-            const themeCss = this.app.themeManager.getEnabledThemesCss();
+            const themeCss = this.app.themeManager.getEnabledThemesCssForFrames();
             this.app.itemFrames.sendMessageToScriptFrame(request.item, new WeblinClientIframeApi.ClientThemeCssNotification(themeCss));
-            return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss());
+            return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCssForFrames());
         } catch (ex) {
             log.info('IframeApi.handle_ClientBaseCssRequest', ex);
             return new WeblinClientApi.ErrorResponse(ex);

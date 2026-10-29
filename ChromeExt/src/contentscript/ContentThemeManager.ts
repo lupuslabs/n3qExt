@@ -11,10 +11,11 @@ export class ContentThemeManager
 {
     private readonly app: ContentApp
     private themes: Theme[] = []
-    private enabledThemesCss: string = ''
+    private enabledThemesCssWithLayers: string = ''
+    private enabledThemesCssForFrames: string = ''
 
-    private readonly callableThemesChangedListeners: CallableEventListeners<string> = new CallableEventListeners('themesChanged')
-    public readonly themesChangedListeners: EventListeners<string>
+    private readonly callableThemesChangedListeners: CallableEventListeners<void> = new CallableEventListeners('themesChanged')
+    public readonly themesChangedListeners: EventListeners<void>
 
     public constructor(app: ContentApp)
     {
@@ -32,9 +33,9 @@ export class ContentThemeManager
         return this.themes
     }
 
-    public getEnabledThemesCss(): string
+    public getEnabledThemesCssForFrames(): string
     {
-        return this.enabledThemesCss
+        return this.enabledThemesCssForFrames
     }
 
     public stop(): void
@@ -55,21 +56,25 @@ export class ContentThemeManager
     private update(): void
     {
         if (this.updateEnabledThemesCss()) {
-            this.app.display.setThemeCss(this.enabledThemesCss)
-            this.callableThemesChangedListeners.callListeners(this.enabledThemesCss)
+            this.app.display.setThemeCss(this.enabledThemesCssWithLayers)
+            this.callableThemesChangedListeners.callListeners()
         }
     }
 
     private updateEnabledThemesCss(): boolean
     {
-        const newThemesCss = this.themes
-            .filter(theme => theme.isEnabled)
-            .map(theme => `@layer theme-${CSS.escape(theme.id)} {\n\n${theme.css.trim()}\n\n}`)
+        const enabledThemes = this.themes.filter(theme => theme.isEnabled)
+        const newThemesCssForFrames = enabledThemes
+            .map(theme => `/* theme-${CSS.escape(theme.id)} */\n${theme.css.trim()}`)
             .join('\n\n')
-        if (newThemesCss === this.enabledThemesCss) {
+        if (newThemesCssForFrames === this.enabledThemesCssForFrames) {
             return false
         }
-        this.enabledThemesCss = newThemesCss
+        const newThemesCss = enabledThemes
+            .map(theme => `@layer theme-${CSS.escape(theme.id)} {\n\n${theme.css.trim()}\n\n}`)
+            .join('\n\n')
+        this.enabledThemesCssWithLayers = newThemesCss
+        this.enabledThemesCssForFrames = newThemesCssForFrames
         return true
     }
 }

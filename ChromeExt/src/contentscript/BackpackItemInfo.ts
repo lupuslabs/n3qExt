@@ -28,7 +28,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
     protected readonly iframeContainer: HTMLElement
     protected readonly buttonsContainer: HTMLElement
     protected readonly debuginfoContainer: HTMLElement
-    protected readonly themesChangeHandler: (themesCss: string) => void
+    protected readonly themesChangeHandler: () => void
     protected readonly itemUpdateHandler: (item: null|ItemProperties) => void
     protected readonly itemFrameRequestHandler: (request: WeblinClientIframeApi.Request) => void
 
@@ -58,7 +58,7 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         this.iframeContainer = DomUtils.elemOfHtml('<div class="iframe-container" data-translate="children"></div>')
         this.buttonsContainer = DomUtils.elemOfHtml('<div class="buttons-container" data-translate="children"></div>')
         this.debuginfoContainer = DomUtils.elemOfHtml('<div class="debuginfo-container" data-translate="children"></div>')
-        this.themesChangeHandler = themesCss => this.handleThemesChanged(themesCss)
+        this.themesChangeHandler = () => this.handleThemesChanged()
         this.itemUpdateHandler = item => this.handleItemUpdate(item)
         this.itemFrameRequestHandler = request => this.handleItemInventoryiframeApiRequest(request)
     }
@@ -151,12 +151,13 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
         return popupDefinition
     }
 
-    protected handleThemesChanged(themesCss: string): void
+    protected handleThemesChanged(): void
     {
         if (!this.iframeElem) {
             return
         }
-        const notification = new WeblinClientIframeApi.ClientThemeCssNotification(themesCss)
+        const themsCss = this.app.themeManager.getEnabledThemesCssForFrames();
+        const notification = new WeblinClientIframeApi.ClientThemeCssNotification(themsCss)
         this.sendMessageToIframe(notification);
     }
 
@@ -194,8 +195,8 @@ export class BackpackItemInfo extends PopupWindow<BackpackItemInfoOptions>
 
     protected handleClientBaseCssRequest(_request: WeblinClientIframeApi.ClientBaseCssRequest): WeblinClientApi.Response
     {
-        this.handleThemesChanged(this.app.themeManager.getEnabledThemesCss())
-        return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCss())
+        this.handleThemesChanged()
+        return new WeblinClientIframeApi.ClientBaseCssResponse(this.app.display.getBaseCssForFrames())
     }
 
     protected handleWindowCloseRequest(_request: WeblinClientIframeApi.WindowCloseRequest): WeblinClientApi.Response

@@ -250,7 +250,7 @@ export class ContentItemFrames {
     }
 
     private sendThemeCssToAllFrames(): void {
-        const css = this.app.themeManager.getEnabledThemesCss()
+        const css = this.app.themeManager.getEnabledThemesCssForFrames()
         this.sendMessageToAllScriptFrames(new WeblinClientIframeApi.ClientThemeCssNotification(css))
     }
 

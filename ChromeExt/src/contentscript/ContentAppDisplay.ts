@@ -53,7 +53,7 @@ export class ContentAppDisplay {
         return this.getDisplayWidth() - x;
     }
 
-    public getBaseCss(): string {
+    public getBaseCssForFrames(): string {
         return this.baseCss
     }
 
