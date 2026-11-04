@@ -31,6 +31,7 @@ export class BackpackItem
     private readonly imageCellElem: HTMLElement
     private imageElem: HTMLElement
     private readonly textElem: HTMLElement
+    private providerOverlayElem: null|HTMLElement = null
     private onlineStatusElem: null|HTMLElement = null
     private readonly pointerEventDispatcher: PointerEventDispatcher
 
@@ -111,6 +112,18 @@ export class BackpackItem
             ?? as.String(this.properties[Pid.Description])
         this.textElem.innerText = text
         this.elem.setAttribute('title', text)
+    }
+
+    private applyProviderOverlay(): void
+    {
+        const elem = this.app.getItemOverlays().makeProviderOverlayElem(this.properties, this.providerOverlayElem);
+        if (elem !== this.providerOverlayElem) {
+            this.providerOverlayElem?.remove();
+            this.providerOverlayElem = elem;
+            if (!is.nil(elem)) {
+                this.imageCellElem.append(elem);
+            }
+        }
     }
 
     private applyOnlineStatus(): void
@@ -218,6 +231,7 @@ export class BackpackItem
         this.applySize()
         this.applyPosition()
         this.applyImage()
+        this.applyProviderOverlay()
         this.applyOnlineStatus()
         this.itemOverlaysState = this.app.getItemOverlays().updateItemOverlays(this.properties, this.itemOverlaysState)
 

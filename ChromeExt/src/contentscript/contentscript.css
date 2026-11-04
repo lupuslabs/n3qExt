@@ -1363,6 +1363,22 @@
 }
 
 /*============================================================================*/
+/* Item provider overlay on backpack items and room items */
+
+#n3qD .item-provider-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    line-height: 0;
+    pointer-events: none;
+}
+#n3qD .item-provider-overlay .icon-wrap {
+    width: 20px;
+    height: 20px;
+}
+
+/*============================================================================*/
 /* Item frame content */
 
 #n3qD.inventory-item-frame {

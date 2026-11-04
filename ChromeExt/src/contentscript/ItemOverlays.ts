@@ -1,6 +1,9 @@
 import { is } from '../lib/is'
+import { as } from '../lib/as';
 import { iter } from '../lib/Iter'
 import { ItemProperties, ItemOverlayDefinition } from '../lib/ItemProperties'
+import { Config } from '../lib/Config';
+import { DomUtils } from '../lib/DomUtils'
 import { ContentApp } from './ContentApp'
 
 export type ItemOverlaysState = {
@@ -8,11 +11,27 @@ export type ItemOverlaysState = {
     readonly overlayElems: ReadonlyMap<string,HTMLElement>
 }
 
+type ProviderOverlayState = {
+    readonly version: number,
+    readonly overlayImageUrl: null|string,
+    readonly iconElem: null|HTMLImageElement,
+    readonly isIconLoadedPromise: null|Promise<boolean>,
+}
+
+const emptyProviderOverlayState: ProviderOverlayState = {
+    version: 0,
+    overlayImageUrl: null,
+    iconElem: null,
+    isIconLoadedPromise: null,
+}
+
 export class ItemOverlays
 {
     private readonly app: ContentApp
 
     private overlays: ReadonlyMap<string,ItemOverlayDefinition> = new Map()
+
+    private providerOverlays: Map<string,ProviderOverlayState> = new Map()
 
     public constructor(app: ContentApp)
     {
@@ -69,4 +88,51 @@ export class ItemOverlays
         this.overlays = definitions
     }
 
+    /**
+     * Returns oldElem if nothing changed and null if the provider has no overlay image.
+     */
+    public makeProviderOverlayElem(item: ItemProperties, oldElem: null|HTMLElement): null|HTMLElement
+    {
+        const providerId = ItemProperties.getProviderId(item);
+        const overlayState = this.updateAndGetProviderOverlayState(providerId);
+        const oldVersion = as.Int(oldElem?.getAttribute('data-version'), 0);
+        if (oldVersion === overlayState.version) {
+            return oldElem;
+        }
+        const { version, iconElem, isIconLoadedPromise } = overlayState;
+        if (is.nil(iconElem) || is.nil(isIconLoadedPromise)) {
+            return null;
+        }
+        const overlayElem = DomUtils.elemOfHtml(`<div class="item-provider-overlay" data-version="${version}"></div>`);
+        const clonedIconPromise = isIconLoadedPromise.then(ok => {
+            return ok ? <HTMLImageElement> iconElem.cloneNode(true) : null;
+        });
+        overlayElem.append(this.app.uiHelper.makeIconWrap(clonedIconPromise, false));
+        return overlayElem;
+    }
+
+    public getProviderOverlayImageUrl(providerId: string): null|string
+    {
+        return as.NonEmptyStringOrNull(Config.get('itemProviders', {})?.[providerId]?.['itemOverlayImageUrl']);
+    }
+
+    private updateAndGetProviderOverlayState(providerId: string): ProviderOverlayState
+    {
+        const overlayImageUrl = this.getProviderOverlayImageUrl(providerId);
+        const oldstate = this.providerOverlays.get(providerId) ?? emptyProviderOverlayState;
+        if (oldstate.overlayImageUrl === overlayImageUrl) {
+            this.providerOverlays.set(providerId, oldstate);
+            return oldstate;
+        }
+        const version = oldstate.version + 1;
+        if (is.nil(overlayImageUrl)) {
+            const newState = { ...emptyProviderOverlayState, version };
+            this.providerOverlays.set(providerId, newState);
+            return newState;
+        }
+        const [iconElem, isIconLoadedPromise] = this.app.uiHelper.fetchImage(overlayImageUrl);
+        const newState: ProviderOverlayState = { version, overlayImageUrl, iconElem, isIconLoadedPromise };
+        this.providerOverlays.set(providerId, newState);
+        return newState;
+    }
 }

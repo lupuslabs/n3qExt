@@ -56,10 +56,18 @@ export class ContentUiHelper {
     }
 
     public makeIcon(iconUrl: null|string, asCssMask?: boolean): HTMLElement {
+        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl);
+        const imagePromise = isLoadedPromise.then(ok => ok ? iconElem : null);
+        return this.makeIconWrap(imagePromise, asCssMask ?? false);
+    }
+
+    /**
+     * Wraps the image the promise resolves to; null means the image failed to load and the wrap stays empty.
+     */
+    public makeIconWrap(imagePromise: Promise<null|HTMLImageElement>, asCssMask: boolean): HTMLElement {
         const iconWrapElem = DomUtils.elemOfHtml('<span class="icon-wrap"></span>')
-        const [iconElem, isLoadedPromise] = this.fetchImage(iconUrl)
-        isLoadedPromise.then(ok => {
-            if (!ok) {
+        imagePromise.then(iconElem => {
+            if (is.nil(iconElem)) {
                 return
             }
             iconElem.classList.add('icon')

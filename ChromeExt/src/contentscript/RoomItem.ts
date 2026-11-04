@@ -36,6 +36,8 @@ export class RoomItem extends Entity
     private statsDisplayOpenByLongclick: boolean = false;
     private statsDisplayOpenTimeout: number|null = null;
     private statsDisplayCloseTimeout: number|null = null;
+    private providerOverlayElem: null|HTMLElement = null;
+
     constructor(app: ContentApp, room: Room, roomNick: string, isSelf: boolean)
     {
         super(app, room, roomNick, isSelf);
@@ -66,6 +68,22 @@ export class RoomItem extends Entity
             this.properties = props;
             if (!this.myItem) {
                 this.app.itemFrames.handleOtherItemChanged(props)
+            }
+        }
+    }
+
+    private applyProviderOverlay(): void
+    {
+        const avatarElem = this.avatarDisplay?.getElem() ?? null;
+        if (is.nil(avatarElem)) {
+            return;
+        }
+        const elem = this.app.getItemOverlays().makeProviderOverlayElem(this.properties, this.providerOverlayElem);
+        if (elem !== this.providerOverlayElem) {
+            this.providerOverlayElem?.remove();
+            this.providerOverlayElem = elem;
+            if (!is.nil(elem)) {
+                avatarElem.append(elem);
             }
         }
     }
@@ -210,6 +228,8 @@ export class RoomItem extends Entity
                 }
             }
         }
+
+        this.applyProviderOverlay();
 
         if (this.statsDisplay) {
             this.statsDisplay.update();
