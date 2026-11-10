@@ -6,7 +6,7 @@ interface IHistory extends Array<IRelease> { }
 export class _Changes
 {
     static data: IHistory = [
-        ['1.6.0', 'x', [
+        ['1.6.0', 'Thoughts', [
             ['Fix', 'GUI disabled and not retrieving room participant presences after page reload in new Chrome (unload event doesn\'t fire)'],
             ['Fix', 'Race when removing a badge before it\'s image has been resolved'],
             ['Fix', 'Potentially long own avater update delay when transferring an active avatar or nickname item to another user'],
