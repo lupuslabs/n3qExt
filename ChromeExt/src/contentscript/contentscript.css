@@ -49,6 +49,9 @@
     --base-icon-color: lch(33 0 0);
     --thick-icon-color: lch(from var(--base-icon-color) calc(var(--brightness-factor) * 15 + l) c h);
 
+    --separator-line-color: lch(from var(--base-icon-color) calc(var(--brightness-factor) * 60 + l) c h);
+    --separator-line-thickness: 2px;
+
     --base-shadow-color: lch(54 0 0);
     --base-border-color: lch(43 0 0);
     --base-background-color: lch(100 0 0);
