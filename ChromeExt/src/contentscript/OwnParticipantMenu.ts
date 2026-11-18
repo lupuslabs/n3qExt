@@ -25,7 +25,7 @@ import chatHistoryIconUrl from '../assets/icons/ic_outline-chat.svg';
 import chatIconUrl from '../assets/icons/ic_baseline-chat-bubble-outline.svg';
 import emotesIconUrl from '../assets/icons/smiley.svg';
 import personsIconUrl from '../assets/icons/person.svg'
-import thoughtsIconUrl from '../assets/icons/mdi_lightbulb-outline.svg';
+import thoughtsIconUrl from '../assets/icons/thoughts-menu-item.svg';
 import notificationsIconUrl from '../assets/icons/mdi_information-outline.svg';
 import helpIconUrl from '../assets/icons/weblin.png';
 import { Memory } from '../lib/Memory'
